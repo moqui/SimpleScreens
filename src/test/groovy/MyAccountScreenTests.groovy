@@ -38,8 +38,8 @@ class MyAccountScreenTests extends Specification {
         ec.user.loginUser("worker", "moqui1!", null)
         screenTest = ec.screen.makeTest().baseScreenPath("apps/my")
 
-        ec.entity.tempSetSequencedIdPrimary("mantle.party.communication.CommunicationEvent", 55850, 10)
-        ec.entity.tempSetSequencedIdPrimary("mantle.work.effort.WorkEffort", 55850, 10)
+        ec.entity.tempSetSequencedIdPrimary("mantle.party.communication.CommunicationEvent", 61000, 10)
+        ec.entity.tempSetSequencedIdPrimary("mantle.work.effort.WorkEffort", 61000, 10)
     }
 
     def cleanupSpec() {
@@ -82,20 +82,20 @@ class MyAccountScreenTests extends Specification {
         screenPath | containsTextList
         "User/Messages/FindMessage/createMessage?toPartyId=ORG_BLUTH_GOB&subject=Screen Test Subject&body=Screen Test Body" | []
         "User/Messages/FindMessage" | ['Screen Test Subject']
-        "User/Messages/MessageThread?communicationEventId=55850" | ['Screen Test Subject']
-        "User/Messages/MessageThread/SingleMessage?communicationEventId=55850" | ['Screen Test Subject', 'Screen Test Body']
+        "User/Messages/MessageThread?communicationEventId=61000" | ['Screen Test Subject']
+        "User/Messages/MessageThread/SingleMessage?communicationEventId=61000" | ['Screen Test Subject', 'Screen Test Body']
 
         "User/Calendar" | ['New Event']
         "User/Calendar/MyCalendar/createEvent?workEffortName=Screen Test Event&purposeEnumId=WepMeeting&estimatedStartDate=${effectiveTime}&estimatedWorkDuration=2" | []
-        // "User/Calendar/MyCalendar/getCalendarEvents?partyId=" | ['55850', 'Screen Test Event', 'Meeting']
-        "User/Calendar/EventDetail?workEffortId=55850" | ['Screen Test Event', 'Meeting']
+        // "User/Calendar/MyCalendar/getCalendarEvents?partyId=" | ['61000', 'Screen Test Event', 'Meeting']
+        "User/Calendar/EventDetail?workEffortId=61000" | ['Screen Test Event', 'Meeting']
 
         "User/Task/MyTasks/createTask?purposeEnumId=WepTask&estimatedWorkTime=3&workEffortName=Screen Test Task&description=Screen Test Description" | []
-        "User/Task/MyTasks" | ['55851', 'Screen Test Task', 'In Planning']
-        "User/Task/TaskDetail?workEffortId=55851" |
+        "User/Task/MyTasks" | ['61001', 'Screen Test Task', 'In Planning']
+        "User/Task/TaskDetail?workEffortId=61001" |
                 ['Screen Test Task', 'Screen Test Description', 'In Planning', 'Test Worker']
 
-        "User/TimeEntries/recordTimeEntry?workEffortId=55851&rateTypeEnumId=RatpStandard&emplPositionClassId=Programmer&hours=3&pieceCount=150" | []
+        "User/TimeEntries/recordTimeEntry?workEffortId=61001&rateTypeEnumId=RatpStandard&emplPositionClassId=Programmer&hours=3&pieceCount=150" | []
         "User/TimeEntries" | ['Screen Test Task', 'Standard', '3.00']
         "User/ContactInfo" | ['Email Addresses', 'Phone Numbers']
         "User/Account" | ['worker@test.com', 'Worker', 'Change Password']
