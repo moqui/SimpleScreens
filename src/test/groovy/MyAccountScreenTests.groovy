@@ -61,7 +61,7 @@ class MyAccountScreenTests extends Specification {
 
     @Unroll
     def "render My Account screen (#screenPath, #containsTextList)"() {
-        expect:
+        setup:
         ScreenTestRender str = screenTest.render(screenPath, null, null)
         // logger.info("Rendered ${screenPath} in ${str.getRenderTime()}ms, output:\n${str.output}")
         boolean containsAll = true
@@ -74,7 +74,7 @@ class MyAccountScreenTests extends Specification {
 
         }
 
-        // assertions
+        expect:
         !str.errorMessages
         containsAll
 
