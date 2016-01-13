@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal plus a 
+This software is in the public domain under CC0 1.0 Universal plus a
 Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
@@ -12,25 +12,27 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-1.6.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-1.6.xsd"
         default-menu-include="false">
 
     <parameter name="organizationPartyId" required="true"/>
     <parameter name="fromDate"/>
     <parameter name="thruDate"/>
+    <parameter name="dateRange_period"/>
+    <parameter name="dateRange_poffset"/>
     <!-- determined based on org: <parameter name="amountUomId"/> -->
 
-    <transition name="PostedAmountSummaryExport.csv">
-        <default-response url="."><parameter name="renderMode" value="csv"/>
-            <parameter name="pageNoLimit" value="true"/><parameter name="lastStandalone" value="true"/></default-response>
-    </transition>
-    <transition name="PostedAmountSummaryExport.xml">
-        <default-response url="."><parameter name="renderMode" value="xml"/>
-            <parameter name="pageNoLimit" value="true"/><parameter name="lastStandalone" value="true"/></default-response>
-    </transition>
+    <transition name="PostedAmountSummaryExport.csv"><default-response url="."><parameter name="renderMode" value="csv"/>
+        <parameter name="pageNoLimit" value="true"/><parameter name="lastStandalone" value="true"/></default-response></transition>
+    <transition name="PostedAmountSummaryExport.xml"><default-response url="."><parameter name="renderMode" value="xml"/>
+        <parameter name="pageNoLimit" value="true"/><parameter name="lastStandalone" value="true"/></default-response></transition>
 
     <actions>
+        <if condition="dateRange_period">
+            <set field="rangeList" from="ec.user.getPeriodRange(dateRange_period, dateRange_poffset)"/>
+            <set field="fromDate" from="rangeList[0]"/>
+            <set field="thruDate" from="rangeList[1]"/>
+        </if>
         <service-call name="mantle.ledger.LedgerReportServices.run#PostedAmountSummary" out-map="context" in-map="context"/>
     </actions>
     <widgets>

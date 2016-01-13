@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal plus a 
+This software is in the public domain under CC0 1.0 Universal plus a
 Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
@@ -12,12 +12,14 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-1.6.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-1.6.xsd"
         default-menu-title="Report List" default-menu-index="1">
 
     <transition name="viewBalanceSheet"><default-response url="../BalanceSheet"/></transition>
     <transition name="viewIncomeStatement"><default-response url="../IncomeStatement"/></transition>
+    <transition name="viewCashFlowStatement"><default-response url="../CashFlowStatement"/></transition>
+    <transition name="viewRetainedEarningsStatement"><default-response url="../RetainedEarningsStatement"/></transition>
+    <transition name="viewFinancialRatios"><default-response url="../FinancialRatios"/></transition>
     <transition name="viewPostedAmountSummary"><default-response url="../PostedAmountSummary"/></transition>
     <transition name="viewPostedBalanceSummary"><default-response url="../PostedBalanceSummary"/></transition>
 
@@ -37,8 +39,12 @@ along with this software (see the LICENSE.md file). If not, see
             <container-dialog id="BalanceSheetDialog" button-text="Balance Sheet">
                 <form-single name="BalanceSheetForm" transition="viewBalanceSheet">
                     <field name="organizationPartyId"><default-field title="Organization">
-                        <widget-template-include location="component://SimpleScreens/template/party/PartyWidgetTemplates.xml#partyDropDownByRole">
-                            <set field="roleTypeId" value="OrgInternal"/><set field="style" value="chosen-wider"/></widget-template-include>
+                        <drop-down style="chosen-wider"><entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName,firstName"/></entity-find>
+                        </entity-options></drop-down>
                     </default-field></field>
                     <field name="timePeriodIdList"><default-field title="Time Periods">
                         <drop-down size="40" allow-multiple="true" style="chosen-wider">
@@ -48,24 +54,24 @@ along with this software (see the LICENSE.md file). If not, see
                         </drop-down>
                     </default-field></field>
                     <field name="detail"><default-field><check><option key="true" text=" "/></check></default-field></field>
+                    <field name="childOrgPeriods"><default-field><check><option key="true" text=" "/></check></default-field></field>
                     <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
             <container-dialog id="IncomeStatementDialog" button-text="Income Statement">
-                <form-single name="IncomeStatementForm" transition="viewIncomeStatement">
-                    <field name="organizationPartyId"><default-field title="Organization">
-                        <widget-template-include location="component://SimpleScreens/template/party/PartyWidgetTemplates.xml#partyDropDownByRole">
-                            <set field="roleTypeId" value="OrgInternal"/><set field="style" value="chosen-wider"/></widget-template-include>
-                    </default-field></field>
-                    <field name="timePeriodIdList"><default-field title="Time Periods">
-                        <drop-down size="40" allow-multiple="true" style="chosen-wider">
-                            <dynamic-options transition="getOrganizationFiscalTimePeriods" value-field="timePeriodId"
-                                    label-field="periodName">
-                                <depends-on field="organizationPartyId"/></dynamic-options>
-                        </drop-down>
-                    </default-field></field>
-                    <field name="detail"><default-field><check><option key="true" text=" "/></check></default-field></field>
-                    <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
+                <form-single name="IncomeStatementForm" transition="viewIncomeStatement" extends="BalanceSheetForm"/>
+            </container-dialog>
+            <container-dialog id="CashFlowStatementDialog" button-text="Cash Flow Statement">
+                <form-single name="CashFlowStatementForm" transition="viewCashFlowStatement" extends="BalanceSheetForm"/>
+            </container-dialog>
+            <container-dialog id="RetainedEarningsStatementDialog" button-text="Retained Earnings Statement">
+                <form-single name="RetainedEarningsStatementForm" transition="viewRetainedEarningsStatement" extends="BalanceSheetForm">
+                    <field name="detail"><default-field><ignored/></default-field></field>
+                </form-single>
+            </container-dialog>
+            <container-dialog id="FinancialRatiosDialog" button-text="Financial Ratios">
+                <form-single name="FinancialRatiosForm" transition="viewFinancialRatios" extends="BalanceSheetForm">
+                    <field name="detail"><default-field><ignored/></default-field></field>
                 </form-single>
             </container-dialog>
         </container>
@@ -75,30 +81,26 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-single name="PostedAmountSummaryForm" transition="viewPostedAmountSummary">
                     <field name="organizationPartyId"><default-field title="Organization">
                         <widget-template-include location="component://SimpleScreens/template/party/PartyWidgetTemplates.xml#partyDropDownByRole">
-                            <set field="roleTypeId" value="OrgInternal"/><set field="style" value="chosen-wider"/></widget-template-include>
+                            <set field="roleTypeId" value="OrgInternal"/></widget-template-include>
                     </default-field></field>
-                    <field name="fromDate"><default-field><date-time/></default-field></field>
-                    <field name="thruDate"><default-field><date-time/></default-field></field>
-                    <!-- determined automatically based on org: <field name="amountUomId"><default-field>
-                        <drop-down no-current-selected-key="USD"><entity-options key="${uomId}" text="${description}">
-                            <entity-find entity-name="moqui.basic.Uom">
-                                <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
-                            </entity-find>
-                        </entity-options></drop-down>
-                    </default-field></field> -->
+                    <field name="dateRange"><default-field><date-period allow-empty="false"/></default-field></field>
                     <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
             <container-dialog id="PostedBalanceSummaryDialog" button-text="Posted Balance Summary">
                 <form-single name="PostedBalanceSummaryForm" transition="viewPostedBalanceSummary">
                     <field name="organizationPartyId"><default-field title="Organization">
-                        <widget-template-include location="component://SimpleScreens/template/party/PartyWidgetTemplates.xml#partyDropDownByRole">
-                            <set field="roleTypeId" value="OrgInternal"/><set field="style" value="chosen-wider"/></widget-template-include>
+                        <drop-down style="chosen-wider">
+                            <entity-options key="${partyId}" text="PartyNameTemplate">
+                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                    <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                    <econdition field-name="disabled" value="N" or-null="true"/>
+                                    <order-by field-name="organizationName,firstName"/></entity-find>
+                            </entity-options>
+                        </drop-down>
                     </default-field></field>
-                    <field name="fromDate"><default-field><date-time/></default-field></field>
-                    <field name="thruDate"><default-field><date-time/></default-field></field>
                     <field name="timePeriodId"><default-field title="Time Period">
-                        <drop-down allow-empty="true" style="chosen-wider">
+                        <drop-down allow-empty="false" style="chosen-wider">
                             <dynamic-options transition="getOrganizationFiscalTimePeriods" value-field="timePeriodId"
                                     label-field="periodName">
                                 <depends-on field="organizationPartyId"/></dynamic-options>
