@@ -34,7 +34,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#list classInfo.glAccountInfoList! as glAccountInfo>
         <#if showDetail>
             <tr>
-                <td style="padding-left: ${(depth-1) * 2 + 3}.3em;">${glAccountInfo.accountCode}: ${glAccountInfo.accountName}</td>
+                <td style="padding-left: ${(depth-1) * 2 + 3}.3em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
                 <#if (timePeriodIdList?size > 1)>
                     <#assign beginningGlAccountBalance = (glAccountInfo.balanceByTimePeriod['ALL']!0) - (glAccountInfo.postedByTimePeriod['ALL']!0)>
                     <td class="text-right">${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod['ALL']!0, currencyUomId, 2)}</td>
