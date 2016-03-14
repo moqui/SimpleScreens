@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-1.6.xsd">
+
+    <transition name="getTaskList">
+        <parameter name="term"/>
+        <parameter name="rootWorkEffortId"/>
+        <parameter name="indexName"/>
+        <parameter name="documentType"/>
+        <actions>
+            <set field="indexName" from="searchIndexName ?: 'mantle'"/>
+            <set field="documentType" from="searchTaskDocType ?: 'MantleTask'"/>
+            <!-- <log message="====== getTaskList indexName=${indexName}, documentType=${documentType}, term=${term}, rootWorkEffortId=${rootWorkEffortId}"/> -->
+
+            <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort">
+                <field-map field-name="workEffortId" from="term"/></entity-find-one>
+
+            <if condition="product"><then>
+                <script>
+                    def outList = [[value:workEffort.workEffortId, label:ec.resource.expand("WorkEffortNameTemplate", "", workEffort)]]
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </then><else>
+                <script><![CDATA[
+                    StringBuilder termSb = new StringBuilder()
+                    termSb.append(term).append('*')
+                    if (rootWorkEffortId) termSb.append(' AND project:').append(rootWorkEffortId)
+                    ]]></script>
+                <!-- <log message="====== getTaskList indexName=${indexName}, documentType=${documentType}, termSb=${termSb}"/> -->
+
+                <service-call name="org.moqui.impl.EntityServices.search#DataDocuments" out-map="context"
+                        in-map="[queryString:termSb.toString(), indexName:indexName, documentType:documentType]"/>
+                <script>
+                    def outList = []
+                    for (def document in documentList)
+                        outList.add([value:document._id, label:ec.resource.expand("WorkEffortNameTemplate", "", [workEffortName:document.name,workEffortId:document._id])])
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <widgets>
+    </widgets>
+</screen>
