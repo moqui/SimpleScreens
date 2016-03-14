@@ -21,32 +21,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editFeature"><default-response url="../../Feature/EditFeature"/></transition>
     <transition name="editFeatureGroup"><default-response url="../../FeatureGroup/EditFeatureGroup"/></transition>
 
-    <transition name="getProductList">
-        <actions>
-            <set field="indexName" from="searchIndexName ?: 'mantle'"/>
-            <set field="documentType" from="searchProductDocType ?: 'MantleProduct'"/>
-
-            <entity-find-one entity-name="mantle.product.Product" value-field="product">
-                <field-map field-name="productId" from="term"/></entity-find-one>
-
-            <if condition="product"><then>
-                <script>
-                    def outList = [[value:product.productId, label:"${product.productName?:product.productId} [${product.pseudoId}]".toString()]]
-                    ec.web.sendJsonResponse(outList)
-                </script>
-            </then><else>
-                <service-call name="org.moqui.impl.EntityServices.search#DataDocuments" out-map="context"
-                        in-map="[queryString:(term + '*'), indexName:indexName, documentType:documentType]"/>
-                <script>
-                    def outList = []
-                    for (def document in documentList)
-                        outList.add([value:document._id, label:"${document.name?:document._id} [${document.pseudoId}]".toString()])
-                    ec.web.sendJsonResponse(outList)
-                </script>
-            </else></if>
-        </actions>
-        <default-response type="none"/>
-    </transition>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <transition name="createProductAssoc"><service-call name="create#mantle.product.ProductAssoc"/>
         <default-response url="."/></transition>
