@@ -112,41 +112,36 @@ along with this software (see the LICENSE.md file). If not, see
                 <row-col lg="6">
                     <label text="Order #${orderId}" type="h2"/>
 
-                    <section name="OpenSection" condition="orderHeader.statusId == 'OrderOpen'">
-                        <widgets>
-                            <link url="placeOrder" text="Place Order" link-type="hidden-form"/>
+                    <section name="OpenSection" condition="orderHeader.statusId == 'OrderOpen'"><widgets>
+                        <link url="placeOrder" text="Place Order" link-type="hidden-form"/>
 
-                            <container-dialog id="AddPartDialog" button-text="Add Part">
-                                <form-single name="AddPartForm" transition="createOrderPart">
-                                    <field name="orderId"><default-field><hidden/></default-field></field>
-                                    <field name="vendorPartyId" entry-name="firstPartInfo.orderPart.vendorPartyId">
-                                        <default-field><hidden/></default-field></field>
-                                    <field name="customerPartyId" entry-name="firstPartInfo.orderPart.customerPartyId">
-                                        <default-field><hidden/></default-field></field>
-                                    <field name="facilityId"><default-field title="Facility"><drop-down style="chosen-wider">
-                                        <entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
-                                            <entity-find entity-name="mantle.facility.Facility" list="facilityList">
-                                                <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
-                                                <order-by field-name="facilityName"/>
-                                            </entity-find></entity-options>
-                                    </drop-down></default-field></field>
-                                    <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
-                                    <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
-                                </form-single>
-                            </container-dialog>
-                        </widgets>
-                    </section>
-                    <section name="PlacedSection" condition="orderHeader.statusId == 'OrderPlaced'">
-                        <widgets>
-                            <link url="approveOrder" text="Approve Order" link-type="hidden-form"/>
-                            <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"/>
-                        </widgets>
-                    </section>
-                    <section name="ApprovedSection" condition="orderHeader.statusId == 'OrderApproved'">
-                        <widgets>
-                            <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"/>
-                        </widgets>
-                    </section>
+                        <container-dialog id="AddPartDialog" button-text="Add Part">
+                            <form-single name="AddPartForm" transition="createOrderPart">
+                                <field name="orderId"><default-field><hidden/></default-field></field>
+                                <field name="vendorPartyId" entry-name="firstPartInfo.orderPart.vendorPartyId">
+                                    <default-field><hidden/></default-field></field>
+                                <field name="customerPartyId" entry-name="firstPartInfo.orderPart.customerPartyId">
+                                    <default-field><hidden/></default-field></field>
+                                <field name="facilityId"><default-field title="Facility"><drop-down style="chosen-wider">
+                                    <entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
+                                        <entity-find entity-name="mantle.facility.Facility" list="facilityList">
+                                            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                                            <order-by field-name="facilityName"/>
+                                        </entity-find></entity-options>
+                                </drop-down></default-field></field>
+                                <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </widgets></section>
+                    <section name="PlacedSection" condition="orderHeader.statusId == 'OrderPlaced'"><widgets>
+                        <link url="approveOrder" text="Approve Order" link-type="hidden-form"
+                                condition="ec.user.hasPermission('ORDER_APPROVE')"/>
+                        <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"/>
+                    </widgets></section>
+                    <section name="ApprovedSection" condition="orderHeader.statusId == 'OrderApproved'"><widgets>
+                        <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"/>
+                    </widgets></section>
 
                     <link url="cloneOrder" text="Clone Order" parameter-map="[baseOrderId:orderId]"/>
                     <link url="PrintOrder.pdf" text="Order PDF"/>

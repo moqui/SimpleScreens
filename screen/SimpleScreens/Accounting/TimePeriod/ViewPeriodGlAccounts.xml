@@ -24,6 +24,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="closePeriod"><service-call name="mantle.ledger.LedgerServices.close#FinancialTimePeriod"/>
         <default-response url="."/></transition>
+    <transition name="reopenPeriod"><service-call name="mantle.ledger.LedgerServices.reopen#FinancialTimePeriod"/>
+        <default-response url="."/></transition>
 
     <actions>
         <entity-find-one entity-name="mantle.party.time.TimePeriod" value-field="timePeriod"/>
@@ -39,14 +41,15 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <label text="Accounts for ${timePeriod.periodName} [${timePeriod.timePeriodId}]" type="h3"/>
         
-        <section name="ClosePeriodSection" condition="timePeriod.isClosed == 'Y'">
-            <widgets><label text="Period Closed" type="h4"/></widgets>
-            <fail-widgets>
-                <link url="postFaDepreciations" text="Post Depreciation for Fixed Assets"/>
-                <link url="recalculateAmounts" text="Recalculate Amounts"/>
-                <link url="closePeriod" text="Close Period" confirmation="Close period ${timePeriod.periodName} [${timePeriod.timePeriodId}]?"/>
-            </fail-widgets>
-        </section>
+        <section name="PeriodCloseSection" condition="timePeriod.isClosed == 'Y'"><widgets>
+            <label text="Period Closed" type="h4"/>
+            <link url="reopenPeriod" text="Reopen Period" confirmation="Reopen period ${ec.resource.expand('TimePeriodNameTemplate','',timePeriod)}?"
+                condition="ec.user.hasPermission('FISCAL_REOPEN')"/>
+        </widgets><fail-widgets>
+            <link url="postAllFixedAssetDepreciations" text="Post Depreciation for Fixed Assets"/>
+            <link url="recalculateGlAccountOrgTimePeriodAmounts" text="Recalculate Amounts"/>
+            <link url="closePeriod" text="Close Period" confirmation="Close period ${ec.resource.expand('TimePeriodNameTemplate','',timePeriod)}?"/>
+        </fail-widgets></section>
 
         <form-list name="PeriodGlAccountList" list="gaotpList" skip-form="true">
             <field name="glAccountId"><default-field title="GL Account">
