@@ -23,6 +23,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="approveOrder"><service-call name="mantle.order.OrderServices.approve#Order"/>
         <default-response url="."/></transition>
+    <transition name="sendOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, statusId:'OrderSent']"/>
+        <default-response url="."/></transition>
     <transition name="completeOrderPart"><service-call name="mantle.order.OrderServices.complete#OrderPart"/>
         <default-response url="."/></transition>
     <transition name="cancelOrder"><service-call name="mantle.order.OrderServices.cancel#Order"/>
@@ -134,14 +136,13 @@ along with this software (see the LICENSE.md file). If not, see
                             </form-single>
                         </container-dialog>
                     </widgets></section>
-                    <section name="PlacedSection" condition="orderHeader.statusId == 'OrderPlaced'"><widgets>
-                        <link url="approveOrder" text="Approve Order" link-type="hidden-form"
-                                condition="ec.user.hasPermission('ORDER_APPROVE')"/>
-                        <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"/>
-                    </widgets></section>
-                    <section name="ApprovedSection" condition="orderHeader.statusId == 'OrderApproved'"><widgets>
-                        <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"/>
-                    </widgets></section>
+
+                    <link url="approveOrder" text="Approve Order" link-type="hidden-form"
+                            condition="orderHeader.statusId == 'OrderPlaced' &amp;&amp; ec.user.hasPermission('ORDER_APPROVE')"/>
+                    <link url="sendOrder" text="Order Sent" link-type="hidden-form"
+                            condition="orderHeader.statusId == 'OrderApproved'"/>
+                    <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"
+                            condition="orderHeader.statusId in ['OrderPlaced', 'OrderApproved']"/>
 
                     <link url="cloneOrder" text="Clone Order" parameter-map="[baseOrderId:orderId]"/>
                     <link url="PrintOrder.pdf" text="Order PDF"/>
@@ -340,14 +341,16 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                             </form-single>
                         </container-dialog>
-                        <section name="PartApprovedSection" condition="orderPartInfo.orderPart.statusId == 'OrderApproved'">
-                            <widgets>
-                                <link url="completeOrderPart" text="Complete Part" link-type="hidden-form"
-                                        parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"/>
-                            </widgets>
-                        </section>
+
+                        <link url="completeOrderPart" text="Complete Part" link-type="hidden-form"
+                                parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
+                                condition="orderPartInfo.orderPart.statusId in ['OrderApproved', 'OrderSent']"/>
+                        <link url="invoiceOrderPart" text="Create Invoice" link-type="hidden-form"
+                                parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
+                                condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId)"/>
+
                         <section name="ShipOrderPartSection">
-                            <condition><expression>!orderPartInfo.partShipmentItemSourceList &amp;&amp;
+                            <condition><expression>quantityNotShippedByPart.get(orderPartInfo.orderPart.orderPartSeqId) &amp;&amp;
                                 (orderHeader.statusId == "OrderApproved" || orderHeader.statusId == "OrderSent")</expression></condition>
                             <actions>
                                 <!-- find Shipments going to same Facility -->
