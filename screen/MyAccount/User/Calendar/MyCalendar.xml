@@ -32,6 +32,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <pre-actions>
         <script>html_scripts.add("/ssstatic/lib/fullcalendar/fullcalendar.min.js")</script>
+        <script>html_scripts.add("/ssstatic/lib/fullcalendar/lang-all.js")</script>
         <script>html_stylesheets.add("/ssstatic/lib/fullcalendar/fullcalendar.min.css")</script>
     </pre-actions>
     <actions>
@@ -69,13 +70,49 @@ along with this software (see the LICENSE.md file). If not, see
             <text type="html"><![CDATA[
                 <div id="calendar"></div>
                 <script>
-$(document).ready(function() {
-    $('#calendar').fullCalendar({ timezone:false, defaultView:'agendaWeek',
-        header: { left:'prev,next today', center:'title', right:'month,agendaWeek,agendaDay' },
-        eventSources: [ { url:"${sri.buildUrl('getCalendarEvents').url}", type:'POST', data: { moquiSessionToken:'${ec.web.sessionToken}', partyId:'${partyId}' } },
-            { url:"${sri.buildUrl('getCalendarTasks').url}", type:'POST', data:{ moquiSessionToken:'${ec.web.sessionToken}', partyId:'${partyId}' }, backgroundColor:'#5cb85c', borderColor:'#4cae4c' } ]
-    })
-});
+                    $(document).ready
+                        (
+                            function()
+                                {
+                                    $('#calendar').fullCalendar
+                                        (
+                                            {
+                                                timezone:false,
+                                                weekNumbers:true,
+                                                lang:'${ec.user.locale.getLanguage()}',
+                                                header:
+                                                    {
+                                                        left:'prev,next today',
+                                                        center:'title',
+                                                        right:'month,agendaWeek,agendaDay'
+                                                    },
+                                                eventSources:
+                                                    [
+                                                        {
+                                                            url:"${sri.buildUrl('getCalendarEvents').url}",
+                                                            type:'POST',
+                                                            data:
+                                                                {
+                                                                    moquiSessionToken:'${ec.web.sessionToken}',
+                                                                    partyId:'${partyId}'
+                                                                }
+                                                        },
+                                                        {
+                                                            url:"${sri.buildUrl('getCalendarTasks').url}",
+                                                            type:'POST',
+                                                            data:
+                                                                {
+                                                                    moquiSessionToken:'${ec.web.sessionToken}',
+                                                                    partyId:'${partyId}'
+                                                                },
+                                                            backgroundColor:'#5cb85c',
+                                                            borderColor:'#4cae4c'
+                                                        }
+                                                    ]
+                                            }
+                                        )
+                                }
+                        );
                 </script>
             ]]></text>
         </render-mode>
