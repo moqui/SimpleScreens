@@ -13,17 +13,15 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <entity-facade-xml type="seed">
-    <org.moqui.impl.EntityServices.cloneDataDocument dataDocumentId="MantleTask" newDataDocumentId="MyAccountTask" copyConditions="true"/>
-    <dataDocuments dataDocumentId="MyAccountTask" documentName="Task" documentTitle="Task Updated ${workEffortId} - ${name} - ${status}${priority ? ' - P ' + priority : ''} - ${purpose?:''}">
-        <links label="Task" linkUrl="/apps/my/User/Task/TaskDetail?workEffortId=${workEffortId}"/></dataDocuments>
-
-    <org.moqui.impl.EntityServices.cloneDataDocument dataDocumentId="MantleEvent" newDataDocumentId="MyAccountEvent" copyConditions="true"/>
-    <dataDocuments dataDocumentId="MyAccountEvent" documentName="Event" documentTitle="Event Updated ${workEffortId} - ${name} - ${status} - ${purpose?:''}">
-        <links label="Event" linkUrl="/apps/my/User/Calendar/EventDetail?workEffortId=${workEffortId}"/></dataDocuments>
-
+    <moqui.security.user.NotificationTopic topic="MantleTask" typeString="info" showAlert="Y"
+            titleTemplate="Task Updated ${workEffortId} - ${name} - ${status}${priority ? ' - P ' + priority : ''} - ${purpose?:''}"
+            linkTemplate="/apps/my/User/Task/TaskDetail?workEffortId=${workEffortId}"/>
+    <moqui.security.user.NotificationTopic topic="MantleEvent" typeString="info" showAlert="Y"
+            titleTemplate="Event Updated ${workEffortId} - ${name} - ${status} - ${purpose?:''}"
+            linkTemplate="/apps/my/User/Calendar/EventDetail?workEffortId=${workEffortId}"/>
     <moqui.entity.feed.DataFeed dataFeedId="MyAccountNotifications" dataFeedTypeEnumId="DTFDTP_RT_PUSH"
             feedName="MyAccount Notifications" feedReceiveServiceName="org.moqui.impl.EntityServices.send#DataDocumentNotifications">
-        <documents dataDocumentId="MyAccountTask"/>
-        <documents dataDocumentId="MyAccountEvent"/>
+        <documents dataDocumentId="MantleTask"/>
+        <documents dataDocumentId="MantleEvent"/>
     </moqui.entity.feed.DataFeed>
 </entity-facade-xml>
