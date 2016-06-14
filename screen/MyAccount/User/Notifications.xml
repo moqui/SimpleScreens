@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Notifications" default-menu-index="1">
+    <parameter name="showViewed" required="false"/>
+
+    <transition name="viewed">
+        <service-call name="update#moqui.security.user.NotificationMessageUser" in-map="context + [viewedDate:ec.user.nowTimestamp]"/>
+        <default-response url="."/>
+    </transition>
+    <actions>
+        <entity-find entity-name="moqui.security.user.NotificationMessageByUser" list="notificationList">
+            <search-form-inputs default-order-by="-sentDate"/>
+            <econditions combine="or">
+                <econdition field-name="userId" from="ec.user.userId"/>
+                <econdition field-name="userGroupId" operator="in" from="ec.user.userGroupIdSet"/>
+            </econditions>
+            <econdition field-name="viewedDate" from="null" ignore="showViewed == 'true'"/>
+        </entity-find>
+    </actions>
+    <widgets>
+        <form-list name="NotificationList" list="notificationList" transition="viewed" multi="true">
+            <field name="_useRowSubmit"><default-field><hidden default-value="true"/></default-field></field>
+            <field name="_rowSubmit"><header-field title="Select"/>
+                <conditional-field condition="viewedDate"><display text=" "/></conditional-field>
+                <default-field><check no-current-selected-key="true"><option key="true" text=" "/></check></default-field>
+            </field>
+
+            <field name="userId" entry-name="ec.user.userId"><default-field><hidden/></default-field></field>
+            <field name="titleText">
+                <header-field title="Message" show-order-by="true"/>
+                <conditional-field condition="linkText"><link url="${linkText}" text="${titleText}" link-type="anchor"/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="notificationMessageId"><default-field title="ID"><display/></default-field></field>
+            <field name="topic">
+                <header-field show-order-by="true"><drop-down allow-empty="true">
+                    <entity-options key="${topic}" text="${description}">
+                        <entity-find entity-name="moqui.security.user.NotificationTopic">
+                            <order-by field-name="description"/></entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><display-entity entity-name="moqui.security.user.NotificationTopic"/></default-field>
+            </field>
+            <field name="sentDate"><header-field title="Sent" show-order-by="true"><date-period allow-empty="true"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="userSentDate"><header-field title="Notified" show-order-by="true"><date-period allow-empty="true"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="viewedDate">
+                <header-field title="Viewed" show-order-by="true">
+                    <date-period allow-empty="true"/>
+                    <link url="." text="Show Viewed" link-type="anchor" condition="showViewed != 'true'" parameter-map="[showViewed:'true']"/>
+                    <link url="." text="Hide Viewed" link-type="anchor" condition="showViewed == 'true'" parameter-map="[showViewed:'false']"/>
+                </header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="findButton"><header-field><submit text="Find"/></header-field>
+                <conditional-field condition="viewedDate"><display text=" "/></conditional-field>
+                <default-field><submit text="Mark Viewed"/></default-field>
+            </field>
+        </form-list>
+    </widgets>
+</screen>
