@@ -18,7 +18,12 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="showViewed" required="false"/>
 
     <transition name="viewed">
-        <service-call name="update#moqui.security.user.NotificationMessageUser" in-map="context + [viewedDate:ec.user.nowTimestamp]"/>
+        <service-call name="update#moqui.security.user.NotificationMessageUser"
+                in-map="context + [userId:ec.user.userId, viewedDate:ec.user.nowTimestamp]"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="topicSubscriptions">
+        <service-call name="store#moqui.security.user.NotificationTopicUser" in-map="context + [userId:ec.user.userId]"/>
         <default-response url="."/>
     </transition>
     <actions>
@@ -30,8 +35,25 @@ along with this software (see the LICENSE.md file). If not, see
             </econditions>
             <econdition field-name="viewedDate" from="null" ignore="showViewed == 'true'"/>
         </entity-find>
+        <entity-find entity-name="moqui.security.user.NotificationTopic" list="notificationTopicList">
+            <order-by field-name="description"/></entity-find>
     </actions>
     <widgets>
+        <container-dialog id="TopicUserDialog" button-text="Topic Subscriptions">
+            <form-list name="NotificationTopicList" list="notificationTopicList" transition="topicSubscriptions"
+                    skip-header="true" multi="true">
+                <row-actions>
+                    <entity-find-one entity-name="moqui.security.user.NotificationTopicUser" value-field="notTopicUser">
+                        <field-map field-name="topic"/><field-map field-name="userId" from="ec.user.userId"/></entity-find-one>
+                </row-actions>
+                <field name="topic"><default-field><hidden/></default-field></field>
+                <field name="description"><default-field><display/></default-field></field>
+                <field name="receiveNotifications" entry-name="notTopicUser?.receiveNotifications ?: receiveNotifications ?: 'Y'"><default-field>
+                    <radio><option key="Y"/><option key="N"/></radio>
+                </default-field></field>
+                <field name="submitButton"><default-field><submit text="Update"/></default-field></field>
+            </form-list>
+        </container-dialog>
         <form-list name="NotificationList" list="notificationList" transition="viewed" multi="true">
             <field name="_useRowSubmit"><default-field><hidden default-value="true"/></default-field></field>
             <field name="_rowSubmit"><header-field title="Select"/>
@@ -39,7 +61,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><check no-current-selected-key="true"><option key="true" text=" "/></check></default-field>
             </field>
 
-            <field name="userId" entry-name="ec.user.userId"><default-field><hidden/></default-field></field>
             <field name="titleText">
                 <header-field title="Message" show-order-by="true"/>
                 <conditional-field condition="linkText"><link url="${linkText}" text="${titleText}" link-type="anchor"/></conditional-field>
@@ -48,9 +69,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="notificationMessageId"><default-field title="ID"><display/></default-field></field>
             <field name="topic">
                 <header-field show-order-by="true"><drop-down allow-empty="true">
-                    <entity-options key="${topic}" text="${description}">
-                        <entity-find entity-name="moqui.security.user.NotificationTopic">
-                            <order-by field-name="description"/></entity-find></entity-options>
+                    <list-options list="notificationTopicList" key="${topic}" text="${description}"/>
                 </drop-down></header-field>
                 <default-field><display-entity entity-name="moqui.security.user.NotificationTopic"/></default-field>
             </field>
