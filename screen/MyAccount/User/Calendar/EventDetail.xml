@@ -28,8 +28,8 @@ along with this software (see the LICENSE.md file). If not, see
     <!-- <transition name="equipmentDetail"><default-response url="."/></transition> -->
 
     <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
-    <transition name="addAssignment"><service-call name="create#mantle.work.effort.WorkEffortParty" in-map="context"/><default-response url="."/></transition>
-    <transition name="updateAssignment"><service-call name="update#mantle.work.effort.WorkEffortParty" in-map="context"/><default-response url="."/></transition>
+    <transition name="addAssignment"><service-call name="create#mantle.work.effort.WorkEffortParty"/><default-response url="."/></transition>
+    <transition name="updateAssignment"><service-call name="update#mantle.work.effort.WorkEffortParty"/><default-response url="."/></transition>
     <!-- <transition name="editParty"><default-response url="."/></transition> -->
 
     <actions>
@@ -53,13 +53,11 @@ along with this software (see the LICENSE.md file). If not, see
             <date-filter/><econdition field-name="workEffortId"/><order-by field-name="firstName,organizationName"/></entity-find>
     </actions>
     <widgets>
-        <container-row>
-            <row-col lg="5">
-                <label text="Event ${workEffortId}" type="h3"/>
-                <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+        <container-row><row-col lg="6">
+            <container-box><box-header><label text="Event ${workEffortId}" type="h5"/></box-header><box-toolbar>
                 <link url="cloneWorkEffort" text="Clone Event" parameter-map="[baseWorkEffortId:workEffortId,
                         clearDates:true, copyAssetAssign:true]"/>
-
+            </box-toolbar><box-body>
                 <form-single name="UpdateEvent" transition="updateEvent" map="workEffort">
                     <field name="workEffortId"><default-field><hidden/></default-field></field>
                     <field name="workEffortName"><default-field title="Name"><text-line size="40"/></default-field></field>
@@ -84,122 +82,117 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="description"><default-field title="Description"><text-area rows="10" cols="60"/></default-field></field>
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                 </form-single>
-            </row-col>
+            </box-body></container-box>
+        </row-col><row-col lg="6">
+            <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
-            <row-col lg="7">
-                <section name="NotesSection">
-                    <actions>
-                        <entity-find entity-name="mantle.work.effort.WorkEffortNote" list="noteList">
-                            <econdition field-name="workEffortId"/><order-by field-name="-noteDate"/></entity-find>
-                    </actions>
-                    <widgets>
-                        <container-box>
-                            <box-header><label text="Notes" type="h5"/></box-header>
-                            <box-toolbar>
-                                <container-dialog id="NewNoteDialog" button-text="Add Note">
-                                    <form-single name="NewNoteForm" transition="createNote">
-                                        <field name="workEffortId"><default-field><hidden/></default-field></field>
-                                        <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
-                                        <field name="submitButton"><default-field title="Add Note"><submit/></default-field></field>
-                                    </form-single>
-                                </container-dialog>
-                            </box-toolbar>
-                            <box-body>
-                                <section-iterate name="NoteIterateSection" list="noteList" entry="note">
-                                    <actions>
-                                        <entity-find-one entity-name="mantle.party.PersonAndUserAccount" value-field="paua">
-                                            <field-map field-name="userId" from="note.userId"/></entity-find-one>
-                                    </actions>
-                                    <widgets>
-                                        <container-row>
-                                            <row-col lg="4" md="4" sm="4">
-                                                <label text="${ec.l10n.format(note.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong" style="text-nowrap"/>
-                                                <label text="by ${ec.resource.expand('UsernameTemplate','',paua+[userId:note.userId])}" style="text-nowrap"/>
-                                            </row-col>
-                                            <row-col lg="6" md="6" sm="6">
-                                                <label text="${note.noteText}"/>
-                                            </row-col>
-                                            <row-col lg="2" md="2" sm="2" style="text-right">
-                                                <section name="UpdateNoteSection" condition="note.userId == ec.user.userId">
-                                                    <widgets>
-                                                        <container-dialog id="UpdateNoteContainer" button-text="Edit">
-                                                            <form-single name="UpdateNoteForm" transition="updateNote" map="note">
-                                                                <field name="workEffortId"><default-field><hidden/></default-field></field>
-                                                                <field name="noteDate"><default-field><hidden/></default-field></field>
-                                                                <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
-                                                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                                                            </form-single>
-                                                        </container-dialog>
-                                                    </widgets>
-                                                </section>
-                                            </row-col>
-                                        </container-row>
-                                    </widgets>
-                                </section-iterate>
-                            </box-body>
-                        </container-box>
-                    </widgets>
-                </section>
+            <section name="NotesSection">
+                <actions>
+                    <entity-find entity-name="mantle.work.effort.WorkEffortNote" list="noteList">
+                        <econdition field-name="workEffortId"/><order-by field-name="-noteDate"/></entity-find>
+                </actions>
+                <widgets>
+                    <container-box><box-header><label text="Notes" type="h5"/></box-header><box-toolbar>
+                        <container-dialog id="NewNoteDialog" button-text="Add Note">
+                            <form-single name="NewNoteForm" transition="createNote">
+                                <field name="workEffortId"><default-field><hidden/></default-field></field>
+                                <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
+                                <field name="submitButton"><default-field title="Add Note"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar><box-body>
+                        <section-iterate name="NoteIterateSection" list="noteList" entry="note">
+                            <actions>
+                                <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                                    <field-map field-name="userId" from="note.userId"/></entity-find-one>
+                            </actions>
+                            <widgets>
+                                <container-row>
+                                    <row-col lg="4" md="4" sm="4">
+                                        <label text="${ec.l10n.format(note.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong" style="text-nowrap"/>
+                                        <label text="by ${ec.resource.expand('UsernameTemplate','',paua+[userId:note.userId])}"
+                                                condition="paua" style="text-nowrap"/>
+                                    </row-col>
+                                    <row-col lg="6" md="6" sm="6">
+                                        <label text="${note.noteText}"/>
+                                    </row-col>
+                                    <row-col lg="2" md="2" sm="2" style="text-right">
+                                        <section name="UpdateNoteSection" condition="note.userId == ec.user.userId">
+                                            <widgets>
+                                                <container-dialog id="UpdateNoteContainer" button-text="Edit">
+                                                    <form-single name="UpdateNoteForm" transition="updateNote" map="note">
+                                                        <field name="workEffortId"><default-field><hidden/></default-field></field>
+                                                        <field name="noteDate"><default-field><hidden/></default-field></field>
+                                                        <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
+                                                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                                    </form-single>
+                                                </container-dialog>
+                                            </widgets>
+                                        </section>
+                                    </row-col>
+                                </container-row>
+                            </widgets>
+                        </section-iterate>
+                    </box-body></container-box>
+                </widgets>
+            </section>
 
-                <section name="PartiesSection">
-                    <widgets>
-                        <container-box>
-                            <box-header><label text="Parties Assigned" type="h5"/></box-header>
-                            <box-toolbar>
-                                <container-dialog id="AddPartyAssignDialog" button-text="Add Party">
-                                    <form-single name="AddPartyAssignForm" transition="addAssignment">
-                                        <field name="workEffortId"><default-field><hidden/></default-field></field>
-                                        <field name="fromDate" entry-name="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+            <section name="PartiesSection"><widgets>
+                <container-box>
+                    <box-header><label text="Parties Assigned" type="h5"/></box-header>
+                    <box-toolbar>
+                        <container-dialog id="AddPartyAssignDialog" button-text="Add Party">
+                            <form-single name="AddPartyAssignForm" transition="addAssignment">
+                                <field name="workEffortId"><default-field><hidden/></default-field></field>
+                                <field name="fromDate" entry-name="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
 
-                                        <field name="partyId"><default-field title="Party">
-                                            <text-line size="50" ac-transition="getPartyList"/>
-                                        </default-field></field>
-                                        <field name="roleTypeId"><default-field><hidden default-value="_NA_"/></default-field></field>
-                                        <field name="statusId" entry-name="null"><default-field title="Status">
-                                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                                                <set field="statusTypeId" value="WorkEffortParty"/><set field="noCurrentSelectedKey" value="WeptAssigned"/></widget-template-include>
-                                        </default-field></field>
-                                        <field name="submitButton"><default-field title="Add Assignment"><submit/></default-field></field>
-                                    </form-single>
-                                </container-dialog>
-                            </box-toolbar>
-                            <box-body>
-                                <form-list name="UpdateAssignForm" list="weapdList" transition="updateAssignment">
-                                    <row-actions>
-                                        <entity-find-one entity-name="moqui.basic.StatusItem" value-field="currentStatus"/>
-                                    </row-actions>
-                                    <field name="workEffortId"><default-field><hidden/></default-field></field>
-                                    <field name="partyId"><default-field><hidden/></default-field></field>
-                                    <field name="fromDate"><default-field><hidden/></default-field></field>
+                                <field name="partyId" entry-name="''"><default-field title="Party">
+                                    <text-line size="50" ac-transition="getPartyList"/>
+                                </default-field></field>
+                                <field name="roleTypeId"><default-field><hidden default-value="_NA_"/></default-field></field>
+                                <field name="statusId" entry-name="null"><default-field title="Status">
+                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                                        <set field="statusTypeId" value="WorkEffortParty"/><set field="noCurrentSelectedKey" value="WeptAssigned"/></widget-template-include>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Add Assignment"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar>
+                    <box-body>
+                        <form-list name="UpdateAssignForm" list="weapdList" transition="updateAssignment">
+                            <row-actions>
+                                <entity-find-one entity-name="moqui.basic.StatusItem" value-field="currentStatus"/>
+                            </row-actions>
+                            <field name="workEffortId"><default-field><hidden/></default-field></field>
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="fromDate"><default-field><hidden/></default-field></field>
 
-                                    <field name="name"><header-field/><default-field>
-                                        <display text="PartyNameTemplate"/>
-                                        <!-- <link url="editParty" text="PartyNameTemplate" link-type="anchor"/> -->
-                                    </default-field></field>
-                                    <field name="username"><default-field>
-                                        <display text="${username?:'--'}"/>
-                                        <!-- <link url="editParty" text="${username?:''}" link-type="anchor"/> -->
-                                    </default-field></field>
+                            <field name="name"><header-field/><default-field>
+                                <display text="PartyNameTemplate"/>
+                                <!-- <link url="editParty" text="PartyNameTemplate" link-type="anchor"/> -->
+                            </default-field></field>
+                            <field name="username"><default-field>
+                                <display text="${username?:'--'}"/>
+                                <!-- <link url="editParty" text="${username?:''}" link-type="anchor"/> -->
+                            </default-field></field>
 
-                                    <field name="roleTypeId"><default-field><hidden/></default-field></field>
-                                    <field name="statusId"><default-field title="Status">
-                                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusTransitionDropDown">
-                                            <set field="currentDescription" from="currentStatus?.description"/>
-                                            <set field="statusId"/><set field="style" value=" "/></widget-template-include>
-                                    </default-field></field>
-                                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                            <field name="roleTypeId"><default-field><hidden/></default-field></field>
+                            <field name="statusId"><default-field title="Status">
+                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusTransitionDropDown">
+                                    <set field="currentDescription" from="currentStatus?.description"/>
+                                    <set field="statusId"/><set field="style" value=" "/></widget-template-include>
+                            </default-field></field>
+                            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
 
-                                    <field name="removeButton"><default-field title="">
-                                        <link url="updateAssignment" text="Remove" parameter-map="[workEffortId:workEffortId, partyId:partyId,
-                                                roleTypeId:roleTypeId, fromDate:fromDate, thruDate:ec.user.nowTimestamp]"/>
-                                    </default-field></field>
-                                </form-list>
-                            </box-body>
-                        </container-box>
-                    </widgets>
-                </section>
-            </row-col>
-        </container-row>
+                            <field name="removeButton"><default-field title="">
+                                <link url="updateAssignment" text="X" parameter-map="[workEffortId:workEffortId, partyId:partyId,
+                                        roleTypeId:roleTypeId, fromDate:fromDate, thruDate:ec.user.nowTimestamp]"/>
+                            </default-field></field>
+                        </form-list>
+                    </box-body>
+                </container-box>
+            </widgets></section>
+        </row-col></container-row>
 
         <container-box>
             <box-header><label text="Equipment" type="h5"/></box-header>

@@ -36,10 +36,15 @@ along with this software (see the LICENSE.md file). If not, see
         <resourceValue><![CDATA[
 <#if ec.user.userId?has_content>
 <div class="btn-group navbar-right">
-    <#assign messageCount = ec.entity.find("mantle.party.communication.CommunicationEventAndPurpose").condition("toPartyId", ec.user.userAccount.partyId!).condition("statusId", "CeReceived").condition("communicationEventTypeId", "in", "Email,Message,Comment").disableAuthz().count()>
-    <#assign eventCount = ec.entity.find("mantle.work.effort.WorkEffortAndParty").condition("partyId", ec.user.userAccount.partyId!).condition("estimatedStartDate", "greater-equals", ec.user.getPeriodRange("week", "")[0]).condition("estimatedStartDate", "less-equals", ec.user.getPeriodRange("week", "")[1]).condition("workEffortTypeEnumId", "WetEvent").disableAuthz().count()>
-    <#assign taskCount = ec.entity.find("mantle.work.effort.WorkEffortAndParty").condition("partyId", ec.user.userAccount.partyId!).condition("statusId", "not-in", "WeClosed,WeCancelled").condition("workEffortTypeEnumId", "WetTask").disableAuthz().count()>
+    <#assign notificationCount = ec.entity.find("moqui.security.user.NotificationMessageUser").condition("userId", ec.user.userId!).condition("viewedDate", "is-null", "").disableAuthz().count()>
+    <#assign messageCount = ec.entity.find("mantle.party.communication.CommunicationEvent").condition("toPartyId", ec.user.userAccount.partyId!).condition("statusId", "CeReceived").condition("communicationEventTypeId", "in", "Email,Message,Comment").disableAuthz().count()>
+    <#assign eventCount = ec.entity.find("mantle.work.effort.WorkEffortAndParty").condition("partyId", ec.user.userAccount.partyId!).condition("estimatedStartDate", "greater-equals", ec.user.getPeriodRange("week", "")[0]).condition("estimatedStartDate", "less-equals", ec.user.getPeriodRange("week", "")[1]).condition("workEffortTypeEnumId", "WetEvent").conditionDate("", "", ec.user.nowTimestamp).disableAuthz().count()>
+    <#assign taskCount = ec.entity.find("mantle.work.effort.WorkEffortAndParty").condition("partyId", ec.user.userAccount.partyId!).condition("statusId", "not-in", "WeClosed,WeCancelled").condition("workEffortTypeEnumId", "WetTask").conditionDate("", "", ec.user.nowTimestamp).disableAuthz().count()>
     <#assign webRoot = ec.web.getWebappRootUrl(false, false)>
+    <a href="${webRoot!""}/apps/my/User/Notifications" data-toggle="tooltip" data-container="body" data-original-title="Notifications" data-placement="bottom" class="btn btn-default btn-sm navbar-btn">
+        <i class="glyphicon glyphicon-info-sign"></i>
+        <span id="navbar_notification_count" class="label label-info">${notificationCount!"0"}</span>
+    </a>
     <a href="${webRoot!""}/apps/my/User/Messages/FindMessage?statusId=CeReceived&toPartyId=${ec.user.userAccount.partyId!}" data-toggle="tooltip" data-container="body" data-original-title="Messages" data-placement="bottom" class="btn btn-default btn-sm navbar-btn">
         <i class="glyphicon glyphicon-envelope"></i>
         <span class="label label-warning">${messageCount!"0"}</span>
@@ -55,7 +60,14 @@ along with this software (see the LICENSE.md file). If not, see
 </div>
 </#if>
 <#if ec.factory.serverContainer?has_content>
-    <script>notificationClient.registerListener("MantleTask"); notificationClient.registerListener("MantleEvent");</script>
+    <script>
+        var navbarNotificationListener = function(jsonObj, webSocket) {
+            var countElement = $("#navbar_notification_count");
+            countElement.text((parseInt(countElement.text()) + 1).toString());
+            notificationClient.displayNotify(jsonObj, webSocket);
+        };
+        notificationClient.registerListener("ALL", navbarNotificationListener);
+    </script>
 </#if>
         ]]></resourceValue>
     </moqui.screen.ScreenThemeResource>

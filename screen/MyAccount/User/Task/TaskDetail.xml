@@ -26,8 +26,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateNote"><service-call name="update#mantle.work.effort.WorkEffortNote"/><default-response url="."/></transition>
 
     <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
-    <transition name="addAssignment"><service-call name="create#mantle.work.effort.WorkEffortParty" in-map="context"/><default-response url="."/></transition>
-    <transition name="updateAssignment"><service-call name="update#mantle.work.effort.WorkEffortParty" in-map="context"/><default-response url="."/></transition>
+    <transition name="addAssignment"><service-call name="create#mantle.work.effort.WorkEffortParty"/><default-response url="."/></transition>
+    <transition name="updateAssignment"><service-call name="update#mantle.work.effort.WorkEffortParty"/><default-response url="."/></transition>
     <!-- <transition name="editParty"><default-response url="."/></transition> -->
 
     <actions>
@@ -47,15 +47,12 @@ along with this software (see the LICENSE.md file). If not, see
             <date-filter/><econdition field-name="workEffortId"/><order-by field-name="firstName,organizationName"/></entity-find>
     </actions>
     <widgets>
-        <container-row>
-            <row-col lg="5">
-                <label text="Task ${workEffortId}" type="h3"/>
-                <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
-
+        <container-row><row-col lg="6">
+            <container-box><box-header><label text="Task ${workEffortId}" type="h5"/></box-header><box-toolbar>
                 <link url="timeEntries" text="Task Time Entries" parameter-map="[workEffortId:workEffortId]"/>
                 <link url="cloneWorkEffort" text="Clone Task" parameter-map="[baseWorkEffortId:workEffortId,
                         clearDates:true, copyAssetAssign:true]"/>
-
+            </box-toolbar><box-body>
                 <form-single name="UpdateEvent" transition="updateTask" map="workEffort">
                     <field name="workEffortId"><default-field><hidden/></default-field></field>
                     <field name="workEffortName"><default-field title="Name"><text-line size="40"/></default-field></field>
@@ -90,12 +87,11 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                 </form-single>
-            </row-col>
-
-            <row-col lg="7">
-                <section-include name="NotesSection" location="component://SimpleScreens/screen/MyAccount/User/Calendar/EventDetail.xml"/>
-                <section-include name="PartiesSection" location="component://SimpleScreens/screen/MyAccount/User/Calendar/EventDetail.xml"/>
-            </row-col>
-        </container-row>
+            </box-body></container-box>
+        </row-col><row-col lg="6">
+            <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+            <section-include name="NotesSection" location="component://SimpleScreens/screen/MyAccount/User/Calendar/EventDetail.xml"/>
+            <section-include name="PartiesSection" location="component://SimpleScreens/screen/MyAccount/User/Calendar/EventDetail.xml"/>
+        </row-col></container-row>
     </widgets>
 </screen>
