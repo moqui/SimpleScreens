@@ -43,7 +43,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#assign webRoot = ec.web.getWebappRootUrl(false, false)>
     <a href="${webRoot!""}/apps/my/User/Notifications" data-toggle="tooltip" data-container="body" data-original-title="Notifications" data-placement="bottom" class="btn btn-default btn-sm navbar-btn">
         <i class="glyphicon glyphicon-info-sign"></i>
-        <span class="label label-info">${notificationCount!"0"}</span>
+        <span id="navbar_notification_count" class="label label-info">${notificationCount!"0"}</span>
     </a>
     <a href="${webRoot!""}/apps/my/User/Messages/FindMessage?statusId=CeReceived&toPartyId=${ec.user.userAccount.partyId!}" data-toggle="tooltip" data-container="body" data-original-title="Messages" data-placement="bottom" class="btn btn-default btn-sm navbar-btn">
         <i class="glyphicon glyphicon-envelope"></i>
@@ -61,9 +61,12 @@ along with this software (see the LICENSE.md file). If not, see
 </#if>
 <#if ec.factory.serverContainer?has_content>
     <script>
-        notificationClient.registerListener("MantleTask");
-        notificationClient.registerListener("MantleEvent");
-        notificationClient.registerListener("MantleCommunicationEvent");
+        var navbarNotificationListener = function(jsonObj, webSocket) {
+            var countElement = $("#navbar_notification_count");
+            countElement.text((parseInt(countElement.text()) + 1).toString());
+            notificationClient.displayNotify(jsonObj, webSocket);
+        };
+        notificationClient.registerListener("ALL", navbarNotificationListener);
     </script>
 </#if>
         ]]></resourceValue>
