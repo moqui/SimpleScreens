@@ -25,8 +25,8 @@ along with this software (see the LICENSE.md file). If not, see
 <#macro showOther name valueMap>
     <tr>
         <td>${ec.l10n.localize(name)}</td><td> </td>
-        <#if (timePeriodIdList?size > 1)><td class="text-right">${ec.l10n.formatCurrency(valueMap['ALL']!0, currencyUomId, 2)}</td></#if>
-        <#list timePeriodIdList as timePeriodId><td class="text-right">${ec.l10n.formatCurrency(valueMap[timePeriodId]!0, currencyUomId, 2)}</td></#list>
+        <#if (timePeriodIdList?size > 1)><td class="text-right">${ec.l10n.formatCurrency(valueMap['ALL']!0, currencyUomId)}</td></#if>
+        <#list timePeriodIdList as timePeriodId><td class="text-right">${ec.l10n.formatCurrency(valueMap[timePeriodId]!0, currencyUomId)}</td></#list>
     </tr>
 </#macro>
 

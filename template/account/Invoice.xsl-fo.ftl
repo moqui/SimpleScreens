@@ -72,7 +72,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:block font-weight="bold">Invoice #</fo:block>
                         <fo:block>${invoiceId}</fo:block>
                         <fo:block font-weight="bold">Total</fo:block>
-                        <fo:block>${ec.l10n.formatCurrency(invoiceTotal, invoice.currencyUomId, 2)} ${invoice.currencyUomId}</fo:block>
+                        <fo:block>${ec.l10n.formatCurrency(invoiceTotal, invoice.currencyUomId)} ${invoice.currencyUomId}</fo:block>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="1.75in">
                         <fo:block font-weight="bold">Date</fo:block>
@@ -147,7 +147,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
-                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceTotal, invoice.currencyUomId, 2)}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
                     </fo:table-row>
                 </fo:table-body>
             </fo:table>
@@ -165,8 +165,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-row font-size="8pt" border-bottom="thin solid black">
                         <fo:table-cell padding="${cellPadding}"><fo:block>${(itemTypeEnum.description)!""}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${itemTypeSummaryMap.quantity}</fo:block></fo:table-cell>
-                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(itemTypeSummaryMap.amount, invoice.currencyUomId, 2)}</fo:block></fo:table-cell>
-                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(itemTypeSummaryMap.total, invoice.currencyUomId, 2)}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(itemTypeSummaryMap.amount, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(itemTypeSummaryMap.total, invoice.currencyUomId)}</fo:block></fo:table-cell>
                     </fo:table-row>
                 </#list>
                 </fo:table-body>

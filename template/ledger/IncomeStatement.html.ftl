@@ -19,10 +19,10 @@ along with this software (see the LICENSE.md file). If not, see
     <tr>
         <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}</td>
         <#if (timePeriodIdList?size > 1)>
-            <td class="text-right">${ec.l10n.formatCurrency(classInfo.postedByTimePeriod['ALL']!0, currencyUomId, 2)}</td>
+            <td class="text-right">${ec.l10n.formatCurrency(classInfo.postedByTimePeriod['ALL']!0, currencyUomId)}</td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
-            <td class="text-right">${ec.l10n.formatCurrency(classInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId, 2)}</td>
+            <td class="text-right">${ec.l10n.formatCurrency(classInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId)}</td>
         </#list>
     </tr>
     <#list classInfo.glAccountInfoList! as glAccountInfo>
@@ -30,15 +30,15 @@ along with this software (see the LICENSE.md file). If not, see
             <tr>
                 <td style="padding-left: ${(depth-1) * 2 + 3}.3em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
                 <#if (timePeriodIdList?size > 1)>
-                    <td class="text-right">${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod['ALL']!0, currencyUomId, 2)}</td>
+                    <td class="text-right">${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod['ALL']!0, currencyUomId)}</td>
                 </#if>
                 <#list timePeriodIdList as timePeriodId>
                     <td class="text-right">
                         <#if findEntryUrl??>
                             <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                            <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId, 2)}</a>
+                            <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId)}</a>
                         <#else>
-                            ${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId, 2)}
+                            ${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId)}
                         </#if>
                     </td>
                 </#list>
@@ -54,10 +54,10 @@ along with this software (see the LICENSE.md file). If not, see
         <tr<#if depth == 1> class="text-info"</#if>>
             <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize(classInfo.className + " Total")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedByTimePeriod['ALL']!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedByTimePeriod['ALL']!0, currencyUomId)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedByTimePeriod[timePeriodId]!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedByTimePeriod[timePeriodId]!0, currencyUomId)}</strong></td>
             </#list>
         </tr>
     </#if>
@@ -82,10 +82,10 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-info">
             <td><strong>${ec.l10n.localize("Net Sales")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfoById.REVENUE.totalPostedByTimePeriod['ALL']!0 + classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod['ALL']!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfoById.REVENUE.totalPostedByTimePeriod['ALL']!0 + classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod['ALL']!0, currencyUomId)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfoById.REVENUE.totalPostedByTimePeriod[timePeriodId]!0 + classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod[timePeriodId]!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfoById.REVENUE.totalPostedByTimePeriod[timePeriodId]!0 + classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod[timePeriodId]!0, currencyUomId)}</strong></td>
             </#list>
         </tr>
 
@@ -93,10 +93,10 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-success" style="border-bottom: solid black;">
             <td><strong>${ec.l10n.localize("Gross Profit On Sales")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(grossProfitOnSalesMap['ALL']!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(grossProfitOnSalesMap['ALL']!0, currencyUomId)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(grossProfitOnSalesMap[timePeriodId]!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(grossProfitOnSalesMap[timePeriodId]!0, currencyUomId)}</strong></td>
             </#list>
         </tr>
 
@@ -105,20 +105,20 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-success" style="border-bottom: solid black;">
             <td><strong>${ec.l10n.localize("Net Operating Income")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(netOperatingIncomeMap['ALL']!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(netOperatingIncomeMap['ALL']!0, currencyUomId)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(netOperatingIncomeMap[timePeriodId]!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(netOperatingIncomeMap[timePeriodId]!0, currencyUomId)}</strong></td>
             </#list>
         </tr>
 
         <tr class="text-success" style="border-bottom: solid black;">
             <td><strong>${ec.l10n.localize("Net Income")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeMap['ALL']!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeMap['ALL']!0, currencyUomId)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeMap[timePeriodId]!0, currencyUomId, 2)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeMap[timePeriodId]!0, currencyUomId)}</strong></td>
             </#list>
         </tr>
     </tbody>

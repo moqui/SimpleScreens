@@ -134,8 +134,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoice.invoiceId}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoice.referenceNumber!""}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.format(invoice.invoiceDate, dateFormat)}</fo:block></fo:table-cell>
-                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoiceTotals.invoiceTotal, invoice.currencyUomId, 2)}</fo:block></fo:table-cell>
-                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoice.amountApplied, invoice.currencyUomId, 2)}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoiceTotals.invoiceTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoice.amountApplied, invoice.currencyUomId)}</fo:block></fo:table-cell>
                     </fo:table-row>
                 </#list>
             </fo:table-body>
@@ -180,7 +180,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${paymentInfo.financialAccount.finAccountCode!paymentInfo.financialAccount.finAccountId}</fo:block></fo:table-cell>
                     <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${paymentInfo.financialAccountTrans.finAccountTransId}</fo:block></fo:table-cell>
                     <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.format(paymentInfo.financialAccountTrans.transactionDate, dateFormat)}</fo:block></fo:table-cell>
-                    <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(paymentInfo.financialAccountTrans.amount, paymentInfo.financialAccount.currencyUomId, 2)}</fo:block></fo:table-cell>
+                    <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(paymentInfo.financialAccountTrans.amount, paymentInfo.financialAccount.currencyUomId)}</fo:block></fo:table-cell>
                 </fo:table-row>
             </fo:table-body>
         </fo:table>
