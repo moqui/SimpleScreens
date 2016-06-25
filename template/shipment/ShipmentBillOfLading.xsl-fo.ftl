@@ -93,7 +93,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <fo:block font-weight="bold">Order Part #</fo:block>
                             <fo:block>${orderPart.orderPartSeqId}</fo:block>
                             <fo:block font-weight="bold">Part Total</fo:block>
-                            <fo:block>${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId, 2)}</fo:block>
+                            <fo:block>${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId)}</fo:block>
                             <#if orderPart.otherPartyOrderId?has_content>
                                 <fo:block font-weight="bold"><#if orderPartInfo.isVendorInternalOrg>Customer<#else>Vendor</#if> Order #</fo:block>
                                 <fo:block>${orderPart.otherPartyOrderId}</fo:block>
@@ -169,7 +169,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">Part Total</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId, 2)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId)}</fo:block></fo:table-cell>
                         </fo:table-row>
                     </fo:table-body>
                 </fo:table>
