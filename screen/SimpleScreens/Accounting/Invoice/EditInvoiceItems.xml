@@ -33,7 +33,9 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="mantle.account.InvoiceServices.get#InvoiceTotal" in-map="[invoiceId:invoiceId]" out-map="context"/>
         <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
             <econdition field-name="invoiceId"/></entity-find>
-        <set field="invoiceEditable" from="invoice.statusId in ['InvoiceInProcess', 'InvoiceIncoming', 'InvoiceReceived']"/>
+
+        <set field="editableStatusIds" from="new HashSet(['InvoiceInProcess', 'InvoiceIncoming', 'InvoiceReceived'])"/>
+        <set field="invoiceEditable" from="invoice.statusId in editableStatusIds"/>
 
         <entity-find entity-name="moqui.basic.Enumeration" list="itemTypeEnumList">
             <econdition field-name="enumTypeId" value="ItemType"/><order-by field-name="description"/></entity-find>
