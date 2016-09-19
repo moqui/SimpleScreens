@@ -59,6 +59,37 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
-    <widgets>
-    </widgets>
+    <transition name="getAssetList">
+        <parameter name="term"/>
+        <parameter name="facilityId"/>
+        <parameter name="ownerPartyId"/>
+        <parameter name="assetTypeEnumId"/>
+        <parameter name="classEnumId"/>
+        <parameter name="assetOrderBy"/>
+        <actions>
+            <entity-find entity-name="mantle.product.asset.AssetFindView" list="assetList" limit="20">
+                <econdition field-name="facilityId" ignore-if-empty="true"/>
+                <econdition field-name="ownerPartyId" ignore-if-empty="true"/>
+                <econdition field-name="assetTypeEnumId" ignore-if-empty="true"/>
+                <econdition field-name="classEnumId" ignore-if-empty="true"/>
+                <econditions combine="or">
+                    <econdition field-name="assetId" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="assetName" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="pseudoId" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="productName" operator="like" value="%${term}%" ignore-case="true"/>
+                </econditions>
+                <select-field field-name="assetId,assetName,pseudoId,productName"/>
+                <order-by field-name="${assetOrderBy ?: '-receivedDate'}"/>
+            </entity-find>
+            <script>
+                def outList = []
+                for (def asset in assetList)
+                outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)}".toString()])
+                ec.web.sendJsonResponse(outList)
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <widgets/>
 </screen>
