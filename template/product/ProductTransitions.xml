@@ -20,14 +20,14 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="indexName"/>
         <parameter name="documentType"/>
         <actions>
-            <set field="indexName" from="searchIndexName ?: 'mantle'"/>
-            <set field="documentType" from="searchProductDocType ?: 'MantleProduct'"/>
+            <set field="indexName" from="indexName ?: searchIndexName ?: 'mantle'"/>
+            <set field="documentType" from="documentType ?: searchProductDocType ?: 'MantleProduct'"/>
             <!-- <log message="====== getProductList indexName=${indexName}, documentType=${documentType}, term=${term}"/> -->
 
             <entity-find-one entity-name="mantle.product.Product" value-field="product">
                 <field-map field-name="productId" from="term"/></entity-find-one>
 
-            <if condition="product"><then>
+            <if condition="product != null"><then>
                 <script>
                     def outList = [[value:product.productId, label:ec.resource.expand("ProductNameTemplate", "", product)]]
                     ec.web.sendJsonResponse(outList)
@@ -37,17 +37,21 @@ along with this software (see the LICENSE.md file). If not, see
                     StringBuilder termSb = new StringBuilder()
                     termSb.append(term).append('*')
                     if (productFeatureIds) {
-                        termSb.append(' AND productFeatureId:(')
                         List productFeatureIdList = productFeatureIds.split(',')
+                        // NOTE: using features.productFeatureId instead of plain productFeatureId as newer ElasticSearch doesn't search in nested fields
+                        termSb.append(' AND features.productFeatureId:')
+                        if (productFeatureIdList.size() > 1) termSb.append('(')
                         for (int i = 0; i < productFeatureIdList.size(); i++) {
                             termSb.append(productFeatureIdList.get(i))
                             if (i < (productFeatureIdList.size() - 1)) termSb.append(' OR ')
                         }
-                        termSb.append(')')
+                        if (productFeatureIdList.size() > 1) termSb.append(')')
                     }
-                    ]]></script>
+                ]]></script>
+                <!-- <log level="warn" message="Doing product search with queryString [${termSb.toString()}]"/> -->
                 <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
                         in-map="[queryString:termSb.toString(), indexName:indexName, documentType:documentType]"/>
+                <!-- <log level="warn" message="Got product search results: ${documentList}"/> -->
                 <script>
                     def outList = []
                     for (def document in documentList)
@@ -84,7 +88,7 @@ along with this software (see the LICENSE.md file). If not, see
             <script>
                 def outList = []
                 for (def asset in assetList)
-                outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)}".toString()])
+                    outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)}".toString()])
                 ec.web.sendJsonResponse(outList)
             </script>
         </actions>
