@@ -74,6 +74,15 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none"/>
     </transition>
+    <transition name="getProductAmount">
+        <parameter name="productId" required="true"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
+            <set field="uom" from="product?.amountUom"/>
+            <script>ec.web.sendTextResponse(product ? ((product.amountFixed != 1 ? ec.l10n.format(product.amountFixed, '')+ ' ' : '') + ec.resource.expand("UomNameTemplate", "", uom)) : '')</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
 
     <transition name="getAssetList">
         <parameter name="term"/>
