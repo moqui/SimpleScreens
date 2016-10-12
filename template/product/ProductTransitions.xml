@@ -75,6 +75,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
     <transition name="getProductAmount">
+        <!-- Return base amount and uom for a product -->
         <parameter name="productId" required="true"/>
         <actions>
             <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
@@ -112,6 +113,20 @@ along with this software (see the LICENSE.md file). If not, see
                     outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)}".toString()])
                 ec.web.sendJsonResponse(outList)
             </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="getAssetAmount">
+        <!-- Return base amount and uom for product on an asset -->
+        <parameter name="assetId" required="true"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset"/>
+            <if condition="asset">
+                <set field="productId" from="asset.productId"/>
+                <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
+                <set field="uom" from="product?.amountUom"/>
+                <script>ec.web.sendTextResponse(product ? ((product.amountFixed != 1 ? ec.l10n.format(product.amountFixed, '')+ ' ' : '') + ec.resource.expand("UomNameTemplate", "", uom)) : '')</script>
+            </if>
         </actions>
         <default-response type="none"/>
     </transition>
