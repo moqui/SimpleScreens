@@ -49,6 +49,9 @@ class MyAccountScreenTests extends Specification {
         ec.entity.tempResetSequencedIdPrimary("mantle.party.communication.CommunicationEvent")
         ec.entity.tempResetSequencedIdPrimary("mantle.work.effort.WorkEffort")
         ec.destroy()
+
+        // destroy the framework, note if there are ever multiple test classes for this component this should move to a Suite class
+        Moqui.destroyActiveExecutionContextFactory()
     }
 
     def setup() {
