@@ -37,6 +37,10 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="update#mantle.shipment.Shipment" out-map="context"
                 in-map="[shipmentId:shipmentId, statusId:'ShipDelivered']"/>
         <default-response url="."/></transition>
+    <transition name="receiveShipment">
+        <service-call name="mantle.shipment.ShipmentServices.receive#EntireShipment"
+                in-map="[shipmentId:shipmentId, statusId:'ShipReceived']"/>
+        <default-response url="."/></transition>
     <transition name="cancelShipment">
         <!-- TODO: when shipment cancelled reset and disassociate from SO? -->
         <service-call name="update#mantle.shipment.Shipment" out-map="context"
@@ -102,44 +106,81 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Shipment #${shipmentId}" type="h2"/>
                 <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput'">
                     <widgets>
-                        <link url="scheduleShipment" text="Set Scheduled" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                        <link url="pickShipment" text="Set Picked" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                        <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                        <container-dialog id="AddItemContainer" button-text="Add Item">
-                            <form-single name="AddItemForm" transition="addItem">
-                                <field name="shipmentId"><default-field><hidden/></default-field></field>
-                                <field name="productId"><default-field title="Product">
-                                    <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
-                                </default-field></field>
-                                <field name="quantity"><default-field><text-line size="10"/></default-field></field>
-                                <field name="submitButton"><default-field title="Add Item"><submit/></default-field></field>
-                            </form-single>
-                        </container-dialog>
+                        <section name="ShipInputIncomingOrOutgoingSection" condition="isIncoming">
+                            <widgets>
+                                <link url="scheduleShipment" text="Set Scheduled" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="receiveShipment" text="Set Received" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                            </widgets>
+                            <fail-widgets>
+                                <link url="scheduleShipment" text="Set Scheduled" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="pickShipment" text="Set Picked" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <container-dialog id="AddItemContainer" button-text="Add Item">
+                                    <form-single name="AddItemForm" transition="addItem">
+                                        <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                        <field name="productId"><default-field title="Product">
+                                            <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
+                                        </default-field></field>
+                                        <field name="quantity"><default-field><text-line size="10"/></default-field></field>
+                                        <field name="submitButton"><default-field title="Add Item"><submit/></default-field></field>
+                                    </form-single>
+                                </container-dialog>
+                            </fail-widgets>
+                        </section>
                     </widgets>
                 </section>
                 <section name="ShipScheduledSection" condition="shipment.statusId == 'ShipScheduled'">
                     <widgets>
-                        <link url="pickShipment" text="Set Picked" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                        <link url="packShipment" text="Set Packed" link-type="hidden-form" condition="allItemsPacked"><parameter name="shipmentId"/></link>
-                        <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                        <link url="ShipmentPick.pdf" text="Pick PDF"/>
-                        <link url="ShipmentPack.pdf" text="Pack PDF"/>
+                        <section name="ShipScheduledIncomingOrOutgoingSection" condition="isIncoming">
+                            <widgets>
+                                <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="receiveShipment" text="Set Received" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                            </widgets>
+                            <fail-widgets>
+                                <link url="pickShipment" text="Set Picked" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="packShipment" text="Set Packed" link-type="hidden-form" condition="allItemsPacked"><parameter name="shipmentId"/></link>
+                                <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="ShipmentPick.pdf" text="Pick PDF"/>
+                                <link url="ShipmentPack.pdf" text="Pack PDF"/>
+                            </fail-widgets>
+                        </section>
                     </widgets>
                 </section>
                 <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'">
                     <widgets>
-                        <link url="packShipment" text="Set Packed" link-type="hidden-form" condition="allItemsPacked"><parameter name="shipmentId"/></link>
-                        <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                        <link url="ShipmentPick.pdf" text="Pick PDF"/>
+                        <section name="ShipPickedIncomingOrOutgoingSection" condition="Incoming">
+                            <widgets>
+                                <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="receiveShipment" text="Set Received" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                            </widgets>
+                            <fail-widgets>
+                                <link url="packShipment" text="Set Packed" link-type="hidden-form" condition="allItemsPacked"><parameter name="shipmentId"/></link>
+                                <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="ShipmentPick.pdf" text="Pick PDF"/>
+                            </fail-widgets>
+                        </section>
                         <link url="ShipmentPack.pdf" text="Pack PDF"/>
                     </widgets>
                 </section>
                 <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'">
                     <widgets>
-                        <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                        <link url="deliverShipment" text="Set Delivered" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                        <link url="ShipmentPick.pdf" text="Pick PDF"/>
-                        <link url="ShipmentPack.pdf" text="Pack PDF"/>
+                        <section name="ShipPackedIncomingOrOutgoingSection" condition="Incoming">
+                            <widgets>
+                                <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="receiveShipment" text="Set Received" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                            </widgets>
+                            <fail-widgets>
+                                <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="deliverShipment" text="Set Delivered" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                                <link url="ShipmentPick.pdf" text="Pick PDF"/>
+                                <link url="ShipmentPack.pdf" text="Pack PDF"/>
+                            </fail-widgets>
+                        </section>
                     </widgets>
                 </section>
                 <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'">
