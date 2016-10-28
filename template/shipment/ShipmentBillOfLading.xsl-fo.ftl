@@ -38,9 +38,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:table-body><fo:table-row>
                     <fo:table-cell padding="3pt" width="3.75in">
                         <fo:block font-weight="bold">Shipper</fo:block>
-                        <fo:block>${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", false))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block>
+                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", false))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block>
                         <fo:block font-weight="bold">Consignee</fo:block>
-                        <fo:block>${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(toPartyDetail.organizationName!"", false))!""}${(toPartyDetail.firstName)!""} ${(toPartyDetail.lastName)!""}</fo:block>
+                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toPartyDetail.organizationName!"", false))!""}${(toPartyDetail.firstName)!""} ${(toPartyDetail.lastName)!""}</fo:block>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="2in">
                         <fo:block font-weight="bold">Date</fo:block>
@@ -111,7 +111,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </fo:table-cell>
                         <fo:table-cell padding="3pt" font-size="10pt" width="3.5in">
                             <fo:block font-weight="bold">Ship To</fo:block>
-                            <fo:block>${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(orderPartInfo.customerDetail.organizationName!"", true))!""} ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</fo:block>
+                            <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(orderPartInfo.customerDetail.organizationName!"", true))!""} ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</fo:block>
                             <#if contactInfo.postalAddress?has_content>
                                 <fo:block>${(contactInfo.postalAddress.address1)!""}<#if contactInfo.postalAddress.unitNumber?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block>
                                 <#if contactInfo.postalAddress.address2?has_content><fo:block>${contactInfo.postalAddress.address2}</fo:block></#if>

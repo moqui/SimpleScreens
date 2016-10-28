@@ -33,7 +33,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#macro shipmentLoadPickPageSequence>
     <fo:page-sequence master-reference="letter-portrait" initial-page-number="1" force-page-count="no-force">
         <fo:static-content flow-name="xsl-region-before">
-            <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center">${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block></#if>
+            <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block></#if>
             <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment Load Picklist</fo:block>
             <fo:block-container absolute-position="absolute" top="0in" right="0.5in" width="3in">
                 <fo:block text-align="right">

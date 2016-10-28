@@ -39,7 +39,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </#if>
                 <#if partyBadge.partyId?has_content>
                     <fo:block-container absolute-position="absolute" top="0.2in" left="2.35in" width="1in">
-                        <fo:block text-align="left" font-size="8pt">${Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(partyBadge.partyId, true)}</fo:block>
+                        <fo:block text-align="left" font-size="8pt">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(partyBadge.partyId, true)}</fo:block>
                     </fo:block-container>
                 </#if>
                 <#if person?has_content>

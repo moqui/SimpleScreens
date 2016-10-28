@@ -29,7 +29,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <fo:page-sequence master-reference="letter-portrait">
         <fo:static-content flow-name="xsl-region-before">
-            <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center">${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block></#if>
+            <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block></#if>
             <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment Picklist</fo:block>
             <fo:block-container absolute-position="absolute" top="0in" right="0.5in" width="3in">
                 <fo:block text-align="right">
@@ -98,7 +98,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </#if>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="3in">
-                        <fo:block>${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(toPartyDetail.organizationName!"", true))!""} ${(toPartyDetail.firstName)!""} ${(toPartyDetail.lastName)!""}</fo:block>
+                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toPartyDetail.organizationName!"", true))!""} ${(toPartyDetail.firstName)!""} ${(toPartyDetail.lastName)!""}</fo:block>
                         <#if toContactInfo.postalAddress?has_content>
                             <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
                             <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>

@@ -44,13 +44,13 @@ along with this software (see the LICENSE.md file). If not, see
 
             <fo:flow flow-name="xsl-region-body">
                 <fo:block>
-                    <fo:block font-size="14pt" text-align="center" margin-bottom="0">${Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(paymentInfo.fromPartyDetail.organizationName!"", false)}</fo:block>
+                    <fo:block font-size="14pt" text-align="center" margin-bottom="0">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.fromPartyDetail.organizationName!"", false)}</fo:block>
                     <fo:block font-size="13pt" text-align="center" margin-bottom="0.1in">Payment Detail</fo:block>
 
                     <fo:table table-layout="fixed" width="7.5in"><fo:table-body><fo:table-row font-size="10pt">
                         <fo:table-cell padding="0.05in" width="3.5in">
                             <#assign contactInfo = paymentInfo.toBillingContactInfo>
-                            <fo:block text-align="left">${Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(paymentInfo.toPartyDetail.organizationName!"", false)}${paymentInfo.toPartyDetail.firstName!} ${paymentInfo.toPartyDetail.lastName!}</fo:block>
+                            <fo:block text-align="left">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.toPartyDetail.organizationName!"", false)}${paymentInfo.toPartyDetail.firstName!} ${paymentInfo.toPartyDetail.lastName!}</fo:block>
                             <#if (contactInfo.postalAddress.address1)?has_content><fo:block text-align="left">${contactInfo.postalAddress.address1}<#if (contactInfo.postalAddress.unitNumber)?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block></#if>
                             <#if (contactInfo.postalAddress.address2)?has_content><fo:block text-align="left">${contactInfo.postalAddress.address2}</fo:block></#if>
                             <#if (contactInfo.postalAddress)?has_content><fo:block text-align="left">${contactInfo.postalAddress.city!}<#if (contactInfo.postalAddressStateGeo.geoCodeAlpha2)?has_content>, ${contactInfo.postalAddressStateGeo.geoCodeAlpha2} </#if>${contactInfo.postalAddress.postalCode!}<#if (contactInfo.postalAddress.postalCodeExt)?has_content>-${contactInfo.postalAddress.postalCodeExt}</#if><#if (contactInfo.postalAddressCountryGeo.geoCodeAlpha3)?has_content> ${contactInfo.postalAddressCountryGeo.geoCodeAlpha3}</#if></fo:block></#if>

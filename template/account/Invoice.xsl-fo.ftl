@@ -28,7 +28,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <fo:page-sequence master-reference="letter-portrait" id="mainSequence">
         <fo:static-content flow-name="xsl-region-before">
-            <fo:block font-size="14pt" text-align="center">${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", true))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
+            <fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", true))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
             <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">INVOICE</fo:block>
             <fo:block-container absolute-position="absolute" top="0.3in" right="0.5in" width="3in">
                 <fo:block text-align="right">
@@ -88,7 +88,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="3in">
                         <#if toBillingRep?has_content><fo:block>Attention: ${(toBillingRep.organizationName)!""} ${(toBillingRep.firstName)!""} ${(toBillingRep.lastName)!""}</fo:block></#if>
-                        <fo:block>${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(toParty.organizationName!"", true))!""} ${(toParty.firstName)!""} ${(toParty.lastName)!""}</fo:block>
+                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toParty.organizationName!"", true))!""} ${(toParty.firstName)!""} ${(toParty.lastName)!""}</fo:block>
                         <#if toContactInfo.postalAddress?has_content>
                             <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
                             <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>
@@ -130,7 +130,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell padding="${cellPadding}"><fo:block>${(itemTypeEnum.description)!""}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block>${ec.l10n.format(invoiceItem.itemDate, dateFormat)}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}">
-                            <fo:block>${Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(invoiceItem.description!"", true)}</fo:block>
+                            <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(invoiceItem.description!"", true)}</fo:block>
                             <#if (timeEntry.workEffortId)?has_content><fo:block>Task: ${timeEntry.workEffortId} - ${workEffort.workEffortName!""}</fo:block></#if>
                             <#if rateTypeEnum?has_content><fo:block>Rate: ${rateTypeEnum.description}</fo:block></#if>
                             <#if timeEntry?has_content><fo:block>${ec.l10n.format(timeEntry.fromDate, "dd MMM yyyy hh:mm")} to ${ec.l10n.format(timeEntry.thruDate, "dd MMM yyyy hh:mm")}, Break ${timeEntry.breakHours!"0"}h</fo:block></#if>

@@ -41,7 +41,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <fo:page-sequence master-reference="letter-portrait" initial-page-number="1" force-page-count="no-force">
         <fo:static-content flow-name="xsl-region-before">
-            <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center">${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block></#if>
+            <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block></#if>
             <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment Pack Sheet</fo:block>
             <#if shipment.binLocationNumber?has_content>
                 <fo:block-container absolute-position="absolute" top="0in" left="0in" width="0.6in">
@@ -106,7 +106,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="3in">
                         <fo:block font-weight="bold">From</fo:block>
-                        <fo:block>${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""} ${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block>
+                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""} ${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block>
                         <#if fromContactInfo.postalAddress?has_content>
                             <fo:block>${(fromContactInfo.postalAddress.address1)!""}<#if fromContactInfo.postalAddress.unitNumber?has_content> #${fromContactInfo.postalAddress.unitNumber}</#if></fo:block>
                             <#if fromContactInfo.postalAddress.address2?has_content><fo:block>${fromContactInfo.postalAddress.address2}</fo:block></#if>
@@ -122,7 +122,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="3in">
                         <fo:block font-weight="bold">To</fo:block>
-                        <fo:block>${(Static["org.moqui.impl.StupidUtilities"].encodeForXmlAttribute(toPartyDetail.organizationName!"", true))!""} ${(toPartyDetail.firstName)!""} ${(toPartyDetail.lastName)!""}</fo:block>
+                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toPartyDetail.organizationName!"", true))!""} ${(toPartyDetail.firstName)!""} ${(toPartyDetail.lastName)!""}</fo:block>
                         <#if toContactInfo.postalAddress?has_content>
                             <fo:block>${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
                             <#if toContactInfo.postalAddress.address2?has_content><fo:block>${toContactInfo.postalAddress.address2}</fo:block></#if>
