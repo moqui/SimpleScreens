@@ -79,8 +79,15 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="productId" required="true"/>
         <actions>
             <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
-            <set field="uom" from="product?.amountUom"/>
-            <script>ec.web.sendTextResponse(product ? ((product.amountFixed != 1 ? ec.l10n.format(product.amountFixed, '')+ ' ' : '') + ec.resource.expand("UomNameTemplate", "", uom)) : '')</script>
+            <if condition="product">
+                <set field="uom" from="product?.amountUom"/>
+                <set field="pantMap" from="[:]"/>
+                <script>
+                    pantMap.putAll(product)
+                    pantMap.putAll(uom)
+                    ec.web.sendTextResponse(ec.resource.expand("ProductAmountNameTemplate", '', pantMap))
+                </script>
+            </if>
         </actions>
         <default-response type="none"/>
     </transition>
@@ -124,8 +131,15 @@ along with this software (see the LICENSE.md file). If not, see
             <if condition="asset">
                 <set field="productId" from="asset.productId"/>
                 <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
-                <set field="uom" from="product?.amountUom"/>
-                <script>ec.web.sendTextResponse(product ? ((product.amountFixed != 1 ? ec.l10n.format(product.amountFixed, '')+ ' ' : '') + ec.resource.expand("UomNameTemplate", "", uom)) : '')</script>
+                <if condition="product">
+                    <set field="uom" from="product?.amountUom"/>
+                    <set field="pantMap" from="[:]"/>
+                    <script>
+                        pantMap.putAll(product)
+                        pantMap.putAll(uom)
+                        ec.web.sendTextResponse(ec.resource.expand("ProductAmountNameTemplate", '', pantMap))
+                    </script>
+                </if>
             </if>
         </actions>
         <default-response type="none"/>
