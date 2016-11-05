@@ -27,15 +27,20 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
+        <if condition="'sales'.equalsIgnoreCase(orderType)"><then>
+            <set field="vendorRoleTypeId" value="OrgInternal"/>
+        </then><else-if condition="'purchase'.equalsIgnoreCase(orderType)">
+            <set field="customerRoleTypeId" value="OrgInternal"/>
+        </else-if></if>
         <entity-find entity-name="mantle.order.OrderHeaderPartFacilityStatus" list="orderList">
-            <search-form-inputs default-order-by="-entryDate,-orderId,orderPartSeqId" >
+            <search-form-inputs default-order-by="-entryDate,-orderId,orderPartSeqId" skip-fields="vendorRoleTypeId,customerRoleTypeId">
                 <default-parameters statusId="OrderOpen,OrderPlaced,OrderApproved" statusId_op="in"
                         entryDate_poffset="-1" entryDate_period="30d"/></search-form-inputs>
             <econdition field-name="vendorRoleTypeId" ignore-if-empty="true"/>
             <econdition field-name="customerRoleTypeId" ignore-if-empty="true"/>
             <select-field field-name="orderId,orderPartSeqId,partTotal,grandTotal"/>
             <select-field field-name="entryDate,placedDate,shipBeforeDate"/>
-            <select-field field-name="vendorPartyId,customerPartyId"/>
+            <select-field field-name="vendorPartyId,customerPartyId,customerRoleTypeId"/>
             <select-field field-name="statusId,statusDescription"/>
             <select-field field-name="facilityId,facilityName,pseudoId"/>
         </entity-find>
@@ -89,11 +94,6 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field></field>
             </form-single>
         </container-dialog>
-
-        <container>
-            <link url="." text="Purchase Orders Only" link-type="anchor" parameter-map="[customerRoleTypeId:'OrgInternal']"/>
-            <link url="." text="Sales Orders Only" link-type="anchor" parameter-map="[vendorRoleTypeId:'OrgInternal']"/>
-        </container>
 
         <form-list name="OrderHistoryList" list="orderList" header-dialog="true" select-columns="true" saved-finds="true" show-csv-button="true">
             <field name="orderId">
@@ -167,6 +167,10 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="partTotal">
                 <header-field show-order-by="true" title="Total"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field>
+            </field>
+            <field name="orderType">
+                <header-field><radio><option key="" text="Any"/><option key="Sales"/><option key="Purchase"/></radio></header-field>
+                <default-field><display/></default-field>
             </field>
 
             <field name="submitButton">
