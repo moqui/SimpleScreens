@@ -3,7 +3,7 @@
 [![license](http://img.shields.io/badge/license-CC0%201.0%20Universal-blue.svg)](https://github.com/moqui/SimpleScreens/blob/master/LICENSE.md)
 [![build](https://travis-ci.org/moqui/SimpleScreens.svg)](https://travis-ci.org/moqui/SimpleScreens)
 [![release](http://img.shields.io/github/release/moqui/SimpleScreens.svg)](https://github.com/moqui/SimpleScreens/releases)
-[![commits since release](http://img.shields.io/github/commits-since/moqui/SimpleScreens/v1.0.2.svg)](https://github.com/moqui/SimpleScreens/commits/master)
+[![commits since release](http://img.shields.io/github/commits-since/moqui/SimpleScreens/v1.1.0.svg)](https://github.com/moqui/SimpleScreens/commits/master)
 [![downloads](http://img.shields.io/github/downloads/moqui/SimpleScreens/total.svg)](https://github.com/moqui/SimpleScreens/releases)
 
 [![LinkedIn Group](https://img.shields.io/badge/linked%20in%20group-moqui-blue.svg)](https://www.linkedin.com/groups/4640689)
