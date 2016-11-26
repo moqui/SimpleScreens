@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-index="2" menu-image="glyphicon glyphicon-search" menu-image-type="icon">
+
+    <transition name="submitSearch"><default-response url="."/></transition>
+
+    <actions>
+        <if condition="queryString">
+            <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
+                    in-map="context + [indexName:searchIndexName]"/>
+        </if>
+    </actions>
+    <widgets>
+        <container-box><box-header><label text="Search" type="h5"/></box-header><box-body>
+            <form-single name="SearchOptions" transition=".">
+                <field name="documentType"><default-field title="">
+                    <drop-down>
+                        <option key="" text="Any Type"/>
+                        <entity-options key="${dataDocumentId}" text="${documentName}">
+                            <entity-find entity-name="moqui.entity.document.DataDocument" cache="true">
+                                <econdition field-name="indexName" from="searchIndexName"/><order-by field-name="documentName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="queryString"><default-field title="" tooltip="Matches whole words, use the asterisk (*) wildcard to match partial words; use field:term to search a specific field">
+                    <text-line size="60"/>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Search"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="documentType"/><field-ref name="queryString"/>
+                    <field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </box-body><box-body-nopad>
+            <form-list name="SearchResults" list="documentList" paginate-always-show="true">
+                <row-actions>
+                    <entity-find-one entity-name="moqui.entity.document.DataDocument" value-field="dataDocument" cache="true">
+                        <field-map field-name="dataDocumentId" from="_type"/>
+                    </entity-find-one>
+                    <!-- this is a type=many relationship, but we just want one here: -->
+                    <entity-find-related-one value-field="dataDocument" cache="true" to-value-field="dataDocumentLink"
+                                             relationship-name="moqui.entity.document.DataDocumentLink"/>
+                    <set field="linkUrl" from="ec.resource.expand(dataDocumentLink?.linkUrl, '')"/>
+                    <set field="documentTitle" from="ec.resource.expand(dataDocument?.documentTitle, '')"/>
+                </row-actions>
+                <field name="type"><default-field><display text="${dataDocument.documentName}"/></default-field></field>
+                <field name="id"><default-field><display text="${_id}"/></default-field></field>
+                <field name="documentTitle"><default-field title="Title"><display/></default-field></field>
+                <field name="link"><default-field>
+                    <link url="${linkUrl}" text="${dataDocumentLink.label}" link-type="anchor" url-type="${dataDocumentLink.urlType?:'plain'}"/>
+                </default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+    </widgets>
+</screen>
