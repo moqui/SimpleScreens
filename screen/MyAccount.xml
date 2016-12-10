@@ -12,11 +12,31 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
         default-menu-title="My Account" default-menu-index="99" menu-image="glyphicon glyphicon-user" menu-image-type="icon">
 
     <subscreens default-item="User"/>
+    <transition name="counts">
+        <actions><script>
+            def curWeekRange = ec.user.getPeriodRange("week", "")
+            notificationCount = ec.entity.find("moqui.security.user.NotificationMessageUser").condition("userId", ec.user.userId)
+                    .condition("viewedDate", null).count()
+            messageCount = ec.entity.find("mantle.party.communication.CommunicationEvent")
+                    .condition("toPartyId", ec.user.userAccount.partyId).condition("statusId", "CeReceived")
+                    .condition("communicationEventTypeId", "in", "Email,Message,Comment").count()
+            eventCount = ec.entity.find("mantle.work.effort.WorkEffortAndParty").condition("partyId", ec.user.userAccount.partyId)
+                    .condition("estimatedStartDate", "greater-equals", curWeekRange[0])
+                    .condition("estimatedStartDate", "less-equals", curWeekRange[1])
+                    .condition("workEffortTypeEnumId", "WetEvent").conditionDate("", "", ec.user.nowTimestamp).count()
+            taskCount = ec.entity.find("mantle.work.effort.WorkEffortAndParty").condition("partyId", ec.user.userAccount.partyId)
+                    .condition("statusId", "not-in", "WeClosed,WeCancelled").condition("workEffortTypeEnumId", "WetTask")
+                    .conditionDate("", "", ec.user.nowTimestamp).count()
+
+            ec.web.sendJsonResponse([notificationCount:notificationCount, messageCount:messageCount, eventCount:eventCount, taskCount:taskCount])
+        </script></actions>
+        <default-response type="none"/>
+    </transition>
+
     <pre-actions><set field="partyId" from="ec.user.userAccount.partyId"/></pre-actions>
     <widgets>
         <subscreens-panel id="my-account-panel" type="popup"/>
