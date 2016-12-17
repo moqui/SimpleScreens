@@ -14,10 +14,14 @@ define({
     '</div>',
     methods: {
         updateCounts: function() {
-            var vm = this; $.ajax({ type:'GET', url:'/apps/my/counts', dataType:'json', success: function(countObj) {
-                if (countObj) { vm.notificationCount = countObj.notificationCount; vm.messageCount = countObj.messageCount;
-                    vm.eventCount = countObj.eventCount; vm.taskCount = countObj.taskCount; }
-            }});
+            var vm = this; $.ajax({ type:'GET', url:'/apps/my/counts', dataType:'json', headers:{Accept:'application/json'},
+                success: function(countObj) {if (countObj) {
+                    if (countObj.notificationCount) vm.notificationCount = countObj.notificationCount;
+                    if (countObj.messageCount) vm.messageCount = countObj.messageCount;
+                    if (countObj.eventCount) vm.eventCount = countObj.eventCount;
+                    if (countObj.taskCount) vm.taskCount = countObj.taskCount;
+                } }
+            });
         },
         notificationListener: function(jsonObj, webSocket) {
             // TODO: improve this to look for new message, event, and task notifications and increment their counters (or others to decrement...)
