@@ -12,8 +12,7 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
         default-menu-title="Party" default-menu-index="1">
 
     <parameter name="partyId" required="true"/>
@@ -51,6 +50,19 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updatePartyNote"><service-call name="update#mantle.party.PartyNote"/>
         <default-response url="."/></transition>
+
+    <transition name="createContent"><service-call name="mantle.party.PartyServices.create#PartyContent"/>
+        <default-response url="."/></transition>
+    <transition name="updateContent"><service-call name="mantle.party.PartyServices.update#PartyContent"/>
+        <default-response url="."/></transition>
+    <transition name="downloadContent" read-only="true">
+        <parameter name="partyContentId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.party.PartyContent" value-field="partyContent"/>
+            <script>ec.web.sendResourceResponse(partyContent?.contentLocation)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
 
     <actions>
         <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
@@ -385,50 +397,86 @@ along with this software (see the LICENSE.md file). If not, see
                 </widgets>
             </section>
 
-            <section name="NotesSection">
-                <actions>
-                    <entity-find entity-name="mantle.party.PartyNote" list="partyNoteList">
-                        <econdition field-name="partyId"/><order-by field-name="-noteDate"/></entity-find>
-                </actions>
-                <widgets>
-                    <container-box>
-                        <box-header><label text="Notes" type="h5"/></box-header>
-                        <box-toolbar>
-                            <container-dialog id="NewNoteDialog" button-text="Add Note">
-                                <form-single name="NewNoteForm" transition="createPartyNote">
+            <section name="NotesSection"><actions>
+                <entity-find entity-name="mantle.party.PartyNote" list="partyNoteList">
+                    <econdition field-name="partyId"/><order-by field-name="-noteDate"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header><label text="Notes" type="h5"/></box-header><box-toolbar>
+                    <container-dialog id="NewNoteDialog" button-text="Add Note">
+                        <form-single name="NewNoteForm" transition="createPartyNote">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
+                            <field name="submitButton"><default-field title="Add Note"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <section-iterate name="NoteIterateSection" list="partyNoteList" entry="partyNote"><actions>
+                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                            <field-map field-name="userId" from="partyNote.userId"/></entity-find-one>
+                    </actions><widgets>
+                        <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: partyNote.userId}) at ${ec.l10n.format(partyNote.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
+                        <section name="UpdateNoteSection" condition="partyNote.userId == ec.user.userId"><widgets>
+                            <container-dialog id="UpdateNoteContainer" button-text="Edit Note">
+                                <form-single name="UpdateNoteForm" transition="updatePartyNote" map="partyNote">
                                     <field name="partyId"><default-field><hidden/></default-field></field>
+                                    <field name="noteDate"><default-field><hidden/></default-field></field>
                                     <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
-                                    <field name="submitButton"><default-field title="Add Note"><submit/></default-field></field>
+                                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                                 </form-single>
                             </container-dialog>
-                        </box-toolbar>
-                        <box-body>
-                            <section-iterate name="NoteIterateSection" list="partyNoteList" entry="partyNote">
-                                <actions>
-                                    <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
-                                        <field-map field-name="userId" from="partyNote.userId"/></entity-find-one>
-                                </actions>
-                                <widgets>
-                                    <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: partyNote.userId}) at ${ec.l10n.format(partyNote.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
-                                    <section name="UpdateNoteSection" condition="partyNote.userId == ec.user.userId">
-                                        <widgets>
-                                            <container-dialog id="UpdateNoteContainer" button-text="Edit Note">
-                                                <form-single name="UpdateNoteForm" transition="updatePartyNote" map="partyNote">
-                                                    <field name="partyId"><default-field><hidden/></default-field></field>
-                                                    <field name="noteDate"><default-field><hidden/></default-field></field>
-                                                    <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
-                                                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                                                </form-single>
-                                            </container-dialog>
-                                        </widgets>
-                                    </section>
-                                    <label text="${partyNote.noteText}" type="p"/>
-                                </widgets>
-                            </section-iterate>
-                        </box-body>
-                    </container-box>
-                </widgets>
-            </section>
+                        </widgets></section>
+                        <label text="${partyNote.noteText}" type="p"/>
+                    </widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
+            <section name="ContentSection"><actions>
+                <entity-find entity-name="mantle.party.PartyContent" list="contentList">
+                    <econdition field-name="partyId"/><order-by field-name="-contentDate"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header><label text="Content" type="h5"/></box-header><box-toolbar>
+                    <container-dialog id="NewContentDialog" button-text="Add Content">
+                        <form-single name="NewContentForm" transition="createContent">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="partyContentTypeEnumId"><default-field title="Content Type">
+                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                    <set field="enumTypeId" value="PartyContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                            </default-field></field>
+                            <field name="contentFile"><default-field><file/></default-field></field>
+                            <field name="description"><default-field><text-line size="60"/></default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <section-iterate name="ContentIterateSection" list="contentList" entry="content"><actions>
+                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                            <field-map field-name="userId" from="content.userId"/></entity-find-one>
+                        <entity-find-one entity-name="moqui.basic.Enumeration" value-field="contentTypeEnum">
+                            <field-map field-name="enumId" from="content.partyContentTypeEnumId"/></entity-find-one>
+                    </actions><widgets>
+                        <container>
+                            <container><label text="${contentTypeEnum?.description?:'No Type'}" type="strong"/></container>
+                            <link url="downloadContent" condition="content.contentLocation"
+                                  parameter-map="[partyContentId:content.partyContentId]"
+                                  text="Download ${content.contentLocation.substring(content.contentLocation.lastIndexOf('/')+1)}"/>
+                            <container-dialog id="UpdateContentContainer" button-text="Edit Content">
+                                <form-single name="UpdateContentForm" transition="updateContent" map="content">
+                                    <field name="partyContentId"><default-field><hidden/></default-field></field>
+                                    <field name="partyId"><default-field><hidden/></default-field></field>
+                                    <field name="partyContentTypeEnumId"><default-field title="Content Type">
+                                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                            <set field="enumTypeId" value="PartyContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                                    </default-field></field>
+                                    <field name="contentFile"><default-field><file/></default-field></field>
+                                    <field name="description"><default-field><text-line size="60"/></default-field></field>
+                                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                </form-single>
+                            </container-dialog>
+                            <container><label condition="paua" text="By ${ec.resource.expand('UsernameTemplate','',paua+[userId:content.userId])} at ${ec.l10n.format(content.contentDate, 'yyyy-MM-dd HH:mm')}"/></container>
+                            <label text="${content.description ?: 'No Description'}" type="p"/>
+                        </container>
+                    </widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
         </row-col></container-row>
     </widgets>
 </screen>
