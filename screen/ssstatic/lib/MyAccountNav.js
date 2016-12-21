@@ -1,6 +1,6 @@
 define({
     /* This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License. */
-    data: function() { return { notificationCount:0, messageCount:0, eventCount:0, taskCount:0 } },
+    data: function() { return { notificationCount:0, messageCount:0, eventCount:0, taskCount:0, updateInterval:null, updateErrors:0 } },
     template:
     '<div class="btn-group navbar-right my-account-nav">' +
         '<m-link href="/apps/my/User/Notifications" data-toggle="tooltip" data-container="body" data-original-title="Notifications" data-placement="bottom" class="btn btn-default btn-sm navbar-btn">' +
@@ -14,13 +14,27 @@ define({
     '</div>',
     methods: {
         updateCounts: function() {
+            var lastNavDiff = Date.now() - this.$root.lastNavTime;
+            if (this.updateInterval && lastNavDiff > (60*60*1000)) {
+                console.log('No nav in ' + lastNavDiff + 'ms clearing updateCounts interval');
+                clearInterval(this.updateInterval); this.updateInterval = null;
+                return;
+            }
+
             var vm = this; $.ajax({ type:'GET', url:'/apps/my/counts', dataType:'json', headers:{Accept:'application/json'},
-                success: function(countObj) {if (countObj) {
+                success: function(countObj) { if (countObj) {
                     if (countObj.notificationCount) vm.notificationCount = countObj.notificationCount;
                     if (countObj.messageCount) vm.messageCount = countObj.messageCount;
                     if (countObj.eventCount) vm.eventCount = countObj.eventCount;
                     if (countObj.taskCount) vm.taskCount = countObj.taskCount;
-                } }
+                    vm.updateErrors = 0;
+                }},
+                error: function(jqXHR, textStatus, errorThrown) {
+                    vm.updateErrors++;
+                    console.log('updateCounts ' + textStatus + ' (' + jqXHR.status + '), message ' + errorThrown + ', ' + vm.updateErrors + '/5 errors so far, interval id ' + vm.updateInterval);
+                    if (vm.updateErrors > 4 && vm.updateInterval) { console.log('updateCounts clearing interval');
+                        clearInterval(vm.updateInterval); vm.updateInterval = null; }
+                }
             });
         },
         notificationListener: function(jsonObj, webSocket) {
@@ -29,9 +43,9 @@ define({
         }
     },
     mounted: function() {
-        this.updateCounts(); setInterval(this.updateCounts, 5*60*1000); /* update every 5 minutes */
+        this.updateCounts();
+        this.updateInterval = setInterval(this.updateCounts, 5*60*1000); /* update every 5 minutes */
         $('.my-account-nav [data-toggle="tooltip"]').tooltip();
         this.$root.notificationClient.registerListener("ALL", this.notificationListener);
     }
 });
-
