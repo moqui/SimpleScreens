@@ -2,10 +2,10 @@ define({
     /* This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License. */
     data: function() { return { activeOrg:null, userOrgList:null } },
     template:
-    '<div v-if="userOrgList" id="active-org-menu" class="nav navbar-right dropdown">' +
+    '<div id="active-org-menu" class="nav navbar-right dropdown">' +
         '<a id="active-org-menu-link" href="#" class="dropdown-toggle btn btn-default btn-sm navbar-btn" data-toggle="dropdown" title="Organization">' +
             '<i class="glyphicon glyphicon-globe"></i> {{activeOrg ? activeOrg.pseudoId : ""}}</a>' +
-        '<ul class="dropdown-menu">' +
+        '<ul v-if="userOrgList" class="dropdown-menu">' +
             '<li v-if="activeOrg"><a @click.prevent="updateActive(null)">Clear Active Organization</a></li>' +
             '<li v-for="userOrg in userOrgList"><a @click.prevent="updateActive(userOrg.partyId)">{{userOrg.pseudoId}}: {{userOrg.organizationName}}</a></li>' +
         '</ul>' +
