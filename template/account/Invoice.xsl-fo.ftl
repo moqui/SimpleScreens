@@ -20,8 +20,8 @@ along with this software (see the LICENSE.md file). If not, see
     <fo:layout-master-set>
         <fo:simple-page-master master-name="letter-portrait" page-width="8.5in" page-height="11in"
                                margin-top="0.5in" margin-bottom="0.5in" margin-left="0.5in" margin-right="0.5in">
-            <fo:region-body margin-top="0.5in" margin-bottom="0.6in"/>
-            <fo:region-before extent="0.5in"/>
+            <fo:region-body margin-top="0.7in" margin-bottom="0.6in"/>
+            <fo:region-before extent="0.7in"/>
             <fo:region-after extent="0.5in"/>
         </fo:simple-page-master>
     </fo:layout-master-set>
@@ -30,7 +30,14 @@ along with this software (see the LICENSE.md file). If not, see
         <fo:static-content flow-name="xsl-region-before">
             <fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", true))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
             <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">INVOICE</fo:block>
-            <fo:block-container absolute-position="absolute" top="0.3in" right="0.5in" width="3in">
+            <#if logoImageLocation?has_content>
+                <fo:block-container absolute-position="absolute" top="0in" left="0.25in" width="2in">
+                    <fo:block text-align="left">
+                        <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" scaling="uniform"/>
+                    </fo:block>
+                </fo:block-container>
+            </#if>
+            <fo:block-container absolute-position="absolute" top="0.3in" right="0.25in" width="3in">
                 <fo:block text-align="right">
                     <fo:instream-foreign-object>
                         <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${invoiceId}">
