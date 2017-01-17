@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Files" default-menu-index="4">
+
+    <parameter name="paymentMethodId" required="true"/>
+    <parameter name="paymentMethodFileId"/>
+
+    <transition name="findPayment"><default-response url="//${appRoot}/Accounting/Payment/FindPayment"/></transition>
+    <transition name="generateNachaFile"><service-call name="mantle.account.NachaServices.generate#NachaFile"/>
+        <default-response url="."/></transition>
+    <transition name="generatePosPayFile"><service-call name="mantle.account.PositivePayServices.generate#PositivePayFile"/>
+        <default-response url="."/></transition>
+    <transition name="downloadFileText">
+        <parameter name="paymentMethodFileId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.account.method.PaymentMethodFile" value-field="paymentMethodFile"/>
+            <script>ec.web.sendTextResponse(paymentMethodFile.fileText, "text/plain", "PaymentFile${paymentMethodFileId}.txt")</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.account.method.BankAccount" value-field="bankAccount"/>
+        <entity-find entity-name="mantle.account.method.PaymentMethodFile" list="fileList">
+            <search-form-inputs/><econdition field-name="paymentMethodId"/></entity-find>
+    </actions>
+    <widgets>
+        <section name="GenerateNachaSection" condition="bankAccount.nachaImmedDest"><widgets>
+            <container-dialog id="GenerateNachaFileDialog" button-text="Generate NACHA File">
+                <form-single name="GenerateNachaFile" transition="generateNachaFile">
+                    <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+                    <field name="fromDate"><default-field><date-time/></default-field></field>
+                    <field name="thruDate"><default-field><date-time/></default-field></field>
+                    <field name="fileDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                    <field name="effectiveEntryDate"><default-field tooltip="Transaction settle/post date. Defaults to next week day after File Date.">
+                        <date-time type="date"/></default-field></field>
+                    <field name="nachaEntryDescription" from="bankAccount.nachaEntryDescription">
+                        <default-field title="NACHA Entry Description"><text-line size="10" maxlength="10"/></default-field></field>
+                    <field name="submitButton"><default-field title="Generate"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+        </widgets></section>
+        <section name="GeneratePosPaySection" condition="bankAccount.posPayFormatEnumId"><widgets>
+            <container-dialog id="GeneratePosPayFileDialog" button-text="Generate Pos. Pay File">
+                <form-single name="GeneratePosPayFile" transition="generatePosPayFile">
+                    <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+                    <field name="fromDate"><default-field><date-time/></default-field></field>
+                    <field name="thruDate"><default-field><date-time/></default-field></field>
+                    <field name="fileDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                    <field name="submitButton"><default-field title="Generate"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+        </widgets></section>
+
+        <form-list name="FileList" list="fileList" skip-form="true" header-dialog="true" saved-finds="true">
+            <field name="paymentMethodId"><header-field><hidden/></header-field></field>
+            <field name="paymentMethodFileId"><header-field show-order-by="true" title="File ID"><text-find size="8" hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="fileTypeEnumId"><header-field show-order-by="true" title="File Type"/>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+            <field name="fileDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="entryCount"><header-field show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="debitAmountTotal"><header-field show-order-by="true"><range-find size="10"/></header-field>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="creditAmountTotal"><header-field show-order-by="true"><range-find size="10"/></header-field>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="paymentsButton"><default-field title="">
+                <link url="findPayment" text="Payments" parameter-map="[paymentMethodFileId:paymentMethodFileId]"/>
+            </default-field></field>
+            <field name="downloadButton"><header-field title="Find"><submit/></header-field>
+                <default-field title=""><link url="downloadFileText" text="Download File ${paymentMethodFileId}"/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>

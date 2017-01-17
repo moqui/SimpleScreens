@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Payment Method" default-menu-index="1">
+
+    <parameter name="paymentMethodId" required="true"/>
+
+    <transition name="editParty"><default-response url="../../EditParty"/></transition>
+    <transition name="findPayment"><default-response url="//${appRoot}/Accounting/Payment/FindPayment"/></transition>
+
+    <transition name="storePaymentMethodInfo"><service-call name="mantle.account.PaymentMethodServices.store#PaymentMethodInfo"/>
+        <default-response url="."/></transition>
+    <transition name="updateBankAccountMutable"><service-call name="mantle.account.PaymentMethodServices.update#BankAccountMutable"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="getGlAccountList" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
+
+    <transition name="createContent"><service-call name="mantle.account.PaymentMethodServices.create#PaymentMethodContent"/>
+        <default-response url="."/></transition>
+    <transition name="updateContent"><service-call name="mantle.account.PaymentMethodServices.update#PaymentMethodContent"/>
+        <default-response url="."/></transition>
+    <transition name="downloadContent" read-only="true">
+        <parameter name="paymentMethodContentId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.account.method.PaymentMethodContent" value-field="paymentMethodContent"/>
+            <script>ec.web.sendResourceResponse(paymentMethodContent.contentLocation)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <actions>
+        <service-call name="mantle.account.PaymentMethodServices.get#PartyPaymentMethodInfo" in-map="context" out-map="methodInfo"/>
+        <set field="methodInfoFlat" from="flattenNestedMap(methodInfo)"/>
+        <entity-find entity-name="mantle.party.contact.PartyContactMechPostalAddress" list="partyPostalAddressList">
+            <date-filter/><econdition field-name="partyId"/></entity-find>
+        <entity-find entity-name="mantle.party.contact.PartyContactMechTelecomNumber" list="partyTelecomNumberList">
+            <date-filter/><econdition field-name="partyId"/></entity-find>
+    </actions>
+    <widgets>
+        <link url="editParty" text="Edit Party" parameter-map="[partyId:methodInfoFlat.ownerPartyId]"/>
+        <link url="findPayment" text="Payments From" parameter-map="[paymentMethodId:paymentMethodId]"/>
+        <link url="findPayment" text="Payments To" parameter-map="[toPaymentMethodId:paymentMethodId]"/>
+
+        <form-single name="PaymentMethodInfoForm" transition="storePaymentMethodInfo" map="methodInfoFlat"
+                extends="component://SimpleScreens/template/party/PartyForms.xml#PaymentMethodInfo"/>
+
+        <section name="ContentSection"><actions>
+            <entity-find entity-name="mantle.account.method.PaymentMethodContent" list="contentList">
+                <econdition field-name="paymentMethodId"/><order-by field-name="-contentDate"/></entity-find>
+        </actions><widgets>
+            <container-box><box-header><label text="Content" type="h5"/></box-header><box-toolbar>
+                <container-dialog id="NewContentDialog" button-text="Add Content">
+                    <form-single name="NewContentForm" transition="createContent">
+                        <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+                        <field name="contentTypeEnumId"><default-field title="Content Type">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                <set field="enumTypeId" value="PaymentMethodContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                        </default-field></field>
+                        <field name="contentFile"><default-field><file/></default-field></field>
+                        <field name="description"><default-field><text-line size="60"/></default-field></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <section-iterate name="ContentIterateSection" list="contentList" entry="content"><actions>
+                    <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                        <field-map field-name="userId" from="content.userId"/></entity-find-one>
+                    <entity-find-one entity-name="moqui.basic.Enumeration" value-field="contentTypeEnum">
+                        <field-map field-name="enumId" from="content.contentTypeEnumId"/></entity-find-one>
+                </actions><widgets><container>
+                    <container><label text="${contentTypeEnum?.description?:'No Type'}" type="strong"/></container>
+                    <link url="downloadContent" condition="content.contentLocation"
+                            parameter-map="[paymentMethodContentId:content.paymentMethodContentId]"
+                            text="Download ${content.contentLocation.substring(content.contentLocation.lastIndexOf('/')+1)}"/>
+                    <container-dialog id="UpdateContentContainer" button-text="Edit Content">
+                        <form-single name="UpdateContentForm" transition="updateContent" map="content">
+                            <field name="paymentMethodContentId"><default-field><hidden/></default-field></field>
+                            <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+                            <field name="contentTypeEnumId"><default-field title="Content Type">
+                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                    <set field="enumTypeId" value="PaymentMethodContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                            </default-field></field>
+                            <field name="contentFile"><default-field><file/></default-field></field>
+                            <field name="description"><default-field><text-line size="60"/></default-field></field>
+                            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                    <container><label text="By ${ec.resource.expand('UsernameTemplate','',paua+[userId:content.userId])} at ${ec.l10n.format(content.contentDate, 'yyyy-MM-dd HH:mm')}" condition="paua"/></container>
+                    <label text="${content.description ?: 'No Description'}" type="p"/>
+                </container></widgets></section-iterate>
+            </box-body></container-box>
+        </widgets></section>
+
+        <label text="Bank Account Details" type="h4"/>
+        <form-single name="UpdateBankAccountMutable" transition="updateBankAccountMutable" map="methodInfoFlat">
+            <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+            <field name="description"><default-field><text-line size="50"/></default-field></field>
+            <field name="glAccountId"><default-field title="GL Account">
+                <text-line size="50" ac-transition="getGlAccountList"/></default-field></field>
+            <field name="purposeEnumId"><default-field title="Purpose">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="PaymentMethodPurpose"/><set field="allowEmpty" value="true"/></widget-template-include>
+            </default-field></field>
+
+            <field name="ledgerBalance"><default-field><text-line size="10"/></default-field></field>
+            <field name="availableBalance"><default-field><text-line size="10"/></default-field></field>
+            <field name="balanceDate"><default-field><date-time/></default-field></field>
+
+            <field name="lastCheckNumber"><conditional-field condition="isBankAccount"><text-line size="15" format="#"/></conditional-field>
+                <default-field><ignored/></default-field></field>
+
+            <field name="posPayNote"><conditional-field condition="isBankAccount" title=""><label text="Pos. Pay fields for Positive Pay export"/></conditional-field>
+                <default-field><ignored/></default-field></field>
+            <field name="posPayBankNumber"><conditional-field condition="isBankAccount" title="Pos. Pay Bank Number" tooltip="Required for some Positive Pay exports">
+                <text-line size="10"/></conditional-field><default-field><ignored/></default-field></field>
+            <field name="posPayFormatEnumId">
+                <conditional-field condition="isBankAccount" title="Pos. Pay File Format">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumWithParentDropDown">
+                        <set field="enumTypeId" value="PaymentMethodFileType"/><set field="parentEnumId" value="PmftPositivePay"/>
+                        <set field="allowEmpty" value="true"/></widget-template-include>
+                </conditional-field>
+                <default-field><ignored/></default-field>
+            </field>
+
+            <field name="nachaNote"><conditional-field condition="isBankAccount" title=""><label text="NACHA fields for ACH (NACHA) export"/></conditional-field>
+                <default-field><ignored/></default-field></field>
+            <field name="nachaImmedDest"><conditional-field condition="isBankAccount" title="NACHA Immed. Destination" tooltip="Required for NACHA; usually routing/transit number">
+                <text-line size="9" maxlength="9"/></conditional-field><default-field><ignored/></default-field></field>
+            <field name="nachaImmedOrig"><conditional-field condition="isBankAccount" title="NACHA Immed. Origin" tooltip="Required for NACHA; company source/origin ID">
+                <text-line size="9" maxlength="9"/></conditional-field><default-field><ignored/></default-field></field>
+            <field name="nachaImmedDestName"><conditional-field condition="isBankAccount" title="NACHA Immed. Dest. Name" tooltip="Defaults to Bank Name">
+                <text-line size="23" maxlength="23"/></conditional-field><default-field><ignored/></default-field></field>
+            <field name="nachaImmedOrigName"><conditional-field condition="isBankAccount" title="NACHA Immed. Origin Name" tooltip="Defaults to Company Name On Account">
+                <text-line size="23" maxlength="23"/></conditional-field><default-field><ignored/></default-field></field>
+            <field name="nachaCompanyName"><conditional-field condition="isBankAccount" title="NACHA Company Name" tooltip="Defaults to Company Name On Account">
+                <text-line size="16" maxlength="16"/></conditional-field><default-field><ignored/></default-field></field>
+            <field name="nachaDiscrData"><conditional-field condition="isBankAccount" title="NACHA Discr. Data" tooltip="Optional">
+                <text-line size="20" maxlength="20"/></conditional-field><default-field><ignored/></default-field></field>
+            <field name="nachaCompanyId"><conditional-field condition="isBankAccount" title="NACHA Company ID" tooltip="Required for NACHA; bank-assigned Company ID">
+                <text-line size="10" maxlength="10"/></conditional-field><default-field><ignored/></default-field></field>
+            <field name="nachaEntryDescription"><conditional-field condition="isBankAccount" title="NACHA Entry Description" tooltip="Required for NACHA">
+                <text-line size="10" maxlength="10"/></conditional-field><default-field><ignored/></default-field></field>
+
+            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>

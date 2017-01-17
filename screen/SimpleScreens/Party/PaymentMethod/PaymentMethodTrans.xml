@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Transactions" default-menu-index="2">
+
+    <parameter name="paymentMethodId" required="true"/>
+
+    <transition name="findPayment"><default-response url="//${appRoot}/Accounting/Payment/FindPayment"/></transition>
+    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
+    <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
+
+    <transition name="createPaymentMethodTrans"><service-call name="create#mantle.account.method.PaymentMethodTrans"/>
+        <default-response url="."/></transition>
+    <transition name="updatePaymentMethodTrans"><service-call name="update#mantle.account.method.PaymentMethodTrans"/>
+        <default-response url="."/></transition>
+
+    <transition name="uploadOfxVersion1"><service-call name="mantle.account.OfxServices.upload#OfxVersion1"/>
+        <default-response url="."/></transition>
+    <transition name="matchReconcile"><service-call name="mantle.account.ReconciliationServices.match#PaymentMethodTransUnmatched"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <!-- 'paymentMethod' from PaymentMethod.xml always-actions -->
+        <entity-find entity-name="mantle.account.method.PaymentMethodTrans" list="transList">
+            <search-form-inputs default-order-by="-postedDate"/><econdition field-name="paymentMethodId"/></entity-find>
+    </actions>
+    <widgets>
+        <container-dialog id="AddTransDialog" button-text="Add Transaction">
+            <form-single name="AddTransForm" transition="createPaymentMethodTrans">
+                <field name="partyId"><default-field><hidden/></default-field></field>
+                <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+
+                <field name="fitId"><default-field title="FIT ID"><text-line size="15"/></default-field></field>
+                <field name="transType"><default-field>
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="PaymentMethodTransType"/><set field="noCurrentSelectedKey" value="PMTT_DEBIT"/></widget-template-include>
+                </default-field></field>
+
+                <field name="transName"><default-field><text-line size="40"/></default-field></field>
+                <field name="transMemo"><default-field><text-line size="40"/></default-field></field>
+                <field name="postedDate"><default-field><date-time/></default-field></field>
+                <field name="transAmount"><default-field><text-line size="12"/></default-field></field>
+                <field name="checkNumber"><default-field><text-line size="15"/></default-field></field>
+                <field name="refNumber"><default-field><text-line size="15"/></default-field></field>
+
+                <field name="paymentId"><default-field><text-line size="15"/>
+                    <link url="editPayment" text="Payment #${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
+                <field name="acctgTransId"><default-field><text-line size="15"/>
+                    <link url="editTransaction" text="Acctg Trans #${acctgTransId}" link-type="anchor" condition="acctgTransId"/></default-field></field>
+
+                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="UploadOfxV1Dialog" button-text="Upload OFX V1 (or QFX)">
+            <form-single name="UploadOfxV1Form" transition="uploadOfxVersion1">
+                <field name="partyId"><default-field><hidden/></default-field></field>
+                <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+                <field name="ofxFile"><default-field><file/></default-field></field>
+                <field name="submitButton"><default-field title="Upload"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="AutoMatchReconcileDialog" button-text="Auto Match and Reconcile">
+            <form-single name="AutoMatchReconcileForm" transition="matchReconcile">
+                <field name="partyId"><default-field><hidden/></default-field></field>
+                <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+                <field name="lookBackDays"><default-field><text-line size="4" default-value="7"/></default-field></field>
+                <field name="submitButton"><default-field title="Match and Reconcile"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="lookBackDays"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </container-dialog>
+        <container>
+            <link url="findPayment" text="Find Payment From" link-type="anchor" parameter-map="[paymentMethodId:paymentMethodId]"/>
+            <link url="findPayment" text="Find Payment To" link-type="anchor" parameter-map="[toPaymentMethodId:paymentMethodId]"/>
+        </container>
+
+        <form-list name="TransList" list="transList" transition="updatePaymentMethodTrans" extends="AddTransForm"
+                   header-dialog="true" saved-finds="true" select-columns="true">
+            <field name="partyId"><header-field><hidden/></header-field></field>
+            <field name="paymentMethodId"><header-field><hidden/></header-field></field>
+
+            <field name="fitId"><header-field title="FIT ID" show-order-by="true">
+                <text-find size="10" hide-options="true"/></header-field></field>
+            <field name="transType"><header-field show-order-by="true"><text-find size="8" hide-options="true"/></header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" text="${description ?: transType}"/></default-field></field>
+
+            <field name="transName"><header-field show-order-by="true">
+                <text-find size="20" hide-options="true"/></header-field></field>
+            <field name="transMemo"><header-field show-order-by="true">
+                <text-find size="20" hide-options="true"/></header-field></field>
+
+            <field name="postedDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field></field>
+            <field name="transAmount"><header-field><range-find size="10"/></header-field>
+                <default-field><display currency-unit-field="paymentMethod.currencyUomId"/></default-field></field>
+
+            <field name="checkNumber"><header-field show-order-by="true">
+                <text-find size="10" hide-options="true"/></header-field></field>
+            <field name="refNumber"><header-field show-order-by="true">
+                <text-find size="10" hide-options="true"/></header-field></field>
+
+            <field name="paymentId"><header-field show-order-by="true">
+                <text-find size="10" hide-options="true"/></header-field></field>
+            <field name="acctgTransId"><header-field show-order-by="true">
+                <text-find size="12" hide-options="true"/></header-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field>
+                <default-field title="Update"><submit/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>

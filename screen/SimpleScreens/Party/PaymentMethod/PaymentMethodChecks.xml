@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Checks" default-menu-index="3">
+
+    <parameter name="paymentMethodId" required="true"/>
+    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
+
+    <actions>
+        <entity-find entity-name="mantle.account.method.BankAccountCheckAndPayment" list="checkList">
+            <search-form-inputs/><econdition field-name="paymentMethodId"/></entity-find>
+    </actions>
+    <widgets>
+        <form-list name="CheckList" list="checkList" skip-form="true" header-dialog="true" saved-finds="true">
+            <field name="checkNumber"><header-field show-order-by="true"><range-find size="10"/></header-field>
+                <default-field><display format="#"/></default-field></field>
+            <field name="paymentId"><header-field show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+            <field name="paymentTypeEnumId"><header-field show-order-by="true" title="Payment Type"/>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+            <field name="paymentRefNum"><header-field show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="toPartyId"><header-field title="To Party" show-order-by="true"/>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+            <field name="effectiveDate"><header-field><date-period allow-empty="true"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="amount"><header-field><range-find size="10"/></header-field>
+                <default-field><display currency-unit-field="amountUomId"/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>
