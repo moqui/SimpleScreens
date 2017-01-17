@@ -12,8 +12,7 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
         default-menu-include="false" standalone="true">
 
     <parameter name="partyId" required="true"/>
@@ -32,17 +31,15 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getGeoCountryStates" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
-        <if condition="postalContactMechId || telecomContactMechId || emailContactMechId">
+        <if condition="postalContactMechId || telecomContactMechId || emailContactMechId"><then>
             <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="contactInfo" in-map="context"/>
             <set field="contactInfoFlat" from="flattenNestedMap(contactInfo)"/>
-            <else-if condition="postalContactMechPurposeId || telecomContactMechPurposeId || emailContactMechPurposeId">
-                <set field="contactInfoFlat" from="[postalContactMechPurposeId:postalContactMechPurposeId,
-                        telecomContactMechPurposeId:telecomContactMechPurposeId, emailContactMechPurposeId:emailContactMechPurposeId]"/>
-            </else-if>
-            <else>
-                <set field="contactInfoFlat" from="[:]"/>
-            </else>
-        </if>
+        </then><else-if condition="postalContactMechPurposeId || telecomContactMechPurposeId || emailContactMechPurposeId">
+            <set field="contactInfoFlat" from="[postalContactMechPurposeId:postalContactMechPurposeId,
+                    telecomContactMechPurposeId:telecomContactMechPurposeId, emailContactMechPurposeId:emailContactMechPurposeId]"/>
+        </else-if><else>
+            <set field="contactInfoFlat" from="[:]"/>
+        </else></if>
     </actions>
     <widgets>
         <form-single name="UpdateContactInfo" transition="storeContactInfo" map="contactInfoFlat"
