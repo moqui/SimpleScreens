@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Time" default-menu-index="5">
+
+    <parameter name="partyId" required="true"/>
+
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+
+    <transition name="recordTimeEntry"><service-call name="mantle.work.TimeServices.store#TimeEntry" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="clockInTimeEntry"><service-call name="mantle.work.TimeServices.create#TimeEntryClockIn" in-map="context"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <entity-find entity-name="mantle.work.time.TimeEntry" list="timeEntryList">
+            <search-form-inputs default-order-by="-fromDate"/>
+            <econdition field-name="partyId"/>
+        </entity-find>
+        <filter-map-list list="timeEntryList" to-list="openTimeEntryList">
+            <field-map field-name="thruDate" from="null"/></filter-map-list>
+        <set field="openTimeEntry" from="openTimeEntryList ? openTimeEntryList[0] : null"/>
+
+        <entity-find entity-name="mantle.party.PartyToAndRelationship" list="employerRelList">
+            <date-filter/><econdition field-name="fromPartyId" from="partyId"/>
+            <econdition field-name="relationshipTypeEnumId" value="PrtEmployee"/>
+            <order-by field-name="pseudoId,organizationName,lastName,firstName"/>
+        </entity-find>
+
+        <entity-find entity-name="mantle.work.effort.WorkEffortAndParty" list="myEventList">
+            <date-filter/><econdition field-name="workEffortTypeEnumId" operator="in" value="WetTask,WetEvent"/>
+            <econdition field-name="partyId"/>
+            <econdition field-name="statusId" operator="not-in" value="WeClosed,WeCancelled" ignore="statusId"/>
+            <select-field field-name="workEffortId"/><select-field field-name="workEffortName"/>
+        </entity-find>
+
+        <service-call name="mantle.humanres.PositionServices.get#PartyEmployersAndPositionClasses"
+                in-map="[partyId:partyId]" out-map="context"/>
+    </actions>
+    <widgets>
+        <container-dialog id="AddTimeDialog" button-text="Record Time">
+            <form-single name="AddTimeForm" transition="recordTimeEntry"
+                         extends="component://SimpleScreens/screen/MyAccount/User/TimeEntries.xml#AddTimeForm"/>
+        </container-dialog>
+        <section-include name="ClockInOutSection" location="component://SimpleScreens/screen/MyAccount/User/TimeEntries.xml"/>
+
+        <form-list name="TimeEntryList" list="timeEntryList" transition="recordTimeEntry" header-dialog="true" saved-finds="true" select-columns="true">
+            <row-actions>
+                <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
+            </row-actions>
+            <field name="partyId"><header-field><hidden/></header-field><default-field><hidden/></default-field></field>
+            <field name="timeEntryId"><default-field><hidden/></default-field></field>
+            <field name="fromDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
+                <conditional-field condition="!vendorInvoiceId"><date-time/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="thruDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
+                <conditional-field condition="!vendorInvoiceId"><date-time/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="pieceCount" align="right"><header-field show-order-by="true"/>
+                <conditional-field condition="!vendorInvoiceId"><text-line size="6"/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="hours" align="right"><header-field show-order-by="true"/>
+                <conditional-field condition="!vendorInvoiceId"><text-line size="6" format="0.000"/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="breakHours" align="right"><header-field title="Break" show-order-by="true"/>
+                <conditional-field condition="!vendorInvoiceId"><text-line size="6" format="0.000"/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="clientPartyId">
+                <header-field title="Employer"><drop-down allow-empty="true">
+                    <list-options list="employerRelList" key="${toPartyId}" text="PartyNameTemplate"/></drop-down></header-field>
+                <conditional-field condition="!vendorInvoiceId"><drop-down allow-empty="true">
+                    <list-options list="employerRelList" key="${toPartyId}" text="PartyNameTemplate"/></drop-down></conditional-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
+            </field>
+            <field name="workEffortId">
+                <header-field title="Event" show-order-by="true">
+                    <drop-down allow-empty="true"><list-options list="myEventList" text="WorkEffortNameTemplate"/></drop-down></header-field>
+                <conditional-field condition="!vendorInvoiceId">
+                    <drop-down allow-empty="true"><list-options list="myEventList" text="WorkEffortNameTemplate"/></drop-down>
+                </conditional-field>
+                <default-field>
+                    <label text="WorkEffortNameTemplate" text-map="workEffort"
+                           condition="workEffort &amp;&amp; workEffort?.purposeEnumId != 'WepShipmentShip' &amp;&amp; workEffort?.purposeEnumId != 'WepProductionRun'"/>
+                </default-field>
+            </field>
+            <field name="workTypeEnumId">
+                <header-field title="Work Type" show-order-by="true"><drop-down allow-empty="true">
+                    <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></header-field>
+                <conditional-field condition="!vendorInvoiceId"><drop-down allow-empty="true">
+                    <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></conditional-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="rateTypeEnumId">
+                <header-field title="Rate Type" show-order-by="true">
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="RateType"/>
+                            <econdition field-name="enumId" operator="not-in" value="RatpPiece,RatpPieceOvertime,RatpPieceDoubleTime"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </header-field>
+                <conditional-field condition="!vendorInvoiceId">
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="RateType"/>
+                            <econdition field-name="enumId" operator="not-in" value="RatpPiece,RatpPieceOvertime,RatpPieceDoubleTime"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </conditional-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId"/></default-field>
+            </field>
+            <field name="comments">
+                <header-field show-order-by="true"/>
+                <conditional-field condition="!vendorInvoiceId"><text-area cols="40" rows="3"/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+
+            <field name="vendorInvoiceId">
+                <header-field show-order-by="true"/>
+                <default-field title="Payroll Invoice">
+                    <link url="editInvoice" text="${vendorInvoiceId}" link-type="anchor" condition="vendorInvoiceId" parameter-map="[invoiceId:vendorInvoiceId]"/>
+                </default-field>
+            </field>
+
+            <field name="findButton" align="right"><header-field title="Find"><submit/></header-field>
+                <conditional-field condition="!vendorInvoiceId" title="Update"><submit/></conditional-field>
+                <default-field><hidden/></default-field>
+            </field>
+        </form-list>
+    </widgets>
+</screen>
