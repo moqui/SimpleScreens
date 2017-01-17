@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="partyId" required="true"/>
+
+    <!-- TODO: add merge option -->
+
+    <actions>
+        <service-call name="mantle.party.PartyServices.find#PartyDuplicates" in-map="[partyId:partyId]" out-map="context"/>
+        <script>
+            dupInfoList = []
+            for (List matchList in matchingInfoByPartyId.values()) {
+                for (matchInfo in matchList) {
+                    if (matchInfo instanceof org.moqui.entity.EntityValue) { dupInfoList.add(matchInfo.getMap()) }
+                    else { dupInfoList.add(matchInfo) }
+                }
+            }
+        </script>
+    </actions>
+    <widgets>
+        <form-list name="DupPartyList" list="dupInfoList">
+            <field name="partyId"><default-field title="Party">
+                <link url=".." entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"/></default-field></field>
+            <field name="idValue"><default-field title="Alt ID"><display/></default-field></field>
+            <field name="infoString"><default-field title="Email"><display/></default-field></field>
+
+            <field name="areaCode"><default-field title="Area"><display/></default-field></field>
+            <field name="contactNumber"><default-field title="Number"><display/></default-field></field>
+
+            <field name="address1"><default-field title="Address 1"><display/></default-field></field>
+            <field name="unitNumber"><default-field title="Unit"><display/></default-field></field>
+            <field name="postalCode"><default-field title="Postal"><display/></default-field></field>
+            <field name="postalCodeExt"><default-field title="Ext"><display/></default-field></field>
+            <field name="countryGeoId"><default-field title="Country"><display/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>
