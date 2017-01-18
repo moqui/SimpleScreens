@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Add From Orders" default-menu-index="3">
+
+    <parameter name="returnId" required="true"/>
+    <parameter name="lookBackDays"/>
+
+    <transition name="addOrderItemToReturn"><service-call name="mantle.order.ReturnServices.add#OrderItemToReturn"/>
+        <default-response url="../EditReturnItems"/></transition>
+
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.order.return.ReturnHeader" value-field="returnHeader"/>
+        <set field="returnChangeable" from="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved']"/>
+        <if condition="returnChangeable">
+            <service-call name="mantle.order.ReturnServices.find#ReturnableOrderItems" out-map="context"
+                    in-map="[returnId:returnId, lookBackDays:lookBackDays]"/>
+        </if>
+    </actions>
+    <widgets>
+        <section name="AddItemsSection" condition="returnChangeable"><widgets>
+            <form-single name="LookBackDaysForm" transition=".">
+                <field name="returnId"><default-field><hidden/></default-field></field>
+                <field name="lookBackDays"><default-field><text-line size="4" default-value="30"/></default-field></field>
+                <field name="submitButton"><default-field title="Set"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="lookBackDays"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+            <form-list name="AddOrderItemToReturn" list="orderItemInfoList" transition="addOrderItemToReturn">
+                <field name="returnId"><default-field><hidden/></default-field></field>
+                <field name="orderId"><default-field title="Order"><display text=" "/>
+                    <link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
+                <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                <field name="itemTypeEnumId"><default-field title="Item Type">
+                    <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="productId"><default-field title="Product">
+                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+
+                <field name="returnQuantity" from="returnableQuantity"><default-field>
+                    <text-line size="6"/></default-field></field>
+                <field name="inventoryStatusId"><default-field title="Inventory Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstAvailable"/>
+                        <set field="style" value=" "/></widget-template-include>
+                </default-field></field>
+                <field name="returnReasonEnumId"><default-field title="Reason">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ReturnReason"/><set field="style" value=" "/></widget-template-include>
+                </default-field></field>
+                <field name="returnResponseEnumId"><default-field title="Response">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ReturnResponse"/><set field="style" value=" "/></widget-template-include>
+                </default-field></field>
+                <field name="responseImmediate"><default-field title="Immediate?">
+                    <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+
+                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+            </form-list>
+        </widgets><fail-widgets>
+            <label text="Return ${returnId} cannot be changed" type="strong"/>
+        </fail-widgets></section>
+    </widgets>
+</screen>

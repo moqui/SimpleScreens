@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="orderId" required="true"/>
+    <parameter name="orderItemSeqId" required="true"/>
+    <transition name="addOrderItemToReturn"><service-call name="mantle.order.ReturnServices.add#OrderItemToReturn"/>
+        <default-response url=".."/></transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.order.OrderItem" value-field="orderItem"/>
+        <service-call name="mantle.order.ReturnServices.calculate#OrderItemReturnable" out-map="returnableOut"
+                in-map="[orderId:orderId, orderItemSeqId:orderItem.orderItemSeqId]"/>
+        <service-call name="mantle.order.ReturnServices.find#OrderOpenReturns" out-map="openReturnsOut"
+                in-map="[orderId:orderId, orderPartSeqId:orderItem.orderPartSeqId]"/>
+    </actions>
+    <widgets>
+        <form-single name="ReturnItem" transition="addOrderItemToReturn">
+            <field name="orderId"><default-field><hidden/></default-field></field>
+            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+
+            <field name="productId" from="orderItem.productId">
+                <conditional-field condition="orderItem.productId" title="Product">
+                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></conditional-field>
+                <default-field><ignored/></default-field>
+            </field>
+
+            <field name="orderQuantity" from="orderItem.quantity"><default-field><display/></default-field></field>
+            <field name="billedQuantity" from="returnableOut.invoiceQuantity"><default-field><display/></default-field></field>
+            <field name="returnedQuantity" from="returnableOut.returnQuantity"><default-field><display/></default-field></field>
+            <field name="returnableQuantity" from="returnableOut.returnableQuantity"><default-field><display/></default-field></field>
+
+            <field name="returnId"><default-field title="Return"><drop-down>
+                <list-options list="openReturnsOut.openReturnList" key="${returnId}" text="#${returnId} ${ec.l10n.format(entryDate, '')}"/>
+            </drop-down></default-field></field>
+
+            <field name="returnQuantity" from="returnableOut.returnableQuantity"><default-field><text-line size="6"/></default-field></field>
+            <field name="inventoryStatusId"><default-field title="Inventory Status">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                    <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstAvailable"/>
+                    <set field="style" value=" "/></widget-template-include>
+            </default-field></field>
+            <field name="returnReasonEnumId"><default-field title="Reason">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="ReturnReason"/><set field="style" value=" "/></widget-template-include>
+            </default-field></field>
+            <field name="returnResponseEnumId"><default-field title="Response">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="ReturnResponse"/><set field="style" value=" "/></widget-template-include>
+            </default-field></field>
+            <field name="responseImmediate"><default-field title="Immediate?">
+                <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+
+            <field name="submitButton"><default-field title="Add to Return"><submit/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>

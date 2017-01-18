@@ -78,6 +78,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updatePayment"><service-call name="update#mantle.account.payment.Payment"/>
         <default-response url="."/></transition>
 
+    <transition name="createReturnFromOrder"><service-call name="mantle.order.ReturnServices.create#ReturnFromOrder"/>
+        <default-response url="."/></transition>
+    <transition name="editReturn"><default-response url="../../Return/EditReturn"/></transition>
+
     <transition name="createOrderPartParty"><service-call name="create#mantle.order.OrderPartParty"/>
         <default-response url="."/></transition>
     <transition name="deleteOrderPartParty"><service-call name="delete#mantle.order.OrderPartParty"/>
@@ -112,419 +116,382 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <section name="OrderHeaderSection"><widgets>
-            <container-row>
-                <row-col lg="6">
-                    <label text="Order #${orderId}" type="h2"/>
+            <container-row><row-col lg="6">
+                <label text="Order #${orderId}" type="h3"/>
 
-                    <section name="OpenSection" condition="orderHeader.statusId == 'OrderOpen'"><widgets>
-                        <link url="placeOrder" text="Place Order" link-type="hidden-form"/>
+                <section name="OpenSection" condition="orderHeader.statusId == 'OrderOpen'"><widgets>
+                    <link url="placeOrder" text="Place Order" link-type="hidden-form"/>
 
-                        <container-dialog id="AddPartDialog" button-text="Add Part">
-                            <form-single name="AddPartForm" transition="createOrderPart">
+                    <container-dialog id="AddPartDialog" button-text="Add Part">
+                        <form-single name="AddPartForm" transition="createOrderPart">
+                            <field name="orderId"><default-field><hidden/></default-field></field>
+                            <field name="vendorPartyId" from="firstPartInfo.orderPart.vendorPartyId">
+                                <default-field><hidden/></default-field></field>
+                            <field name="customerPartyId" from="firstPartInfo.orderPart.customerPartyId">
+                                <default-field><hidden/></default-field></field>
+                            <field name="facilityId"><default-field title="Facility"><drop-down>
+                                <entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
+                                    <entity-find entity-name="mantle.facility.Facility" list="facilityList">
+                                        <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                                        <order-by field-name="facilityName"/>
+                                    </entity-find></entity-options>
+                            </drop-down></default-field></field>
+                            <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
+                            <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </widgets></section>
+
+                <link url="approveOrder" text="Approve Order" link-type="hidden-form"
+                        condition="orderHeader.statusId == 'OrderPlaced' &amp;&amp; ec.user.hasPermission('ORDER_APPROVE')"/>
+                <link url="sendOrder" text="Order Sent" link-type="hidden-form"
+                        condition="orderHeader.statusId == 'OrderApproved'"/>
+                <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"
+                        condition="orderHeader.statusId in ['OrderPlaced', 'OrderApproved']"/>
+
+                <link url="cloneOrder" text="Clone Order" parameter-map="[baseOrderId:orderId]"/>
+                <link url="PrintOrder.pdf" text="Order PDF"/>
+
+                <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
+                    <link url="editInvoice" text="Invoice #${invoiceId}" link-type="anchor-button"/>
+                </widgets></section-iterate>
+
+                <form-single name="HeaderForm" transition="updateOrderHeader" map="orderHeader">
+                    <field name="orderId"><default-field><hidden/></default-field></field>
+                    <field name="statusId"><default-field title="Status">
+                        <display text="${statusItem.description}"/></default-field></field>
+                    <field name="entryDate"><default-field title="Entry"><display/></default-field></field>
+                    <field name="placedDate"><default-field title="Placed"><display/></default-field></field>
+                    <field name="orderName">
+                        <conditional-field condition="orderEditable"><text-line size="40"/></conditional-field>
+                        <default-field title="Name"><display/></default-field>
+                    </field>
+                    <field name="orderRevision"><default-field title="Revision"><display/></default-field></field>
+                    <field name="salesChannelEnumId">
+                        <conditional-field condition="orderEditable" title="Status">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="SalesChannel"/><set field="allowEmpty" value="true"/>
+                            <set field="style" value=" "/></widget-template-include>
+                        </conditional-field>
+                        <default-field title="Channel">
+                            <display-entity entity-name="moqui.basic.Enumeration"/>
+                        </default-field>
+                    </field>
+                    <field name="externalId"><default-field><display/></default-field></field>
+                    <field name="externalRevision"><default-field title="Ext Rev"><display/></default-field></field>
+                    <field name="systemMessageRemoteId">
+                        <conditional-field condition="orderEditable">
+                            <drop-down allow-empty="true">
+                                <entity-options key="${systemMessageRemoteId}" text="${description}">
+                                    <entity-find entity-name="moqui.service.message.SystemMessageRemote">
+                                        <order-by field-name="description"/></entity-find></entity-options>
+                            </drop-down>
+                        </conditional-field>
+                        <default-field title="Message Remote"><display-entity entity-name="moqui.service.message.SystemMessageRemote" key-field-name="systemMessageRemoteId"/></default-field>
+                    </field>
+                    <field name="submitButton">
+                        <conditional-field condition="orderEditable" title="Update Header"><submit/></conditional-field>
+                        <default-field title="Update Header"></default-field>
+                    </field>
+                    <field-layout>
+                        <field-row><field-ref name="statusId"/><field-ref name="orderRevision"/></field-row>
+                        <field-row><field-ref name="entryDate"/><field-ref name="placedDate"/></field-row>
+                        <field-ref name="orderName"/>
+                        <field-row><field-ref name="salesChannelEnumId"/><field-ref name="systemMessageRemoteId"/></field-row>
+                        <field-row><field-ref name="externalId"/><field-ref name="externalRevision"/></field-row>
+                        <field-ref name="submitButton"/>
+                    </field-layout>
+                </form-single>
+            </row-col><row-col lg="6">
+                <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+                <section name="NotesSection"><widgets>
+                    <container-box><box-header><label text="Notes" type="h5"/></box-header><box-toolbar>
+                        <container-dialog id="NewNoteDialog" button-text="Add Note">
+                            <form-single name="NewNoteForm" transition="createNote">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
-                                <field name="vendorPartyId" from="firstPartInfo.orderPart.vendorPartyId">
-                                    <default-field><hidden/></default-field></field>
-                                <field name="customerPartyId" from="firstPartInfo.orderPart.customerPartyId">
-                                    <default-field><hidden/></default-field></field>
+                                <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
+                                <field name="submitButton"><default-field title="Add Note"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar><box-body>
+                        <section-iterate name="NoteIterateSection" list="orderNoteList" entry="note"><actions>
+                            <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                                <field-map field-name="userId" from="note.userId"/></entity-find-one>
+                        </actions><widgets>
+                            <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: note.userId}) at ${ec.l10n.format(note.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
+                            <section name="UpdateNoteSection" condition="note.userId == ec.user.userId &amp;&amp; orderEditable"><widgets>
+                                <container-dialog id="UpdateNoteContainer" button-text="Edit Note">
+                                    <form-single name="UpdateNoteForm" transition="updateNote" map="note">
+                                        <field name="orderId"><default-field><hidden/></default-field></field>
+                                        <field name="noteDate"><default-field><hidden/></default-field></field>
+                                        <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
+                                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                    </form-single>
+                                </container-dialog>
+                            </widgets></section>
+                            <label text="${note.noteText}" type="p"/>
+                        </widgets></section-iterate>
+                    </box-body></container-box>
+                </widgets></section>
+                <section name="ContentSection"><actions>
+                    <entity-find entity-name="mantle.order.OrderContent" list="contentList">
+                        <econdition field-name="orderId"/><order-by field-name="-contentDate"/></entity-find>
+                </actions><widgets>
+                    <container-box><box-header><label text="Attachments" type="h5"/></box-header><box-toolbar>
+                        <container-dialog id="NewContentDialog" button-text="Add Attachment">
+                            <form-single name="NewContentForm" transition="createContent">
+                                <field name="orderId"><default-field><hidden/></default-field></field>
+                                <field name="contentFile"><default-field><file/></default-field></field>
+                                <field name="description"><default-field><text-line size="60"/></default-field></field>
+                                <field name="submitButton"><default-field title="Add Attachment"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar><box-body>
+                        <section-iterate name="ContentIterateSection" list="contentList" entry="content"><actions>
+                            <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                                <field-map field-name="userId" from="content.userId"/></entity-find-one>
+                        </actions><widgets><container>
+                            <link url="downloadContent" condition="content.contentLocation"
+                                    parameter-map="[orderContentId:content.orderContentId]"
+                                    text="Download ${content.contentLocation.substring(content.contentLocation.lastIndexOf('/')+1)}"/>
+                            <section name="UpdateContentContainerSection" condition="orderEditable"><widgets>
+                                <container-dialog id="UpdateContentContainer" button-text="Edit Attachment">
+                                    <form-single name="UpdateContentForm" transition="updateContent" map="content">
+                                        <field name="orderContentId"><default-field><hidden/></default-field></field>
+                                        <field name="orderId"><default-field><hidden/></default-field></field>
+                                        <field name="contentFile"><default-field><file/></default-field></field>
+                                        <field name="description"><default-field><text-line size="60"/></default-field></field>
+                                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                    </form-single>
+                                </container-dialog>
+                            </widgets></section>
+                            <container><label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: content.userId}) at ${ec.l10n.format(content.contentDate, 'yyyy-MM-dd HH:mm')}"/></container>
+                            <label text="${content.description ?: 'No Description'}" type="p"/>
+                        </container></widgets></section-iterate>
+                    </box-body></container-box>
+                </widgets></section>
+            </row-col></container-row>
+        </widgets></section>
+
+        <section-iterate name="OrderPartSection" list="orderPartInfoList" entry="orderPartInfo"><actions>
+            <set field="contactInfo" from="orderPartInfo.facilityContactInfo"/>
+            <set field="orderPart" from="orderPartInfo.orderPart"/>
+            <set field="customerPartyId" from="orderPartInfo.customerDetail.partyId"/>
+            <set field="customerShipToPartyId" from="orderPartInfo.customerShipToDetail?.partyId"/>
+
+            <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="customerShippingInfo"
+                    in-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
+            <set field="shippingPostalAddressList" from="customerShippingInfo.postalAddressList ?: []"/>
+            <if condition="customerShipToPartyId">
+                <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="shipToShippingInfo"
+                        in-map="[partyId:customerShipToPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
+                <script>shippingPostalAddressList.addAll(shipToShippingInfo.postalAddressList ?: [])</script>
+            </if>
+
+            <!-- TODO: get shipping options with or without store
+            <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
+                    in-map="[productStoreId:productStoreId, orderId:orderId,
+                        postalContactMechId:shippingPostalAddressList?.first?.postalContactMechId]"/>
+            -->
+        </actions><widgets>
+            <container style="row shaded-area">
+                <container style="col-lg-6">
+                    <container><label text="Order Part ${orderPartInfo.orderPart.orderPartSeqId}" type="strong"/></container>
+                    <section name="EditPartSection" condition="orderPartInfo.partEditable"><widgets>
+                        <container-dialog id="EditPartDialog" button-text="Edit Part ${orderPartInfo.orderPart.orderPartSeqId}">
+                            <form-single name="EditPartForm" transition="updateOrderPart" map="orderPartInfo.orderPart">
+                                <field name="orderId"><default-field><hidden/></default-field></field>
+                                <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
                                 <field name="facilityId"><default-field title="Facility"><drop-down>
                                     <entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
                                         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
                                             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                                            <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.vendorPartyId"
+                                                    ignore="!orderPartInfo.isVendorInternalOrg"/>
+                                            <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"
+                                                    ignore="orderPartInfo.isVendorInternalOrg"/>
                                             <order-by field-name="facilityName"/>
                                         </entity-find></entity-options>
                                 </drop-down></default-field></field>
                                 <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
-                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                                <field name="estimatedDeliveryDate"><default-field title="Delivery Date"><date-time/></default-field></field>
+                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                        <container-dialog id="AddPartPartyDialog" button-text="Add Party">
+                            <form-single name="CreateOrderPartParty" transition="createOrderPartParty" map="orderPartInfo.orderPart">
+                                <field name="orderId"><default-field><hidden/></default-field></field>
+                                <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
+                                <field name="partyId"><default-field title="Party">
+                                    <text-line ac-transition="getPartyList" ac-min-length="2" size="60"/>
+                                </default-field></field>
+                                <field name="roleTypeId"><default-field title="Role">
+                                    <drop-down>
+                                        <entity-options key="${roleTypeId}" text="${description}">
+                                            <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                                                <econdition field-name="roleGroupEnumId" value="RgpOrder"/>
+                                                <order-by field-name="description"/></entity-find></entity-options>
+                                    </drop-down>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                             </form-single>
                         </container-dialog>
                     </widgets></section>
 
-                    <link url="approveOrder" text="Approve Order" link-type="hidden-form"
-                            condition="orderHeader.statusId == 'OrderPlaced' &amp;&amp; ec.user.hasPermission('ORDER_APPROVE')"/>
-                    <link url="sendOrder" text="Order Sent" link-type="hidden-form"
-                            condition="orderHeader.statusId == 'OrderApproved'"/>
-                    <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"
-                            condition="orderHeader.statusId in ['OrderPlaced', 'OrderApproved']"/>
+                    <link url="completeOrderPart" text="Complete Part" link-type="hidden-form"
+                            parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
+                            condition="orderPartInfo.orderPart.statusId in ['OrderApproved', 'OrderSent']"/>
+                    <link url="invoiceOrderPart" text="Create Invoice" link-type="hidden-form"
+                            parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
+                            condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId)"/>
 
-                    <link url="cloneOrder" text="Clone Order" parameter-map="[baseOrderId:orderId]"/>
-                    <link url="PrintOrder.pdf" text="Order PDF"/>
+                    <section name="ShipOrderPartSection"><condition>
+                        <expression>quantityNotShippedByPart.get(orderPartInfo.orderPart.orderPartSeqId) &amp;&amp;
+                            (orderHeader.statusId == "OrderApproved" || orderHeader.statusId == "OrderSent")</expression>
+                    </condition><actions>
+                            <!-- find Shipments going to same Facility -->
+                            <entity-find entity-name="mantle.shipment.ShipmentSegmentFacilityStatus" list="ssfsList">
+                                <econdition field-name="destinationFacilityId" from="orderPartInfo.orderPart.facilityId"/>
+                                <econdition field-name="fromPartyId" from="orderPartInfo.orderPart.vendorPartyId"/>
+                                <econdition field-name="statusId" operator="in" value="ShipInput,ShipScheduled"/>
+                                <order-by field-name="shipmentId"/>
+                            </entity-find>
+                    </actions><widgets>
+                        <link url="shipOrderPart" text="Create Shipment" link-type="hidden-form">
+                            <parameter name="orderId"/>
+                            <parameter name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"/>
+                        </link>
 
-                    <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
-                        <link url="editInvoice" text="Invoice #${invoiceId}" link-type="anchor-button"/>
+                        <section name="AddPartToShipmentSection" condition="ssfsList"><widgets>
+                            <container-dialog id="AddOrderPartToShipmentDialog" button-text="Add Part to Shipment">
+                                <form-single name="AddOrderPartToShipmentForm" transition="addOrderPartToShipment">
+                                    <field name="orderId"><default-field><hidden/></default-field></field>
+                                    <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="shipmentId"><default-field title="Shipment"><drop-down>
+                                        <list-options list="ssfsList" key="${shipmentId}" text="${shipmentId}"/>
+                                    </drop-down></default-field></field>
+                                    <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                                </form-single>
+                            </container-dialog>
+                        </widgets></section>
+                    </widgets></section>
+                    <section-iterate name="ShipmentLinks" list="orderPartInfo.partShipmentIdSet" entry="shipmentId"><widgets>
+                        <link url="shipmentDetail" text="Shipment #${shipmentId}" link-type="anchor-button"/>
                     </widgets></section-iterate>
+                    <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList"
+                          parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"/>
 
-                    <form-single name="HeaderForm" transition="updateOrderHeader" map="orderHeader">
-                        <field name="orderId"><default-field><hidden/></default-field></field>
-                        <field name="statusId"><default-field title="Status">
-                            <display text="${statusItem.description}"/></default-field></field>
-                        <field name="entryDate"><default-field title="Entry"><display/></default-field></field>
-                        <field name="placedDate"><default-field title="Placed"><display/></default-field></field>
-                        <field name="orderName">
-                            <conditional-field condition="orderEditable"><text-line size="40"/></conditional-field>
-                            <default-field title="Name"><display/></default-field>
-                        </field>
-                        <field name="orderRevision"><default-field title="Revision"><display/></default-field></field>
-                        <field name="salesChannelEnumId">
-                            <conditional-field condition="orderEditable" title="Status">
-                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                                <set field="enumTypeId" value="SalesChannel"/><set field="allowEmpty" value="true"/>
-                                <set field="style" value=" "/></widget-template-include>
-                            </conditional-field>
-                            <default-field title="Channel">
-                                <display-entity entity-name="moqui.basic.Enumeration"/>
-                            </default-field>
-                        </field>
-                        <field name="externalId"><default-field><display/></default-field></field>
-                        <field name="externalRevision"><default-field title="Ext Rev"><display/></default-field></field>
-                        <field name="systemMessageRemoteId">
-                            <conditional-field condition="orderEditable">
-                                <drop-down allow-empty="true">
-                                    <entity-options key="${systemMessageRemoteId}" text="${description}">
-                                        <entity-find entity-name="moqui.service.message.SystemMessageRemote">
-                                            <order-by field-name="description"/></entity-find></entity-options>
-                                </drop-down>
-                            </conditional-field>
-                            <default-field title="Message Remote"><display-entity entity-name="moqui.service.message.SystemMessageRemote" key-field-name="systemMessageRemoteId"/></default-field>
-                        </field>
-                        <field name="submitButton">
-                            <conditional-field condition="orderEditable" title="Update Header"><submit/></conditional-field>
-                            <default-field title="Update Header"></default-field>
-                        </field>
-                        <field-layout>
-                            <field-row><field-ref name="statusId"/><field-ref name="orderRevision"/></field-row>
-                            <field-row><field-ref name="entryDate"/><field-ref name="placedDate"/></field-row>
-                            <field-ref name="orderName"/>
-                            <field-row><field-ref name="salesChannelEnumId"/><field-ref name="systemMessageRemoteId"/></field-row>
-                            <field-row><field-ref name="externalId"/><field-ref name="externalRevision"/></field-row>
-                            <field-ref name="submitButton"/>
-                        </field-layout>
-                    </form-single>
-                </row-col>
-                <row-col lg="6">
-                    <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+                    <label text="Part Total ${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)}" type="p"/>
+                    <container>
+                        <label text="Vendor: " type="strong"/>
+                        <link url="editVendor" text="${orderPartInfo.vendorDetail.organizationName?:''}${orderPartInfo.vendorDetail.firstName?:''} ${orderPartInfo.vendorDetail.lastName?:''} [${orderPartInfo.vendorDetail.pseudoId}]"
+                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.isVendorInternalOrg"/>
+                        <link url="editSupplier" text="${orderPartInfo.vendorDetail.organizationName?:''}${orderPartInfo.vendorDetail.firstName?:''} ${orderPartInfo.vendorDetail.lastName?:''} [${orderPartInfo.vendorDetail.pseudoId}]"
+                                link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="!orderPartInfo.isVendorInternalOrg"/>
+                    </container>
+                    <container>
+                        <label text="Customer: " type="strong"/>
+                        <link url="editVendor" text="${orderPartInfo.customerDetail.organizationName?:''}${orderPartInfo.customerDetail.firstName?:''} ${orderPartInfo.customerDetail.lastName?:''} [${orderPartInfo.customerDetail.pseudoId}]"
+                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.isCustomerInternalOrg"/>
+                        <link url="editCustomer" text="${orderPartInfo.customerDetail.organizationName?:''}${orderPartInfo.customerDetail.firstName?:''} ${orderPartInfo.customerDetail.lastName?:''} [${orderPartInfo.customerDetail.pseudoId}]"
+                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="!orderPartInfo.isCustomerInternalOrg"/>
+                    </container>
+                    <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="p"/>
+                    <container><label text="Ship Before: ${ec.l10n.format(orderPartInfo.orderPart.shipBeforeDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
+                    <container><label text="Delivery Date: ${ec.l10n.format(orderPartInfo.orderPart.estimatedDeliveryDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
+                    <container><label text="Pick Up Date: ${ec.l10n.format(orderPartInfo.orderPart.estimatedPickUpDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
+                    <container>
+                        <label text="To Facility: " type="strong"/>
+                        <link url="editFacility" text="${orderPartInfo.facility.facilityName} [${orderPartInfo.facility.pseudoId}]"
+                                parameter-map="[facilityId:orderPartInfo.facility.facilityId]" link-type="anchor"
+                                condition="orderPartInfo.facility"/>
+                    </container>
+                    <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                    <section-iterate name="OrderPartRoleSection" list="orderPartInfo.orderPartPartyList" entry="orderPartParty"><widgets>
+                        <container>
+                            <link url="deleteOrderPartParty" text="X" link-type="hidden-form-link"
+                                    parameter-map="[orderId:orderPartParty.orderId, orderPartSeqId:orderPartParty.orderPartSeqId,
+                                        partyId:orderPartParty.partyId, roleTypeId:orderPartParty.roleTypeId]"/>
+                            <label text="${orderPartParty.description}: " type="strong"/>
+                            <label text="PartyNameTemplate" text-map="orderPartParty" type="span"/>
+                            <!-- TODO: would be nice to have a general editParty screen to link to from here and elsewhere -->
+                        </container>
+                    </widgets></section-iterate>
+                </container>
+                <container style="col-lg-6">
+                    <section name="PaymentInfoSection"><widgets>
+                        <section name="PaymentNotEnoughSection" condition="orderPartInfo.paymentsTotal &lt; orderPartInfo.orderPart.partTotal"><widgets>
+                            <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0, orderHeader?.currencyUomId)}) is less than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)})" style="text-danger" type="p"/>
+                        </widgets></section>
+                        <container-dialog id="AddPaymentInfo" button-text="Add Payment">
+                            <form-single name="AddPaymentForm" transition="addOrderPartPayment">
+                                <field name="orderId"><default-field><hidden/></default-field></field>
+                                <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
 
-                    <section name="NotesSection"><widgets>
-                        <container-box>
-                            <box-header><label text="Notes" type="h5"/></box-header>
-                            <box-toolbar>
-                                <container-dialog id="NewNoteDialog" button-text="Add Note">
-                                    <form-single name="NewNoteForm" transition="createNote">
-                                        <field name="orderId"><default-field><hidden/></default-field></field>
-                                        <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
-                                        <field name="submitButton"><default-field title="Add Note"><submit/></default-field></field>
+                                <field name="paymentInstrumentEnumId"><default-field title="Instrument">
+                                    <drop-down allow-empty="true" no-current-selected-key="PiCompanyCheck">
+                                        <entity-options key="${enumId}" text="${description}">
+                                            <entity-find entity-name="moqui.basic.Enumeration">
+                                                <econdition field-name="enumTypeId" value="PaymentInstrument"/></entity-find>
+                                        </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="paymentMethodId"><default-field title="Payment Method"><drop-down allow-empty="true">
+                                        <entity-options key="${paymentMethodId}" text="${typeDescription} - ${description}">
+                                            <entity-find entity-name="mantle.account.method.PaymentMethodAndType">
+                                                <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/></entity-find></entity-options>
+                                </drop-down></default-field></field>
+                                <field name="finAccountId"><default-field title="Financial Account">
+                                    <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
+                                        <entity-find entity-name="mantle.account.financial.FinancialAccount">
+                                            <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/></entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="amount"><default-field><text-line size="10" default-value="${ec.l10n.format(orderPartInfo.partTotalUnpaid ?: 0, '#0.00')}"/></default-field></field>
+                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                        <section-iterate name="PaymentInfoSection" list="orderPartInfo.partPaymentInfoList" entry="partPaymentInfo"><actions>
+                            <set field="methodInfo" from="partPaymentInfo"/>
+                        </actions><widgets>
+                            <container>
+                                <label text="${partPaymentInfo.paymentMethodTypeEnum?.description?:''} ${ec.l10n.formatCurrency(partPaymentInfo.partPayment.amount, partPaymentInfo.partPayment.amountUomId)}" type="strong"/>
+                                <container-dialog id="UpdatePaymentDialog" button-text="Update">
+                                    <form-single name="UpdatePaymentForm" transition="updatePayment"
+                                            map="partPaymentInfo.partPayment" extends="AddPaymentForm">
+                                        <field name="paymentId"><default-field><hidden/></default-field></field>
+                                        <field name="amount" from=""><default-field><text-line size="10" format="0.00"/></default-field></field>
+                                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                                     </form-single>
                                 </container-dialog>
-                            </box-toolbar>
-                            <box-body>
-                                <section-iterate name="NoteIterateSection" list="orderNoteList" entry="note">
-                                    <actions>
-                                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
-                                            <field-map field-name="userId" from="note.userId"/></entity-find-one>
-                                    </actions>
-                                    <widgets>
-                                        <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: note.userId}) at ${ec.l10n.format(note.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
-                                        <section name="UpdateNoteSection" condition="note.userId == ec.user.userId &amp;&amp; orderEditable">
-                                            <widgets>
-                                                <container-dialog id="UpdateNoteContainer" button-text="Edit Note">
-                                                    <form-single name="UpdateNoteForm" transition="updateNote" map="note">
-                                                        <field name="orderId"><default-field><hidden/></default-field></field>
-                                                        <field name="noteDate"><default-field><hidden/></default-field></field>
-                                                        <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
-                                                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                                                    </form-single>
-                                                </container-dialog>
-                                            </widgets>
-                                        </section>
-                                        <label text="${note.noteText}" type="p"/>
-                                    </widgets>
-                                </section-iterate>
-                            </box-body>
-                        </container-box>
-                    </widgets></section>
-                    <section name="ContentSection">
-                        <actions>
-                            <entity-find entity-name="mantle.order.OrderContent" list="contentList">
-                                <econdition field-name="orderId"/><order-by field-name="-contentDate"/></entity-find>
-                        </actions>
-                        <widgets>
-                            <container-box>
-                                <box-header><label text="Attachments" type="h5"/></box-header>
-                                <box-toolbar>
-                                    <container-dialog id="NewContentDialog" button-text="Add Attachment">
-                                        <form-single name="NewContentForm" transition="createContent">
-                                            <field name="orderId"><default-field><hidden/></default-field></field>
-                                            <field name="contentFile"><default-field><file/></default-field></field>
-                                            <field name="description"><default-field><text-line size="60"/></default-field></field>
-                                            <field name="submitButton"><default-field title="Add Attachment"><submit/></default-field></field>
-                                        </form-single>
-                                    </container-dialog>
-                                </box-toolbar>
-                                <box-body>
-                                    <section-iterate name="ContentIterateSection" list="contentList" entry="content">
-                                        <actions>
-                                            <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
-                                                <field-map field-name="userId" from="content.userId"/></entity-find-one>
-                                        </actions>
-                                        <widgets>
-                                            <container>
-                                                <link url="downloadContent" condition="content.contentLocation"
-                                                        parameter-map="[orderContentId:content.orderContentId]"
-                                                        text="Download ${content.contentLocation.substring(content.contentLocation.lastIndexOf('/')+1)}"/>
-                                                <section name="UpdateContentContainerSection" condition="orderEditable"><widgets>
-                                                    <container-dialog id="UpdateContentContainer" button-text="Edit Attachment">
-                                                        <form-single name="UpdateContentForm" transition="updateContent" map="content">
-                                                            <field name="orderContentId"><default-field><hidden/></default-field></field>
-                                                            <field name="orderId"><default-field><hidden/></default-field></field>
-                                                            <field name="contentFile"><default-field><file/></default-field></field>
-                                                            <field name="description"><default-field><text-line size="60"/></default-field></field>
-                                                            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                                                        </form-single>
-                                                    </container-dialog>
-                                                </widgets></section>
-                                                <container><label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: content.userId}) at ${ec.l10n.format(content.contentDate, 'yyyy-MM-dd HH:mm')}"/></container>
-                                                <label text="${content.description ?: 'No Description'}" type="p"/>
-                                            </container>
-                                        </widgets>
-                                    </section-iterate>
-                                </box-body>
-                            </container-box>
-                        </widgets>
-                    </section>
-                </row-col>
-            </container-row>
-        </widgets></section>
-
-        <section-iterate name="OrderPartSection" list="orderPartInfoList" entry="orderPartInfo">
-            <actions>
-                <set field="contactInfo" from="orderPartInfo.facilityContactInfo"/>
-                <set field="orderPart" from="orderPartInfo.orderPart"/>
-                <set field="customerPartyId" from="orderPartInfo.customerDetail.partyId"/>
-                <set field="customerShipToPartyId" from="orderPartInfo.customerShipToDetail?.partyId"/>
-
-                <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="customerShippingInfo"
-                        in-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
-                <set field="shippingPostalAddressList" from="customerShippingInfo.postalAddressList ?: []"/>
-                <if condition="customerShipToPartyId">
-                    <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="shipToShippingInfo"
-                            in-map="[partyId:customerShipToPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
-                    <script>shippingPostalAddressList.addAll(shipToShippingInfo.postalAddressList ?: [])</script>
-                </if>
-
-                <!-- TODO: get shipping options with or without store
-                <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
-                        in-map="[productStoreId:productStoreId, orderId:orderId,
-                            postalContactMechId:shippingPostalAddressList?.first?.postalContactMechId]"/>
-                -->
-            </actions>
-            <widgets>
-                <container style="row shaded-area">
-                    <container style="col-lg-6">
-                        <container><label text="Order Part ${orderPartInfo.orderPart.orderPartSeqId}" type="strong"/></container>
-                        <section name="EditPartSection" condition="orderPartInfo.partEditable"><widgets>
-                            <container-dialog id="EditPartDialog" button-text="Edit Part ${orderPartInfo.orderPart.orderPartSeqId}">
-                                <form-single name="EditPartForm" transition="updateOrderPart" map="orderPartInfo.orderPart">
-                                    <field name="orderId"><default-field><hidden/></default-field></field>
-                                    <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
-                                    <field name="facilityId"><default-field title="Facility"><drop-down>
-                                        <entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
-                                            <entity-find entity-name="mantle.facility.Facility" list="facilityList">
-                                                <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
-                                                <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.vendorPartyId"
-                                                        ignore="!orderPartInfo.isVendorInternalOrg"/>
-                                                <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"
-                                                        ignore="orderPartInfo.isVendorInternalOrg"/>
-                                                <order-by field-name="facilityName"/>
-                                            </entity-find></entity-options>
-                                    </drop-down></default-field></field>
-                                    <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
-                                    <field name="estimatedDeliveryDate"><default-field title="Delivery Date"><date-time/></default-field></field>
-                                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                                </form-single>
-                            </container-dialog>
-                            <container-dialog id="AddPartPartyDialog" button-text="Add Party">
-                                <form-single name="CreateOrderPartParty" transition="createOrderPartParty" map="orderPartInfo.orderPart">
-                                    <field name="orderId"><default-field><hidden/></default-field></field>
-                                    <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
-                                    <field name="partyId"><default-field title="Party">
-                                        <text-line ac-transition="getPartyList" ac-min-length="2" size="60"/>
-                                    </default-field></field>
-                                    <field name="roleTypeId"><default-field title="Role">
-                                        <drop-down>
-                                            <entity-options key="${roleTypeId}" text="${description}">
-                                                <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
-                                                    <econdition field-name="roleGroupEnumId" value="RgpOrder"/>
-                                                    <order-by field-name="description"/></entity-find></entity-options>
-                                        </drop-down>
-                                    </default-field></field>
-                                    <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                                </form-single>
-                            </container-dialog>
-                        </widgets></section>
-
-                        <link url="completeOrderPart" text="Complete Part" link-type="hidden-form"
-                                parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
-                                condition="orderPartInfo.orderPart.statusId in ['OrderApproved', 'OrderSent']"/>
-                        <link url="invoiceOrderPart" text="Create Invoice" link-type="hidden-form"
-                                parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
-                                condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId)"/>
-
-                        <section name="ShipOrderPartSection">
-                            <condition><expression>quantityNotShippedByPart.get(orderPartInfo.orderPart.orderPartSeqId) &amp;&amp;
-                                (orderHeader.statusId == "OrderApproved" || orderHeader.statusId == "OrderSent")</expression></condition>
-                            <actions>
-                                <!-- find Shipments going to same Facility -->
-                                <entity-find entity-name="mantle.shipment.ShipmentSegmentFacilityStatus" list="ssfsList">
-                                    <econdition field-name="destinationFacilityId" from="orderPartInfo.orderPart.facilityId"/>
-                                    <econdition field-name="fromPartyId" from="orderPartInfo.orderPart.vendorPartyId"/>
-                                    <econdition field-name="statusId" operator="in" value="ShipInput,ShipScheduled"/>
-                                    <order-by field-name="shipmentId"/>
-                                </entity-find>
-                            </actions>
-                            <widgets>
-                                <link url="shipOrderPart" text="Create Shipment" link-type="hidden-form">
-                                    <parameter name="orderId"/>
-                                    <parameter name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"/>
-                                </link>
-
-                                <section name="AddPartToShipmentSection" condition="ssfsList">
-                                    <widgets>
-                                        <container-dialog id="AddOrderPartToShipmentDialog" button-text="Add Part to Shipment">
-                                            <form-single name="AddOrderPartToShipmentForm" transition="addOrderPartToShipment">
-                                                <field name="orderId"><default-field><hidden/></default-field></field>
-                                                <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId">
-                                                    <default-field><hidden/></default-field></field>
-                                                <field name="shipmentId"><default-field title="Shipment"><drop-down>
-                                                    <list-options list="ssfsList" key="${shipmentId}" text="${shipmentId}"/>
-                                                </drop-down></default-field></field>
-                                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                                            </form-single>
-                                        </container-dialog>
-                                    </widgets>
-                                </section>
-                            </widgets>
-                        </section>
-                        <section-iterate name="ShipmentLinks" list="orderPartInfo.partShipmentIdSet" entry="shipmentId"><widgets>
-                            <link url="shipmentDetail" text="Shipment #${shipmentId}" link-type="anchor-button"/>
-                        </widgets></section-iterate>
-
-                        <label text="Part Total ${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)}" type="p"/>
-                        <container>
-                            <label text="Vendor: " type="strong"/>
-                            <link url="editVendor" text="${orderPartInfo.vendorDetail.organizationName?:''}${orderPartInfo.vendorDetail.firstName?:''} ${orderPartInfo.vendorDetail.lastName?:''} [${orderPartInfo.vendorDetail.pseudoId}]"
-                                    link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.isVendorInternalOrg"/>
-                            <link url="editSupplier" text="${orderPartInfo.vendorDetail.organizationName?:''}${orderPartInfo.vendorDetail.firstName?:''} ${orderPartInfo.vendorDetail.lastName?:''} [${orderPartInfo.vendorDetail.pseudoId}]"
-                                    link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="!orderPartInfo.isVendorInternalOrg"/>
-                        </container>
-                        <container>
-                            <label text="Customer: " type="strong"/>
-                            <link url="editVendor" text="${orderPartInfo.customerDetail.organizationName?:''}${orderPartInfo.customerDetail.firstName?:''} ${orderPartInfo.customerDetail.lastName?:''} [${orderPartInfo.customerDetail.pseudoId}]"
-                                    link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.isCustomerInternalOrg"/>
-                            <link url="editCustomer" text="${orderPartInfo.customerDetail.organizationName?:''}${orderPartInfo.customerDetail.firstName?:''} ${orderPartInfo.customerDetail.lastName?:''} [${orderPartInfo.customerDetail.pseudoId}]"
-                                    link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="!orderPartInfo.isCustomerInternalOrg"/>
-                        </container>
-                        <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="p"/>
-                        <container><label text="Ship Before: ${ec.l10n.format(orderPartInfo.orderPart.shipBeforeDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
-                        <container><label text="Delivery Date: ${ec.l10n.format(orderPartInfo.orderPart.estimatedDeliveryDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
-                        <container><label text="Pick Up Date: ${ec.l10n.format(orderPartInfo.orderPart.estimatedPickUpDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
-                        <container>
-                            <label text="To Facility: " type="strong"/>
-                            <link url="editFacility" text="${orderPartInfo.facility.facilityName} [${orderPartInfo.facility.pseudoId}]"
-                                    parameter-map="[facilityId:orderPartInfo.facility.facilityId]" link-type="anchor"
-                                    condition="orderPartInfo.facility"/>
-                        </container>
-                        <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                        <section-iterate name="OrderPartRoleSection" list="orderPartInfo.orderPartPartyList" entry="orderPartParty"><widgets>
-                            <container>
-                                <link url="deleteOrderPartParty" text="X" link-type="hidden-form-link"
-                                        parameter-map="[orderId:orderPartParty.orderId, orderPartSeqId:orderPartParty.orderPartSeqId,
-                                            partyId:orderPartParty.partyId, roleTypeId:orderPartParty.roleTypeId]"/>
-                                <label text="${orderPartParty.description}: " type="strong"/>
-                                <label text="PartyNameTemplate" text-map="orderPartParty" type="span"/>
-                                <!-- TODO: would be nice to have a general editParty screen to link to from here and elsewhere -->
+                                <link url="editPayment" text="Edit Payment ${partPaymentInfo.partPayment.paymentId}" parameter-map="[paymentId:partPaymentInfo.partPayment.paymentId]"/>
+                                <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/PaymentMethodInfo.html.gstring"/></render-mode>
                             </container>
                         </widgets></section-iterate>
-                    </container>
-                    <container style="col-lg-6">
-                        <section name="PaymentInfoSection"><widgets>
-                            <section name="PaymentNotEnoughSection" condition="orderPartInfo.paymentsTotal &lt; orderPartInfo.orderPart.partTotal">
-                                <widgets><label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0, orderHeader?.currencyUomId)}) is less than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)})" style="text-danger" type="p"/></widgets></section>
-                            <container-dialog id="AddPaymentInfo" button-text="Add Payment">
-                                <form-single name="AddPaymentForm" transition="addOrderPartPayment">
-                                    <field name="orderId"><default-field><hidden/></default-field></field>
-                                    <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
-
-                                    <field name="paymentInstrumentEnumId"><default-field title="Instrument">
-                                        <drop-down allow-empty="true" no-current-selected-key="PiCompanyCheck">
-                                            <entity-options key="${enumId}" text="${description}">
-                                                <entity-find entity-name="moqui.basic.Enumeration">
-                                                    <econdition field-name="enumTypeId" value="PaymentInstrument"/></entity-find>
-                                            </entity-options></drop-down>
-                                    </default-field></field>
-                                    <field name="paymentMethodId"><default-field title="Payment Method"><drop-down allow-empty="true">
-                                            <entity-options key="${paymentMethodId}" text="${typeDescription} - ${description}">
-                                                <entity-find entity-name="mantle.account.method.PaymentMethodAndType">
-                                                    <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/></entity-find></entity-options>
-                                    </drop-down></default-field></field>
-                                    <field name="finAccountId"><default-field title="Financial Account">
-                                        <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
-                                            <entity-find entity-name="mantle.account.financial.FinancialAccount">
-                                                <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/></entity-find>
-                                        </entity-options></drop-down>
-                                    </default-field></field>
-                                    <field name="amount"><default-field><text-line size="10" default-value="${ec.l10n.format(orderPartInfo.partTotalUnpaid ?: 0, '#0.00')}"/></default-field></field>
-                                    <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                                </form-single>
-                            </container-dialog>
-                            <section-iterate name="PaymentInfoSection" list="orderPartInfo.partPaymentInfoList" entry="partPaymentInfo">
-                                <actions><set field="methodInfo" from="partPaymentInfo"/></actions>
-                                <widgets>
-                                    <container>
-                                        <label text="${partPaymentInfo.paymentMethodTypeEnum?.description?:''} ${ec.l10n.formatCurrency(partPaymentInfo.partPayment.amount, partPaymentInfo.partPayment.amountUomId)}" type="strong"/>
-                                        <container-dialog id="UpdatePaymentDialog" button-text="Update">
-                                            <form-single name="UpdatePaymentForm" transition="updatePayment"
-                                                    map="partPaymentInfo.partPayment" extends="AddPaymentForm">
-                                                <field name="paymentId"><default-field><hidden/></default-field></field>
-                                                <field name="amount" from=""><default-field><text-line size="10" format="0.00"/></default-field></field>
-                                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                                            </form-single>
-                                        </container-dialog>
-                                        <link url="editPayment" text="Edit Payment ${partPaymentInfo.partPayment.paymentId}" parameter-map="[paymentId:partPaymentInfo.partPayment.paymentId]"/>
-                                        <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/PaymentMethodInfo.html.gstring"/></render-mode>
-                                    </container>
-                                </widgets>
-                            </section-iterate>
-                        </widgets></section>
-                        <container-box>
-                            <box-header><label text="Choose a Shipping Address" type="h5"/></box-header>
-                            <box-toolbar>
-                                <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address"
-                                        transition="updateContactInfo" width="800"
-                                        parameter-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest', orderId:orderId]"/>
-                            </box-toolbar>
-                            <box-body>
-                                <container style="float-box" type="ul">
-                                    <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="postalAddressInfo">
-                                        <actions>
-                                            <set field="contactInfo" from="postalAddressInfo"/>
-                                            <set field="checkRadio" from="(orderPart.postalContactMechId &amp;&amp; orderPart.postalContactMechId == contactInfo.postalContactMechId) || (!orderPart.postalContactMechId &amp;&amp; postalAddressInfo_index == 0)"/>
-                                        </actions>
-                                        <widgets>
-                                            <container type="li">
-                                                <render-mode><text type="html,vuet"><![CDATA[
-                                                    <div class="text-center"><input type="radio" name="shippingPostalContactMechId_${orderPartInfo_index}" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
-                                                ]]></text></render-mode>
-                                                <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                                                <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address"
-                                                        transition="updateContactInfo" width="800"
-                                                        parameter-map="[partyId:customerPartyId, postalContactMechId:contactInfo.postalContactMechId,
-                                                            postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, orderId:orderId]"/>
-                                            </container>
-                                        </widgets>
-                                    </section-iterate>
+                    </widgets></section>
+                    <container-box><box-header><label text="Choose a Shipping Address" type="h5"/></box-header><box-toolbar>
+                        <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address"
+                                transition="updateContactInfo" width="800"
+                                parameter-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest', orderId:orderId]"/>
+                    </box-toolbar><box-body>
+                        <container style="float-box" type="ul">
+                            <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="postalAddressInfo"><actions>
+                                <set field="contactInfo" from="postalAddressInfo"/>
+                                <set field="checkRadio" from="(orderPart.postalContactMechId &amp;&amp; orderPart.postalContactMechId == contactInfo.postalContactMechId) || (!orderPart.postalContactMechId &amp;&amp; postalAddressInfo_index == 0)"/>
+                            </actions><widgets>
+                                <container type="li">
+                                    <render-mode><text type="html,vuet"><![CDATA[
+                                        <div class="text-center"><input type="radio" name="shippingPostalContactMechId_${orderPartInfo_index}" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
+                                    ]]></text></render-mode>
+                                    <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                                    <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address"
+                                            transition="updateContactInfo" width="800"
+                                            parameter-map="[partyId:customerPartyId, postalContactMechId:contactInfo.postalContactMechId,
+                                                postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, orderId:orderId]"/>
                                 </container>
-                            </box-body>
-                        </container-box>
-
+                            </widgets></section-iterate>
+                        </container>
                         <form-single name="SetOrderInfoForm" transition="setOrderBillingShippingInfo">
                             <field name="orderId"><default-field><hidden/></default-field></field>
                             <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId">
@@ -533,26 +500,21 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="shippingPostalContactMechId"><default-field><hidden/></default-field></field>
                             <field name="shippingTelecomContactMechId"><default-field><hidden/></default-field></field>
 
-                            <field name="carrierAndShipmentMethod"><default-field title="Shipment Method">
+                            <field name="carrierAndShipmentMethod"><conditional-field title="Shipment Method" condition="shippingOptions">
                                 <drop-down no-current-selected-key="${orderPart.carrierPartyId ? orderPart.carrierPartyId + ':' + orderPart.shipmentMethodEnumId : ''}">
                                     <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
-                                            text="${carrierPartyId == '_NA_' ? '' : (carrierName + ' - ') }${shipmentMethodDescription} ${shippingTotal != null ? ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
+                                                  text="${carrierPartyId == '_NA_' ? '' : (carrierName + ' - ') }${shipmentMethodDescription} ${shippingTotal != null ? ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
                                 </drop-down>
-                            </default-field></field>
-                            <!--
-                            <field name="shipmentMethodEnumId"><default-field title="Shipment Method">
+                            </conditional-field><default-field><ignored/></default-field></field>
+                            <field name="shipmentMethodEnumId"><conditional-field title="Shipment Method" condition="!shippingOptions">
                                 <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                                     <set field="enumTypeId" value="ShipmentMethod"/><set field="allowEmpty" value="true"/>
                                     <set field="style" value=" "/></widget-template-include>
-                            </default-field></field>
-                            -->
+                            </conditional-field><default-field><ignored/></default-field></field>
 
-                            <field name="submitButton">
-                                <default-field title="Set Shipping Info"><submit/></default-field>
-                            </field>
-                            <field-layout>
-                                <field-row-big><field-ref name="submitButton"/></field-row-big>
-                            </field-layout>
+                            <field name="submitButton"><default-field title="Set Shipping Address and Info"><submit/></default-field></field>
+                            <field-layout><field-row-big><field-ref name="carrierAndShipmentMethod"/><field-ref name="shipmentMethodEnumId"/>
+                                <field-ref name="submitButton"/></field-row-big></field-layout>
                         </form-single>
                         <render-mode><text type="html,vuet"><![CDATA[
                             <script>
@@ -560,166 +522,247 @@ along with this software (see the LICENSE.md file). If not, see
                                 $("input[name=shippingPostalContactMechId_${orderPartInfo_index}]:radio").change( function() { $("#SetOrderInfoForm_shippingPostalContactMechId_${orderPartInfo_index}").val($("input[name=shippingPostalContactMechId_${orderPartInfo_index}]:checked").val()); })
                             </script>
                         ]]></text></render-mode>
-                    </container>
+                    </box-body></container-box>
                 </container>
+            </container>
 
-                <section name="AddItemsSection" condition="orderPartInfo.partEditable"><widgets>
-                    <container-dialog id="AddProductItemContainer" button-text="Add Product Item">
-                        <form-single name="AddProductItemForm" transition="addProductItem">
-                            <field name="orderId"><default-field><hidden/></default-field></field>
-                            <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
+            <section name="AddItemsSection" condition="orderPartInfo.partEditable"><widgets>
+                <container-dialog id="AddProductItemContainer" button-text="Add Product Item">
+                    <form-single name="AddProductItemForm" transition="addProductItem">
+                        <field name="orderId"><default-field><hidden/></default-field></field>
+                        <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
 
-                            <field name="productId"><default-field title="Product">
-                                <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
-                            </default-field></field>
-                            <!-- <field name="itemDescription"><default-field><text-line size="60"/></default-field></field> -->
-                            <field name="itemTypeEnumId"><default-field title="Item Type">
-                                <drop-down no-current-selected-key="ItemInventory">
-                                    <option key="ItemProduct" text="Sales - Product"/>
-                                    <option key="ItemInventory" text="Inventory"/>
-                                    <option key="ItemAsset" text="Fixed Asset"/>
-                                    <option key="ItemExpSupplies" text="Expense - Supplies"/>
-                                </drop-down>
-                            </default-field></field>
-                            <field name="quantity"><default-field><text-line size="8"/></default-field></field>
-                            <field name="unitAmount"><default-field title="Price"><text-line size="10"/></default-field></field>
-                            <field name="requiredByDate" from="orderPartInfo.orderPart.shipBeforeDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
-
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                    <container-dialog id="AddOtherItemContainer" button-text="Add Other Item">
-                        <form-single name="AddOtherItemForm" transition="createItem">
-                            <field name="orderId"><default-field><hidden/></default-field></field>
-                            <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
-
-                            <field name="parentItemSeqId"><default-field title="Parent Item">
-                                <drop-down allow-empty="true">
-                                    <list-options list="orderPartInfo.partNoParentOrderItemList" key="${orderItemSeqId}" text="${orderItemSeqId} - ${itemDescription}"/>
-                                </drop-down>
-                            </default-field></field>
-                            <field name="itemTypeEnumId"><default-field title="Item Type">
-                                <drop-down no-current-selected-key="ItemExpense">
-                                    <entity-options key="${enumId}" text="${description}">
-                                        <entity-find entity-name="moqui.basic.Enumeration">
-                                            <!-- TODO: based on order type (vendor org internal?) or in separate dialogs limit item types -->
-                                            <econdition field-name="parentEnumId" operator="in" value="ItemPurchase,ItemExpense,ItemSales"/>
-                                            <order-by field-name="description"/>
-                                        </entity-find>
-                                    </entity-options>
-                                </drop-down>
-                            </default-field></field>
-                            <field name="itemDescription"><default-field><text-line size="60"/></default-field></field>
-                            <field name="quantity"><default-field><text-line size="8" default-value="1"/></default-field></field>
-                            <field name="unitAmount"><default-field title="Price"><text-line size="10"/></default-field></field>
-                            <field name="requiredByDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
-
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </widgets></section>
-
-                <form-list name="OrderItems" list="orderPartInfo.partOrderItemList" list-entry="orderItem" transition="updateItem">
-                    <row-actions>
-                        <service-call name="mantle.order.OrderServices.get#OrderItemTotal"
-                                in-map="[orderItem:orderItem, getChildrenTotals:true]" out-map="orderItemTotalOut"/>
-                        <script>context.putAll(orderItem)</script>
-
-                        <set field="applicableParentItems" from="orderPartInfo.partNoParentOrderItemList.cloneList().removeByAnd([orderItemSeqId:orderItem.orderItemSeqId])"/>
-
-                        <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
-                            <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
-                    </row-actions>
-                    <field name="orderId"><default-field><hidden/></default-field></field>
-
-                    <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
-                    <field name="parentItemSeqId">
-                        <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes || orderItemWithChildrenSet.contains(orderItem.orderItemSeqId)">
-                            <display text="N/A"/></conditional-field>
-                        <conditional-field condition="orderPartInfo.partEditable" title="Parent Item"><drop-down allow-empty="true">
-                                <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId}"/>
-                            </drop-down></conditional-field>
-                        <default-field title="Parent Item"><display/></default-field>
-                    </field>
-                    <field name="orderPartSeqId">
-                        <conditional-field condition="orderPartInfo.partEditable">
-                            <drop-down current="selected"><list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/></drop-down></conditional-field>
-                        <default-field title="Order Part"><display/></default-field></field>
-
-                    <field name="itemTypeEnumId">
-                        <conditional-field condition="orderPartInfo.partEditable" title="Type">
+                        <field name="productId"><default-field title="Product">
+                            <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
+                        </default-field></field>
+                        <!-- <field name="itemDescription"><default-field><text-line size="60"/></default-field></field> -->
+                        <field name="itemTypeEnumId"><default-field title="Item Type">
                             <drop-down no-current-selected-key="ItemInventory">
-                                <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
-                                    <econdition field-name="enumTypeId" value="ItemType"/><order-by field-name="description"/>
-                                </entity-find></entity-options></drop-down>
-                        </conditional-field>
-                        <default-field title="Type">
-                           <display-entity entity-name="moqui.basic.Enumeration"/>
-                        </default-field>
-                    </field>
-                    <field name="productId">
-                        <conditional-field
-                                condition="orderItem.itemTypeEnumId in productItemTypes &amp;&amp; orderPartInfo.partEditable">
-                            <text-line ac-transition="getProductList" ac-min-length="2" size="35"/>
-                            <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
-                                    link-type="anchor" condition="productId"/>
-                        </conditional-field>
-                        <default-field title="Product">
-                            <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
-                                  link-type="anchor" condition="productId"/>
-                        </default-field>
-                    </field>
-                    <field name="otherPartyProductId">
-                        <conditional-field condition="orderPartInfo.partEditable"><text-line size="25"/></conditional-field>
-                        <default-field><display/></default-field></field>
-                    <field name="itemDescription">
-                        <conditional-field condition="orderPartInfo.partEditable" title="Description"><text-line size="40"/></conditional-field>
-                        <default-field title="Description"><display/></default-field></field>
-                    <field name="comments"><conditional-field condition="orderPartInfo.partEditable"><text-line size="40"/></conditional-field>
-                        <default-field><display/></default-field></field>
-                    <field name="requiredByDate"><conditional-field condition="orderPartInfo.partEditable"><date-time/></conditional-field>
-                        <default-field><display/></default-field></field>
-                    <field name="unitAmount"><conditional-field condition="orderPartInfo.partEditable" title="Price">
-                        <text-line size="8" format="#0.00"/></conditional-field>
-                        <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
-                    <field name="quantity"><conditional-field condition="orderPartInfo.partEditable"><text-line size="5"/></conditional-field>
-                        <default-field><display/></default-field></field>
+                                <option key="ItemProduct" text="Sales - Product"/>
+                                <option key="ItemInventory" text="Inventory"/>
+                                <option key="ItemAsset" text="Fixed Asset"/>
+                                <option key="ItemExpSupplies" text="Expense - Supplies"/>
+                            </drop-down>
+                        </default-field></field>
+                        <field name="quantity"><default-field><text-line size="8"/></default-field></field>
+                        <field name="unitAmount"><default-field title="Price"><text-line size="10"/></default-field></field>
+                        <field name="requiredByDate" from="orderPartInfo.orderPart.shipBeforeDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
 
-                    <field name="assetReservations">
-                        <conditional-field condition="orderItem.productId">
-                            <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes">
-                                <widgets><container>
-                                    <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
-                                    <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
-                                </container></widgets>
-                            </section-iterate>
-                        </conditional-field>
-                        <default-field><display text=" "/></default-field>
-                    </field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+                <container-dialog id="AddOtherItemContainer" button-text="Add Other Item">
+                    <form-single name="AddOtherItemForm" transition="createItem">
+                        <field name="orderId"><default-field><hidden/></default-field></field>
+                        <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
 
-                    <field name="itemTotal" from="orderItemTotalOut.itemTotal"><default-field>
-                        <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
-                    <field name="itemPlusChildrenTotal" from="orderItemTotalOut.itemPlusChildrenTotal">
-                        <conditional-field condition="productId"><display currency-unit-field="orderHeader.currencyUomId"/></conditional-field>
-                        <default-field title="With Children"><display text=""/></default-field>
-                    </field>
+                        <field name="parentItemSeqId"><default-field title="Parent Item">
+                            <drop-down allow-empty="true">
+                                <list-options list="orderPartInfo.partNoParentOrderItemList" key="${orderItemSeqId}" text="${orderItemSeqId} - ${itemDescription}"/>
+                            </drop-down>
+                        </default-field></field>
+                        <field name="itemTypeEnumId"><default-field title="Item Type">
+                            <drop-down no-current-selected-key="ItemExpense">
+                                <entity-options key="${enumId}" text="${description}">
+                                    <entity-find entity-name="moqui.basic.Enumeration">
+                                        <!-- TODO: based on order type (vendor org internal?) or in separate dialogs limit item types -->
+                                        <econdition field-name="parentEnumId" operator="in" value="ItemPurchase,ItemExpense,ItemSales"/>
+                                        <order-by field-name="description"/>
+                                    </entity-find>
+                                </entity-options>
+                            </drop-down>
+                        </default-field></field>
+                        <field name="itemDescription"><default-field><text-line size="60"/></default-field></field>
+                        <field name="quantity"><default-field><text-line size="8" default-value="1"/></default-field></field>
+                        <field name="unitAmount"><default-field title="Price"><text-line size="10"/></default-field></field>
+                        <field name="requiredByDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
 
-                    <field name="submitButton"><conditional-field condition="orderPartInfo.partEditable" title="Update"><submit/></conditional-field>
-                        <default-field/></field>
-                    <field name="deleteLink"><conditional-field condition="orderPartInfo.partEditable" title="">
-                        <link url="deleteItem" text="Delete"/></conditional-field>
-                        <default-field/></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </widgets></section>
 
-                    <form-list-column><field-ref name="orderItemSeqId"/></form-list-column>
-                    <form-list-column><field-ref name="orderPartSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
-                    <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="productId"/><field-ref name="otherPartyProductId"/></form-list-column>
-                    <form-list-column><field-ref name="itemDescription"/><field-ref name="comments"/><field-ref name="requiredByDate"/></form-list-column>
-                    <form-list-column><field-ref name="unitAmount"/><field-ref name="quantity"/></form-list-column>
-                    <form-list-column><field-ref name="assetReservations"/></form-list-column>
-                    <form-list-column><field-ref name="itemTotal"/><field-ref name="itemPlusChildrenTotal"/></form-list-column>
-                    <form-list-column><field-ref name="submitButton"/><field-ref name="deleteLink"/></form-list-column>
-                </form-list>
-            </widgets>
-        </section-iterate>
+            <form-list name="OrderItems" list="orderPartInfo.partOrderItemList" list-entry="orderItem" transition="updateItem">
+                <row-actions>
+                    <service-call name="mantle.order.OrderServices.get#OrderItemTotal"
+                            in-map="[orderItem:orderItem, getChildrenTotals:true]" out-map="orderItemTotalOut"/>
+                    <set field="applicableParentItems" from="orderPartInfo.partNoParentOrderItemList.cloneList().removeByAnd([orderItemSeqId:orderItem.orderItemSeqId])"/>
+
+                    <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
+                        <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
+
+                    <!-- returnable quantities and ReturnItems -->
+                    <service-call name="mantle.order.ReturnServices.calculate#OrderItemReturnable" out-map="returnableOut"
+                                  in-map="[orderId:orderId, orderItemSeqId:orderItem.orderItemSeqId,
+                                        orderItemBillingList:orderItemBillingList, returnItemList:returnItemList]"/>
+                    <set field="returnIdSet" from="new TreeSet()"/>
+                    <iterate list="returnItemList" entry="returnItem">
+                        <if condition="returnItem.orderItemSeqId != orderItem.orderItemSeqId"><continue/></if>
+                        <script>returnIdSet.add(returnItem.returnId)</script>
+                    </iterate>
+
+                    <!-- item quantity and unitAmount EntityAuditLog records -->
+                    <set field="itemQuantityAuditList" from="[]"/>
+                    <set field="itemUnitAmountAuditList" from="[]"/>
+                    <iterate list="allItemsAuditLogList" entry="auditLog">
+                        <if condition="auditLog.pkSecondaryValue != orderItem.orderItemSeqId"><continue/></if>
+                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="userAccount">
+                            <field-map field-name="userId" from="auditLog.changedByUserId"/></entity-find-one>
+                        <entity-find-one entity-name="moqui.basic.Enumeration" value-field="changeReasonEnum">
+                            <field-map field-name="enumId" from="auditLog.changeReason"/></entity-find-one>
+                        <if condition="auditLog.changedFieldName == 'quantity'"><then>
+                            <script>itemQuantityAuditList.add([auditLog:auditLog, userAccount:userAccount, changeReasonEnum:changeReasonEnum])</script>
+                        </then><else>
+                            <script>itemUnitAmountAuditList.add([auditLog:auditLog, userAccount:userAccount, changeReasonEnum:changeReasonEnum])</script>
+                        </else></if>
+                    </iterate>
+
+                    <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0"/>
+                    <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0"/>
+                    <set field="itemCanDelete" from="itemQuantityNotShipped == quantity &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnQuantity == 0"/>
+                </row-actions>
+                <field name="orderId"><default-field><hidden/></default-field></field>
+
+                <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                <field name="parentItemSeqId">
+                    <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes || orderItemWithChildrenSet.contains(orderItem.orderItemSeqId)">
+                        <display text="N/A"/></conditional-field>
+                    <conditional-field condition="orderPartInfo.partEditable" title="Parent Item"><drop-down allow-empty="true">
+                            <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId}"/>
+                        </drop-down></conditional-field>
+                    <default-field title="Parent Item"><display/></default-field>
+                </field>
+                <field name="orderPartSeqId">
+                    <conditional-field condition="orderPartInfo.partEditable">
+                        <drop-down current="selected"><list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/></drop-down></conditional-field>
+                    <default-field title="Order Part"><display/></default-field></field>
+
+                <field name="itemTypeEnumId">
+                    <!-- <conditional-field condition="orderPartInfo.partEditable" title="Type">
+                        <drop-down no-current-selected-key="ItemInventory">
+                            <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                                <econdition field-name="enumTypeId" value="ItemType"/><order-by field-name="description"/>
+                            </entity-find></entity-options></drop-down>
+                    </conditional-field> -->
+                    <default-field title="Type">
+                       <display-entity entity-name="moqui.basic.Enumeration"/>
+                    </default-field>
+                </field>
+                <field name="productId">
+                    <conditional-field
+                            condition="orderItem.itemTypeEnumId in productItemTypes &amp;&amp; orderPartInfo.partEditable">
+                        <text-line ac-transition="getProductList" ac-min-length="2" size="35"/>
+                        <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
+                                link-type="anchor" condition="productId"/>
+                    </conditional-field>
+                    <default-field title="Product">
+                        <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
+                              link-type="anchor" condition="productId"/>
+                    </default-field>
+                </field>
+                <field name="otherPartyProductId">
+                    <conditional-field condition="orderPartInfo.partEditable"><text-line size="25"/></conditional-field>
+                    <default-field><display/></default-field></field>
+                <field name="itemDescription">
+                    <conditional-field condition="orderPartInfo.partEditable" title="Description"><text-line size="40"/></conditional-field>
+                    <default-field title="Description"><display/></default-field></field>
+                <field name="comments"><conditional-field condition="orderPartInfo.partEditable"><text-line size="40"/></conditional-field>
+                    <default-field><display/></default-field></field>
+                <field name="requiredByDate"><conditional-field condition="orderPartInfo.partEditable"><date-time/></conditional-field>
+                    <default-field><display/></default-field></field>
+                <field name="unitAmount">
+                    <conditional-field condition="orderPartInfo.partEditable" title="Price">
+                        <text-line size="8" format="#0.00"/>
+                        <render-mode><text type="html,vuet"><![CDATA[
+                            <#assign popoverContent>
+                                <table style="width:100%;"><#list itemUnitAmountAuditList as auditInfo><tr>
+                                    <td class="text-right">${ec.l10n.formatCurrency(auditInfo.auditLog.newValueText, orderHeader.currencyUomId, 3)}</td>
+                                    <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                                    <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                                    <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                                </tr></#list></table>
+                            </#assign>
+                            <div><a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="Price History for Item ${orderItemSeqId}" data-content="${popoverContent?html}">Price History</a></div>
+                        ]]></text></render-mode>
+                    </conditional-field>
+                    <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+                <field name="quantity">
+                    <conditional-field condition="orderPartInfo.partEditable">
+                        <text-line size="5"/>
+                        <render-mode><text type="html,vuet"><![CDATA[
+                            <#assign popoverContent>
+                                <table style="width:100%;"><#list itemQuantityAuditList as auditInfo><tr>
+                                    <td class="text-right">${auditInfo.auditLog.newValueText}</td>
+                                    <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                                    <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                                    <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                                </tr></#list></table>
+                            </#assign>
+                            <div><a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="Quantity History for Item ${orderItemSeqId}" data-content="${popoverContent?html}">Quantity History</a></div>
+                        ]]></text></render-mode>
+                    </conditional-field>
+                    <default-field><display/></default-field>
+                </field>
+                <field name="quantity_changeReason">
+                    <conditional-field condition="orderPartInfo.partEditable">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="OrderItemQuantityReason"/><set field="allowEmpty" value="true"/></widget-template-include>
+                    </conditional-field>
+                    <default-field title="Quantity Reason"><ignored/></default-field>
+                </field>
+
+                <field name="notShippedBilled"><default-field title="Not Shipped/Billed">
+                    <display text="${isProductItemType ? ec.l10n.format(itemQuantityNotShipped, '') : 'N/A'} / ${ec.l10n.format(itemQuantityNotBilled, '')}"/></default-field></field>
+
+                <field name="assetReservations">
+                    <conditional-field condition="orderItem.productId">
+                        <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes">
+                            <widgets><container>
+                                <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
+                                <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
+                            </container></widgets>
+                        </section-iterate>
+                    </conditional-field>
+                    <default-field><display text=" "/></default-field>
+                </field>
+
+                <field name="itemTotal" from="orderItemTotalOut.itemTotal"><default-field>
+                    <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+                <field name="itemPlusChildrenTotal" from="orderItemTotalOut.itemPlusChildrenTotal">
+                    <conditional-field condition="productId"><display currency-unit-field="orderHeader.currencyUomId"/></conditional-field>
+                    <default-field title="With Children"><display text=""/></default-field>
+                </field>
+
+                <field name="returns"><default-field>
+                    <label text="Billed: ${returnableOut.invoiceQuantity}" type="div"/>
+                    <label text="Returned: ${returnableOut.returnQuantity}" type="div"/>
+                    <section-iterate name="ReturnLinkSection" list="returnIdSet" entry="returnId"><widgets>
+                        <link url="editReturn" text="#${returnId}" link-type="anchor"/></widgets></section-iterate>
+                    <label text="Returnable: ${returnableOut.returnableQuantity}" type="div"/>
+                </default-field></field>
+                <field name="returnItem">
+                    <conditional-field condition="orderPartInfo.openReturnList &amp;&amp; returnableOut.returnableQuantity &gt; 0">
+                        <dynamic-dialog id="ReturnItemCtr" button-text="Return" transition="ReturnItem">
+                            <parameter name="orderId"/><parameter name="orderItemSeqId" from="orderItem.orderItemSeqId"/></dynamic-dialog>
+                    </conditional-field>
+                    <default-field title=""><display text=" "/></default-field>
+                </field>
+
+                <field name="submitButton"><conditional-field condition="orderPartInfo.partEditable">
+                    <submit text="Update"/><link url="deleteItem" text="Delete" condition="itemCanDelete"/>
+                </conditional-field><default-field title=""/></field>
+
+                <form-list-column><field-ref name="orderItemSeqId"/></form-list-column>
+                <form-list-column><field-ref name="orderPartSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
+                <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="productId"/><field-ref name="otherPartyProductId"/></form-list-column>
+                <form-list-column><field-ref name="itemDescription"/><field-ref name="comments"/><field-ref name="requiredByDate"/></form-list-column>
+                <form-list-column><field-ref name="unitAmount"/><field-ref name="quantity"/><field-ref name="quantity_changeReason"/></form-list-column>
+                <form-list-column><field-ref name="notShippedBilled"/><field-ref name="assetReservations"/></form-list-column>
+                <form-list-column><field-ref name="itemTotal"/><field-ref name="itemPlusChildrenTotal"/></form-list-column>
+                <form-list-column><field-ref name="returns"/><field-ref name="returnItem"/></form-list-column>
+                <form-list-column><field-ref name="submitButton"/></form-list-column>
+            </form-list>
+        </widgets></section-iterate>
+        <render-mode><text type="html,vuet"><![CDATA[<script>$(function () { $('[data-toggle="popover"]').popover(); })</script>]]></text></render-mode>
     </widgets>
 </screen>

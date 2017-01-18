@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Return" default-menu-index="1">
+
+    <parameter name="returnId" required="true"/>
+
+    <transition name="updateReturn"><service-call name="update#mantle.order.return.ReturnHeader"/>
+        <default-response url="."/></transition>
+    <transition name="approveReturn"><service-call name="mantle.order.ReturnServices.approve#Return"/>
+        <default-response url="."/></transition>
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+
+    <transition name="editFinancialAccount"><default-response url="//${appRoot}/Accounting/FinancialAccount/EditFinancialAccount"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+
+    <actions>
+        <set field="statusChangeTransition" value="updateReturn"/>
+        <service-call name="mantle.order.ReturnServices.get#ReturnDisplayInfo" in-map="context" out-map="context"/>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="6">
+            <section-iterate name="SalesOrderLinks" list="salesOrderIdSet" entry="orderId"><widgets>
+                <link url="orderDetail" text="Order #${orderId}" link-type="anchor-button"/>
+            </widgets></section-iterate>
+            <section-iterate name="ReplacementOrderLinks" list="replacementOrderIdSet" entry="orderId"><widgets>
+                <link url="orderDetail" text="Replacement Order #${orderId}" link-type="anchor-button"/>
+            </widgets></section-iterate>
+            <section-iterate name="ReceivingShipmentLinks" list="receivingShipmentIdSet" entry="shipmentId"><widgets>
+                <link url="shipmentDetail" text="Return Shipment #${shipmentId}" link-type="anchor-button"/>
+            </widgets></section-iterate>
+
+            <form-single name="UpdateReturn" transition="updateReturn" map="returnHeader">
+                <field name="returnId"><default-field><display/></default-field></field>
+                <field name="entryDate"><default-field><display/></default-field></field>
+
+                <field name="vendorPartyId"><default-field title="Vendor">
+                    <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                          link-type="anchor" parameter-map="[partyId:vendorPartyId]"/></default-field></field>
+                <field name="customerPartyId"><default-field title="Customer">
+                    <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                          link-type="anchor" parameter-map="[partyId:customerPartyId]"/></default-field></field>
+
+                <field name="facilityId">
+                    <conditional-field title="Warehouse" condition="returnChangeable">
+                        <drop-down><entity-options key="${facilityId}" text="FacilityNameTemplate">
+                            <entity-find entity-name="mantle.facility.Facility"><econdition field-name="ownerPartyId" from="orgPartyId"/>
+                                <order-by field-name="pseudoId"/></entity-find></entity-options></drop-down>
+                        <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/>
+                    </conditional-field>
+                    <default-field title="Warehouse"><link url="editFacility" entity-name="mantle.facility.Facility"
+                                                           text="FacilityNameTemplate" link-type="anchor"/></default-field>
+                </field>
+
+                <field name="finAccountId">
+                    <conditional-field condition="returnChangeable &amp;&amp; isVendorOrgInternal" title="Credit Account">
+                        <drop-down allow-empty="true"><entity-options text="FinancialAccountNameTemplate">
+                            <entity-find entity-name="mantle.account.financial.FinancialAccount">
+                                <econdition field-name="ownerPartyId" from="customerPartyId"/>
+                                <order-by field-name="finAccountName"/></entity-find>
+                        </entity-options></drop-down>
+                        <link condition="finAccountId" text="Edit Account" link-type="anchor" url="editFinancialAccount"/>
+                    </conditional-field>
+                    <conditional-field condition="isVendorOrgInternal" title="Credit Account">
+                        <link condition="finAccountId" link-type="anchor" url="editFinancialAccount"
+                              text="FinancialAccountNameTemplate" entity-name="mantle.account.financial.FinancialAccount"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
+                </field>
+                <field name="postalContactMechId">
+                    <conditional-field title="Shipping Address" condition="returnChangeable">
+                        <drop-down allow-empty="true">
+                            <list-options list="postalAddressList" key="${contactMechId}" text="PostalAddressSimpleTemplate"/>
+                        </drop-down>
+                    </conditional-field>
+                    <default-field title="Shipping Address"><display-entity entity-name="mantle.party.contact.PartyContactMechPostalAddress"
+                                                                            text="PostalAddressSimpleTemplate"/></default-field>
+                </field>
+                <field name="telecomContactMechId">
+                    <conditional-field title="Shipping Phone" condition="returnChangeable">
+                        <drop-down allow-empty="true">
+                            <list-options list="telecomNumberList" key="${contactMechId}" text="TelecomNumberSimpleTemplate"/>
+                        </drop-down>
+                    </conditional-field>
+                    <default-field title="Shipping Phone"><display-entity entity-name="mantle.party.contact.PartyContactMechTelecomNumber"
+                                                                          text="TelecomNumberSimpleTemplate"/></default-field>
+                </field>
+
+                <field name="shipmentMethodEnumId">
+                    <conditional-field title="Shipment Method" condition="returnChangeable"><drop-down allow-empty="true">
+                        <entity-options><entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="ShipmentMethod"/>
+                            <order-by field-name="description"/></entity-find>
+                        </entity-options>
+                    </drop-down></conditional-field>
+                    <default-field title="Shipment Method"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                </field>
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col><row-col lg="6">
+            <link url="approveReturn" condition="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested']"
+                    text="Approve Return"/>
+            <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+        </row-col></container-row>
+    </widgets>
+</screen>
