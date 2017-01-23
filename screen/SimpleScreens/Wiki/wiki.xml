@@ -12,13 +12,13 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
         allow-extra-path="true" default-menu-include="false">
 
     <parameter name="wikiSpaceId"/>
     <parameter name="pagePath"/>
     <parameter name="wikiPageId"/>
+    <parameter name="versionName"/>
 
     <transition name="editPage"><default-response url="../EditWikiPage"/></transition>
     <transition name="createPage"><default-response url="../EditWikiPage"/></transition>
@@ -27,7 +27,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editTask"><default-response url="../Task/TaskSummary"/></transition>
     <transition name="editRequest"><default-response url="../Request/EditRequest"/></transition>
 
+    <transition name="setPublishedVersion"><service-call name="org.moqui.impl.WikiServices.set#PublishedVersion"/>
+        <default-response url="."/></transition>
     <transition name="uploadAttachment"><actions>
+        <if condition="attachmentFile == null"><return message="No attachment uploaded"/></if>
         <set field="filename" from="attachmentFile.getName()"/>
         <service-call name="org.moqui.impl.WikiServices.get#WikiPageAttachment" in-map="context" out-map="context"/>
         <script><![CDATA[
@@ -43,19 +46,7 @@ along with this software (see the LICENSE.md file). If not, see
     </actions><default-response url="."/></transition>
     <transition name="downloadAttachment"><actions>
         <service-call name="org.moqui.impl.WikiServices.get#WikiPageAttachment" in-map="context" out-map="context"/>
-        <script><![CDATA[
-            import org.moqui.resource.ResourceReference
-            org.moqui.context.ExecutionContext ec = context.ec
-
-            ec.web.response.setContentType(attachmentReference.contentType)
-            InputStream is = attachmentReference.openStream()
-            OutputStream os = ec.web.response.outputStream
-            int totalLen = copyStream(is, os)
-            is.close()
-            os.close()
-
-            ec.logger.info("Streamed ${totalLen} bytes from attachment ${attachmentReference}")
-        ]]></script>
+        <script>ec.web.sendResourceResponse(attachmentReference.location)</script>
     </actions><default-response type="none"/></transition>
 
     <transition name="wikiCommentReply"><default-response url="WikiCommentReply"/></transition>
@@ -235,12 +226,20 @@ along with this software (see the LICENSE.md file). If not, see
                             <field-map field-name="userId" from="wph.userId"/></entity-find-one>
                         <if condition="wph_has_next"><set field="nextWph" from="wphList[wph_index+1]"/></if>
                     </actions><widgets><container>
-                        <link url="." text="Version ${wph.versionName}" link-type="anchor" condition="wph.versionName"><parameter name="versionName" from="wph.versionName"/></link>
-                        <label text=" by ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: partyNote.userId}) at ${ec.l10n.format(wph.changeDateTime, 'yyyy-MM-dd HH:mm')}" type="span"/>
-                        <link url="../WikiCompare" text="diff prev" link-type="anchor" condition="wph.versionName &amp;&amp; nextWph &amp;&amp; nextWph.versionName">
-                            <parameter name="versionNameLhs" from="nextWph.versionName"/><parameter name="versionNameRhs" from="wph.versionName"/></link>
-                        <link url="../WikiCompare" text="diff cur" link-type="anchor" condition="wph.versionName &amp;&amp; currentVersionName &amp;&amp; wph.versionName != currentVersionName">
-                            <parameter name="versionNameLhs" from="wph.versionName"/><parameter name="versionNameRhs" from="currentVersionName"/></link>
+                        <section name="PageVersionSection" condition="wph.versionName"><widgets>
+                            <container>
+                                <link url="." text="Version ${wph.versionName}" link-type="anchor"><parameter name="versionName" from="wph.versionName"/></link>
+                                <label text=" published" condition="wph.versionName == publishedVersionName" style="text-success"/>
+                            </container>
+                            <container>
+                                <link url="../WikiCompare" text="diff prev" link-type="anchor" condition="nextWph &amp;&amp; nextWph.versionName">
+                                    <parameter name="versionNameLhs" from="nextWph.versionName"/><parameter name="versionNameRhs" from="wph.versionName"/></link>
+                                <link url="../WikiCompare" text="diff cur" link-type="anchor" condition="currentVersionName &amp;&amp; wph.versionName != currentVersionName">
+                                    <parameter name="versionNameLhs" from="wph.versionName"/><parameter name="versionNameRhs" from="currentVersionName"/></link>
+                            </container>
+                        </widgets></section>
+                        <label text="By ${paua.firstName?:''} ${paua.lastName?:''} (${paua.username?:'N/A'})" type="div" condition="paua"/>
+                        <label text="At ${ec.l10n.format(wph.changeDateTime, 'yyyy-MM-dd HH:mm')}" type="div"/>
                     </container></widgets></section-iterate>
                 </box-body></container-box>
             </widgets></section>
@@ -252,8 +251,14 @@ along with this software (see the LICENSE.md file). If not, see
                     <link text="${breadcrumbMap.pageName}" url="${baseLinkUrl}/${breadcrumbMap.pagePath}" url-type="plain" link-type="anchor"/>
                 </widgets></section-iterate>
             </container>
-            <container-box><box-header><label text="${pageName?:'[No Name]'} (${wikiType})${versionName ? ' version ' + versionName : ''}" type="h5"/></box-header><box-toolbar>
-                <link text="Edit Page" url="editPage" link-type="anchor-button" icon="glyphicon glyphicon-pencil">
+            <container-box><box-header>
+                <label text="${pageName?:'[No Name]'} (${wikiType})${versionName ? ' version ' + versionName : ''}${publishedVersionName ? ' published ' + publishedVersionName : ''}" type="h5"/>
+                <label text="(this version published)" condition="publishedVersionName &amp;&amp; publishedVersionName == versionName" style="text-success"/>
+            </box-header><box-toolbar>
+                <link url="setPublishedVersion" text="Publish Version ${versionName}"
+                      condition="versionName &amp;&amp; versionName != publishedVersionName"
+                      parameter-map="[wikiPageId:wikiPageId, publishedVersionName:versionName]"/>
+                <link url="editPage" text="Edit Page" link-type="anchor-button" icon="glyphicon glyphicon-pencil">
                     <parameter name="wikiSpaceId"/><parameter name="pagePath"/></link>
                 <container-dialog id="AddPageDialog" button-text="Add Page">
                     <form-single name="AddPageForm" transition="createPage">
