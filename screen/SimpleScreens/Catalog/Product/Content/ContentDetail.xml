@@ -83,12 +83,35 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
         </row-col><row-col lg="4">
             <container-box><box-header><label text="History" type="h5"/></box-header><box-body>
-                <section name="HistorySection" condition="supportsVersion"><widgets>
+                <section name="HistorySection" condition="supportsVersion"><actions>
+                    <set field="versionList" from="resourceRef.getVersionHistory()"/>
+                    <set field="currentVersionName" from="resourceRef.getCurrentVersion()?.getVersionName()"/>
+                </actions><widgets>
+                    <section-iterate name="HistListSection" list="versionList" entry="version"><actions>
+                        <entity-find-one entity-name="mantle.party.PersonAndUserAccount" value-field="paua">
+                            <field-map field-name="userId" from="version.userId"/></entity-find-one>
+                        <if condition="version_has_next"><set field="nextVersion" from="versionList[version_index+1]"/></if>
+                    </actions><widgets>
+                        <dynamic-dialog id="ShowVersionDialog" button-text="Version ${version.versionName}" width="900"
+                                transition="../ContentCompare" parameter-map="[versionNameLhs:version.versionName]"/>
+                        <section name="DiffPrevSection" condition="nextVersion &amp;&amp; nextVersion.versionName"><widgets>
+                            <dynamic-dialog id="DiffPrevDialog" button-text="Diff Prev" width="900"
+                                    transition="../ContentCompare" parameter-map="[versionNameLhs:nextVersion.versionName, versionNameRhs:version.versionName]"/>
+                        </widgets></section>
+                        <section name="DiffCurSection" condition="currentVersionName &amp;&amp; version.versionName != currentVersionName"><widgets>
+                            <dynamic-dialog id="DiffCurDialog" button-text="Diff Cur" width="900"
+                                    transition="../ContentCompare" parameter-map="[versionNameLhs:version.versionName, versionNameRhs:currentVersionName]"/>
+                        </widgets></section>
 
+                        <label text="By ${paua.firstName?:''} ${paua.lastName?:''} (${paua.username?:'N/A'})" type="div" condition="paua"/>
+                        <label text="At ${ec.l10n.format(version.versionDate, 'yyyy-MM-dd HH:mm')}" type="div"/>
+                    </widgets></section-iterate>
                 </widgets><fail-widgets>
                     <label text="History not supported for this type of resource" type="strong"/>
                 </fail-widgets></section>
             </box-body></container-box>
         </row-col></container-row>
+        <!-- used in ContentCompare -->
+        <render-mode><text type="html,vuet"><![CDATA[<script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/3.2.0/diff.min.js" type="text/javascript"></script>]]></text></render-mode>
     </widgets>
 </screen>
