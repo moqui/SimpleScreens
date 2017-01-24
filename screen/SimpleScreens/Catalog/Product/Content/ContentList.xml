@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="List">
+
+    <parameter name="productId" required="true"/>
+
+    <transition name="createContent"><service-call name="mantle.product.ProductServices.create#ProductContent"/>
+        <default-response url="."/></transition>
+    <transition name="downloadContent" read-only="true">
+        <parameter name="productContentId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.ProductContent" value-field="productContent"/>
+            <script>ec.web.sendResourceResponse(productContent.contentLocation)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <actions>
+        <entity-find entity-name="mantle.product.ProductContent" list="contentList">
+            <search-form-inputs default-order-by="productContentTypeEnumId,sequenceNum,-fromDate"/>
+            <econdition field-name="productId"/>
+        </entity-find>
+
+        <set field="localeStringList" from="[]"/>
+        <iterate list="Locale.getAvailableLocales()" entry="lcl"><script>localeStringList.add([locale:lcl.toString(), name:lcl.getDisplayName(ec.user.locale)])</script></iterate>
+        <order-map-list list="localeStringList"><order-by field-name="name"/></order-map-list>
+    </actions>
+    <widgets>
+        <container-box><box-header><label text="Content List" type="h5"/></box-header><box-toolbar>
+            <container-dialog id="NewContentDialog" button-text="Upload Content">
+                <form-single name="NewContentForm" transition="createContent">
+                    <field name="productId"><default-field><hidden/></default-field></field>
+                    <field name="productContentTypeEnumId"><default-field title="Content Type">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="ProductContentType"/></widget-template-include>
+                    </default-field></field>
+                    <field name="sequenceNum"><default-field><text-line size="4"/></default-field></field>
+                    <field name="contentFile"><default-field><file/></default-field></field>
+                    <field name="locale"><default-field>
+                        <drop-down allow-empty="true"><list-options list="localeStringList" key="${locale}" text="${locale}: ${name}"/></drop-down>
+                    </default-field></field>
+                    <field name="fromDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                    <field name="thruDate"><default-field><date-time/></default-field></field>
+                    <field name="description"><default-field><text-line size="60"/></default-field></field>
+                    <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+            <container-dialog id="NewLocationDialog" button-text="New by Location">
+                <form-single name="NewLocationForm" transition="createContent" extends="NewContentForm">
+                    <field name="contentFile"><default-field><ignored/></default-field></field>
+                    <field name="contentLocation"><default-field><text-line size="70"/></default-field></field>
+                    <field-layout>
+                        <fields-not-referenced/>
+                        <field-ref name="contentLocation"/>
+                        <field-ref name="submitButton"/>
+                    </field-layout>
+                </form-single>
+            </container-dialog>
+            <container-dialog id="NewTextDialog" button-text="New Text Content" width="960">
+                <form-single name="NewTextForm" transition="createContent" extends="NewContentForm">
+                    <field name="contentFile"><default-field><ignored/></default-field></field>
+                    <field name="contentText"><default-field title=""><text-area cols="110" rows="15"/></default-field></field>
+                    <field-layout>
+                        <fields-not-referenced/>
+                        <field-row-big><field-ref name="contentText"/></field-row-big>
+                        <field-ref name="submitButton"/>
+                    </field-layout>
+                </form-single>
+            </container-dialog>
+        </box-toolbar><box-body>
+            <form-list name="ContentList" list="contentList" skip-form="true" header-dialog="true">
+                <field name="download"><default-field title="">
+                    <link url="downloadContent" text="Download" condition="contentLocation" tooltip="${contentLocation}"/>
+                </default-field></field>
+                <field name="detail"><default-field title=""><link url="../ContentDetail" text="Edit"/></default-field></field>
+
+                <field name="productContentId"><default-field title="ID"><display/></default-field></field>
+                <field name="productContentTypeEnumId">
+                    <header-field title="Type" show-order-by="true">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="ProductContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                    </header-field>
+                    <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                </field>
+                <field name="sequenceNum"><header-field title="Seq" show-order-by="true"/>
+                    <default-field><display/></default-field></field>
+                <field name="locale">
+                    <header-field show-order-by="true">
+                        <drop-down allow-empty="true"><list-options list="localeStringList" key="${locale}" text="${locale}: ${name}"/></drop-down></header-field>
+                    <default-field><display/></default-field>
+                </field>
+                <field name="userId"><header-field title="User" show-order-by="true"/>
+                    <default-field><display-entity entity-name="mantle.party.PersonWithUserAccount" text="UsernameTemplate"/></default-field></field>
+                <field name="fromDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
+                    <default-field><display/></default-field></field>
+                <field name="thruDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
+                    <default-field><display/></default-field></field>
+                <field name="description"><header-field show-order-by="true"/>
+                    <default-field><display/></default-field></field>
+                <field name="contentLocation"><header-field title="Location" show-order-by="true"><text-find hide-options="true"/></header-field>
+                    <default-field tooltip="${contentLocation}"><display text="${contentLocation ? contentLocation.substring(contentLocation.lastIndexOf('/')+1) : 'No location set'}"/></default-field></field>
+            </form-list>
+        </box-body></container-box>
+    </widgets>
+</screen>

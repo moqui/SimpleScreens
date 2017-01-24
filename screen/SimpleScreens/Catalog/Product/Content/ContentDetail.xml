@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Detail">
+
+    <parameter name="productId" required="true"/>
+    <parameter name="productContentId" required="true"/>
+
+    <transition name="updateContent"><service-call name="mantle.product.ProductServices.update#ProductContent"/>
+        <default-response url="."/></transition>
+    <transition name="downloadContent" read-only="true">
+        <parameter name="productContentId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.ProductContent" value-field="productContent"/>
+            <script>ec.web.sendResourceResponse(productContent.contentLocation)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.ProductContent" value-field="productContent"/>
+        <set field="resourceRef" from="ec.resource.getLocationReference(productContent?.contentLocation)"/>
+        <if condition="resourceRef != null">
+            <set field="supportsVersion" from="resourceRef.supportsVersion()"/>
+            <set field="isText" from="!resourceRef.isBinary()"/>
+            <if condition="isText"><set field="contentText" from="resourceRef.getText()"/></if>
+        </if>
+
+        <set field="localeStringList" from="[]"/>
+        <iterate list="Locale.getAvailableLocales()" entry="lcl"><script>localeStringList.add([locale:lcl.toString(), name:lcl.getDisplayName(ec.user.locale)])</script></iterate>
+        <order-map-list list="localeStringList"><order-by field-name="name"/></order-map-list>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="8">
+            <container-box><box-header><label text="Edit Content" type="h5"/></box-header><box-toolbar>
+                <link url="downloadContent" text="Download" condition="productContent.contentLocation" tooltip="${productContent.contentLocation}"/>
+            </box-toolbar><box-body>
+                <form-single name="UpdateContentForm" transition="updateContent" map="productContent">
+                    <field name="productId"><default-field><hidden/></default-field></field>
+                    <field name="productContentId"><default-field title="ID"><display/></default-field></field>
+                    <field name="productContentTypeEnumId"><default-field title="Content Type">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="ProductContentType"/></widget-template-include>
+                    </default-field></field>
+                    <field name="sequenceNum"><default-field><text-line size="4"/></default-field></field>
+                    <field name="contentLocation"><default-field title="Location" tooltip="Location change will not move current file. Uploading a file will create a new location.">
+                        <text-line size="60"/></default-field></field>
+                    <field name="contentFile"><default-field title="Upload File"><file/></default-field></field>
+                    <field name="description"><default-field><text-line size="60"/></default-field></field>
+                    <field name="locale"><default-field>
+                        <drop-down allow-empty="true"><list-options list="localeStringList" key="${locale}" text="${locale}: ${name}"/></drop-down>
+                    </default-field></field>
+                    <field name="fromDate"><default-field><date-time/></default-field></field>
+                    <field name="thruDate"><default-field><date-time/></default-field></field>
+                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                </form-single>
+            </box-body></container-box>
+            <section name="EditTextSection" condition="isText"><widgets>
+                <container-box><box-header><label text="Edit Text" type="h5"/></box-header><box-body>
+                    <form-single name="UpdateTextForm" transition="updateContent" map="productContent">
+                        <field name="productId"><default-field><hidden/></default-field></field>
+                        <field name="productContentId"><default-field><hidden/></default-field></field>
+                        <field name="contentText"><default-field title=""><text-area cols="110" rows="15"/></default-field></field>
+                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                        <field-layout>
+                            <field-row-big><field-ref name="contentText"/></field-row-big>
+                            <field-ref name="submitButton"/>
+                        </field-layout>
+                    </form-single>
+                </box-body></container-box>
+            </widgets></section>
+        </row-col><row-col lg="4">
+            <container-box><box-header><label text="History" type="h5"/></box-header><box-body>
+                <section name="HistorySection" condition="supportsVersion"><widgets>
+
+                </widgets><fail-widgets>
+                    <label text="History not supported for this type of resource" type="strong"/>
+                </fail-widgets></section>
+            </box-body></container-box>
+        </row-col></container-row>
+    </widgets>
+</screen>
