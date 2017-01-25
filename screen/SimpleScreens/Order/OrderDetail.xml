@@ -191,7 +191,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="submitButton">
                         <conditional-field condition="orderEditable" title="Update Header"><submit/></conditional-field>
-                        <default-field title="Update Header"></default-field>
+                        <default-field><ignored/></default-field>
                     </field>
                     <field-layout>
                         <field-row><field-ref name="statusId"/><field-ref name="orderRevision"/></field-row>
@@ -297,7 +297,7 @@ along with this software (see the LICENSE.md file). If not, see
         </actions><widgets>
             <container style="row shaded-area">
                 <container style="col-lg-6">
-                    <container><label text="Order Part ${orderPartInfo.orderPart.orderPartSeqId}" type="strong"/></container>
+                    <container><label text="${orderPartInfo.isVendorInternalOrg ? 'Sales' : 'Purchase'} Order Part ${orderPartInfo.orderPart.orderPartSeqId}" type="strong"/></container>
                     <section name="EditPartSection" condition="orderPartInfo.partEditable"><widgets>
                         <container-dialog id="EditPartDialog" button-text="Edit Part ${orderPartInfo.orderPart.orderPartSeqId}">
                             <form-single name="EditPartForm" transition="updateOrderPart" map="orderPartInfo.orderPart">
@@ -383,6 +383,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList"
                           parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"/>
 
+                    <label text="Warning: both vendor and customer are internal organizations" style="text-danger" type="p"
+                           condition="orderPartInfo.isVendorInternalOrg &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
                     <label text="Part Total ${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)}" type="p"/>
                     <container>
                         <label text="Vendor: " type="strong"/>
