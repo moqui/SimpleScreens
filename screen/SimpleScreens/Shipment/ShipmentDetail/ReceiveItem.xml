@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="shipmentId" required="true"/>
+    <parameter name="productId"/>
+    <parameter name="statusId"/>
+
+    <transition name="receive"><service-call name="mantle.shipment.ShipmentServices.receive#ShipmentProduct"/><default-response url=".."/></transition>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
+        <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
+        <service-call name="org.moqui.impl.BasicServices.find#Enumeration" in-map="[enumTypeId:'RejectionReason']" out-map="reasonOut"/>
+        <set field="facilityId" from="shipmentRouteSegmentList ? shipmentRouteSegmentList[shipmentRouteSegmentList.size()-1].destinationFacilityId : null"/>
+        <set field="quantityAccepted" from="shipmentItem.quantity"/>
+    </actions>
+    <widgets>
+        <form-single name="ReceiveForm" transition="receive">
+            <field name="shipmentId"><default-field><hidden/></default-field></field>
+            <field name="statusId"><default-field title="Status">
+                <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+            <field name="fromPartyName"><default-field title="Supplier">
+                <display text="PartyNameTemplate" text-map="fromPartyDetail"/></default-field></field>
+            <field name="productId">
+                <conditional-field condition="productId" title="Product">
+                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></conditional-field>
+                <default-field title="Product">
+                    <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
+                </default-field>
+            </field>
+
+            <field name="receivedDate" from="ec.user.nowTimestamp"><default-field title="Received Date"><date-time/></default-field></field>
+            <!-- TODO allow mfgPartyId separate from Shipment.fromPartyId: add drop-down here for MFGs, make lotId dynamic and dependent on it -->
+            <field name="lotId"><default-field title="Lot">
+                <drop-down allow-empty="true">
+                    <entity-options key="${lotId}" text="${lotId}: ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')}">
+                        <entity-find entity-name="mantle.product.asset.Lot">
+                            <econdition field-name="mfgPartyId" from="shipment.fromPartyId"/>
+                            <order-by field-name="lotNumber"/></entity-find></entity-options>
+                </drop-down>
+            </default-field></field>
+            <field name="lotNumber"><default-field tooltip="Select an existing Lot OR enter the third party Lot Number (and Dates)">
+                <text-line size="20"/></default-field></field>
+            <field name="manufacturedDate"><default-field title="Manufactured"><date-time type="date"/></default-field></field>
+            <field name="expirationDate"><default-field title="Expiration"><date-time type="date"/></default-field></field>
+
+            <field name="quantityAccepted"><default-field><text-line size="8"/></default-field></field>
+            <field name="quantityRejected"><default-field><text-line size="8"/></default-field></field>
+            <field name="rejectionReasonEnumId"><default-field title="Rejection Reason">
+                <drop-down allow-empty="true"><list-options list="reasonOut.enumerationList" key="${enumId}" text="${description}"/></drop-down>
+            </default-field></field>
+
+            <field name="facilityId"><default-field title="Facility">
+                <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field></field>
+            <field name="locationSeqId"><default-field title="Storage Location">
+                <drop-down allow-empty="true">
+                    <entity-options key="${locationSeqId}" text="FacilityLocationNameTemplate">
+                        <entity-find entity-name="mantle.facility.FacilityLocation">
+                            <econdition field-name="facilityId"/><order-by field-name="locationSeqId"/></entity-find>
+                    </entity-options>
+                </drop-down>
+            </default-field></field>
+
+            <field name="comments"><default-field title="Notes"><text-area cols="80" rows="5"/></default-field></field>
+
+            <field name="submitButton"><default-field title="Receive"><submit/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="shipmentId" required="true"/>
+    <parameter name="productId" required="true"/>
+    <parameter name="assetId" required="true"/>
+    <parameter name="statusId"/>
+
+    <transition name="updateAsset"><service-call name="mantle.product.AssetServices.update#AssetAndReceipt"/>
+        <default-response url=".."/></transition>
+
+    <actions>
+        <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
+        <service-call name="org.moqui.impl.BasicServices.find#Enumeration" in-map="[enumTypeId:'RejectionReason']" out-map="reasonOut"/>
+        <set field="facilityId" from="shipmentRouteSegmentList?.first?.destinationFacilityId"/>
+
+        <set field="passedStatusId" from="statusId"/>
+        <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset"/>
+        <script>context.putAll(asset)</script>
+        <set field="statusId" from="passedStatusId"/>
+        <if condition="lotId">
+            <entity-find-one entity-name="mantle.product.asset.Lot" value-field="lot"><field-map field-name="lotId"/></entity-find-one>
+            <if condition="lot != null"><script>content.putAll(lot)</script></if>
+        </if>
+
+        <entity-find entity-name="mantle.product.receipt.AssetReceipt" list="assetReceiptList">
+            <econdition field-name="assetId"/><econdition field-name="shipmentId"/>
+            <order-by field-name="assetReceiptId"/>
+        </entity-find>
+        <set field="originalAssetReceipt" from="assetReceiptList?.first"/>
+        <script>if (originalAssetReceipt) context.putAll(originalAssetReceipt)</script>
+        <set field="rejectionReasonEnumId" from="originalAssetReceipt?.rejectionReasonEnumId"/>
+    </actions>
+    <widgets>
+        <form-single name="UpdateForm" transition="updateAsset"
+                     extends="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentDetail/ReceiveItem.xml#ReceiveForm">
+            <field name="assetId"><default-field><hidden/></default-field></field>
+            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>
