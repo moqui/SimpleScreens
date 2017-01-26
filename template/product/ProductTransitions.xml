@@ -54,8 +54,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <!-- <log level="warn" message="Got product search results: ${documentList}"/> -->
                 <script>
                     def outList = []
-                    for (def document in documentList)
-                        outList.add([value:document._id, label:ec.resource.expand("ProductNameTemplate", "", [productName:document.name,productId:document._id,pseudoId:document.pseudoId])])
+                    for (document in documentList) outList.add([value:document._id, label:ec.resource.expand("ProductNameTemplate", "", [productName:document.name,productId:document._id,pseudoId:document.pseudoId])])
                     ec.web.sendJsonResponse(outList)
                 </script>
                 <!-- <log level="warn" message="Got product search outList: ${outList}"/> -->
@@ -117,8 +116,7 @@ along with this software (see the LICENSE.md file). If not, see
             </entity-find>
             <script>
                 def outList = []
-                for (def asset in assetList)
-                    outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)}".toString()])
+                for (asset in assetList) outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)}".toString()])
                 ec.web.sendJsonResponse(outList)
             </script>
         </actions>
@@ -152,6 +150,35 @@ along with this software (see the LICENSE.md file). If not, see
             <if condition="asset">
                 <script>ec.web.sendTextResponse(ec.l10n.format(asset.availableToPromiseTotal, null))</script>
             </if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <transition name="getLotList">
+        <parameter name="term"/>
+        <parameter name="mfgPartyId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.asset.Lot" value-field="pkLot">
+                <field-map field-name="lotId" from="term"/></entity-find-one>
+            <if condition="pkLot != null"><then>
+                <set field="lotList" from="[pkLot]"/>
+            </then><else>
+                <entity-find entity-name="mantle.product.asset.Lot" list="lotList" limit="20">
+                    <econdition field-name="mfgPartyId" ignore-if-empty="true"/>
+                    <econditions combine="or">
+                        <econdition field-name="lotId" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="lotNumber" operator="like" value="%${term}%" ignore-case="true"/>
+                    </econditions>
+                    <select-field field-name="lotId,lotNumber,manufacturedDate,expirationDate"/>
+                    <order-by field-name="lotNumber"/>
+                </entity-find>
+            </else></if>
+
+            <script>
+                def outList = []
+                for (lot in lotList) outList.add([value:lot.lotId, label:"${lot.lotId}: ${lot.lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(lot.manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(lot.expirationDate, 'yyyy-MM-dd')}".toString()])
+                ec.web.sendJsonResponse(outList)
+            </script>
         </actions>
         <default-response type="none"/>
     </transition>
