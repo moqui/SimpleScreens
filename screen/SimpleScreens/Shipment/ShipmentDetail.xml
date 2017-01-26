@@ -22,29 +22,23 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
 
     <transition name="scheduleShipment">
-        <service-call name="update#mantle.shipment.Shipment" out-map="context"
-                in-map="[shipmentId:shipmentId, statusId:'ShipScheduled']"/>
+        <service-call name="update#mantle.shipment.Shipment" in-map="[shipmentId:shipmentId, statusId:'ShipScheduled']"/>
         <default-response url="."/></transition>
     <transition name="pickShipment">
-        <service-call name="update#mantle.shipment.Shipment" out-map="context"
-                in-map="[shipmentId:shipmentId, statusId:'ShipPicked']"/>
+        <service-call name="update#mantle.shipment.Shipment" in-map="[shipmentId:shipmentId, statusId:'ShipPicked']"/>
         <default-response url="."/></transition>
     <transition name="packShipment"><service-call name="mantle.shipment.ShipmentServices.pack#Shipment"/>
         <default-response url="."/></transition>
     <transition name="shipShipment"><service-call name="mantle.shipment.ShipmentServices.ship#Shipment"/>
         <default-response url="."/></transition>
     <transition name="deliverShipment">
-        <service-call name="update#mantle.shipment.Shipment" out-map="context"
-                in-map="[shipmentId:shipmentId, statusId:'ShipDelivered']"/>
+        <service-call name="update#mantle.shipment.Shipment" in-map="[shipmentId:shipmentId, statusId:'ShipDelivered']"/>
         <default-response url="."/></transition>
-    <transition name="receiveShipment">
-        <service-call name="mantle.shipment.ShipmentServices.receive#EntireShipment"
-                in-map="[shipmentId:shipmentId, statusId:'ShipReceived']"/>
+    <transition name="receiveEntireShipment"><service-call name="mantle.shipment.ShipmentServices.receive#EntireShipment"/>
         <default-response url="."/></transition>
     <transition name="cancelShipment">
         <!-- TODO: when shipment cancelled reset and disassociate from SO? -->
-        <service-call name="update#mantle.shipment.Shipment" out-map="context"
-                in-map="[shipmentId:shipmentId, statusId:'ShipCancelled']"/>
+        <service-call name="update#mantle.shipment.Shipment" in-map="[shipmentId:shipmentId, statusId:'ShipCancelled']"/>
         <default-response url="."/>
     </transition>
 
@@ -88,17 +82,24 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
         <set field="shipmentRouteSegment" from="shipmentRouteSegmentList?.first"/>
+        <set field="allowUpdate" from="shipment.statusId in ['ShipInput', 'ShipScheduled'] ||
+                (isIncoming &amp;&amp; shipment.statusId in ['ShipShipped', 'ShipPicked', 'ShipPacked'])"/>
 
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
             <order-by field-name="facilityName"/>
         </entity-find>
 
-        <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisCheckList">
-            <econdition field-name="shipmentId"/></entity-find>
-        <set field="allItemsPacked" from="true"/>
-        <iterate list="sisCheckList" entry="sisCheck">
-            <if condition="sisCheck.quantityNotHandled &gt; 0"><set field="allItemsPacked" from="false"/><break/></if></iterate>
+        <if condition="isIncoming"><then>
+            <set field="anyReceived" from="false"/>
+            <iterate list="shipmentItemDetailList" entry="sid">
+                <if condition="sid.quantityAcceptedTotal || sid.quantityRejectedTotal"><set field="anyReceived" from="true"/></if>
+            </iterate>
+        </then><else>
+            <set field="allItemsPacked" from="true"/>
+            <iterate list="shipmentItemSourceList" entry="sisCheck">
+                <if condition="sisCheck.quantityNotHandled &gt; 0"><set field="allItemsPacked" from="false"/><break/></if></iterate>
+        </else></if>
     </actions>
     <widgets>
         <container-row><row-col lg="6">
@@ -107,7 +108,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="ShipInputIncomingOrOutgoingSection" condition="isIncoming"><widgets>
                     <link url="scheduleShipment" text="Set Scheduled" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <link url="receiveShipment" text="Set Received" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="scheduleShipment" text="Set Scheduled" link-type="hidden-form"><parameter name="shipmentId"/></link>
@@ -128,8 +128,8 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ShipScheduledSection" condition="shipment.statusId == 'ShipScheduled'"><widgets>
                 <section name="ShipScheduledIncomingOrOutgoingSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <link url="receiveShipment" text="Set Received" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                    <link url="receiveEntireShipment" text="Receive Entire Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="pickShipment" text="Set Picked" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="packShipment" text="Set Packed" link-type="hidden-form" condition="allItemsPacked"><parameter name="shipmentId"/></link>
@@ -141,8 +141,7 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
                 <section name="ShipPickedIncomingOrOutgoingSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <link url="receiveShipment" text="Set Received" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="packShipment" text="Set Packed" link-type="hidden-form" condition="allItemsPacked"><parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
@@ -153,8 +152,9 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="ShipPackedIncomingOrOutgoingSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <link url="receiveShipment" text="Set Received" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                    <link url="receiveEntireShipment" text="Receive Entire Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                    <link url="deliverShipment" text="Set Delivered" link-type="hidden-form" condition="anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="deliverShipment" text="Set Delivered" link-type="hidden-form"><parameter name="shipmentId"/></link>
@@ -164,8 +164,9 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
                 <section name="ShipPackedIncomingOrOutgoingSection" condition="isIncoming"><widgets>
-                    <link url="receiveShipment" text="Set Received" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                    <link url="receiveEntireShipment" text="Receive Entire Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                    <link url="deliverShipment" text="Set Delivered" link-type="hidden-form" condition="anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="deliverShipment" text="Set Delivered" link-type="hidden-form"><parameter name="shipmentId"/></link>
@@ -181,7 +182,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="editInvoice" text="Invoice #${invoiceId}" link-type="anchor-button"/>
             </widgets></section-iterate>
 
-            <section name="ShipmentHeaderSection" condition="shipment.statusId == 'ShipInput'"><widgets>
+            <section name="ShipmentHeaderSection" condition="allowUpdate"><widgets>
                 <form-single name="EditShipment" transition="updateShipment" map="shipment">
                     <field name="shipmentId"><default-field><hidden/></default-field></field>
                     <field name="shipmentTypeEnumId"><default-field title="Shipment Type">
@@ -205,7 +206,6 @@ along with this software (see the LICENSE.md file). If not, see
                                 <list-options list="facilityList" key="${facilityId}" text="${facilityName} [${pseudoId}]"/></drop-down>
                         </conditional-field>
                     </field>
-                    <field name="estimatedArrivalDate"><conditional-field condition="isIncoming"><date-time/></conditional-field></field>
 
                     <!-- Outgoing Shipment Fields -->
                     <field name="toPartyId"><conditional-field title="To Party" condition="!isIncoming">
@@ -218,6 +218,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </conditional-field>
                     </field>
                     <field name="estimatedReadyDate"><conditional-field condition="!isIncoming"><date-time/></conditional-field></field>
+                    <field name="estimatedArrivalDate"><default-field><date-time/></default-field></field>
 
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                 </form-single>
@@ -317,7 +318,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <label condition="!isIncoming" text="Total: ${ec.l10n.format(sid.quantity ?: 0, '#.##')}, Packed/Issued: ${ec.l10n.format(sid.quantityTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})"/>
                     </row-col>
                     <row-col lg="7">
-                        <section name="ShipItemUpdateSection" condition="shipment.statusId == 'ShipInput'"><widgets>
+                        <section name="ShipItemUpdateSection" condition="allowUpdate"><widgets>
                             <form-single name="UpdateItemForm" transition="updateItem" map="sid">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
                                 <field name="productId"><default-field><hidden/></default-field></field>
