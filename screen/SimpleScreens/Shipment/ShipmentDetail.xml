@@ -128,6 +128,7 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ShipScheduledSection" condition="shipment.statusId == 'ShipScheduled'"><widgets>
                 <section name="ShipScheduledIncomingOrOutgoingSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
+                    <link url="deliverShipment" text="Set Delivered" link-type="hidden-form" condition="anyReceived"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
@@ -152,8 +153,8 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="ShipPackedIncomingOrOutgoingSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <link url="receiveEntireShipment" text="Receive Entire Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="deliverShipment" text="Set Delivered" link-type="hidden-form" condition="anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="receiveEntireShipment" text="Receive Entire Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
@@ -164,8 +165,8 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
                 <section name="ShipPackedIncomingOrOutgoingSection" condition="isIncoming"><widgets>
-                    <link url="receiveEntireShipment" text="Receive Entire Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="deliverShipment" text="Set Delivered" link-type="hidden-form" condition="anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="receiveEntireShipment" text="Receive Entire Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
@@ -366,6 +367,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
                         <field name="locationSeqId"><default-field title="Stored At">
                             <display text="${locationSeqId?:''} ${facLoc?.description?:''} [${facLoc?.areaId?:' '}:${facLoc?.aisleId?:' '}:${facLoc?.sectionId?:' '}:${facLoc?.levelId?:' '}:${facLoc?.positionId?:' '}]"/>
+                        </default-field></field>
+                        <field name="lotId"><default-field title="Lot">
+                            <display-entity entity-name="mantle.product.asset.Lot" text="${lotId}: ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')}"/>
                         </default-field></field>
                         <field name="updateDialog"><header-field title=""/>
                             <conditional-field condition="shipment.statusId == 'ShipInput'">
