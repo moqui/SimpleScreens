@@ -23,6 +23,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="clockInTimeEntry"><service-call name="mantle.work.TimeServices.create#TimeEntryClockIn" in-map="context"/>
         <default-response url="."/></transition>
+    <transition name="resetAndGetTimeEntryRates"><service-call name="mantle.work.TimeServices.resetAndGet#TimeEntryRates"/>
+        <default-response url="."/></transition>
 
     <actions>
         <entity-find entity-name="mantle.work.time.TimeEntry" list="timeEntryList">
@@ -55,44 +57,46 @@ along with this software (see the LICENSE.md file). If not, see
                          extends="component://SimpleScreens/screen/MyAccount/User/TimeEntries.xml#AddTimeForm"/>
         </container-dialog>
         <section-include name="ClockInOutSection" location="component://SimpleScreens/screen/MyAccount/User/TimeEntries.xml"/>
+        <link url="resetAndGetTimeEntryRates" text="Update Rates" parameter-map="[partyId:partyId]"/>
 
         <form-list name="TimeEntryList" list="timeEntryList" transition="recordTimeEntry" header-dialog="true" saved-finds="true" select-columns="true">
             <row-actions>
                 <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
+                <set field="entryEditable" from="!invoiceId &amp;&amp; !vendorInvoiceId"/>
             </row-actions>
             <field name="partyId"><header-field><hidden/></header-field><default-field><hidden/></default-field></field>
             <field name="timeEntryId"><default-field><hidden/></default-field></field>
             <field name="fromDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
-                <conditional-field condition="!vendorInvoiceId"><date-time/></conditional-field>
+                <conditional-field condition="entryEditable"><date-time/></conditional-field>
                 <default-field><display/></default-field>
             </field>
             <field name="thruDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
-                <conditional-field condition="!vendorInvoiceId"><date-time/></conditional-field>
+                <conditional-field condition="entryEditable"><date-time/></conditional-field>
                 <default-field><display/></default-field>
             </field>
             <field name="pieceCount" align="right"><header-field show-order-by="true"/>
-                <conditional-field condition="!vendorInvoiceId"><text-line size="6"/></conditional-field>
+                <conditional-field condition="entryEditable"><text-line size="6"/></conditional-field>
                 <default-field><display/></default-field>
             </field>
             <field name="hours" align="right"><header-field show-order-by="true"/>
-                <conditional-field condition="!vendorInvoiceId"><text-line size="6" format="0.000"/></conditional-field>
+                <conditional-field condition="entryEditable"><text-line size="6" format="0.000"/></conditional-field>
                 <default-field><display/></default-field>
             </field>
             <field name="breakHours" align="right"><header-field title="Break" show-order-by="true"/>
-                <conditional-field condition="!vendorInvoiceId"><text-line size="6" format="0.000"/></conditional-field>
+                <conditional-field condition="entryEditable"><text-line size="6" format="0.000"/></conditional-field>
                 <default-field><display/></default-field>
             </field>
             <field name="clientPartyId">
                 <header-field title="Employer"><drop-down allow-empty="true">
                     <list-options list="employerRelList" key="${toPartyId}" text="PartyNameTemplate"/></drop-down></header-field>
-                <conditional-field condition="!vendorInvoiceId"><drop-down allow-empty="true">
+                <conditional-field condition="entryEditable"><drop-down allow-empty="true">
                     <list-options list="employerRelList" key="${toPartyId}" text="PartyNameTemplate"/></drop-down></conditional-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
             <field name="workEffortId">
                 <header-field title="Event" show-order-by="true">
                     <drop-down allow-empty="true"><list-options list="myEventList" text="WorkEffortNameTemplate"/></drop-down></header-field>
-                <conditional-field condition="!vendorInvoiceId">
+                <conditional-field condition="entryEditable">
                     <drop-down allow-empty="true"><list-options list="myEventList" text="WorkEffortNameTemplate"/></drop-down>
                 </conditional-field>
                 <default-field>
@@ -103,7 +107,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="workTypeEnumId">
                 <header-field title="Work Type" show-order-by="true"><drop-down allow-empty="true">
                     <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></header-field>
-                <conditional-field condition="!vendorInvoiceId"><drop-down allow-empty="true">
+                <conditional-field condition="entryEditable"><drop-down allow-empty="true">
                     <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></conditional-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
@@ -117,7 +121,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </entity-find>
                     </entity-options></drop-down>
                 </header-field>
-                <conditional-field condition="!vendorInvoiceId">
+                <conditional-field condition="entryEditable">
                     <drop-down allow-empty="true"><entity-options key="${enumId}" text="${description}">
                         <entity-find entity-name="moqui.basic.Enumeration">
                             <econdition field-name="enumTypeId" value="RateType"/>
@@ -128,23 +132,76 @@ along with this software (see the LICENSE.md file). If not, see
                 </conditional-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId"/></default-field>
             </field>
+            <field name="rateAmountId"><default-field title="Client Hour Rate">
+                <display-entity text="C: ${ec.l10n.format(rateAmount, '0.00')} (${rateAmountId})" entity-name="mantle.humanres.rate.RateAmount" use-cache="true"/>
+            </default-field></field>
+            <field name="vendorRateAmountId"><default-field title="Payroll Hour Rate">
+                <display-entity text="P: ${ec.l10n.format(rateAmount, '0.00')} (${rateAmountId})" entity-name="mantle.humanres.rate.RateAmount" use-cache="true"/>
+            </default-field></field>
+
+            <field name="pieceRateTypeEnumId">
+                <header-field title="Piece Rate Type" show-order-by="true">
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="RateType"/>
+                            <econdition field-name="enumId" operator="in" value="RatpPiece,RatpPieceOvertime,RatpPieceDoubleTime"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </header-field>
+                <conditional-field condition="entryEditable">
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="RateType"/>
+                            <econdition field-name="enumId" operator="in" value="RatpPiece,RatpPieceOvertime,RatpPieceDoubleTime"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </conditional-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId"/></default-field>
+            </field>
+            <field name="pieceRateAmountId"><default-field title="Client Piece Rate">
+                <display-entity text="C: ${ec.l10n.format(rateAmount, '0.00')} (${rateAmountId})" entity-name="mantle.humanres.rate.RateAmount" use-cache="true"/>
+            </default-field></field>
+            <field name="vendorPieceRateAmountId"><default-field title="Payroll Piece Rate">
+                <display-entity text="P: ${ec.l10n.format(rateAmount, '0.00')} (${rateAmountId})" entity-name="mantle.humanres.rate.RateAmount" use-cache="true"/>
+            </default-field></field>
+
             <field name="comments">
                 <header-field show-order-by="true"/>
-                <conditional-field condition="!vendorInvoiceId"><text-area cols="40" rows="3"/></conditional-field>
+                <conditional-field condition="entryEditable"><text-area cols="40" rows="3"/></conditional-field>
                 <default-field><display/></default-field>
             </field>
 
+            <field name="invoiceId">
+                <header-field show-order-by="true"/>
+                <default-field title="Client Invoice">
+                    <link url="editInvoice" text="C: ${invoiceId}" link-type="anchor" condition="invoiceId" parameter-map="[invoiceId:invoiceId]"/>
+                </default-field>
+            </field>
             <field name="vendorInvoiceId">
                 <header-field show-order-by="true"/>
-                <default-field title="Payroll Invoice">
-                    <link url="editInvoice" text="${vendorInvoiceId}" link-type="anchor" condition="vendorInvoiceId" parameter-map="[invoiceId:vendorInvoiceId]"/>
+                <default-field title="Vendor Invoice">
+                    <link url="editInvoice" text="V: ${vendorInvoiceId}" link-type="anchor" condition="vendorInvoiceId" parameter-map="[invoiceId:vendorInvoiceId]"/>
                 </default-field>
             </field>
 
             <field name="findButton" align="right"><header-field title="Find"><submit/></header-field>
-                <conditional-field condition="!vendorInvoiceId" title="Update"><submit/></conditional-field>
+                <conditional-field condition="entryEditable" title="Update"><submit/></conditional-field>
                 <default-field><hidden/></default-field>
             </field>
+
+            <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
+            <form-list-column><field-ref name="pieceCount"/><field-ref name="hours"/><field-ref name="breakHours"/></form-list-column>
+            <form-list-column><field-ref name="clientPartyId"/><field-ref name="workEffortId"/>
+                <field-ref name="workTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="rateTypeEnumId"/><field-ref name="rateAmountId"/>
+                <field-ref name="vendorRateAmountId"/></form-list-column>
+            <form-list-column><field-ref name="pieceRateTypeEnumId"/><field-ref name="pieceRateAmountId"/>
+                <field-ref name="vendorPieceRateAmountId"/></form-list-column>
+            <form-list-column><field-ref name="comments"/></form-list-column>
+            <form-list-column><field-ref name="invoiceId"/><field-ref name="vendorInvoiceId"/></form-list-column>
+            <form-list-column><field-ref name="findButton"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
