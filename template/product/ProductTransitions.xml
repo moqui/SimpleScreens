@@ -176,7 +176,11 @@ along with this software (see the LICENSE.md file). If not, see
 
             <script>
                 def outList = []
-                for (lot in lotList) outList.add([value:lot.lotId, label:"${lot.lotId}: ${lot.lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(lot.manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(lot.expirationDate, 'yyyy-MM-dd')}".toString()])
+                for (lot in lotList) {
+                    def mfgParty = null
+                    if (lot.mfgPartyId) mfgParty = ec.entity.find("mantle.party.Party").condition("partyId", lot.mfgPartyId).useCache(true).one()
+                    outList.add([value:lot.lotId, label:"${lot.lotId}: ${mfgParty != null ? mfgParty.pseudoId : ''} ${lot.lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(lot.manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(lot.expirationDate, 'yyyy-MM-dd')}".toString()])
+                }
                 ec.web.sendJsonResponse(outList)
             </script>
         </actions>
