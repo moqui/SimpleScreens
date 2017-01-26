@@ -19,12 +19,18 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="invoiceId" required="true"/>
 
     <transition name="updateInvoice"><service-call name="mantle.account.InvoiceServices.update#Invoice"/><default-response url="."/></transition>
+    <transition name="updateInvoiceClosed"><service-call name="mantle.account.InvoiceServices.update#InvoiceClosed"/><default-response url="."/></transition>
     <transition name="updateStatus"><service-call name="update#mantle.account.invoice.Invoice"/><default-response url="."/></transition>
 
     <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
     <transition name="recordPayment"><service-call name="mantle.account.PaymentServices.create#InvoicePayment"/><default-response url="."/></transition>
     <transition name="sendPromisedPayment"><service-call name="mantle.account.PaymentServices.send#PromisedPayment"/><default-response url="."/></transition>
     <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
+    <transition name="editTimePeriod"><default-response url="../../TimePeriod/EditTimePeriod"/></transition>
+
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
 
     <transition name="Invoice.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Accounting/Invoice/PrintInvoice" url-type="plain">
@@ -45,24 +51,26 @@ along with this software (see the LICENSE.md file). If not, see
                 <container>
                     <link url="Invoice.pdf" text="Invoice PDF" link-type="anchor-button"><parameter name="invoiceId"/></link>
 
+                    <section-iterate name="OrderLinks" list="orderIdSet" entry="orderId"><widgets>
+                        <link url="orderDetail" text="Order #${orderId}" link-type="anchor-button"/>
+                    </widgets></section-iterate>
+                    <section-iterate name="ShipmentLinks" list="shipmentIdSet" entry="shipmentId"><widgets>
+                        <link url="shipmentDetail" text="Shipment #${shipmentId}" link-type="anchor-button"/>
+                    </widgets></section-iterate>
                     <section-iterate name="AcctgTransLinks" list="acctgTransIdSet" entry="acctgTransId"><widgets>
                         <link url="editTransaction" text="TX #${acctgTransId}" link-type="anchor-button"/>
                     </widgets></section-iterate>
                 </container>
 
-                <form-single name="EditInvoice" transition="updateInvoice" map="invoice">
+                <form-single name="EditInvoice" transition="${invoiceEditable ? 'updateInvoice' : 'updateInvoiceClosed'}" map="invoice">
                     <field name="invoiceId"><default-field><display/></default-field></field>
-                    <field name="invoiceTypeEnumId"><default-field title="Type">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                            <set field="enumTypeId" value="InvoiceType"/></widget-template-include>
-                    </default-field></field>
                     <field name="fromPartyId"><default-field title="From">
-                        <display-entity entity-name="mantle.party.PartyDetail" also-hidden="false" key-field-name="partyId"
-                                text="${organizationName?:''} ${firstName?:''} ${lastName?:''} [${pseudoId}]"/>
+                        <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                                parameter-map="[partyId:fromPartyId]"/>
                     </default-field></field>
                     <field name="toPartyId"><default-field title="To">
-                        <display-entity entity-name="mantle.party.PartyDetail" also-hidden="false" key-field-name="partyId"
-                                text="${organizationName?:''} ${firstName?:''} ${lastName?:''} [${pseudoId}]"/>
+                        <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                                parameter-map="[partyId:toPartyId]"/>
                     </default-field></field>
                     <field name="invoiceTypeEnumId">
                         <conditional-field title="Type" condition="invoiceEditable">
@@ -72,6 +80,13 @@ along with this software (see the LICENSE.md file). If not, see
                         <default-field title="Type">
                             <display-entity entity-name="moqui.basic.Enumeration"/>
                         </default-field>
+                    </field>
+                    <field name="timePeriodId">
+                        <conditional-field condition="invoice.timePeriodId" title="Time Period">
+                            <link url="editTimePeriod" text="TimePeriodNameTemplate" link-type="anchor"
+                                    entity-name="mantle.party.time.TimePeriod" parameter-map="[timePeriodId:invoice.timePeriodId]"/>
+                        </conditional-field>
+                        <default-field><ignored/></default-field>
                     </field>
                     <field name="referenceNumber"><default-field tooltip="Other party Invoice ID or other reference number">
                         <text-line size="20"/></default-field></field>
