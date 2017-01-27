@@ -28,35 +28,69 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail">
                 <field-map field-name="partyId" from="term"/></entity-find-one>
             <!-- <log message="====== ${term}:${roleTypeId}, partyDetail: ${partyDetail}"/> -->
-            <if condition="partyDetail">
-                <then>
-                    <script>
-                        def outList = [[value:partyDetail.partyId, label:ec.resource.expand("PartyNameTemplate", "", partyDetail)]]
-                        ec.web.sendJsonResponse(outList)
-                    </script>
-                </then>
-                <else>
-                    <entity-find entity-name="mantle.party.PartyDetailAndRole" list="partyList" limit="20" distinct="true">
-                        <econdition field-name="roleTypeId" operator="in" ignore-if-empty="true"/>
-                        <econdition field-name="disabled" value="N" or-null="true"/>
-                        <econditions combine="or">
-                            <econdition field-name="partyId" operator="like" value="%${term}%" ignore-case="true"/>
-                            <econdition field-name="pseudoId" operator="like" value="%${term}%" ignore-case="true"/>
-                            <econdition field-name="firstName" operator="like" value="%${term}%" ignore-case="true"/>
-                            <econdition field-name="lastName" operator="like" value="%${term}%" ignore-case="true"/>
-                            <econdition field-name="organizationName" operator="like" value="%${term}%" ignore-case="true"/>
-                        </econditions>
-                        <select-field field-name="partyId,pseudoId,organizationName,firstName,lastName"/>
-                        <order-by field-name="^firstName,^lastName,^organizationName"/>
-                    </entity-find>
-                    <script>
-                        def outList = []
-                        for (def party in partyList)
-                            outList.add([value:party.partyId, label:ec.resource.expand("PartyNameTemplate", "", party)])
-                        ec.web.sendJsonResponse(outList)
-                    </script>
-                </else>
-            </if>
+            <if condition="partyDetail != null"><then>
+                <script>
+                    def outList = [[value:partyDetail.partyId, label:ec.resource.expand("PartyNameTemplate", "", partyDetail)]]
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </then><else>
+                <entity-find entity-name="mantle.party.PartyDetailAndRole" list="partyList" limit="20" distinct="true">
+                    <econdition field-name="roleTypeId" operator="in" ignore-if-empty="true"/>
+                    <econdition field-name="disabled" value="N" or-null="true"/>
+                    <econditions combine="or">
+                        <econdition field-name="partyId" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="pseudoId" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="firstName" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="lastName" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="organizationName" operator="like" value="%${term}%" ignore-case="true"/>
+                    </econditions>
+                    <select-field field-name="partyId,pseudoId,organizationName,firstName,lastName"/>
+                    <order-by field-name="^firstName,^lastName,^organizationName"/>
+                </entity-find>
+                <script>
+                    def outList = []
+                    for (party in partyList) outList.add([value:party.partyId, label:ec.resource.expand("PartyNameTemplate", "", party)])
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="searchPartyList">
+        <parameter name="term"/>
+        <parameter name="roleTypeId"/>
+        <parameter name="indexName"/>
+        <parameter name="documentType"/>
+        <actions>
+            <set field="indexName" from="indexName ?: searchIndexName ?: 'mantle'"/>
+            <set field="documentType" from="documentType ?: searchPartyDocType ?: 'MantleParty'"/>
+            <!-- <log message="====== searchPartyList indexName=${indexName}, documentType=${documentType}, term=${term}"/> -->
+
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail">
+                <field-map field-name="partyId" from="term"/></entity-find-one>
+
+            <if condition="partyDetail != null"><then>
+                <script>
+                    def outList = [[value:partyDetail.partyId, label:ec.resource.expand("PartyNameTemplate", "", partyDetail)]]
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </then><else>
+                <script><![CDATA[
+                    StringBuilder termSb = new StringBuilder()
+                    termSb.append(term).append('*')
+                    if (roleTypeId) termSb.append(' AND roles.roleTypeId:').append(roleTypeId)
+                ]]></script>
+                <!-- <log level="warn" message="Doing party search with queryString [${termSb.toString()}], indexName:${indexName}, documentType:${documentType}"/> -->
+                <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
+                        in-map="[queryString:termSb.toString(), indexName:indexName, documentType:documentType]"/>
+                <!-- <log level="warn" message="Got party search results: ${documentList}"/> -->
+                <script>
+                    def outList = []
+                    for (document in documentList) outList.add([value:document._id, label:ec.resource.expand("PartyNameTemplate", "", document)])
+                    ec.web.sendJsonResponse(outList)
+                </script>
+                <!-- <log level="warn" message="Got party search outList: ${outList}"/> -->
+            </else></if>
         </actions>
         <default-response type="none"/>
     </transition>
@@ -78,14 +112,15 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <!-- example code for ContactInfo form -->
-        <!-- an example of a call to get#PartyContactInfo to populate the form, plus a call to flatten the Map for
-            simple use in the form -->
-        <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="billingContactInfo"
+        <!-- see the SimpleScreens/Party/EditParty/UpdateContactInfo.xml screen, or reuse it with a subscreens.subscreens-item element -->
+        <!-- an example of a call to get#PartyContactInfo to populate the form, plus a call to flatten the Map for simple use in the form -->
+        <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="contactInfo"
                 in-map="[partyId:partyId, postalContactMechPurposeId:'PostalBilling',
                     telecomContactMechPurposeId:'PhoneBilling', emailContactMechPurposeId:'EmailBilling']"/>
-        <set field="contactInfoFlat" from="flattenNestedMap(billingContactInfo)"/>
+        <set field="contactInfoFlat" from="contactInfo + flattenNestedMap(contactInfo)"/>
 
         <!-- example code for PaymentMethodInfo form -->
+        <!-- see the SimpleScreens/Party/EditParty/UpdatePaymentMethodInfo.xml screen, or reuse it with a subscreens.subscreens-item element -->
         <service-call name="mantle.account.PaymentMethodServices.get#PartyPaymentMethodInfo" out-map="methodInfo"
                 in-map="[partyId:partyId]"/>
         <set field="methodInfoFlat" from="flattenNestedMap(methodInfo)"/>
@@ -206,23 +241,26 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><ignored/></default-field>
             </field>
             <field name="countryCode">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId"
-                        title="" tooltip="Country Code">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="+" tooltip="Country Code">
                     <text-line size="3" maxlength="3" default-value="+1"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
             <field name="areaCode">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId"
-                        title="" tooltip="Area Code">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="-" tooltip="Area Code">
                     <text-line size="4" maxlength="5"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
             <field name="contactNumber">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId"
-                        title="" tooltip="Phone Number">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="-" tooltip="Phone Number">
                     <text-line size="10" maxlength="10"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
+            <field name="telecomExtension" from="telecomExtension ?: telecomPartyContactMech?.extension">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="x" tooltip="Extension">
+                    <text-line size="4" maxlength="8"/></conditional-field>
+                <default-field><ignored/></default-field>
+            </field>
+            <!-- <field name="foo"><default-field><label text="${contactInfoFlat}"/></default-field></field> -->
 
             <field name="emailContactMechId">
                 <conditional-field condition="emailContactMechPurposeId"><hidden/></conditional-field>
@@ -262,7 +300,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-ref name="stateProvinceGeoId"/></field-row-big>
                 <field-ref name="telecomContactMechPurposeId"/>
                 <field-row-big title="Phone"><field-ref name="countryCode"/><field-ref name="areaCode"/>
-                    <field-ref name="contactNumber"/></field-row-big>
+                    <field-ref name="contactNumber"/><field-ref name="telecomExtension"/></field-row-big>
                 <field-ref name="emailContactMechPurposeId"/>
                 <field-ref name="emailAddress"/>
                 <fields-not-referenced/>

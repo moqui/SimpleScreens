@@ -19,6 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editProduct"><default-response url="../../Catalog/Product/EditProduct"/></transition>
 
     <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
         <entity-find entity-name="mantle.product.asset.AssetFindView" list="assetList">
@@ -119,6 +120,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="Location" show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
                 <default-field><display text="${locationSeqId?:''} ${facLoc?.description?:''} [${facLoc?.areaId?:' '}:${facLoc?.aisleId?:' '}:${facLoc?.sectionId?:' '}:${facLoc?.levelId?:' '}:${facLoc?.positionId?:' '}]"/></default-field>
             </field>
+            <field name="lotId">
+                <header-field title="Lot"><text-line ac-transition="getLotList" size="50"/></header-field>
+                <default-field><display-entity entity-name="mantle.product.asset.Lot" text="${lotId}: ${mfgParty != null ? mfgParty.pseudoId : ''} ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')}"/></default-field>
+            </field>
 
             <field name="submitButton">
                 <header-field title="Find"><submit/></header-field>
@@ -131,7 +136,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/></form-list-column>
             <form-list-column><field-ref name="receivedDate"/><field-ref name="manufacturedDate"/>
                 <field-ref name="quantityOnHandTotal"/><field-ref name="availableToPromiseTotal"/></form-list-column>
-            <form-list-column><field-ref name="facilityId"/><field-ref name="locationSeqId"/></form-list-column>
+            <form-list-column><field-ref name="facilityId"/><field-ref name="locationSeqId"/><field-ref name="lotId"/></form-list-column>
         </form-list>
     </widgets>
 </screen>

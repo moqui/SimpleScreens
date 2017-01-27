@@ -22,6 +22,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateAsset"><service-call name="mantle.product.AssetServices.update#AssetAndReceipt"/>
         <default-response url=".."/></transition>
+    <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
@@ -34,7 +35,10 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="statusId" from="passedStatusId"/>
         <if condition="lotId">
             <entity-find-one entity-name="mantle.product.asset.Lot" value-field="lot"><field-map field-name="lotId"/></entity-find-one>
-            <if condition="lot != null"><script>content.putAll(lot)</script></if>
+            <if condition="lot != null">
+                <set field="lotNumber" from="lot.lotNumber"/>
+                <set field="mfgPartyId" from="lot.mfgPartyId"/>
+            </if>
         </if>
 
         <entity-find entity-name="mantle.product.receipt.AssetReceipt" list="assetReceiptList">
