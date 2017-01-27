@@ -94,6 +94,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="getAssetList">
         <parameter name="term"/>
+        <parameter name="productId"/>
         <parameter name="facilityId"/>
         <parameter name="ownerPartyId"/>
         <parameter name="assetTypeEnumId"/>
@@ -101,6 +102,7 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="assetOrderBy"/>
         <actions>
             <entity-find entity-name="mantle.product.asset.AssetFindView" list="assetList" limit="20">
+                <econdition field-name="productId" ignore-if-empty="true"/>
                 <econdition field-name="facilityId" ignore-if-empty="true"/>
                 <econdition field-name="ownerPartyId" ignore-if-empty="true"/>
                 <econdition field-name="assetTypeEnumId" ignore-if-empty="true"/>
@@ -111,12 +113,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="pseudoId" operator="like" value="%${term}%" ignore-case="true"/>
                     <econdition field-name="productName" operator="like" value="%${term}%" ignore-case="true"/>
                 </econditions>
-                <select-field field-name="assetId,assetName,pseudoId,productName"/>
+                <select-field field-name="assetId,assetName,availableToPromiseTotal,lotId,pseudoId,productName"/>
                 <order-by field-name="${assetOrderBy ?: '-receivedDate'}"/>
             </entity-find>
             <script>
                 def outList = []
-                for (asset in assetList) outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)}".toString()])
+                for (asset in assetList) outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)} ATP ${ec.l10n.format(asset.availableToPromiseTotal, '#,##0.###')}${asset.lotId ? ' Lot ' + asset.lotId : ''}".toString()])
                 ec.web.sendJsonResponse(outList)
             </script>
         </actions>
