@@ -97,6 +97,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="deleteItem"><service-call name="mantle.order.OrderServices.delete#OrderItem"/>
         <default-response url="."/></transition>
 
+    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <transition name="PrintOrder.pdf">
@@ -277,12 +278,15 @@ along with this software (see the LICENSE.md file). If not, see
         <section-iterate name="OrderPartSection" list="orderPartInfoList" entry="orderPartInfo"><actions>
             <set field="contactInfo" from="orderPartInfo.facilityContactInfo"/>
             <set field="orderPart" from="orderPartInfo.orderPart"/>
-            <set field="customerPartyId" from="orderPartInfo.customerDetail.partyId"/>
+            <set field="customerPartyId" from="orderPartInfo.customerDetail?.partyId"/>
             <set field="customerShipToPartyId" from="orderPartInfo.customerShipToDetail?.partyId"/>
 
-            <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="customerShippingInfo"
-                    in-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
-            <set field="shippingPostalAddressList" from="customerShippingInfo.postalAddressList ?: []"/>
+            <set field="shippingPostalAddressList" from="[]"/>
+            <if condition="customerPartyId"><then>
+                <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="customerShippingInfo"
+                        in-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
+                <set field="shippingPostalAddressList" from="customerShippingInfo.postalAddressList ?: []"/>
+            </then></if>
             <if condition="customerShipToPartyId">
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="shipToShippingInfo"
                         in-map="[partyId:customerShipToPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
@@ -303,6 +307,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <form-single name="EditPartForm" transition="updateOrderPart" map="orderPartInfo.orderPart">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
                                 <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
+                                <field name="customerPartyId"><conditional-field title="Customer" condition="orderPartInfo.isVendorInternalOrg">
+                                    <text-line ac-transition="getPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
+                                </conditional-field></field>
                                 <field name="facilityId"><default-field title="Facility"><drop-down>
                                     <entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
                                         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
@@ -389,16 +396,17 @@ along with this software (see the LICENSE.md file). If not, see
                     <container>
                         <label text="Vendor: " type="strong"/>
                         <link url="editVendor" text="${orderPartInfo.vendorDetail.organizationName?:''}${orderPartInfo.vendorDetail.firstName?:''} ${orderPartInfo.vendorDetail.lastName?:''} [${orderPartInfo.vendorDetail.pseudoId}]"
-                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.isVendorInternalOrg"/>
+                                link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="orderPartInfo.isVendorInternalOrg"/>
                         <link url="editSupplier" text="${orderPartInfo.vendorDetail.organizationName?:''}${orderPartInfo.vendorDetail.firstName?:''} ${orderPartInfo.vendorDetail.lastName?:''} [${orderPartInfo.vendorDetail.pseudoId}]"
                                 link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="!orderPartInfo.isVendorInternalOrg"/>
                     </container>
                     <container>
                         <label text="Customer: " type="strong"/>
                         <link url="editVendor" text="${orderPartInfo.customerDetail.organizationName?:''}${orderPartInfo.customerDetail.firstName?:''} ${orderPartInfo.customerDetail.lastName?:''} [${orderPartInfo.customerDetail.pseudoId}]"
-                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.isCustomerInternalOrg"/>
+                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
                         <link url="editCustomer" text="${orderPartInfo.customerDetail.organizationName?:''}${orderPartInfo.customerDetail.firstName?:''} ${orderPartInfo.customerDetail.lastName?:''} [${orderPartInfo.customerDetail.pseudoId}]"
-                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="!orderPartInfo.isCustomerInternalOrg"/>
+                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; !orderPartInfo.isCustomerInternalOrg"/>
+                        <label text="No Customer Selected" style="text-warning" condition="orderPartInfo.customerDetail == null"/>
                     </container>
                     <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="p"/>
                     <container><label text="Ship Before: ${ec.l10n.format(orderPartInfo.orderPart.shipBeforeDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
