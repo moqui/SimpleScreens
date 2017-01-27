@@ -102,7 +102,7 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container-row><row-col lg="6">
-            <label text="Shipment #${shipmentId}" type="h2"/>
+            <label text="Shipment #${shipmentId}" type="h3"/>
             <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
                 <section name="ShipInputIncomingOrOutgoingSection" condition="isIncoming"><widgets>
                     <link url="scheduleShipment" text="Set Scheduled" link-type="hidden-form"><parameter name="shipmentId"/></link>
@@ -112,16 +112,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="scheduleShipment" text="Set Scheduled" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="pickShipment" text="Set Picked" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
-                    <container-dialog id="AddItemContainer" button-text="Add Item">
-                        <form-single name="AddItemForm" transition="addItem">
-                            <field name="shipmentId"><default-field><hidden/></default-field></field>
-                            <field name="productId"><default-field title="Product">
-                                <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
-                            </default-field></field>
-                            <field name="quantity"><default-field><text-line size="10"/></default-field></field>
-                            <field name="submitButton"><default-field title="Add Item"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipScheduledSection" condition="shipment.statusId == 'ShipScheduled'"><widgets>
@@ -272,245 +262,263 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body></container-box>
         </row-col></container-row>
 
-        <label text="Shipment Items" type="h4"/>
-        <section-iterate name="ShipmentItemsSection" list="shipmentItemDetailList" entry="sid"><actions>
-            <if condition="isIncoming"><then>
-                <set field="quantityRemaining" from="sid.quantity - (sid.quantityAcceptedTotal ?: 0) - (sid.quantityRejectedTotal ?: 0)"/>
-                <entity-find entity-name="mantle.product.asset.AssetAndReceipt" list="assetReceiptList">
-                    <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
-            </then><else>
-                <set field="quantityRemaining" from="sid.quantity - (sid.quantityTotal ?: 0)"/>
-                <entity-find entity-name="mantle.product.issuance.AssetAndIssuance" list="assetIssuanceList">
-                    <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
-            </else></if>
-            <set field="allowPack" from="!isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPicked'] &amp;&amp; quantityRemaining &gt; 0"/>
-            <set field="allowReceive" from="isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipShipped'] &amp;&amp; quantityRemaining &gt; 0"/>
+        <container-box><box-header><label text="Shipment Items" type="h5"/></box-header><box-toolbar>
+            <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput' &amp;&amp; !isIncoming"><widgets>
+                <container-dialog id="AddItemContainer" button-text="Add Item">
+                    <form-single name="AddItemForm" transition="addItem">
+                        <field name="shipmentId"><default-field><hidden/></default-field></field>
+                        <field name="productId"><default-field title="Product">
+                            <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
+                        </default-field></field>
+                        <field name="quantity"><default-field><text-line size="10"/></default-field></field>
+                        <field name="submitButton"><default-field title="Add Item"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </widgets></section>
+        </box-toolbar><box-body>
+            <section-iterate name="ShipmentItemsSection" list="shipmentItemDetailList" entry="sid"><actions>
+                <if condition="isIncoming"><then>
+                    <set field="quantityRemaining" from="sid.quantity - (sid.quantityAcceptedTotal ?: 0) - (sid.quantityRejectedTotal ?: 0)"/>
+                    <entity-find entity-name="mantle.product.asset.AssetAndReceipt" list="assetReceiptList">
+                        <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
+                </then><else>
+                    <set field="quantityRemaining" from="sid.quantity - (sid.quantityTotal ?: 0)"/>
+                    <entity-find entity-name="mantle.product.issuance.AssetAndIssuance" list="assetIssuanceList">
+                        <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
+                </else></if>
+                <set field="allowPack" from="!isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPicked'] &amp;&amp; quantityRemaining &gt; 0"/>
+                <set field="allowReceive" from="isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipShipped'] &amp;&amp; quantityRemaining &gt; 0"/>
 
-            <entity-find-one entity-name="moqui.basic.Uom" value-field="productUom">
-                <field-map field-name="uomId" from="sid.amountUomId"/></entity-find-one>
-            <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList">
-                <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
-            <entity-find-one entity-name="mantle.product.Product" value-field="product">
-                <field-map field-name="productId" from="sid.productId"/></entity-find-one>
-        </actions><widgets>
-            <container-box><box-header><label text="${sid.productName} [${sid.pseudoId}]" type="h5"/></box-header><box-toolbar>
-                <section name="PackItemSection" condition="allowPack"><widgets>
-                    <container-dialog id="PackItemContainer" button-text="Pack Item">
-                        <form-single name="PackItemForm" transition="packItem" map="sid">
-                            <field name="shipmentId"><default-field><hidden/></default-field></field>
-                            <field name="productId"><default-field><hidden/></default-field></field>
-                            <field name="quantity" from="quantityRemaining">
-                                <default-field><text-line size="8"/></default-field></field>
-                            <field name="assetId"><default-field title="Asset"><text-line size="50" ac-transition="getAssetList"
-                                    parameter-map="[facilityId:firstRouteSegment.originFacilityId, productId:productId, assetTypeEnumId:null]"/>
-                            </default-field></field>
-                            <field name="submitButton"><default-field title="Pack Quantity"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </widgets></section>
-                <section name="ReceiveItemSection" condition="allowReceive"><widgets>
-                    <dynamic-dialog id="ReceiveProductContainer" button-text="Receive Product" transition="ReceiveItem" width="800">
-                        <parameter name="shipmentId"/><parameter name="productId" from="sid.productId"/>
-                        <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
-                </widgets></section>
-            </box-toolbar><box-body>
-                <container-row>
-                    <row-col lg="5">
-                        <label condition="isIncoming" text="Total: ${ec.l10n.format(sid.quantity ?: 0, '#.##')}, Accepted: ${ec.l10n.format(sid.quantityAcceptedTotal ?: 0, '#.##')}, Rejected: ${ec.l10n.format(sid.quantityRejectedTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})"/>
-                        <label condition="!isIncoming" text="Total: ${ec.l10n.format(sid.quantity ?: 0, '#.##')}, Packed/Issued: ${ec.l10n.format(sid.quantityTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})"/>
-                    </row-col>
-                    <row-col lg="7">
-                        <section name="ShipItemUpdateSection" condition="allowUpdate"><widgets>
-                            <form-single name="UpdateItemForm" transition="updateItem" map="sid">
+                <entity-find-one entity-name="moqui.basic.Uom" value-field="productUom">
+                    <field-map field-name="uomId" from="sid.amountUomId"/></entity-find-one>
+                <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList">
+                    <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
+                <entity-find-one entity-name="mantle.product.Product" value-field="product">
+                    <field-map field-name="productId" from="sid.productId"/></entity-find-one>
+
+                <entity-find entity-name="mantle.shipment.ShipmentPackageContent" list="packageContentList">
+                    <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
+                <set field="packageContentTotal" from="(packageContentList*.quantity).sum()"/>
+
+            </actions><widgets>
+                <container-box><box-header><label text="${sid.productName} [${sid.pseudoId}]" type="h5"/></box-header><box-toolbar>
+                    <section name="PackItemSection" condition="allowPack"><widgets>
+                        <container-dialog id="PackItemContainer" button-text="Pack Item">
+                            <form-single name="PackItemForm" transition="packItem" map="sid">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
                                 <field name="productId"><default-field><hidden/></default-field></field>
-                                <field name="quantity"><default-field><text-line size="8"/></default-field></field>
-                                <field name="submitButton"><default-field title="Update Quantity"><submit/></default-field></field>
-                                <field-layout>
-                                    <field-row-big><field-ref name="shipmentId"/><field-ref name="productId"/>
-                                        <field-ref name="quantity"/><field-ref name="submitButton"/></field-row-big>
-                                </field-layout>
+                                <field name="quantity" from="quantityRemaining">
+                                    <default-field><text-line size="8"/></default-field></field>
+                                <field name="assetId"><default-field title="Asset"><text-line size="50" ac-transition="getAssetList"
+                                        parameter-map="[facilityId:firstRouteSegment.originFacilityId, productId:productId, assetTypeEnumId:null]"/>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Pack Quantity"><submit/></default-field></field>
                             </form-single>
-                        </widgets></section>
-                    </row-col>
-                </container-row>
-            </box-body><box-body-nopad>
-                <section name="ItemAssetSection" condition="isIncoming"><widgets>
-                    <form-list name="ItemSourceReceiptList" list="sisList" skip-form="true">
-                        <field name="orderId"><default-field title="Order">
-                            <link url="orderDetail" text="${orderId?:''}" link-type="anchor"/></default-field></field>
-                        <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                        </container-dialog>
+                    </widgets></section>
+                    <section name="ReceiveItemSection" condition="allowReceive"><widgets>
+                        <dynamic-dialog id="ReceiveProductContainer" button-text="Receive Product" transition="ReceiveItem" width="800">
+                            <parameter name="shipmentId"/><parameter name="productId" from="sid.productId"/>
+                            <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
+                    </widgets></section>
+                </box-toolbar><box-body>
+                    <container-row>
+                        <row-col lg="5">
+                            <label condition="isIncoming" text="Total: ${ec.l10n.format(sid.quantity ?: 0, '#.##')}, Accepted: ${ec.l10n.format(sid.quantityAcceptedTotal ?: 0, '#.##')}, Rejected: ${ec.l10n.format(sid.quantityRejectedTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})"/>
+                            <label condition="!isIncoming" text="Total: ${ec.l10n.format(sid.quantity ?: 0, '#.##')}, Packed/Issued: ${ec.l10n.format(sid.quantityTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})"/>
+                        </row-col>
+                        <row-col lg="7">
+                            <section name="ShipItemUpdateSection" condition="allowUpdate"><widgets>
+                                <form-single name="UpdateItemForm" transition="updateItem" map="sid">
+                                    <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                    <field name="productId"><default-field><hidden/></default-field></field>
+                                    <field name="quantity"><default-field><text-line size="8"/></default-field></field>
+                                    <field name="submitButton"><default-field title="Update Quantity"><submit/></default-field></field>
+                                    <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="submitButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </widgets></section>
+                        </row-col>
+                    </container-row>
+                </box-body><box-body-nopad>
+                    <section name="ItemAssetSection" condition="isIncoming"><widgets>
+                        <form-list name="ItemSourceReceiptList" list="sisList" skip-form="true">
+                            <field name="orderId"><default-field title="Order">
+                                <link url="orderDetail" text="${orderId?:''}" link-type="anchor"/></default-field></field>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
 
-                        <field name="quantity"><default-field><display/></default-field></field>
-                        <field name="quantityNotHandled"><default-field><display/></default-field></field>
+                            <field name="quantity"><default-field><display/></default-field></field>
+                            <field name="quantityNotHandled"><default-field><display/></default-field></field>
 
-                        <field name="invoiceId"><default-field title="Invoice">
-                            <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/></default-field></field>
-                        <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
-                    </form-list>
-                    <form-list name="ItemAssetReceiptList" list="assetReceiptList" skip-form="true">
-                        <row-actions>
-                            <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
-                        </row-actions>
+                            <field name="invoiceId"><default-field title="Invoice">
+                                <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/></default-field></field>
+                            <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
+                        </form-list>
+                        <form-list name="ItemAssetReceiptList" list="assetReceiptList" skip-form="true">
+                            <row-actions>
+                                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
+                            </row-actions>
 
-                        <field name="statusId"><default-field title="Status">
-                            <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                            <field name="statusId"><default-field title="Status">
+                                <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
 
-                        <field name="receivedDate"><default-field title="Received Date"><display/></default-field></field>
-                        <field name="quantityOnHandTotal" align="right"><default-field title="QOH"><display/></default-field></field>
-                        <field name="quantityAccepted" align="right"><default-field title="Accepted"><display/></default-field></field>
-                        <field name="quantityRejected" align="right"><default-field title="Rejected"><display/></default-field></field>
+                            <field name="receivedDate"><default-field title="Received Date"><display/></default-field></field>
+                            <field name="quantityOnHandTotal" align="right"><default-field title="QOH"><display/></default-field></field>
+                            <field name="quantityAccepted" align="right"><default-field title="Accepted"><display/></default-field></field>
+                            <field name="quantityRejected" align="right"><default-field title="Rejected"><display/></default-field></field>
 
-                        <field name="assetId"><default-field title="Asset"><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
-                        <!-- TODO: add lotId with link to lot detail -->
+                            <field name="assetId"><default-field title="Asset"><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+                            <!-- TODO: add lotId with link to lot detail -->
 
-                        <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
-                        <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
-                        <field name="locationSeqId"><default-field title="Stored At">
-                            <display text="${locationSeqId?:''} ${facLoc?.description?:''} [${facLoc?.areaId?:' '}:${facLoc?.aisleId?:' '}:${facLoc?.sectionId?:' '}:${facLoc?.levelId?:' '}:${facLoc?.positionId?:' '}]"/>
-                        </default-field></field>
-                        <field name="lotId"><default-field title="Lot">
-                            <display-entity entity-name="mantle.product.asset.Lot" text="${lotId}: ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')}"/>
-                        </default-field></field>
-                        <field name="updateDialog"><header-field title=""/>
-                            <conditional-field condition="shipment.statusId == 'ShipInput'">
-                                <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
-                                    <parameter name="shipmentId"/><parameter name="assetId"/>
-                                    <parameter name="statusId" value="AstIncoming"/></dynamic-dialog>
-                            </conditional-field>
-                            <conditional-field condition="statusId == 'AstIncoming'">
-                                <dynamic-dialog id="UpdateAssetCntr" button-text="Receive" transition="UpdateItemAsset">
-                                    <parameter name="shipmentId"/><parameter name="assetId"/>
-                                    <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
-                            </conditional-field>
-                            <default-field>
-                                <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
-                                    <parameter name="shipmentId"/><parameter name="assetId"/>
-                                    <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
-                            </default-field>
-                        </field>
-                    </form-list>
-                </widgets><fail-widgets>
-                    <form-list name="ItemSourceIssuanceList" list="sisList" transition="packItemSource">
-                        <row-actions>
-                            <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
-                                <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
-                        </row-actions>
-                        <field name="shipmentId"><default-field><hidden/></default-field></field>
-                        <field name="shipmentItemSourceId"><default-field><hidden/></default-field></field>
-                        <field name="orderId"><default-field title="Order">
-                            <link url="orderDetail" text="${orderId?:''}" link-type="anchor"/></default-field></field>
-                        <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="locationSeqId"><default-field title="Stored At">
+                                <display text="${locationSeqId?:''} ${facLoc?.description?:''} [${facLoc?.areaId?:' '}:${facLoc?.aisleId?:' '}:${facLoc?.sectionId?:' '}:${facLoc?.levelId?:' '}:${facLoc?.positionId?:' '}]"/>
+                            </default-field></field>
+                            <field name="lotId"><default-field title="Lot">
+                                <display-entity entity-name="mantle.product.asset.Lot" text="${lotId}: ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')}"/>
+                            </default-field></field>
+                            <field name="updateDialog"><header-field title=""/>
+                                <conditional-field condition="shipment.statusId == 'ShipInput'">
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
+                                        <parameter name="shipmentId"/><parameter name="assetId"/>
+                                        <parameter name="statusId" value="AstIncoming"/></dynamic-dialog>
+                                </conditional-field>
+                                <conditional-field condition="statusId == 'AstIncoming'">
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Receive" transition="UpdateItemAsset">
+                                        <parameter name="shipmentId"/><parameter name="assetId"/>
+                                        <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
+                                </conditional-field>
+                                <default-field>
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
+                                        <parameter name="shipmentId"/><parameter name="assetId"/>
+                                        <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
+                                </default-field>
+                            </field>
+                        </form-list>
+                    </widgets><fail-widgets>
+                        <form-list name="ItemSourceIssuanceList" list="sisList" transition="packItemSource">
+                            <row-actions>
+                                <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
+                                    <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
+                            </row-actions>
+                            <field name="shipmentId"><default-field><hidden/></default-field></field>
+                            <field name="shipmentItemSourceId"><default-field><hidden/></default-field></field>
+                            <field name="orderId"><default-field title="Order">
+                                <link url="orderDetail" text="${orderId?:''}" link-type="anchor"/></default-field></field>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
 
-                        <field name="quantitySis" from="quantity">
-                            <default-field title="Quantity"><display/></default-field></field>
-                        <field name="quantityNotHandled"><default-field><display/></default-field></field>
+                            <field name="quantitySis" from="quantity">
+                                <default-field title="Quantity"><display/></default-field></field>
+                            <field name="quantityNotHandled"><default-field><display/></default-field></field>
 
-                        <field name="invoiceId"><default-field title="Invoice">
-                            <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/></default-field></field>
-                        <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="invoiceId"><default-field title="Invoice">
+                                <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/></default-field></field>
+                            <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
 
-                        <field name="assetReservations">
-                            <conditional-field condition="existingResList">
-                                <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes"><widgets><container>
-                                    <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
-                                    <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
-                                </container></widgets></section-iterate>
-                            </conditional-field>
-                            <default-field><display text=" "/></default-field>
-                        </field>
+                            <field name="assetReservations">
+                                <conditional-field condition="existingResList">
+                                    <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes"><widgets><container>
+                                        <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
+                                        <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
+                                    </container></widgets></section-iterate>
+                                </conditional-field>
+                                <default-field><display text=" "/></default-field>
+                            </field>
 
-                        <field name="quantity" from="quantityNotHandled">
-                            <conditional-field condition="allowPack &amp;&amp; quantityNotHandled &gt; 0" title="Pack Quantity">
-                                <text-line size="6"/></conditional-field>
-                            <default-field title="Pack Quantity"><display text=" "/></default-field>
-                        </field>
-                        <field name="packButton">
-                            <conditional-field condition="allowPack &amp;&amp; quantityNotHandled &gt; 0" title="Pack">
-                                <submit/></conditional-field>
-                            <default-field title=""><display text=" "/></default-field>
-                        </field>
-                    </form-list>
-                    <form-list name="ItemAssetIssuanceList" list="assetIssuanceList" skip-form="true">
-                        <row-actions>
-                            <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
-                            <entity-find-one entity-name="mantle.product.issuance.AssetReservation" value-field="res"/>
-                        </row-actions>
-                        <field name="issuedDate"><default-field title="Issued Date"><display/></default-field></field>
-                        <field name="quantity"><default-field title="Quantity"><display/></default-field></field>
+                            <field name="quantity" from="quantityNotHandled">
+                                <conditional-field condition="allowPack &amp;&amp; quantityNotHandled &gt; 0" title="Pack Quantity">
+                                    <text-line size="6"/></conditional-field>
+                                <default-field title="Pack Quantity"><display text=" "/></default-field>
+                            </field>
+                            <field name="packButton">
+                                <conditional-field condition="allowPack &amp;&amp; quantityNotHandled &gt; 0" title="Pack">
+                                    <submit/></conditional-field>
+                                <default-field title=""><display text=" "/></default-field>
+                            </field>
+                        </form-list>
+                        <form-list name="ItemAssetIssuanceList" list="assetIssuanceList" skip-form="true">
+                            <row-actions>
+                                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
+                                <entity-find-one entity-name="mantle.product.issuance.AssetReservation" value-field="res"/>
+                            </row-actions>
+                            <field name="issuedDate"><default-field title="Issued Date"><display/></default-field></field>
+                            <field name="quantity"><default-field title="Quantity"><display/></default-field></field>
 
-                        <field name="assetId"><default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
-                        <field name="assetReservationId">
-                            <conditional-field condition="res">
-                                <display text="${assetReservationId} - Res: ${ec.l10n.format(res.quantity, null)}, Not Avail: ${ec.l10n.format(res.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(res.quantityNotIssued, null)}"/>
-                            </conditional-field>
-                            <default-field title="Reservation"><display/></default-field>
-                        </field>
+                            <field name="assetId"><default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+                            <field name="assetReservationId">
+                                <conditional-field condition="res">
+                                    <display text="${assetReservationId} - Res: ${ec.l10n.format(res.quantity, null)}, Not Avail: ${ec.l10n.format(res.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(res.quantityNotIssued, null)}"/>
+                                </conditional-field>
+                                <default-field title="Reservation"><display/></default-field>
+                            </field>
 
-                        <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
-                        <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
-                        <field name="locationSeqId"><default-field title="Was Stored At">
-                            <display text="${locationSeqId?:''} ${facLoc?.description?:''} [${facLoc?.areaId?:' '}:${facLoc?.aisleId?:' '}:${facLoc?.sectionId?:' '}:${facLoc?.levelId?:' '}:${facLoc?.positionId?:' '}]"/>
-                        </default-field></field>
-                    </form-list>
-                </fail-widgets></section>
-            </box-body-nopad></container-box>
-        </widgets></section-iterate>
+                            <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="locationSeqId"><default-field title="Was Stored At">
+                                <display text="${locationSeqId?:''} ${facLoc?.description?:''} [${facLoc?.areaId?:' '}:${facLoc?.aisleId?:' '}:${facLoc?.sectionId?:' '}:${facLoc?.levelId?:' '}:${facLoc?.positionId?:' '}]"/>
+                            </default-field></field>
+                        </form-list>
+                    </fail-widgets></section>
+                </box-body-nopad></container-box>
+            </widgets></section-iterate>
+        </box-body></container-box>
 
         <section name="ShipmentPackageSection" condition="!isIncoming"><widgets>
-            <label text="Packages" type="h4"/>
-            <link url="createPackage" text="Add Package"/>
-            <section-iterate name="PackageListSection" list="shipmentPackageList" entry="shipmentPackage"><actions>
-                <set field="shipmentBoxType" from="shipmentPackage.boxType"/>
-                <set field="weightUom" from="shipmentPackage.weightUom"/>
-                <set field="shipmentPackageContentList" from="shipmentPackage.contents"/>
-                <entity-find-one entity-name="mantle.shipment.ShipmentPackageRouteSeg" value-field="packageRouteSeg">
-                    <field-map field-name="shipmentId"/><field-map field-name="shipmentPackageSeqId" from="shipmentPackage.shipmentPackageSeqId"/>
-                    <field-map field-name="shipmentRouteSegmentSeqId" from="firstRouteSegment.shipmentRouteSegmentSeqId"/>
-                </entity-find-one>
-                <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
-            </actions><widgets>
-                <container-box><box-header>
-                    <label text="Package ${shipmentPackage.shipmentPackageSeqId}, Box Type: ${shipmentBoxType?.description?:'N/A'}, Weight: ${ec.l10n.format(shipmentPackage.weight, null)?:'N/A'} ${weightUom?.description?:''}, Tracking ${packageRouteSeg?.trackingCode?:'N/A'}" type="h5"/>
-                </box-header><box-toolbar>
-                    <container-dialog id="UpdatePackageDialog" button-text="Update Package">
-                        <form-single name="UpdatePackageForm" map="packageAndRouteSeg" transition="updatePackageAndRouteSeg">
-                            <field name="shipmentId"><default-field><hidden/></default-field></field>
-                            <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
-                            <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
+            <container-box><box-header><label text="Packages" type="h5"/></box-header><box-toolbar>
+                <link url="createPackage" text="Add Package"/>
+            </box-toolbar><box-body>
+                <section-iterate name="PackageListSection" list="shipmentPackageList" entry="shipmentPackage"><actions>
+                    <set field="shipmentBoxType" from="shipmentPackage.boxType"/>
+                    <set field="weightUom" from="shipmentPackage.weightUom"/>
+                    <set field="shipmentPackageContentList" from="shipmentPackage.contents"/>
+                    <entity-find-one entity-name="mantle.shipment.ShipmentPackageRouteSeg" value-field="packageRouteSeg">
+                        <field-map field-name="shipmentId"/><field-map field-name="shipmentPackageSeqId" from="shipmentPackage.shipmentPackageSeqId"/>
+                        <field-map field-name="shipmentRouteSegmentSeqId" from="firstRouteSegment.shipmentRouteSegmentSeqId"/>
+                    </entity-find-one>
+                    <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
+                </actions><widgets>
+                    <container-box><box-header>
+                        <label text="Package ${shipmentPackage.shipmentPackageSeqId}, Box Type: ${shipmentBoxType?.description?:'N/A'}, Weight: ${ec.l10n.format(shipmentPackage.weight, null)?:'N/A'} ${weightUom?.description?:''}, Tracking ${packageRouteSeg?.trackingCode?:'N/A'}" type="h5"/>
+                    </box-header><box-toolbar>
+                        <container-dialog id="UpdatePackageDialog" button-text="Update Package">
+                            <form-single name="UpdatePackageForm" map="packageAndRouteSeg" transition="updatePackageAndRouteSeg">
+                                <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
+                                <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
 
-                            <field name="shipmentBoxTypeId"><default-field title="Box Type">
-                                <drop-down allow-empty="true">
-                                    <entity-options key="${shipmentBoxTypeId}" text="${description} [${capacityUomId}]">
-                                        <entity-find entity-name="mantle.shipment.ShipmentBoxType">
-                                            <order-by field-name="description"/></entity-find></entity-options>
-                                </drop-down>
-                            </default-field></field>
-                            <field name="weight"><default-field><text-line size="8"/></default-field></field>
-                            <field name="weightUomId"><default-field title="Weight UOM">
-                                <drop-down allow-empty="true">
-                                    <entity-options key="${uomId}" text="${description} [${uomId}]">
-                                        <entity-find entity-name="moqui.basic.Uom">
-                                            <econdition field-name="uomTypeEnumId" value="UT_WEIGHT_MEASURE"/>
-                                            <order-by field-name="description"/></entity-find></entity-options>
-                                </drop-down>
-                            </default-field></field>
-                            <field name="trackingCode"><default-field><text-line size="30"/></default-field></field>
-                            <field name="boxNumber"><default-field><text-line size="8"/></default-field></field>
-                            <field name="estimatedAmount"><default-field title="Est. Cost"><text-line size="10"/></default-field></field>
+                                <field name="shipmentBoxTypeId"><default-field title="Box Type">
+                                    <drop-down allow-empty="true">
+                                        <entity-options key="${shipmentBoxTypeId}" text="${description} [${capacityUomId}]">
+                                            <entity-find entity-name="mantle.shipment.ShipmentBoxType">
+                                                <order-by field-name="description"/></entity-find></entity-options>
+                                    </drop-down>
+                                </default-field></field>
+                                <field name="weight"><default-field><text-line size="8"/></default-field></field>
+                                <field name="weightUomId"><default-field title="Weight UOM">
+                                    <drop-down allow-empty="true">
+                                        <entity-options key="${uomId}" text="${description} [${uomId}]">
+                                            <entity-find entity-name="moqui.basic.Uom">
+                                                <econdition field-name="uomTypeEnumId" value="UT_WEIGHT_MEASURE"/>
+                                                <order-by field-name="description"/></entity-find></entity-options>
+                                    </drop-down>
+                                </default-field></field>
+                                <field name="trackingCode"><default-field><text-line size="30"/></default-field></field>
+                                <field name="boxNumber"><default-field><text-line size="8"/></default-field></field>
+                                <field name="estimatedAmount"><default-field title="Est. Cost"><text-line size="10"/></default-field></field>
 
-                            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <form-list name="ShipmentPackageContentList" list="shipmentPackageContentList">
-                        <field name="productId"><default-field title="Product">
-                            <display-entity entity-name="mantle.product.Product" text="${productName} [${pseudoId}]"/>
-                        </default-field></field>
-                        <field name="quantity"><default-field><display/></default-field></field>
-                    </form-list>
-                </box-body></container-box>
-            </widgets></section-iterate>
+                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar><box-body>
+                        <form-list name="ShipmentPackageContentList" list="shipmentPackageContentList">
+                            <field name="productId"><default-field title="Product">
+                                <display-entity entity-name="mantle.product.Product" text="${productName} [${pseudoId}]"/>
+                            </default-field></field>
+                            <field name="quantity"><default-field><display/></default-field></field>
+                        </form-list>
+                    </box-body></container-box>
+                </widgets></section-iterate>
+            </box-body></container-box>
         </widgets></section>
     </widgets>
 </screen>
