@@ -112,14 +112,15 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <!-- example code for ContactInfo form -->
-        <!-- an example of a call to get#PartyContactInfo to populate the form, plus a call to flatten the Map for
-            simple use in the form -->
-        <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="billingContactInfo"
+        <!-- see the SimpleScreens/Party/EditParty/UpdateContactInfo.xml screen, or reuse it with a subscreens.subscreens-item element -->
+        <!-- an example of a call to get#PartyContactInfo to populate the form, plus a call to flatten the Map for simple use in the form -->
+        <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="contactInfo"
                 in-map="[partyId:partyId, postalContactMechPurposeId:'PostalBilling',
                     telecomContactMechPurposeId:'PhoneBilling', emailContactMechPurposeId:'EmailBilling']"/>
-        <set field="contactInfoFlat" from="flattenNestedMap(billingContactInfo)"/>
+        <set field="contactInfoFlat" from="contactInfo + flattenNestedMap(contactInfo)"/>
 
         <!-- example code for PaymentMethodInfo form -->
+        <!-- see the SimpleScreens/Party/EditParty/UpdatePaymentMethodInfo.xml screen, or reuse it with a subscreens.subscreens-item element -->
         <service-call name="mantle.account.PaymentMethodServices.get#PartyPaymentMethodInfo" out-map="methodInfo"
                 in-map="[partyId:partyId]"/>
         <set field="methodInfoFlat" from="flattenNestedMap(methodInfo)"/>
@@ -240,23 +241,26 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><ignored/></default-field>
             </field>
             <field name="countryCode">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId"
-                        title="" tooltip="Country Code">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="+" tooltip="Country Code">
                     <text-line size="3" maxlength="3" default-value="+1"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
             <field name="areaCode">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId"
-                        title="" tooltip="Area Code">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="-" tooltip="Area Code">
                     <text-line size="4" maxlength="5"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
             <field name="contactNumber">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId"
-                        title="" tooltip="Phone Number">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="-" tooltip="Phone Number">
                     <text-line size="10" maxlength="10"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
+            <field name="telecomExtension" from="telecomExtension ?: telecomPartyContactMech?.extension">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="x" tooltip="Extension">
+                    <text-line size="4" maxlength="8"/></conditional-field>
+                <default-field><ignored/></default-field>
+            </field>
+            <!-- <field name="foo"><default-field><label text="${contactInfoFlat}"/></default-field></field> -->
 
             <field name="emailContactMechId">
                 <conditional-field condition="emailContactMechPurposeId"><hidden/></conditional-field>
@@ -296,7 +300,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-ref name="stateProvinceGeoId"/></field-row-big>
                 <field-ref name="telecomContactMechPurposeId"/>
                 <field-row-big title="Phone"><field-ref name="countryCode"/><field-ref name="areaCode"/>
-                    <field-ref name="contactNumber"/></field-row-big>
+                    <field-ref name="contactNumber"/><field-ref name="telecomExtension"/></field-row-big>
                 <field-ref name="emailContactMechPurposeId"/>
                 <field-ref name="emailAddress"/>
                 <fields-not-referenced/>
