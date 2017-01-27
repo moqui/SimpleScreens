@@ -56,6 +56,44 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none"/>
     </transition>
+    <transition name="searchPartyList">
+        <parameter name="term"/>
+        <parameter name="roleTypeId"/>
+        <parameter name="indexName"/>
+        <parameter name="documentType"/>
+        <actions>
+            <set field="indexName" from="indexName ?: searchIndexName ?: 'mantle'"/>
+            <set field="documentType" from="documentType ?: searchPartyDocType ?: 'MantleParty'"/>
+            <!-- <log message="====== searchPartyList indexName=${indexName}, documentType=${documentType}, term=${term}"/> -->
+
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail">
+                <field-map field-name="partyId" from="term"/></entity-find-one>
+
+            <if condition="partyDetail != null"><then>
+                <script>
+                    def outList = [[value:partyDetail.partyId, label:ec.resource.expand("PartyNameTemplate", "", partyDetail)]]
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </then><else>
+                <script><![CDATA[
+                    StringBuilder termSb = new StringBuilder()
+                    termSb.append(term).append('*')
+                    if (roleTypeId) termSb.append(' AND roles.roleTypeId:').append(roleTypeId)
+                ]]></script>
+                <!-- <log level="warn" message="Doing party search with queryString [${termSb.toString()}], indexName:${indexName}, documentType:${documentType}"/> -->
+                <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
+                        in-map="[queryString:termSb.toString(), indexName:indexName, documentType:documentType]"/>
+                <!-- <log level="warn" message="Got party search results: ${documentList}"/> -->
+                <script>
+                    def outList = []
+                    for (document in documentList) outList.add([value:document._id, label:ec.resource.expand("PartyNameTemplate", "", document)])
+                    ec.web.sendJsonResponse(outList)
+                </script>
+                <!-- <log level="warn" message="Got party search outList: ${outList}"/> -->
+            </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
 
     <!-- an example of a transition to call store#PartyContactInfo; this does a create or update -->
     <transition name="storeContactInfo"><service-call name="mantle.party.ContactServices.store#PartyContactInfo"/>
