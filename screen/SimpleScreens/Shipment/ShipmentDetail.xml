@@ -17,7 +17,6 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="shipmentId" required="true"/>
 
-    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition name="updateShipment"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentAndRouteSegment"/>
         <default-response url="."/></transition>
 
@@ -58,13 +57,16 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
+    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <transition name="addItem"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentItem"/><default-response url="."/></transition>
     <transition name="updateItem"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentItem"/><default-response url="."/></transition>
     <transition name="packItem"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProduct"/><default-response url="."/></transition>
     <transition name="packItemSource"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentItemSource"/><default-response url="."/></transition>
-    <transition name="updatePackage"><service-call name="update#mantle.shipment.ShipmentPackage"/><default-response url="."/></transition>
+    <transition name="createPackage"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentPackage"/><default-response url="."/></transition>
+    <transition name="updatePackageAndRouteSeg"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentPackageAndRouteSeg"/><default-response url="."/></transition>
 
     <transition name="ShipmentPick.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPick" url-type="plain">
@@ -81,9 +83,6 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
-        <set field="shipmentRouteSegment" from="shipmentRouteSegmentList?.first"/>
-        <set field="allowUpdate" from="shipment.statusId in ['ShipInput', 'ShipScheduled'] ||
-                (isIncoming &amp;&amp; shipment.statusId in ['ShipShipped', 'ShipPicked', 'ShipPacked'])"/>
 
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
@@ -201,7 +200,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
                         </drop-down>
                     </conditional-field></field>
-                    <field name="destinationFacilityId" from="shipmentRouteSegment.destinationFacilityId">
+                    <field name="destinationFacilityId" from="lastRouteSegment.destinationFacilityId">
                         <conditional-field title="Destination Facility" condition="isIncoming">
                             <drop-down>
                                 <list-options list="facilityList" key="${facilityId}" text="${facilityName} [${pseudoId}]"/></drop-down>
@@ -212,7 +211,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="toPartyId"><conditional-field title="To Party" condition="!isIncoming">
                         <text-line ac-transition="getPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
                     </conditional-field></field>
-                    <field name="originFacilityId" from="shipmentRouteSegment.originFacilityId">
+                    <field name="originFacilityId" from="firstRouteSegment.originFacilityId">
                         <conditional-field title="Origin Facility" condition="!isIncoming">
                             <drop-down>
                                 <list-options list="facilityList" key="${facilityId}" text="${facilityName} [${pseudoId}]"/></drop-down>
@@ -226,12 +225,12 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets><fail-widgets>
                 <section name="ShipmentDisplaySection" condition="isIncoming"><widgets>
                     <label text="From: ${fromPartyDetail ? (fromPartyDetail.organizationName?:'') + (fromPartyDetail.firstName?:'') + ' ' + (fromPartyDetail.lastName?:'') + ' [' + fromPartyDetail.pseudoId + ']' : 'Not Set'}" type="p"/>
-                    <label text="Destination Facility: ${shipmentRouteSegment.destinationFacilityName}" type="p"/>
+                    <label text="Destination Facility: ${lastRouteSegment.destinationFacilityName}" type="p"/>
                     <label text="Status: ${statusItem.description}" type="p"/>
                     <label text="Estimated arrival: ${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Unknown'}" type="p"/>
                 </widgets><fail-widgets>
                     <label text="To: ${toPartyDetail ? (toPartyDetail.organizationName?:'') + (toPartyDetail.firstName?:'') + ' ' + (toPartyDetail.lastName?:'') + ' [' + toPartyDetail.pseudoId + ']' : 'Not Set'}" type="p"/>
-                    <label text="Origin Facility: ${shipmentRouteSegment.originFacilityName}" type="p"/>
+                    <label text="Origin Facility: ${firstRouteSegment.originFacilityName}" type="p"/>
                     <label text="Status: ${statusItem.description}" type="p"/>
                     <label text="Estimated ready: ${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Unknown'}" type="p"/>
                 </fail-widgets></section>
@@ -273,7 +272,7 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body></container-box>
         </row-col></container-row>
 
-        <label text="Shipment Items" type="h3"/>
+        <label text="Shipment Items" type="h4"/>
         <section-iterate name="ShipmentItemsSection" list="shipmentItemDetailList" entry="sid"><actions>
             <if condition="isIncoming"><then>
                 <set field="quantityRemaining" from="sid.quantity - (sid.quantityAcceptedTotal ?: 0) - (sid.quantityRejectedTotal ?: 0)"/>
@@ -302,7 +301,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="productId"><default-field><hidden/></default-field></field>
                             <field name="quantity" from="quantityRemaining">
                                 <default-field><text-line size="8"/></default-field></field>
-                            <field name="assetId"><default-field><text-line size="20"/></default-field></field>
+                            <field name="assetId"><default-field title="Asset"><text-line size="50" ac-transition="getAssetList"
+                                    parameter-map="[facilityId:firstRouteSegment.originFacilityId, productId:productId, assetTypeEnumId:null]"/>
+                            </default-field></field>
                             <field name="submitButton"><default-field title="Pack Quantity"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>
@@ -457,21 +458,26 @@ along with this software (see the LICENSE.md file). If not, see
         </widgets></section-iterate>
 
         <section name="ShipmentPackageSection" condition="!isIncoming"><widgets>
+            <label text="Packages" type="h4"/>
+            <link url="createPackage" text="Add Package"/>
             <section-iterate name="PackageListSection" list="shipmentPackageList" entry="shipmentPackage"><actions>
-                <entity-find-related-one value-field="shipmentPackage" relationship-name="mantle.shipment.ShipmentBoxType"
-                        to-value-field="shipmentBoxType"/>
-                <entity-find-related-one value-field="shipmentPackage" relationship-name="Weight#moqui.basic.Uom"
-                        to-value-field="weightUom"/>
-                <entity-find-related value-field="shipmentPackage" relationship-name="mantle.shipment.ShipmentPackageContent"
-                        list="shipmentPackageContentList"/>
+                <set field="shipmentBoxType" from="shipmentPackage.boxType"/>
+                <set field="weightUom" from="shipmentPackage.weightUom"/>
+                <set field="shipmentPackageContentList" from="shipmentPackage.contents"/>
+                <entity-find-one entity-name="mantle.shipment.ShipmentPackageRouteSeg" value-field="packageRouteSeg">
+                    <field-map field-name="shipmentId"/><field-map field-name="shipmentPackageSeqId" from="shipmentPackage.shipmentPackageSeqId"/>
+                    <field-map field-name="shipmentRouteSegmentSeqId" from="firstRouteSegment.shipmentRouteSegmentSeqId"/>
+                </entity-find-one>
+                <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
             </actions><widgets>
                 <container-box><box-header>
-                    <label text="Package ${shipmentPackage.shipmentPackageSeqId}, Box Type: ${shipmentBoxType?.description?:'N/A'}, Weight: ${ec.l10n.format(shipmentPackage.weight, null)} [${weightUom?.description?:''}]" type="h5"/>
+                    <label text="Package ${shipmentPackage.shipmentPackageSeqId}, Box Type: ${shipmentBoxType?.description?:'N/A'}, Weight: ${ec.l10n.format(shipmentPackage.weight, null)?:'N/A'} ${weightUom?.description?:''}, Tracking ${packageRouteSeg?.trackingCode?:'N/A'}" type="h5"/>
                 </box-header><box-toolbar>
                     <container-dialog id="UpdatePackageDialog" button-text="Update Package">
-                        <form-single name="UpdatePackageForm" map="shipmentPackage" transition="updatePackage">
+                        <form-single name="UpdatePackageForm" map="packageAndRouteSeg" transition="updatePackageAndRouteSeg">
                             <field name="shipmentId"><default-field><hidden/></default-field></field>
                             <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
+                            <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
 
                             <field name="shipmentBoxTypeId"><default-field title="Box Type">
                                 <drop-down allow-empty="true">
@@ -489,6 +495,9 @@ along with this software (see the LICENSE.md file). If not, see
                                             <order-by field-name="description"/></entity-find></entity-options>
                                 </drop-down>
                             </default-field></field>
+                            <field name="trackingCode"><default-field><text-line size="30"/></default-field></field>
+                            <field name="boxNumber"><default-field><text-line size="8"/></default-field></field>
+                            <field name="estimatedAmount"><default-field title="Est. Cost"><text-line size="10"/></default-field></field>
 
                             <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                         </form-single>
