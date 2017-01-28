@@ -26,6 +26,16 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="deletePartyRole"><service-call name="delete#mantle.party.PartyRole"/>
         <default-response url="."/></transition>
 
+    <transition name="setPartyClassification"><service-call name="mantle.party.PartyServices.set#PartyClassification"/>
+        <default-response url="."/></transition>
+    <transition name="removePartyClassification"><service-call name="mantle.party.PartyServices.remove#PartyClassification"/>
+        <default-response url="."/></transition>
+    <transition name="getPartyClassificationList"><parameter name="classificationTypeEnumId"/><actions>
+        <entity-find entity-name="mantle.party.PartyClassification" list="classList">
+            <econdition field-name="classificationTypeEnumId"/><order-by field-name="description"/></entity-find>
+        <script>ec.web.sendJsonResponse(classList)</script>
+    </actions><default-response type="none"/></transition>
+
     <transition name="createPartyIdentification"><service-call name="create#mantle.party.PartyIdentification"/>
         <default-response url="."/></transition>
     <transition name="updatePartyIdentification"><service-call name="update#mantle.party.PartyIdentification"/>
@@ -58,10 +68,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="downloadContent" read-only="true">
         <parameter name="partyContentId"/>
-        <actions>
-            <entity-find-one entity-name="mantle.party.PartyContent" value-field="partyContent"/>
-            <script>ec.web.sendResourceResponse(partyContent?.contentLocation)</script>
-        </actions>
+        <actions><entity-find-one entity-name="mantle.party.PartyContent" value-field="partyContent"/>
+            <script>ec.web.sendResourceResponse(partyContent?.contentLocation)</script></actions>
         <default-response type="none"/>
     </transition>
 
@@ -155,6 +163,40 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="roleTypeId"><default-field title="Role">
                             <display-entity entity-name="mantle.party.RoleType"/>
                         </default-field></field>
+                        <field name="submitButton"><default-field title="Remove"><submit/></default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
+
+            <section name="PartyClassificationSection"><actions>
+                <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="pcaaList">
+                    <date-filter/><econdition field-name="partyId"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header><label text="Classifications" type="h5"/></box-header><box-toolbar>
+                    <container-dialog id="SetClassificationDialog" button-text="Set Classification">
+                        <form-single name="SetClassificationForm" transition="setPartyClassification">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="classificationTypeEnumId"><default-field title="Type">
+                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                    <set field="enumTypeId" value="PartyClassificationType"/><set field="noCurrentSelectedKey" value="PcltCustomer"/></widget-template-include>
+                            </default-field></field>
+                            <field name="partyClassificationId"><default-field title="Class">
+                                <drop-down><dynamic-options transition="getPartyClassificationList"
+                                        value-field="partyClassificationId" label-field="description">
+                                    <depends-on field="classificationTypeEnumId"/></dynamic-options></drop-down>
+                            </default-field></field>
+                            <field name="submitButton"><default-field title="Set"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body-nopad>
+                    <form-list name="ClassificationsForm" list="pcaaList" transition="removePartyClassification" skip-header="true">
+                        <field name="partyId"><default-field><hidden/></default-field></field>
+                        <field name="partyClassificationId"><default-field><hidden/></default-field></field>
+                        <field name="fromDate"><default-field><hidden/></default-field></field>
+                        <field name="thruDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+                        <field name="classificationTypeEnumId"><default-field title="Type">
+                            <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                        <field name="description"><default-field title="Class"><display/></default-field></field>
                         <field name="submitButton"><default-field title="Remove"><submit/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
