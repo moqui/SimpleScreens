@@ -50,10 +50,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateContent"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentContent"/>
         <default-response url="."/></transition>
     <transition name="downloadContent"><parameter name="shipmentContentId"/>
-        <actions>
-            <entity-find-one entity-name="mantle.shipment.ShipmentContent" value-field="shipmentContent"/>
-            <script>ec.web.sendResourceResponse(shipmentContent.contentLocation)</script>
-        </actions>
+        <actions><entity-find-one entity-name="mantle.shipment.ShipmentContent" value-field="shipmentContent"/>
+            <script>ec.web.sendResourceResponse(shipmentContent.contentLocation)</script></actions>
         <default-response type="none"/>
     </transition>
 
@@ -61,12 +59,22 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
-    <transition name="addItem"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentItem"/><default-response url="."/></transition>
-    <transition name="updateItem"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentItem"/><default-response url="."/></transition>
-    <transition name="packItem"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProduct"/><default-response url="."/></transition>
-    <transition name="packItemSource"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentItemSource"/><default-response url="."/></transition>
-    <transition name="createPackage"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentPackage"/><default-response url="."/></transition>
-    <transition name="updatePackageAndRouteSeg"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentPackageAndRouteSeg"/><default-response url="."/></transition>
+    <transition name="addItem"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentItem"/>
+        <default-response url="."/></transition>
+    <transition name="updateItem"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentItem"/>
+        <default-response url="."/></transition>
+    <transition name="packItem"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProduct"/>
+        <default-response url="."/></transition>
+    <transition name="packItemSource"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentItemSource"/>
+        <default-response url="."/></transition>
+    <transition name="createPackage"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentPackage"/>
+        <default-response url="."/></transition>
+    <transition name="updatePackageAndRouteSeg"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentPackageAndRouteSeg"/>
+        <default-response url="."/></transition>
+    <transition name="addItemToPackage"><service-call name="mantle.shipment.ShipmentServices.add#ItemToPackage"/>
+        <default-response url="."/></transition>
+    <transition name="updatePackageContent"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentPackageContent"/>
+        <default-response url="."/></transition>
 
     <transition name="ShipmentPick.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPick" url-type="plain">
@@ -103,6 +111,8 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-row><row-col lg="6">
             <label text="Shipment #${shipmentId}" type="h3"/>
+
+            <!-- Links -->
             <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
                 <section name="ShipInputIncomingOrOutgoingSection" condition="isIncoming"><widgets>
                     <link url="scheduleShipment" text="Set Scheduled" link-type="hidden-form"><parameter name="shipmentId"/></link>
@@ -172,6 +182,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="editInvoice" text="Invoice #${invoiceId}" link-type="anchor-button"/>
             </widgets></section-iterate>
 
+            <!-- Header -->
             <section name="ShipmentHeaderSection" condition="allowUpdate"><widgets>
                 <form-single name="EditShipment" transition="updateShipment" map="shipment">
                     <field name="shipmentId"><default-field><hidden/></default-field></field>
@@ -262,8 +273,9 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body></container-box>
         </row-col></container-row>
 
+        <!-- Items -->
         <container-box><box-header><label text="Shipment Items" type="h5"/></box-header><box-toolbar>
-            <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput' &amp;&amp; !isIncoming"><widgets>
+            <section name="ShipItemInputSection" condition="shipment.statusId == 'ShipInput' &amp;&amp; !isIncoming"><widgets>
                 <container-dialog id="AddItemContainer" button-text="Add Item">
                     <form-single name="AddItemForm" transition="addItem">
                         <field name="shipmentId"><default-field><hidden/></default-field></field>
@@ -298,8 +310,8 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <entity-find entity-name="mantle.shipment.ShipmentPackageContent" list="packageContentList">
                     <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
-                <set field="packageContentTotal" from="(packageContentList*.quantity).sum()"/>
-
+                <set field="packageContentTotal" from="(packageContentList*.quantity).sum() ?: 0.0"/>
+                <set field="quantityNotInPackage" from="((BigDecimal) sid.quantity ?: 0.0) - packageContentTotal"/>
             </actions><widgets>
                 <container-box><box-header><label text="${sid.productName} [${sid.pseudoId}]" type="h5"/></box-header><box-toolbar>
                     <section name="PackItemSection" condition="allowPack"><widgets>
@@ -307,6 +319,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <form-single name="PackItemForm" transition="packItem" map="sid">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
                                 <field name="productId"><default-field><hidden/></default-field></field>
+                                <field name="shipmentPackageSeqId"><default-field title="Package"><drop-down>
+                                    <option key="" text="New Package"/>
+                                    <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                                </drop-down></default-field></field>
                                 <field name="quantity" from="quantityRemaining">
                                     <default-field><text-line size="8"/></default-field></field>
                                 <field name="assetId"><default-field title="Asset"><text-line size="50" ac-transition="getAssetList"
@@ -327,14 +343,31 @@ along with this software (see the LICENSE.md file). If not, see
                             <label condition="isIncoming" text="Total: ${ec.l10n.format(sid.quantity ?: 0, '#.##')}, Accepted: ${ec.l10n.format(sid.quantityAcceptedTotal ?: 0, '#.##')}, Rejected: ${ec.l10n.format(sid.quantityRejectedTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})"/>
                             <label condition="!isIncoming" text="Total: ${ec.l10n.format(sid.quantity ?: 0, '#.##')}, Packed/Issued: ${ec.l10n.format(sid.quantityTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})"/>
                         </row-col>
-                        <row-col lg="7">
+                        <row-col lg="3">
                             <section name="ShipItemUpdateSection" condition="allowUpdate"><widgets>
                                 <form-single name="UpdateItemForm" transition="updateItem" map="sid">
                                     <field name="shipmentId"><default-field><hidden/></default-field></field>
                                     <field name="productId"><default-field><hidden/></default-field></field>
-                                    <field name="quantity"><default-field><text-line size="8"/></default-field></field>
+                                    <field name="quantity"><default-field title=""><text-line size="6"/></default-field></field>
                                     <field name="submitButton"><default-field title="Update Quantity"><submit/></default-field></field>
                                     <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="submitButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </widgets></section>
+                        </row-col>
+                        <row-col lg="4">
+                            <section name="ShipItemPackageSection"><widgets>
+                                <form-single name="AddItemToPackageForm" transition="addItemToPackage" map="sid">
+                                    <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                    <field name="productId"><default-field><hidden/></default-field></field>
+                                    <field name="shipmentPackageSeqId"><default-field title=""><drop-down>
+                                        <option key="" text="New"/>
+                                        <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                                    </drop-down></default-field></field>
+                                    <field name="quantity" from="quantityNotInPackage"><default-field title="">
+                                        <text-line size="6"/></default-field></field>
+                                    <field name="submitButton"><default-field title="Add To Package"><submit/></default-field></field>
+                                    <field-layout><field-row-big><field-ref name="shipmentPackageSeqId"/>
+                                        <field-ref name="quantity"/><field-ref name="submitButton"/></field-row-big></field-layout>
                                 </form-single>
                             </widgets></section>
                         </row-col>
@@ -425,6 +458,13 @@ along with this software (see the LICENSE.md file). If not, see
                                 <default-field><display text=" "/></default-field>
                             </field>
 
+                            <field name="shipmentPackageSeqId">
+                                <conditional-field condition="allowPack &amp;&amp; quantityNotHandled &gt; 0" title="Package"><drop-down>
+                                    <option key="" text="New Package"/>
+                                    <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                                </drop-down></conditional-field>
+                                <default-field title="Package"><display text=" "/></default-field>
+                            </field>
                             <field name="quantity" from="quantityNotHandled">
                                 <conditional-field condition="allowPack &amp;&amp; quantityNotHandled &gt; 0" title="Pack Quantity">
                                     <text-line size="6"/></conditional-field>
@@ -463,6 +503,7 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section-iterate>
         </box-body></container-box>
 
+        <!-- Packages -->
         <section name="ShipmentPackageSection" condition="!isIncoming"><widgets>
             <container-box><box-header><label text="Packages" type="h5"/></box-header><box-toolbar>
                 <link url="createPackage" text="Add Package"/>
@@ -510,11 +551,14 @@ along with this software (see the LICENSE.md file). If not, see
                             </form-single>
                         </container-dialog>
                     </box-toolbar><box-body>
-                        <form-list name="ShipmentPackageContentList" list="shipmentPackageContentList">
+                        <form-list name="ShipmentPackageContentList" list="shipmentPackageContentList" transition="updatePackageContent">
+                            <field name="shipmentId"><default-field><hidden/></default-field></field>
+                            <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
                             <field name="productId"><default-field title="Product">
                                 <display-entity entity-name="mantle.product.Product" text="${productName} [${pseudoId}]"/>
                             </default-field></field>
-                            <field name="quantity"><default-field><display/></default-field></field>
+                            <field name="quantity"><default-field><text-line size="6"/></default-field></field>
+                            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                         </form-list>
                     </box-body></container-box>
                 </widgets></section-iterate>
