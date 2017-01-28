@@ -34,16 +34,18 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="customerRoleTypeId" value="OrgInternal"/>
         </else-if></if>
         <entity-find entity-name="mantle.order.OrderHeaderPartFacilityStatus" list="orderList">
-            <search-form-inputs default-order-by="-entryDate,-orderId,orderPartSeqId" skip-fields="vendorRoleTypeId,customerRoleTypeId">
+            <search-form-inputs default-order-by="-entryDate,-orderId,orderPartSeqId"
+                    skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId">
                 <default-parameters statusId="OrderOpen,OrderPlaced,OrderApproved" statusId_op="in"
                         entryDate_poffset="-1" entryDate_period="30d"/></search-form-inputs>
+            <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate"/>
             <econdition field-name="vendorRoleTypeId" ignore-if-empty="true"/>
             <econdition field-name="customerRoleTypeId" ignore-if-empty="true"/>
+            <econdition field-name="customerClassificationId" ignore-if-empty="true"/>
             <select-field field-name="orderId,orderPartSeqId,partTotal,grandTotal"/>
             <select-field field-name="entryDate,placedDate,shipBeforeDate"/>
             <select-field field-name="vendorPartyId,customerPartyId"/>
-            <select-field field-name="statusId,statusDescription"/>
-            <select-field field-name="facilityId,facilityName,pseudoId"/>
+            <select-field field-name="statusId,facilityId"/>
         </entity-find>
 
         <set field="vendorRole" value="Supplier,Vendor,VendorBillFrom"/>
@@ -110,34 +112,34 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
         <form-list name="OrderHistoryList" list="orderList" header-dialog="true" select-columns="true" saved-finds="true" show-csv-button="true">
-            <field name="orderId">
-                <header-field show-order-by="true"><text-find size="8" hide-options="true"/></header-field>
-                <default-field><link text="${orderId}:${orderPartSeqId}" url="orderDetail" link-type="anchor"/></default-field>
-            </field>
-            <field name="entryDate">
-                <header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display/></default-field>
-            </field>
-            <field name="placedDate">
-                <header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display/></default-field>
-            </field>
-            <field name="shipBeforeDate">
-                <header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display/></default-field>
-            </field>
+            <row-actions>
+                <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
+                    <date-filter/><econdition field-name="partyId" from="customerPartyId"/>
+                    <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
+                <set field="custPcaa" from="custPcaaList ? custPcaaList[0] : null"/>
+            </row-actions>
+
+            <field name="orderId"><header-field show-order-by="true"><text-find size="8" hide-options="true"/></header-field>
+                <default-field><link text="${orderId}:${orderPartSeqId}" url="orderDetail" link-type="anchor"/></default-field></field>
+            <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="placedDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="shipBeforeDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+
             <field name="statusId">
                 <header-field title="Status" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
                         <set field="statusTypeId" value="OrderHeader"/><set field="allowMultiple" value="true"/>
                         <set field="allowEmpty" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display text="${statusDescription}"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
             <field name="vendorPartyId">
                 <header-field title="Vendor" show-order-by="true">
                     <drop-down allow-empty="true">
-                        <entity-options key="${partyId}" text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]">
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
                             <entity-find entity-name="mantle.party.PartyDetailAndRole">
                                 <econdition field-name="roleTypeId" operator="in" from="vendorRole"/>
                                 <econdition field-name="disabled" value="N" or-null="true"/>
@@ -146,56 +148,52 @@ along with this software (see the LICENSE.md file). If not, see
                         </entity-options>
                     </drop-down>
                 </header-field>
-                <!-- TODO: if has Supplier role link to EditSupplier, if has Vendor role link to EditVendor -->
-                <default-field><display-entity entity-name="mantle.party.PartyDetail"
-                        text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]"/></default-field>
+                <!-- TODO: if has Supplier role link to EditSupplier, if has Vendor role link to EditVendor; or link to EditParty... -->
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
             <field name="customerPartyId">
                 <header-field title="Customer" show-order-by="true">
-                    <drop-down allow-empty="true">
-                        <entity-options key="${partyId}" text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="roleTypeId" operator="in" from="customerRole"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName"/><order-by field-name="firstName"/>
-                            </entity-find>
-                        </entity-options>
-                    </drop-down>
+                    <text-line ac-transition="searchPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
                 </header-field>
-                <default-field><display-entity entity-name="mantle.party.PartyDetail"
-                        text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]"/></default-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
-            <field name="facilityId">
-                <header-field title="Facility" show-order-by="true">
-                    <drop-down allow-empty="true">
-                        <entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
-                            <entity-find entity-name="mantle.facility.Facility" list="facilityList">
-                                <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
-                                <order-by field-name="facilityName"/>
-                            </entity-find>
-                        </entity-options>
-                    </drop-down>
-                </header-field>
-                <default-field><display text="${facilityName?:''} [${pseudoId?:''}]"/></default-field>
-            </field>
-            <field name="partTotal">
-                <header-field show-order-by="true" title="Total"/>
-                <default-field><display currency-unit-field="currencyUomId"/></default-field>
-            </field>
-            <field name="orderType">
-                <header-field><radio><option key="" text="Any"/><option key="Sales"/><option key="Purchase"/></radio></header-field>
-                <default-field><display/></default-field>
-            </field>
+            <field name="customerClassificationId"><header-field title="Customer Class">
+                <drop-down allow-empty="true">
+                    <entity-options key="${partyClassificationId}" text="${description}">
+                        <entity-find entity-name="mantle.party.PartyClassification">
+                            <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/>
+                            <order-by field-name="description"/></entity-find></entity-options>
+                </drop-down>
+            </header-field><default-field>
+                <display text="${custPcaa?.description ?: ''}"/>
+            </default-field></field>
 
-            <field name="submitButton">
-                <header-field title="Find"><submit/></header-field>
-                <default-field><link url="orderDetail" text="View"/></default-field>
-            </field>
+            <field name="facilityId"><header-field title="Facility" show-order-by="true">
+                <drop-down allow-empty="true">
+                    <entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
+                        <entity-find entity-name="mantle.facility.Facility" list="facilityList">
+                            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                            <order-by field-name="facilityName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down>
+            </header-field><default-field>
+                <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/>
+            </default-field></field>
+            <field name="partTotal"><header-field show-order-by="true" title="Total"/>
+                <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="orderType"><header-field><radio><option key="" text="Any"/><option key="Sales"/><option key="Purchase"/></radio></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field>
+                <default-field><link url="orderDetail" text="View"/></default-field></field>
 
             <form-list-column><field-ref name="orderId"/></form-list-column>
-            <form-list-column><field-ref name="entryDate"/><field-ref name="placedDate"/><field-ref name="shipBeforeDate"/></form-list-column>
+            <form-list-column><field-ref name="entryDate"/><field-ref name="placedDate"/>
+                <field-ref name="shipBeforeDate"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="facilityId"/></form-list-column>
-            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/></form-list-column>
+            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
+                <field-ref name="customerClassificationId"/></form-list-column>
             <form-list-column><field-ref name="partTotal"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
