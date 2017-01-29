@@ -663,24 +663,20 @@ along with this software (see the LICENSE.md file). If not, see
                     </default-field>
                 </field>
                 <field name="productId">
-                    <conditional-field
-                            condition="orderItem.itemTypeEnumId in productItemTypes &amp;&amp; orderPartInfo.partEditable">
-                        <text-line ac-transition="getProductList" ac-min-length="2" size="35"/>
-                        <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
-                                link-type="anchor" condition="productId"/>
+                    <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes &amp;&amp; orderPartInfo.partEditable">
+                        <text-line ac-transition="getProductList" ac-min-length="2" size="30"/>
                     </conditional-field>
-                    <default-field title="Product">
-                        <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
-                              link-type="anchor" condition="productId"/>
-                    </default-field>
                 </field>
+                <field name="productLink" from="productId"><default-field title="">
+                    <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor" condition="productId"/>
+                </default-field></field>
                 <field name="otherPartyProductId">
                     <conditional-field condition="orderPartInfo.partEditable"><text-line size="25"/></conditional-field>
                     <default-field><display/></default-field></field>
                 <field name="itemDescription">
-                    <conditional-field condition="orderPartInfo.partEditable" title="Description"><text-line size="40"/></conditional-field>
+                    <conditional-field condition="orderPartInfo.partEditable" title="Description"><text-line size="30"/></conditional-field>
                     <default-field title="Description"><display/></default-field></field>
-                <field name="comments"><conditional-field condition="orderPartInfo.partEditable"><text-line size="40"/></conditional-field>
+                <field name="comments"><conditional-field condition="orderPartInfo.partEditable"><text-line size="30"/></conditional-field>
                     <default-field><display/></default-field></field>
                 <field name="requiredByDate"><conditional-field condition="orderPartInfo.partEditable"><date-time/></conditional-field>
                     <default-field><display/></default-field></field>
@@ -730,12 +726,16 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="assetReservations">
                     <conditional-field condition="orderItem.productId">
-                        <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes">
-                            <widgets><container>
-                                <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
-                                <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
-                            </container></widgets>
-                        </section-iterate>
+                        <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes"><actions>
+                            <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
+                                <field-map field-name="assetId" from="existingRes.assetId"/>
+                                <select-field field-name="lotId,pseudoId,lotNumber,manufacturedDate,expirationDate"/>
+                            </entity-find-one>
+                        </actions><widgets><container>
+                            <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
+                            <label text=" Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
+                            <label text="Lot: ${ec.resource.expand('LotNameTemplate', '', assetLot)}" type="p" condition="assetLot"/>
+                        </container></widgets></section-iterate>
                     </conditional-field>
                     <default-field><display text=" "/></default-field>
                 </field>
@@ -768,7 +768,8 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <form-list-column><field-ref name="orderItemSeqId"/></form-list-column>
                 <form-list-column><field-ref name="orderPartSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
-                <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="productId"/><field-ref name="otherPartyProductId"/></form-list-column>
+                <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="productId"/><field-ref name="productLink"/>
+                    <field-ref name="otherPartyProductId"/></form-list-column>
                 <form-list-column><field-ref name="itemDescription"/><field-ref name="comments"/><field-ref name="requiredByDate"/></form-list-column>
                 <form-list-column><field-ref name="unitAmount"/><field-ref name="quantity"/><field-ref name="quantity_changeReason"/></form-list-column>
                 <form-list-column><field-ref name="notShippedBilled"/><field-ref name="assetReservations"/></form-list-column>
