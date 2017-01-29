@@ -50,9 +50,7 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="ownerPartyId">
                 <header-field title="Owner Party"><text-line ac-transition="getPartyList" ac-min-length="2" size="15"/></header-field>
-                <default-field>
-                    <display-entity entity-name="mantle.party.PartyDetail" text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]"/>
-                </default-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
 
             <field name="assetTypeEnumId">
@@ -79,16 +77,6 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
-            <!--
-            <field name="productTypeEnumId">
-                <header-field title="Product Type" show-order-by="true">
-                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                        <set field="enumTypeId" value="ProductType"/><set field="allowEmpty" value="true"/>
-                        <set field="style" value=" "/></widget-template-include>
-                </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
-            </field>
-            -->
 
             <field name="productId">
                 <header-field title="Product" show-order-by="case-insensitive">
@@ -96,47 +84,36 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
             </field>
-            <field name="productName">
-                <header-field show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
-                <default-field><display/></default-field>
-            </field>
-            <field name="receivedDate">
-                <header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display/></default-field>
-            </field>
-            <field name="manufacturedDate">
-                <header-field show-order-by="true" title="Mfg Date"><date-period/></header-field>
-                <default-field><display/></default-field>
-            </field>
-            <field name="quantityOnHandTotal" show-total="true">
-                <header-field title="Quantity On Hand" show-order-by="true"/>
-                <default-field><display text="${ec.l10n.format(quantityOnHandTotal, null)} (${amountUom?.description?:'each'})"/></default-field>
-            </field>
-            <field name="availableToPromiseTotal" show-total="true">
-                <header-field title="Available To Promise" show-order-by="true"/>
-                <default-field><display text="${ec.l10n.format(availableToPromiseTotal, null)} (${amountUom?.description?:'each'})"/></default-field>
-            </field>
+            <field name="productName"><header-field show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="receivedDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="manufacturedDate"><header-field show-order-by="true" title="Mfg Date"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="quantityOnHandTotal" show-total="true"><header-field title="Quantity On Hand" show-order-by="true"/>
+                <default-field><display text="${ec.l10n.format(quantityOnHandTotal, null)} (${amountUom?.description?:'each'})"/></default-field></field>
+            <field name="availableToPromiseTotal" show-total="true"><header-field title="Available To Promise" show-order-by="true"/>
+                <default-field><display text="${ec.l10n.format(availableToPromiseTotal, null)} (${amountUom?.description?:'each'})"/></default-field></field>
 
             <field name="facilityId">
                 <header-field title="Facility" show-order-by="case-insensitive">
-                    <drop-down allow-empty="true"><list-options list="facilityList" key="${facilityId}" text="${facilityName} [${pseudoId}]"/></drop-down>
+                    <drop-down allow-empty="true"><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
                 </header-field>
-                <default-field><display-entity entity-name="mantle.facility.Facility" text="${facilityName} [${pseudoId}]"/></default-field>
+                <default-field><display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field>
             </field>
             <field name="locationSeqId">
                 <header-field title="Location" show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
                 <default-field><label condition="locationSeqId" text-map="facLoc"
                     text="${locationSeqId?:''} ${description?:''} [${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}]"/></default-field>
             </field>
-            <field name="lotId">
-                <header-field title="Lot"><text-line ac-transition="getLotList" size="50"/></header-field>
+            <field name="lotId"><header-field title="Lot"><text-line ac-transition="getLotList" size="50"/></header-field>
                 <default-field><display-entity entity-name="mantle.product.asset.Lot" text="${lotId}: ${mfgParty != null ? mfgParty.pseudoId : ''} ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')}"/></default-field>
             </field>
 
-            <field name="submitButton">
-                <header-field title="Find"><submit/></header-field>
-                <default-field><link url="assetDetail" text="Detail" link-type="anchor-button" condition="assetId"/></default-field>
-            </field>
+            <field name="submitButton"><header-field title="Find"><submit/></header-field>
+                <default-field><link url="assetDetail" text="Detail" link-type="anchor-button" condition="assetId"/></default-field></field>
 
             <form-list-column><field-ref name="submitButton"/></form-list-column>
             <form-list-column><field-ref name="assetId"/><field-ref name="ownerPartyId"/></form-list-column>
