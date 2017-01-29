@@ -394,27 +394,31 @@ along with this software (see the LICENSE.md file). If not, see
                            condition="orderPartInfo.isVendorInternalOrg &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
                     <label text="Part Total ${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)}" type="p"/>
                     <container>
-                        <label text="Vendor: " type="strong"/>
-                        <link url="editVendor" text="${orderPartInfo.vendorDetail.organizationName?:''}${orderPartInfo.vendorDetail.firstName?:''} ${orderPartInfo.vendorDetail.lastName?:''} [${orderPartInfo.vendorDetail.pseudoId}]"
-                                link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="orderPartInfo.isVendorInternalOrg"/>
-                        <link url="editSupplier" text="${orderPartInfo.vendorDetail.organizationName?:''}${orderPartInfo.vendorDetail.firstName?:''} ${orderPartInfo.vendorDetail.lastName?:''} [${orderPartInfo.vendorDetail.pseudoId}]"
-                                link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="!orderPartInfo.isVendorInternalOrg"/>
-                    </container>
-                    <container>
                         <label text="Customer: " type="strong"/>
-                        <link url="editVendor" text="${orderPartInfo.customerDetail.organizationName?:''}${orderPartInfo.customerDetail.firstName?:''} ${orderPartInfo.customerDetail.lastName?:''} [${orderPartInfo.customerDetail.pseudoId}]"
+                        <link url="editVendor" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
                                 link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
-                        <link url="editCustomer" text="${orderPartInfo.customerDetail.organizationName?:''}${orderPartInfo.customerDetail.firstName?:''} ${orderPartInfo.customerDetail.lastName?:''} [${orderPartInfo.customerDetail.pseudoId}]"
+                        <link url="editCustomer" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
                                 link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; !orderPartInfo.isCustomerInternalOrg"/>
                         <label text="No Customer Selected" style="text-warning" condition="orderPartInfo.customerDetail == null"/>
+                    </container>
+                    <container>
+                        <label text="Store: " type="strong" condition="productStore != null"/>
+                        <label text="${productStore.productStoreId}: ${productStore.storeName}" condition="productStore != null"/>
+                    </container>
+                    <container>
+                        <label text="Vendor: " type="strong"/>
+                        <link url="editVendor" text="PartyNameTemplate" text-map="orderPartInfo.vendorDetail"
+                                link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="orderPartInfo.isVendorInternalOrg"/>
+                        <link url="editSupplier" text="PartyNameTemplate" text-map="orderPartInfo.vendorDetail"
+                                link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="!orderPartInfo.isVendorInternalOrg"/>
                     </container>
                     <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="p"/>
                     <container><label text="Ship Before: ${ec.l10n.format(orderPartInfo.orderPart.shipBeforeDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
                     <container><label text="Delivery Date: ${ec.l10n.format(orderPartInfo.orderPart.estimatedDeliveryDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
                     <container><label text="Pick Up Date: ${ec.l10n.format(orderPartInfo.orderPart.estimatedPickUpDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
                     <container>
-                        <label text="To Facility: " type="strong"/>
-                        <link url="editFacility" text="${orderPartInfo.facility.facilityName} [${orderPartInfo.facility.pseudoId}]"
+                        <label text="Facility: " type="strong"/>
+                        <link url="editFacility" text="FacilityNameTemplate" text-map="orderPartInfo.facility"
                                 parameter-map="[facilityId:orderPartInfo.facility.facilityId]" link-type="anchor"
                                 condition="orderPartInfo.facility"/>
                     </container>
