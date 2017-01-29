@@ -26,6 +26,28 @@ along with this software (see the LICENSE.md file). If not, see
                 web-send-json-response="resultList"/>
         <default-response type="none"/>
     </transition>
+    <transition name="getStoreOrgOrAllOrgInternal"><parameter name="productStoreId"/><actions>
+        <if condition="productStoreId">
+            <entity-find-one entity-name="mantle.product.store.ProductStore" value-field="productStore">
+                <field-map field-name="productStoreId"/></entity-find-one>
+            <if condition="productStore != null">
+                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="orgParty">
+                    <field-map field-name="partyId" from="productStore.organizationPartyId"/></entity-find-one>
+                <script>ec.web.sendJsonResponse([[value:orgParty.partyId, label:ec.resource.expand("PartyNameTemplate", "", orgParty)]])</script>
+                <return/>
+            </if>
+        </if>
+        <entity-find entity-name="mantle.party.PartyDetailAndRole" list="partyList">
+            <econdition field-name="roleTypeId" value="OrgInternal"/>
+            <econdition field-name="disabled" value="N" or-null="true"/>
+            <order-by field-name="organizationName"/>
+        </entity-find>
+        <script>
+            def outList = []
+            for (party in partyList) outList.add([value:party.partyId, label:ec.resource.expand("PartyNameTemplate", "", party)])
+            ec.web.sendJsonResponse(outList)
+        </script>
+    </actions><default-response type="none"/></transition>
 
     <actions>
         <if condition="'sales'.equalsIgnoreCase(orderType)"><then>
@@ -56,7 +78,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-single name="CreatePurchaseOrder" transition="createOrder">
                 <field name="vendorPartyId"><default-field title="Vendor">
                     <drop-down>
-                        <entity-options key="${partyId}" text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]">
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
                             <entity-find entity-name="mantle.party.PartyDetailAndRole">
                                 <econdition field-name="roleTypeId" operator="in" from="vendorRole"/>
                                 <econdition field-name="disabled" value="N" or-null="true"/>
@@ -67,7 +89,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field></field>
                 <field name="customerPartyId"><default-field title="Customer">
                     <drop-down>
-                        <entity-options key="${partyId}" text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]">
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
                             <entity-find entity-name="mantle.party.PartyDetailAndRole">
                                 <econdition field-name="roleTypeId" value="OrgInternal"/>
                                 <econdition field-name="disabled" value="N" or-null="true"/>
@@ -87,16 +109,16 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
         <container-dialog id="CreateSalesOrderDialog" button-text="Create Sales Order">
             <form-single name="CreateSalesOrder" transition="createOrder">
-                <field name="vendorPartyId"><default-field title="Vendor">
-                    <drop-down>
-                        <entity-options key="${partyId}" text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="roleTypeId" value="OrgInternal"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName"/><order-by field-name="firstName"/>
-                            </entity-find>
-                        </entity-options>
+                <field name="productStoreId"><default-field title="Store">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                            <entity-find entity-name="mantle.product.store.ProductStore">
+                                <order-by field-name="storeName"/></entity-find></entity-options>
                     </drop-down>
+                </default-field></field>
+                <field name="vendorPartyId"><default-field title="Vendor">
+                    <drop-down><dynamic-options transition="getStoreOrgOrAllOrgInternal" depends-optional="true">
+                        <depends-on field="productStoreId"/></dynamic-options></drop-down>
                 </default-field></field>
                 <field name="customerPartyId"><default-field title="Customer">
                     <text-line ac-transition="searchPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
