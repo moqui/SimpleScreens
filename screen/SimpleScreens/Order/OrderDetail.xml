@@ -169,7 +169,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="orderRevision"><default-field title="Revision"><display/></default-field></field>
                     <field name="salesChannelEnumId">
-                        <conditional-field condition="orderEditable" title="Status">
+                        <conditional-field condition="orderEditable" title="Channel">
                         <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                             <set field="enumTypeId" value="SalesChannel"/><set field="allowEmpty" value="true"/>
                             <set field="style" value=" "/></widget-template-include>
@@ -181,7 +181,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="externalId"><default-field><display/></default-field></field>
                     <field name="externalRevision"><default-field title="Ext Rev"><display/></default-field></field>
                     <field name="systemMessageRemoteId">
-                        <conditional-field condition="orderEditable">
+                        <conditional-field condition="orderEditable" title="Message Remote">
                             <drop-down allow-empty="true">
                                 <entity-options key="${systemMessageRemoteId}" text="${description}">
                                     <entity-find entity-name="moqui.service.message.SystemMessageRemote">
@@ -392,35 +392,39 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <label text="Warning: both vendor and customer are internal organizations" style="text-danger" type="p"
                            condition="orderPartInfo.isVendorInternalOrg &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
-                    <label text="Part Total ${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)}" type="p"/>
-                    <container>
-                        <label text="Customer: " type="strong"/>
-                        <link url="editVendor" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
-                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
-                        <link url="editCustomer" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
-                                link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; !orderPartInfo.isCustomerInternalOrg"/>
-                        <label text="No Customer Selected" style="text-warning" condition="orderPartInfo.customerDetail == null"/>
-                    </container>
-                    <container>
-                        <label text="Store: " type="strong" condition="productStore != null"/>
-                        <label text="${productStore.productStoreId}: ${productStore.storeName}" condition="productStore != null"/>
-                    </container>
-                    <container>
-                        <label text="Vendor: " type="strong"/>
-                        <link url="editVendor" text="PartyNameTemplate" text-map="orderPartInfo.vendorDetail"
-                                link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="orderPartInfo.isVendorInternalOrg"/>
-                        <link url="editSupplier" text="PartyNameTemplate" text-map="orderPartInfo.vendorDetail"
-                                link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="!orderPartInfo.isVendorInternalOrg"/>
-                    </container>
-                    <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="p"/>
-                    <container><label text="Ship Before: ${ec.l10n.format(orderPartInfo.orderPart.shipBeforeDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
-                    <container><label text="Delivery Date: ${ec.l10n.format(orderPartInfo.orderPart.estimatedDeliveryDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
-                    <container><label text="Pick Up Date: ${ec.l10n.format(orderPartInfo.orderPart.estimatedPickUpDate, 'yyyy-MM-dd HH:mm') ?: ''}"/></container>
-                    <container>
-                        <label text="Facility: " type="strong"/>
-                        <link url="editFacility" text="FacilityNameTemplate" text-map="orderPartInfo.facility"
-                                parameter-map="[facilityId:orderPartInfo.facility.facilityId]" link-type="anchor"
-                                condition="orderPartInfo.facility"/>
+                    <container type="dl" style="dl-horizontal">
+                        <label text="Part Total" type="dt"/>
+                        <label text="${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)}" type="dd"/>
+                        <label text="Customer" type="dt"/>
+                        <container type="dd">
+                            <link url="editVendor" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
+                                    link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
+                            <link url="editCustomer" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
+                                    link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; !orderPartInfo.isCustomerInternalOrg"/>
+                            <label text="No Customer Selected" style="text-warning" condition="orderPartInfo.customerDetail == null"/>
+                        </container>
+                        <label text="Store" type="dt" condition="productStore != null"/>
+                        <label text="${productStore.productStoreId}: ${productStore.storeName}" type="dd" condition="productStore != null"/>
+                        <label text="Vendor" type="dt"/>
+                        <container type="dd">
+                            <link url="editVendor" text="PartyNameTemplate" text-map="orderPartInfo.vendorDetail"
+                                    link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="orderPartInfo.isVendorInternalOrg"/>
+                            <link url="editSupplier" text="PartyNameTemplate" text-map="orderPartInfo.vendorDetail"
+                                    link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="!orderPartInfo.isVendorInternalOrg"/>
+                        </container>
+                        <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="dd"/>
+                        <label text="Ship Before" type="dt"/>
+                        <label text="${ec.l10n.format(orderPartInfo.orderPart.shipBeforeDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"/>
+                        <label text="Delivery Date" type="dt"/>
+                        <label text="${ec.l10n.format(orderPartInfo.orderPart.estimatedDeliveryDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"/>
+                        <label text="Pick Up Date" type="dt"/>
+                        <label text="${ec.l10n.format(orderPartInfo.orderPart.estimatedPickUpDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"/>
+                        <label text="Facility " type="dt"/>
+                        <container type="dd">
+                            <link url="editFacility" text="FacilityNameTemplate" text-map="orderPartInfo.facility"
+                                    parameter-map="[facilityId:orderPartInfo.facility.facilityId]" link-type="anchor"
+                                    condition="orderPartInfo.facility"/>
+                        </container>
                     </container>
                     <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                     <section-iterate name="OrderPartRoleSection" list="orderPartInfo.orderPartPartyList" entry="orderPartParty"><widgets>
@@ -638,18 +642,19 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="orderId"><default-field><hidden/></default-field></field>
 
                 <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                <field name="orderPartSeqId">
+                    <conditional-field condition="orderPartInfo.partEditable">
+                        <drop-down current="selected"><list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/></drop-down></conditional-field>
+                    <default-field title="Part"><display/></default-field>
+                </field>
                 <field name="parentItemSeqId">
                     <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes || orderItemWithChildrenSet.contains(orderItem.orderItemSeqId)">
                         <display text="N/A"/></conditional-field>
-                    <conditional-field condition="orderPartInfo.partEditable" title="Parent Item"><drop-down allow-empty="true">
+                    <conditional-field condition="orderPartInfo.partEditable" title="Parent"><drop-down allow-empty="true">
                             <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId}"/>
                         </drop-down></conditional-field>
                     <default-field title="Parent Item"><display/></default-field>
                 </field>
-                <field name="orderPartSeqId">
-                    <conditional-field condition="orderPartInfo.partEditable">
-                        <drop-down current="selected"><list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/></drop-down></conditional-field>
-                    <default-field title="Order Part"><display/></default-field></field>
 
                 <field name="itemTypeEnumId">
                     <!-- <conditional-field condition="orderPartInfo.partEditable" title="Type">
@@ -734,7 +739,10 @@ along with this software (see the LICENSE.md file). If not, see
                         </actions><widgets><container>
                             <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
                             <label text=" Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
-                            <label text="Lot: ${ec.resource.expand('LotNameTemplate', '', assetLot)}" type="p" condition="assetLot"/>
+                            <container>
+                                <label text="Lot" type="strong" condition="assetLot"/>
+                                <label text="${ec.resource.expand('LotNameTemplate', '', assetLot)}" condition="assetLot"/>
+                            </container>
                         </container></widgets></section-iterate>
                     </conditional-field>
                     <default-field><display text=" "/></default-field>
@@ -748,11 +756,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
 
                 <field name="returns"><default-field>
-                    <label text="Billed: ${returnableOut.invoiceQuantity}" type="div"/>
-                    <label text="Returned: ${returnableOut.returnQuantity}" type="div"/>
+                    <label text="Billed:${returnableOut.invoiceQuantity}" type="div"/>
+                    <label text="Returned:${returnableOut.returnQuantity}" type="div"/>
                     <section-iterate name="ReturnLinkSection" list="returnIdSet" entry="returnId"><widgets>
                         <link url="editReturn" text="#${returnId}" link-type="anchor"/></widgets></section-iterate>
-                    <label text="Returnable: ${returnableOut.returnableQuantity}" type="div"/>
+                    <label text="Returnable:${returnableOut.returnableQuantity}" type="div"/>
                 </default-field></field>
                 <field name="returnItem">
                     <conditional-field condition="orderPartInfo.openReturnList &amp;&amp; returnableOut.returnableQuantity &gt; 0">
@@ -766,8 +774,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <submit text="Update"/><link url="deleteItem" text="Delete" condition="itemCanDelete"/>
                 </conditional-field><default-field title=""/></field>
 
-                <form-list-column><field-ref name="orderItemSeqId"/></form-list-column>
-                <form-list-column><field-ref name="orderPartSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
+                <form-list-column><field-ref name="orderItemSeqId"/><field-ref name="orderPartSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
                 <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="productId"/><field-ref name="productLink"/>
                     <field-ref name="otherPartyProductId"/></form-list-column>
                 <form-list-column><field-ref name="itemDescription"/><field-ref name="comments"/><field-ref name="requiredByDate"/></form-list-column>
