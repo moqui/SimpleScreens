@@ -132,15 +132,12 @@ along with this software (see the LICENSE.md file). If not, see
             <if condition="asset">
                 <set field="productId" from="asset.productId"/>
                 <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
-                <if condition="product">
-                    <set field="uom" from="product?.amountUom"/>
-                    <set field="pantMap" from="[:]"/>
-                    <script>
-                        pantMap.putAll(product)
-                        pantMap.putAll(uom)
-                        ec.web.sendTextResponse(ec.resource.expand("ProductAmountNameTemplate", '', pantMap))
-                    </script>
-                </if>
+                <if condition="product != null"><script>
+                    def uom = product.amountUom
+                    def pantMap = product.getMap()
+                    if (uom != null) pantMap.putAll(uom)
+                    ec.web.sendTextResponse(ec.resource.expand("ProductAmountNameTemplate", '', pantMap))
+                </script></if>
             </if>
         </actions>
         <default-response type="none"/>
@@ -179,9 +176,9 @@ along with this software (see the LICENSE.md file). If not, see
             <script>
                 def outList = []
                 for (lot in lotList) {
-                    def mfgParty = null
-                    if (lot.mfgPartyId) mfgParty = ec.entity.find("mantle.party.Party").condition("partyId", lot.mfgPartyId).useCache(true).one()
-                    outList.add([value:lot.lotId, label:"${lot.lotId}: ${mfgParty != null ? mfgParty.pseudoId : ''} ${lot.lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(lot.manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(lot.expirationDate, 'yyyy-MM-dd')}".toString()])
+                    def lotNameMap = lot.getMap()
+                    if (lot.mfgPartyId) lotNameMap.mfgParty = ec.entity.find("mantle.party.Party").condition("partyId", lot.mfgPartyId).useCache(true).one()
+                    outList.add([value:lot.lotId, label:ec.resource.expand("LotNameTemplate", '', lotNameMap)])
                 }
                 ec.web.sendJsonResponse(outList)
             </script>

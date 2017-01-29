@@ -194,7 +194,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <!-- Incoming Shipment Fields -->
                     <field name="fromPartyId"><conditional-field title="From Party" condition="isIncoming">
                         <drop-down>
-                            <entity-options key="${partyId}" text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]">
+                            <entity-options key="${partyId}" text="PartyNameTemplate">
                                 <entity-find entity-name="mantle.party.PartyDetailAndRole">
                                     <econdition field-name="roleTypeId" value="Supplier"/>
                                     <econdition field-name="disabled" value="N" or-null="true"/>
@@ -203,8 +203,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </conditional-field></field>
                     <field name="destinationFacilityId" from="lastRouteSegment.destinationFacilityId">
                         <conditional-field title="Destination Facility" condition="isIncoming">
-                            <drop-down>
-                                <list-options list="facilityList" key="${facilityId}" text="${facilityName} [${pseudoId}]"/></drop-down>
+                            <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
                         </conditional-field>
                     </field>
 
@@ -214,8 +213,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </conditional-field></field>
                     <field name="originFacilityId" from="firstRouteSegment.originFacilityId">
                         <conditional-field title="Origin Facility" condition="!isIncoming">
-                            <drop-down>
-                                <list-options list="facilityList" key="${facilityId}" text="${facilityName} [${pseudoId}]"/></drop-down>
+                            <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
                         </conditional-field>
                     </field>
                     <field name="estimatedReadyDate"><conditional-field condition="!isIncoming"><date-time/></conditional-field></field>
@@ -225,12 +223,12 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-single>
             </widgets><fail-widgets>
                 <section name="ShipmentDisplaySection" condition="isIncoming"><widgets>
-                    <label text="From: ${fromPartyDetail ? (fromPartyDetail.organizationName?:'') + (fromPartyDetail.firstName?:'') + ' ' + (fromPartyDetail.lastName?:'') + ' [' + fromPartyDetail.pseudoId + ']' : 'Not Set'}" type="p"/>
+                    <label text="From: ${fromPartyDetail ? ec.resource.expand('PartyNameTemplate', '', fromPartyDetail) : 'Not Set'}" type="p"/>
                     <label text="Destination Facility: ${lastRouteSegment.destinationFacilityName}" type="p"/>
                     <label text="Status: ${statusItem.description}" type="p"/>
                     <label text="Estimated arrival: ${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Unknown'}" type="p"/>
                 </widgets><fail-widgets>
-                    <label text="To: ${toPartyDetail ? (toPartyDetail.organizationName?:'') + (toPartyDetail.firstName?:'') + ' ' + (toPartyDetail.lastName?:'') + ' [' + toPartyDetail.pseudoId + ']' : 'Not Set'}" type="p"/>
+                    <label text="To: ${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}" type="p"/>
                     <label text="Origin Facility: ${firstRouteSegment.originFacilityName}" type="p"/>
                     <label text="Status: ${statusItem.description}" type="p"/>
                     <label text="Estimated ready: ${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Unknown'}" type="p"/>
@@ -408,8 +406,8 @@ along with this software (see the LICENSE.md file). If not, see
                                 <display text="${locationSeqId?:''} ${facLoc?.description?:''} [${facLoc?.areaId?:' '}:${facLoc?.aisleId?:' '}:${facLoc?.sectionId?:' '}:${facLoc?.levelId?:' '}:${facLoc?.positionId?:' '}]"/>
                             </default-field></field>
                             <field name="lotId"><default-field title="Lot">
-                                <display-entity entity-name="mantle.product.asset.Lot" text="${lotId}: ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')}"/>
-                            </default-field></field>
+                                <display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field></field>
+                            
                             <field name="updateDialog"><header-field title=""/>
                                 <conditional-field condition="shipment.statusId == 'ShipInput'">
                                     <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
