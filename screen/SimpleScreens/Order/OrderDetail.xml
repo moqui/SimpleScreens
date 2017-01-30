@@ -48,10 +48,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateContent"><service-call name="mantle.order.OrderServices.update#OrderContent"/>
         <default-response url="."/></transition>
     <transition name="downloadContent"><parameter name="orderContentId"/>
-        <actions>
-            <entity-find-one entity-name="mantle.order.OrderContent" value-field="orderContent"/>
-            <script>ec.web.sendResourceResponse(orderContent.contentLocation)</script>
-        </actions>
+        <actions><entity-find-one entity-name="mantle.order.OrderContent" value-field="orderContent"/>
+            <script>ec.web.sendResourceResponse(orderContent.contentLocation)</script></actions>
         <default-response type="none"/>
     </transition>
 
@@ -293,11 +291,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <script>shippingPostalAddressList.addAll(shipToShippingInfo.postalAddressList ?: [])</script>
             </if>
 
-            <!-- TODO: get shipping options with or without store
-            <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
-                    in-map="[productStoreId:productStoreId, orderId:orderId,
-                        postalContactMechId:shippingPostalAddressList?.first?.postalContactMechId]"/>
-            -->
+            <if condition="productStore != null">
+                <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
+                        in-map="[productStoreId:productStore.productStoreId, orderId:orderId,
+                            postalContactMechId:shippingPostalAddressList?.first?.postalContactMechId]"/>
+            </if>
         </actions><widgets>
             <container style="row shaded-area">
                 <container style="col-lg-6">
@@ -424,9 +422,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <link url="editFacility" text="FacilityNameTemplate" text-map="orderPartInfo.facility"
                                     parameter-map="[facilityId:orderPartInfo.facility.facilityId]" link-type="anchor"
                                     condition="orderPartInfo.facility"/>
+                            <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                         </container>
                     </container>
-                    <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                     <section-iterate name="OrderPartRoleSection" list="orderPartInfo.orderPartPartyList" entry="orderPartParty"><widgets>
                         <container>
                             <link url="deleteOrderPartParty" text="X" link-type="hidden-form-link"
@@ -443,7 +441,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <section name="PaymentNotEnoughSection" condition="orderPartInfo.paymentsTotal &lt; orderPartInfo.orderPart.partTotal"><widgets>
                             <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0, orderHeader?.currencyUomId)}) is less than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)})" style="text-danger" type="p"/>
                         </widgets></section>
-                        <container-dialog id="AddPaymentInfo" button-text="Add Payment">
+                        <container-dialog id="AddPaymentInfo" button-text="Add Payment" condition="orderPartInfo.partEditable">
                             <form-single name="AddPaymentForm" transition="addOrderPartPayment">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
                                 <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
@@ -475,7 +473,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </actions><widgets>
                             <container>
                                 <label text="${partPaymentInfo.paymentMethodTypeEnum?.description?:''} ${ec.l10n.formatCurrency(partPaymentInfo.partPayment.amount, partPaymentInfo.partPayment.amountUomId)}" type="strong"/>
-                                <container-dialog id="UpdatePaymentDialog" button-text="Update">
+                                <container-dialog id="UpdatePaymentDialog" button-text="Update" condition="orderPartInfo.partEditable">
                                     <form-single name="UpdatePaymentForm" transition="updatePayment"
                                             map="partPaymentInfo.partPayment" extends="AddPaymentForm">
                                         <field name="paymentId"><default-field><hidden/></default-field></field>
@@ -489,8 +487,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </widgets></section-iterate>
                     </widgets></section>
                     <container-box><box-header><label text="Choose a Shipping Address" type="h5"/></box-header><box-toolbar>
-                        <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address"
-                                transition="updateContactInfo" width="800"
+                        <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="updateContactInfo"
+                                width="800" condition="orderPartInfo.partEditable"
                                 parameter-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest', orderId:orderId]"/>
                     </box-toolbar><box-body>
                         <container style="float-box" type="ul">
@@ -503,8 +501,8 @@ along with this software (see the LICENSE.md file). If not, see
                                         <div class="text-center"><input type="radio" name="shippingPostalContactMechId_${orderPartInfo_index}" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
                                     ]]></text></render-mode>
                                     <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                                    <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address"
-                                            transition="updateContactInfo" width="800"
+                                    <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="updateContactInfo"
+                                            width="800" condition="orderPartInfo.partEditable"
                                             parameter-map="[partyId:customerPartyId, postalContactMechId:contactInfo.postalContactMechId,
                                                 postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, orderId:orderId]"/>
                                 </container>
@@ -524,13 +522,21 @@ along with this software (see the LICENSE.md file). If not, see
                                                   text="${carrierPartyId == '_NA_' ? '' : (carrierName + ' - ') }${shipmentMethodDescription} ${shippingTotal != null ? ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
                                 </drop-down>
                             </conditional-field><default-field><ignored/></default-field></field>
-                            <field name="shipmentMethodEnumId"><conditional-field title="Shipment Method" condition="!shippingOptions">
-                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                                    <set field="enumTypeId" value="ShipmentMethod"/><set field="allowEmpty" value="true"/>
-                                    <set field="style" value=" "/></widget-template-include>
-                            </conditional-field><default-field><ignored/></default-field></field>
+                            <field name="shipmentMethodEnumId">
+                                <conditional-field title="Shipment Method" condition="!shippingOptions &amp;&amp; orderPartInfo.partEditable">
+                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                        <set field="enumTypeId" value="ShipmentMethod"/><set field="allowEmpty" value="true"/>
+                                        <set field="style" value=" "/></widget-template-include>
+                                </conditional-field>
+                                <conditional-field title="Shipment Method" condition="!shippingOptions">
+                                    <display-entity entity-name="moqui.basic.Enumeration"/></conditional-field>
+                                <default-field><ignored/></default-field></field>
+                            <field name="submitButton">
+                                <conditional-field condition="orderPartInfo.partEditable" title="Set Shipping Address and Info">
+                                    <submit/></conditional-field>
+                                <default-field><ignored/></default-field>
+                            </field>
 
-                            <field name="submitButton"><default-field title="Set Shipping Address and Info"><submit/></default-field></field>
                             <field-layout><field-row-big><field-ref name="carrierAndShipmentMethod"/><field-ref name="shipmentMethodEnumId"/>
                                 <field-ref name="submitButton"/></field-row-big></field-layout>
                         </form-single>
@@ -714,35 +720,24 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field><display/></default-field></field>
                 <field name="unitAmount">
                     <conditional-field condition="orderPartInfo.partEditable" title="Price">
-                        <text-line size="8" format="#0.00"/>
-                        <render-mode><text type="html,vuet"><![CDATA[
-                            <#assign popoverContent>
-                                <table style="width:100%;"><#list itemUnitAmountAuditList as auditInfo><tr>
-                                    <td class="text-right">${ec.l10n.formatCurrency(auditInfo.auditLog.newValueText, orderHeader.currencyUomId, 3)}</td>
-                                    <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
-                                    <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
-                                    <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
-                                </tr></#list></table>
-                            </#assign>
-                            <div><a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="Price History for Item ${orderItemSeqId}" data-content="${popoverContent?html}">Price History</a></div>
-                        ]]></text></render-mode>
-                    </conditional-field>
-                    <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+                        <text-line size="8" format="#0.00"/></conditional-field>
+                    <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
+                </field>
+                <field name="unitAmountHist"><default-field title="">
+                    <render-mode><text type="html,vuet"><![CDATA[
+                        <#assign popoverContent>
+                            <table style="width:100%;"><#list itemUnitAmountAuditList as auditInfo><tr>
+                                <td class="text-right">${ec.l10n.formatCurrency(auditInfo.auditLog.newValueText, orderHeader.currencyUomId, 3)}</td>
+                                <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                                <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                                <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                            </tr></#list></table>
+                        </#assign>
+                        <div><a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="Price History for Item ${orderItemSeqId}" data-content="${popoverContent?html}">Price History</a></div>
+                    ]]></text></render-mode>
+                </default-field></field>
                 <field name="quantity">
-                    <conditional-field condition="orderPartInfo.partEditable">
-                        <text-line size="5"/>
-                        <render-mode><text type="html,vuet"><![CDATA[
-                            <#assign popoverContent>
-                                <table style="width:100%;"><#list itemQuantityAuditList as auditInfo><tr>
-                                    <td class="text-right">${auditInfo.auditLog.newValueText}</td>
-                                    <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
-                                    <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
-                                    <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
-                                </tr></#list></table>
-                            </#assign>
-                            <div><a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="Quantity History for Item ${orderItemSeqId}" data-content="${popoverContent?html}">Quantity History</a></div>
-                        ]]></text></render-mode>
-                    </conditional-field>
+                    <conditional-field condition="orderPartInfo.partEditable"><text-line size="5"/></conditional-field>
                     <default-field><display/></default-field>
                 </field>
                 <field name="quantity_changeReason">
@@ -752,12 +747,25 @@ along with this software (see the LICENSE.md file). If not, see
                     </conditional-field>
                     <default-field title="Quantity Reason"><ignored/></default-field>
                 </field>
+                <field name="quantityHist"><default-field title="">
+                    <render-mode><text type="html,vuet"><![CDATA[
+                        <#assign popoverContent>
+                            <table style="width:100%;"><#list itemQuantityAuditList as auditInfo><tr>
+                                <td class="text-right">${auditInfo.auditLog.newValueText}</td>
+                                <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                                <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                                <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                            </tr></#list></table>
+                        </#assign>
+                        <div><a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="Quantity History for Item ${orderItemSeqId}" data-content="${popoverContent?html}">Quantity History</a></div>
+                    ]]></text></render-mode>
+                </default-field></field>
 
                 <field name="notShippedBilled"><default-field title="Not Shipped/Billed">
                     <display text="${isProductItemType ? ec.l10n.format(itemQuantityNotShipped, '') : 'N/A'} / ${ec.l10n.format(itemQuantityNotBilled, '')}"/></default-field></field>
 
                 <field name="assetReservations">
-                    <conditional-field condition="orderItem.productId">
+                    <conditional-field condition="orderItem.productId &amp;&amp; orderPartInfo.isVendorInternalOrg">
                         <section-iterate name="ReservationInfoSection" list="resInfoList" entry="resInfo"><widgets><container>
                             <link url="assetDetail" text="Asset ${resInfo.existingRes.assetId}" parameter-map="[assetId:resInfo.existingRes.assetId]" link-type="anchor"/>
                             <label text=" Res: ${ec.l10n.format(resInfo.existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(resInfo.existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(resInfo.existingRes.quantityNotIssued, null)}" type="span"/>
@@ -766,9 +774,12 @@ along with this software (see the LICENSE.md file). If not, see
                                 <label text="${ec.resource.expand('LotNameTemplate', '', resInfo.assetLot)}" condition="resInfo.assetLot"/>
                             </container>
                         </container></widgets></section-iterate>
-                        <label text="Multiple lots ${lotIdSet}" condition="orderPartInfo.singleLot &amp;&amp; lotIdSet.size() &gt; 1" type="div" style="text-danger"/>
+                        <label text="Multiple lots ${lotIdSet}" condition="orderPartInfo.singleLot &amp;&amp; lotIdSet.size() &gt; 1"
+                                type="div" style="text-danger"/>
                         <label text="Oldest lot ${ec.l10n.format(oldestLotExpire, 'yyyy-MM-dd')} older than last lot expire ${ec.l10n.format(newerThanExpireDate, 'yyyy-MM-dd')}"
-                                condition="orderPartInfo.newerInventory &amp;&amp; newerThanExpireDate!=null &amp;&amp; oldestLotExpire!=null &amp;&amp; oldestLotExpire &lt; newerThanExpireDate" type="div" style="text-danger"/>
+                                condition="orderPartInfo.newerInventory &amp;&amp; newerThanExpireDate!=null &amp;&amp; oldestLotExpire!=null &amp;&amp; oldestLotExpire &lt; newerThanExpireDate"
+                                type="div" style="text-danger"/>
+                        <dynamic-dialog id="ItemReserveDialog" button-text="Reserve Assets" transition="ItemReserve" condition="orderPartInfo.partEditable"/>
                     </conditional-field>
                     <default-field><display text=" "/></default-field>
                 </field>
@@ -803,7 +814,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="productId"/><field-ref name="productLink"/>
                     <field-ref name="otherPartyProductId"/></form-list-column>
                 <form-list-column><field-ref name="itemDescription"/><field-ref name="comments"/><field-ref name="requiredByDate"/></form-list-column>
-                <form-list-column><field-ref name="unitAmount"/><field-ref name="quantity"/><field-ref name="quantity_changeReason"/></form-list-column>
+                <form-list-column><field-ref name="unitAmount"/><field-ref name="unitAmountHist"/>
+                    <field-ref name="quantity"/><field-ref name="quantity_changeReason"/><field-ref name="quantityHist"/></form-list-column>
                 <form-list-column><field-ref name="notShippedBilled"/><field-ref name="assetReservations"/></form-list-column>
                 <form-list-column><field-ref name="itemTotal"/><field-ref name="itemPlusChildrenTotal"/></form-list-column>
                 <form-list-column><field-ref name="returns"/><field-ref name="returnItem"/></form-list-column>
