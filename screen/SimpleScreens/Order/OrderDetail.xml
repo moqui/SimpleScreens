@@ -608,6 +608,20 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
                         <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
+                    <set field="resInfoList" from="[]"/>
+                    <set field="lotIdSet" from="new LinkedHashSet()"/>
+                    <set field="oldestLotExpire" from="null"/>
+                    <iterate list="existingResList" entry="existingRes">
+                        <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
+                            <field-map field-name="assetId" from="existingRes.assetId"/>
+                            <select-field field-name="lotId,pseudoId,lotNumber,manufacturedDate,expirationDate"/>
+                        </entity-find-one>
+                        <script><![CDATA[
+                            if (assetLot?.lotId) lotIdSet.add(assetLot.lotId)
+                            if (assetLot?.expirationDate != null && (oldestLotExpire == null || assetLot.expirationDate < oldestLotExpire)) oldestLotExpire = assetLot.expirationDate
+                            resInfoList.add([existingRes:existingRes, assetLot:assetLot])
+                        ]]></script>
+                    </iterate>
 
                     <!-- returnable quantities and ReturnItems -->
                     <service-call name="mantle.order.ReturnServices.calculate#OrderItemReturnable" out-map="returnableOut"
@@ -638,6 +652,19 @@ along with this software (see the LICENSE.md file). If not, see
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0"/>
                     <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0"/>
                     <set field="itemCanDelete" from="itemQuantityNotShipped == quantity &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnQuantity == 0"/>
+
+                    <set field="newerThanExpireDate" from="null"/>
+                    <if condition="orderPartInfo.newerInventory &amp;&amp; orderPartInfo.orderPart.customerPartyId">
+                        <!-- get most recent asset issued and lot expire date for it -->
+                        <entity-find entity-name="mantle.product.issuance.AssetIssuanceLotSummary" list="issuanceLotList" limit="1">
+                            <econdition field-name="toPartyId" from="orderPartInfo.orderPart.customerPartyId"/>
+                            <econdition field-name="productId"/>
+                            <select-field field-name="expirationDate,expectedEndOfLife"/>
+                            <order-by field-name="-issuedDate"/>
+                        </entity-find>
+                        <if condition="issuanceLotList">
+                            <set field="newerThanExpireDate" from="issuanceLotList[0].expirationDate ?: issuanceLotList[0].expectedEndOfLife"/></if>
+                    </if>
                 </row-actions>
                 <field name="orderId"><default-field><hidden/></default-field></field>
 
@@ -731,19 +758,17 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="assetReservations">
                     <conditional-field condition="orderItem.productId">
-                        <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes"><actions>
-                            <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
-                                <field-map field-name="assetId" from="existingRes.assetId"/>
-                                <select-field field-name="lotId,pseudoId,lotNumber,manufacturedDate,expirationDate"/>
-                            </entity-find-one>
-                        </actions><widgets><container>
-                            <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
-                            <label text=" Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
+                        <section-iterate name="ReservationInfoSection" list="resInfoList" entry="resInfo"><widgets><container>
+                            <link url="assetDetail" text="Asset ${resInfo.existingRes.assetId}" parameter-map="[assetId:resInfo.existingRes.assetId]" link-type="anchor"/>
+                            <label text=" Res: ${ec.l10n.format(resInfo.existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(resInfo.existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(resInfo.existingRes.quantityNotIssued, null)}" type="span"/>
                             <container>
-                                <label text="Lot" type="strong" condition="assetLot"/>
-                                <label text="${ec.resource.expand('LotNameTemplate', '', assetLot)}" condition="assetLot"/>
+                                <label text="Lot" type="strong" condition="resInfo.assetLot"/>
+                                <label text="${ec.resource.expand('LotNameTemplate', '', resInfo.assetLot)}" condition="resInfo.assetLot"/>
                             </container>
                         </container></widgets></section-iterate>
+                        <label text="Multiple lots ${lotIdSet}" condition="orderPartInfo.singleLot &amp;&amp; lotIdSet.size() &gt; 1" type="div" style="text-danger"/>
+                        <label text="Oldest lot ${ec.l10n.format(oldestLotExpire, 'yyyy-MM-dd')} older than last lot expire ${ec.l10n.format(newerThanExpireDate, 'yyyy-MM-dd')}"
+                                condition="orderPartInfo.newerInventory &amp;&amp; newerThanExpireDate!=null &amp;&amp; oldestLotExpire!=null &amp;&amp; oldestLotExpire &lt; newerThanExpireDate" type="div" style="text-danger"/>
                     </conditional-field>
                     <default-field><display text=" "/></default-field>
                 </field>
