@@ -26,6 +26,31 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="deletePartyRole"><service-call name="delete#mantle.party.PartyRole"/>
         <default-response url="."/></transition>
 
+    <transition name="setPartyClassification"><service-call name="mantle.party.PartyServices.set#PartyClassification"/>
+        <default-response url="."/></transition>
+    <transition name="removePartyClassification"><service-call name="mantle.party.PartyServices.remove#PartyClassification"/>
+        <default-response url="."/></transition>
+    <transition name="getPartyClassificationList"><parameter name="classificationTypeEnumId"/><actions>
+        <entity-find entity-name="mantle.party.PartyClassification" list="classList">
+            <econdition field-name="classificationTypeEnumId"/><order-by field-name="description"/></entity-find>
+        <script>ec.web.sendJsonResponse(classList)</script>
+    </actions><default-response type="none"/></transition>
+
+    <transition name="createPartySetting"><service-call name="create#mantle.party.PartySetting"/>
+        <default-response url="."/></transition>
+    <transition name="deletePartySetting"><service-call name="delete#mantle.party.PartySetting"/>
+        <default-response url="."/></transition>
+    <transition name="getPartySettingList"><parameter name="partySettingTypeId"/><actions>
+        <entity-find-one entity-name="mantle.party.PartySettingType" value-field="settingType"/>
+        <if condition="settingType == null || !settingType.enumTypeId"><then>
+            <script>ec.web.sendJsonResponse([])</script>
+        </then><else>
+            <entity-find entity-name="moqui.basic.Enumeration" list="settingOptionList">
+                <econdition field-name="enumTypeId" from="settingType.enumTypeId"/><order-by field-name="description"/></entity-find>
+            <script>ec.web.sendJsonResponse(settingOptionList)</script>
+        </else></if>
+    </actions><default-response type="none"/></transition>
+
     <transition name="createPartyIdentification"><service-call name="create#mantle.party.PartyIdentification"/>
         <default-response url="."/></transition>
     <transition name="updatePartyIdentification"><service-call name="update#mantle.party.PartyIdentification"/>
@@ -58,10 +83,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="downloadContent" read-only="true">
         <parameter name="partyContentId"/>
-        <actions>
-            <entity-find-one entity-name="mantle.party.PartyContent" value-field="partyContent"/>
-            <script>ec.web.sendResourceResponse(partyContent?.contentLocation)</script>
-        </actions>
+        <actions><entity-find-one entity-name="mantle.party.PartyContent" value-field="partyContent"/>
+            <script>ec.web.sendResourceResponse(partyContent?.contentLocation)</script></actions>
         <default-response type="none"/>
     </transition>
 
@@ -160,6 +183,40 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body-nopad></container-box>
             </widgets></section>
 
+            <section name="PartyClassificationSection"><actions>
+                <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="pcaaList">
+                    <date-filter/><econdition field-name="partyId"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header><label text="Classifications" type="h5"/></box-header><box-toolbar>
+                    <container-dialog id="SetClassificationDialog" button-text="Set Classification">
+                        <form-single name="SetClassificationForm" transition="setPartyClassification">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="classificationTypeEnumId"><default-field title="Type">
+                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                    <set field="enumTypeId" value="PartyClassificationType"/><set field="noCurrentSelectedKey" value="PcltCustomer"/></widget-template-include>
+                            </default-field></field>
+                            <field name="partyClassificationId"><default-field title="Class">
+                                <drop-down><dynamic-options transition="getPartyClassificationList"
+                                        value-field="partyClassificationId" label-field="description">
+                                    <depends-on field="classificationTypeEnumId"/></dynamic-options></drop-down>
+                            </default-field></field>
+                            <field name="submitButton"><default-field title="Set"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body-nopad>
+                    <form-list name="ClassificationsForm" list="pcaaList" transition="removePartyClassification" skip-header="true">
+                        <field name="partyId"><default-field><hidden/></default-field></field>
+                        <field name="partyClassificationId"><default-field><hidden/></default-field></field>
+                        <field name="fromDate"><default-field><hidden/></default-field></field>
+                        <field name="thruDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+                        <field name="classificationTypeEnumId"><default-field title="Type">
+                            <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                        <field name="description"><default-field title="Class"><display/></default-field></field>
+                        <field name="submitButton"><default-field title="Remove"><submit/></default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
+
             <section name="PartyIdentificationSection"><actions>
                     <entity-find entity-name="mantle.party.PartyIdentification" list="partyIdentificationList">
                         <econdition field-name="partyId"/></entity-find>
@@ -197,6 +254,43 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="removeButton"><default-field title="">
                             <link url="deletePartyIdentification" text="Remove"/>
                         </default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
+
+            <section name="PartySettingSection"><actions>
+                <entity-find entity-name="mantle.party.PartySetting" list="settingList">
+                    <econdition field-name="partyId"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header><label text="Settings" type="h5"/></box-header><box-toolbar>
+                    <container-dialog id="SetSettingDialog" button-text="Add Setting">
+                        <form-single name="SetSettingForm" transition="createPartySetting">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="partySettingTypeId"><default-field title="Type">
+                                <drop-down><entity-options key="${partySettingTypeId}" text="${description}">
+                                    <entity-find entity-name="mantle.party.PartySettingType">
+                                        <order-by field-name="description"/></entity-find></entity-options>
+                                </drop-down>
+                            </default-field></field>
+                            <field name="settingValue"><default-field title="Value">
+                                <drop-down><dynamic-options transition="getPartySettingList"
+                                        value-field="enumId" label-field="description">
+                                    <depends-on field="partySettingTypeId"/></dynamic-options></drop-down>
+                            </default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body-nopad>
+                    <form-list name="SettingsForm" list="settingList" transition="deletePartySetting" skip-header="true">
+                        <row-actions>
+                            <entity-find-one entity-name="moqui.basic.Enumeration" value-field="valueEnum">
+                                <field-map field-name="enumId" from="settingValue"/></entity-find-one>
+                        </row-actions>
+                        <field name="partyId"><default-field><hidden/></default-field></field>
+                        <field name="partySettingTypeId"><default-field title="Type">
+                            <display-entity entity-name="mantle.party.PartySettingType"/></default-field></field>
+                        <field name="settingValue"><default-field title="Value"><display text="${valueEnum ? valueEnum.description : settingValue}"/></default-field></field>
+                        <field name="submitButton"><default-field title="Remove"><submit/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
