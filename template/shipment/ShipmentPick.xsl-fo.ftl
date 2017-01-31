@@ -71,7 +71,7 @@ along with this software (see the LICENSE.md file). If not, see
         <fo:flow flow-name="xsl-region-body">
             <fo:table table-layout="fixed" margin-bottom="0.1in" width="7.5in">
                 <fo:table-body><fo:table-row>
-                    <fo:table-cell padding="3pt" width="2in">
+                    <fo:table-cell padding="3pt" width="3in">
                         <fo:block font-weight="bold">Shipment #</fo:block>
                         <fo:block>${shipmentId}</fo:block>
                         <#if originFacility?has_content>

@@ -88,6 +88,12 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/>
         </default-response>
     </transition>
+    <transition name="ShipmentByPackage.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentByPackage" url-type="plain">
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentByPackage-${shipmentId}.pdf"/>
+        </default-response>
+    </transition>
 
     <actions>
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
@@ -109,7 +115,7 @@ along with this software (see the LICENSE.md file). If not, see
         </else></if>
     </actions>
     <widgets>
-        <container-row><row-col lg="6">
+        <container-row><row-col md="7">
             <label text="Shipment #${shipmentId}" type="h3"/>
 
             <!-- Links -->
@@ -136,6 +142,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack PDF"/>
+                    <link url="ShipmentByPackage.pdf" text="Package PDF"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
@@ -148,6 +155,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                 </fail-widgets></section>
                 <link url="ShipmentPack.pdf" text="Pack PDF"/>
+                <link url="ShipmentByPackage.pdf" text="Package PDF"/>
             </widgets></section>
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="ShipPackedIncomingOrOutgoingSection" condition="isIncoming"><widgets>
@@ -160,6 +168,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="deliverShipment" text="Set Delivered" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack PDF"/>
+                    <link url="ShipmentByPackage.pdf" text="Package PDF"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
@@ -172,6 +181,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="deliverShipment" text="Set Delivered" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack PDF"/>
+                    <link url="ShipmentByPackage.pdf" text="Package PDF"/>
                 </fail-widgets></section>
             </widgets></section>
 
@@ -220,6 +230,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="estimatedArrivalDate"><default-field><date-time/></default-field></field>
 
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+
+                    <field-layout>
+                        <field-row><field-ref name="shipmentTypeEnumId"/><field-ref name="statusId"/></field-row>
+                        <fields-not-referenced/>
+                        <field-row><field-ref name="estimatedReadyDate"/><field-ref name="estimatedArrivalDate"/></field-row>
+                        <field-ref name="submitButton"/>
+                    </field-layout>
                 </form-single>
             </widgets><fail-widgets>
                 <section name="ShipmentDisplaySection" condition="isIncoming"><widgets>
@@ -234,7 +251,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text="Estimated ready: ${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Unknown'}" type="p"/>
                 </fail-widgets></section>
             </fail-widgets></section>
-        </row-col><row-col lg="6">
+        </row-col><row-col md="5">
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
             <container-box><box-header><label text="Content" type="h5"/></box-header><box-toolbar>
@@ -311,7 +328,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="packageContentTotal" from="(packageContentList*.quantity).sum() ?: 0.0"/>
                 <set field="quantityNotInPackage" from="((BigDecimal) sid.quantity ?: 0.0) - packageContentTotal"/>
             </actions><widgets>
-                <container-box><box-header><label text="${sid.productName} [${sid.pseudoId}]" type="h5"/></box-header><box-toolbar>
+                <container-box><box-header><label text="ProductNameTemplate" text-map="sid" type="h5"/></box-header><box-toolbar>
                     <section name="PackItemSection" condition="allowPack"><widgets>
                         <container-dialog id="PackItemContainer" button-text="Pack Item">
                             <form-single name="PackItemForm" transition="packItem" map="sid">
@@ -555,7 +572,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="shipmentId"><default-field><hidden/></default-field></field>
                             <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
                             <field name="productId"><default-field title="Product">
-                                <display-entity entity-name="mantle.product.Product" text="${productName} [${pseudoId}]"/>
+                                <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/>
                             </default-field></field>
                             <field name="quantity"><default-field><text-line size="6"/></default-field></field>
                             <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
