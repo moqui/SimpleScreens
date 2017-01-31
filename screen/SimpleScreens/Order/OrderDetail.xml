@@ -344,13 +344,6 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-dialog>
                     </widgets></section>
 
-                    <link url="completeOrderPart" text="Complete Part" link-type="hidden-form"
-                            parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
-                            condition="orderPartInfo.orderPart.statusId in ['OrderApproved', 'OrderSent']"/>
-                    <link url="invoiceOrderPart" text="Create Invoice" link-type="hidden-form"
-                            parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
-                            condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId)"/>
-
                     <section name="ShipOrderPartSection"><condition>
                         <expression>quantityNotShippedByPart.get(orderPartInfo.orderPart.orderPartSeqId) &amp;&amp;
                             (orderHeader.statusId == "OrderApproved" || orderHeader.statusId == "OrderSent")</expression>
@@ -385,6 +378,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <section-iterate name="ShipmentLinks" list="orderPartInfo.partShipmentIdSet" entry="shipmentId"><widgets>
                         <link url="shipmentDetail" text="Shipment #${shipmentId}" link-type="anchor-button"/>
                     </widgets></section-iterate>
+
+                    <link url="completeOrderPart" text="Complete Part" link-type="hidden-form"
+                            parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
+                            condition="orderPartInfo.orderPart.statusId in ['OrderApproved', 'OrderSent']"/>
+                    <link url="invoiceOrderPart" text="Create Invoice" link-type="hidden-form"
+                            parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
+                            condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId)"/>
                     <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList"
                           parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"/>
 
