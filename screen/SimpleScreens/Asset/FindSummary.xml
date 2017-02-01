@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal plus a 
+This software is in the public domain under CC0 1.0 Universal plus a
 Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
@@ -13,9 +13,9 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
-        default-menu-include="false">
+        default-menu-include="true" default-menu-index="2">
 
-    <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
+    <transition name="findAsset"><default-response url="../FindAsset"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
 
@@ -24,33 +24,29 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
-        <entity-find entity-name="mantle.product.asset.AssetFindView" list="assetList">
-            <search-form-inputs default-order-by="-receivedDate,-assetId"/>
-            <econditions combine="or">
-                <econdition field-name="availableToPromiseTotal" operator="not-equals" from="0"/>
-                <econdition field-name="quantityOnHandTotal" operator="not-equals" from="0"/>
-            </econditions>
-            <!-- TODO: at some point consider separate inventory and equipment/supplies screens, filtering here by type -->
-        </entity-find>
-
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/><order-by field-name="facilityName"/></entity-find>
     </actions>
     <widgets>
-        <form-list name="ListAssets" list="assetList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true" show-csv-button="true">
+        <link url="findAsset" text="Find Individual Assets"/>
+        <form-list name="ListAssets" list="assetList" skip-form="true" header-dialog="true" saved-finds="true" select-columns="true" show-csv-button="true">
+            <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="assetList">
+                <search-form-inputs default-order-by="productName"/>
+                <select-field field-name="pseudoId,amountUomId"/>
+            </entity-find>
             <row-actions>
                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true"/>
-                <entity-find-one entity-name="moqui.basic.Uom" value-field="amountUom" cache="true">
-                    <field-map field-name="uomId" from="amountUomId"/></entity-find-one>
             </row-actions>
-            <field name="assetId">
-                <header-field title="Asset ID" show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
-                <default-field><link url="assetDetail" text="${assetId}" link-type="anchor" condition="assetId"/></default-field>
+
+            <field name="productId">
+                <header-field title="Product" show-order-by="case-insensitive">
+                    <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
+                </header-field>
+                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
             </field>
-            <field name="ownerPartyId">
-                <header-field title="Owner Party"><text-line ac-transition="getPartyList" ac-min-length="2" size="15"/></header-field>
-                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
-            </field>
+            <field name="productName">
+                <header-field show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
 
             <field name="assetTypeEnumId">
                 <header-field title="Asset Type" show-order-by="true">
@@ -77,30 +73,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
 
-            <field name="productId">
-                <header-field title="Product" show-order-by="case-insensitive">
-                    <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
-                </header-field>
-                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
-            </field>
-            <field name="productName"><header-field show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
-                <default-field><display/></default-field></field>
-
-            <field name="receivedDate"><header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display/></default-field></field>
-            <field name="manufacturedDate"><header-field show-order-by="true" title="Mfg Date"><date-period/></header-field>
-                <default-field><display/></default-field></field>
-
-            <field name="quantityOnHandTotal" show-total="true" align="right"><header-field title="Quantity On Hand" show-order-by="true"/>
-                <default-field><display text="${ec.l10n.format(quantityOnHandTotal, null)} (${amountUom?.description?:'each'})"/></default-field></field>
-            <field name="availableToPromiseTotal" show-total="true" align="right"><header-field title="Available To Promise" show-order-by="true"/>
-                <default-field><display text="${ec.l10n.format(availableToPromiseTotal, null)} (${amountUom?.description?:'each'})"/></default-field></field>
-
             <field name="facilityId"><header-field title="Facility" show-order-by="case-insensitive">
                 <drop-down allow-empty="true"><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
             </header-field><default-field>
                 <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"
-                        parameter-map="[facilityId:facilityId]"/>
+                      parameter-map="[facilityId:facilityId]"/>
             </default-field></field>
             <field name="locationSeqId">
                 <header-field title="Location" show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
@@ -110,16 +87,33 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field>
             </field>
 
-            <field name="submitButton"><header-field title="Find"><submit/></header-field>
-                <default-field><link url="assetDetail" text="Detail" link-type="anchor-button" condition="assetId"/></default-field></field>
+            <field name="availableToPromiseTotal" align="right"><header-field title="ATP Total" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="quantityOnHandTotal" align="right"><header-field title="QOH Total" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="amountUomId"><header-field title="UOM"/>
+                <default-field><display-entity entity-name="moqui.basic.Uom" default-text="each"/></default-field>
+            </field>
+
+            <field name="physicalQuantity"><default-field title="">
+                <dynamic-dialog id="PhysicalQuantityDialog" button-text="Physical Quantity" transition="PhysicalQuantity" width="800"/>
+            </default-field></field>
+            <field name="physicalChange"><default-field title="">
+                <dynamic-dialog id="PhysicalChange" button-text="Physical Diff" transition="PhysicalChange" width="800"/>
+            </default-field></field>
+
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <default-field><link url="findAsset" text="Assets" parameter-map="[pseudoId:pseudoId, statusId:statusId,
+                            facilityId:facilityId, locationSeqId:locationSeqId]"/></default-field>
+            </field>
 
             <form-list-column><field-ref name="submitButton"/></form-list-column>
-            <form-list-column><field-ref name="assetId"/><field-ref name="ownerPartyId"/></form-list-column>
-            <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/><field-ref name="statusId"/></form-list-column>
             <form-list-column><field-ref name="productId"/><field-ref name="productName"/></form-list-column>
-            <form-list-column><field-ref name="receivedDate"/><field-ref name="manufacturedDate"/>
-                <field-ref name="quantityOnHandTotal"/><field-ref name="availableToPromiseTotal"/></form-list-column>
+            <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/><field-ref name="statusId"/></form-list-column>
             <form-list-column><field-ref name="facilityId"/><field-ref name="locationSeqId"/><field-ref name="lotId"/></form-list-column>
+            <form-list-column><field-ref name="quantityOnHandTotal"/><field-ref name="availableToPromiseTotal"/><field-ref name="amountUomId"/></form-list-column>
+            <form-list-column><field-ref name="physicalQuantity"/><field-ref name="physicalChange"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
