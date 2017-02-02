@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-include="false" default-menu-title="Move Asset">
+
+    <transition name="moveAsset"><default-response url="../MoveAsset"/></transition>
+    <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <transition name="assetMove">
+        <actions>
+            <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset">
+                <field-map field-name="assetId" from="scanId"/></entity-find-one>
+            <set field="assetId" from="asset?.assetId"/>
+            <if condition="asset == null"><message error="true">No asset found for ID ${scanId}</message></if>
+        </actions>
+        <conditional-response url="../MoveAsset" parameter-map="[assetId:assetId]">
+            <condition><expression>assetId</expression></condition></conditional-response>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <entity-find entity-name="moqui.entity.EntityAuditLog" list="recentMoveList" limit="5">
+            <econdition field-name="changedEntityName" value="mantle.product.asset.Asset"/>
+            <econdition field-name="changedFieldName" value="locationSeqId"/>
+            <econdition field-name="changedByUserId" from="ec.user.userId"/>
+            <order-by field-name="-changedDate"/>
+        </entity-find>
+    </actions>
+
+    <widgets>
+        <container-row><row-col md="6">
+            <form-single name="ScanAssetForm" transition="assetMove" focus-field="scanId">
+                <field name="scanId"><default-field title="Scan Asset ID"><text-line/></default-field></field>
+                <field name="submitButton"><default-field title="Move"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="scanId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </row-col><row-col md="6">
+            <form-single name="EnterAssetForm" transition="moveAsset">
+                <field name="assetId"><default-field title="Enter Asset ID">
+                    <text-line ac-transition="getAssetList" ac-delay="500"/></default-field></field>
+                <field name="submitButton"><default-field title="Move"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="assetId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </row-col></container-row>
+
+        <label text="Recent Asset Moves" type="h4"/>
+        <form-list name="RecentMoveForm" list="recentMoveList" skip-form="true">
+            <row-actions>
+                <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset" cache="true">
+                    <field-map field-name="assetId" from="pkPrimaryValue"/></entity-find-one>
+                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="fromFacLoc" cache="true">
+                    <field-map field-name="facilityId" from="asset.facilityId"/>
+                    <field-map field-name="locationSeqId" from="oldValueText"/>
+                </entity-find-one>
+                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="toFacLoc" cache="true">
+                    <field-map field-name="facilityId" from="asset.facilityId"/>
+                    <field-map field-name="locationSeqId" from="newValueText"/>
+                </entity-find-one>
+            </row-actions>
+            <field name="assetId" from="asset.assetId"><default-field>
+                <link url="assetDetail" text="AssetNameTemplate" text-map="asset" link-type="anchor"
+                      parameter-map="[assetId:asset.assetId]"/>
+            </default-field></field>
+            <field name="productId" from="asset.productId"><default-field title="Product">
+                <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor"
+                      parameter-map="[productId:asset.productId]"/>
+            </default-field></field>
+            <field name="facilityId" from="asset.facilityId"><default-field title="Facility">
+                <link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"
+                      parameter-map="[facilityId:asset.facilityId]"/>
+            </default-field></field>
+
+            <field name="fromLocation"><default-field>
+                <display text="FacilityLocationNameTemplate" text-map="fromFacLoc?:[:]"/></default-field></field>
+            <field name="toLocation"><default-field>
+                <display text="FacilityLocationNameTemplate" text-map="toFacLoc?:[:]"/></default-field></field>
+            <field name="changedDate"><default-field title="Date Moved"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
+            <field name="moveAgain"><default-field title="" container-style="text-min">
+                <link url="moveAsset" text="Move Again" parameter-map="[assetId:asset.assetId]" link-type="anchor-button"/>
+            </default-field></field>
+        </form-list>
+    </widgets>
+</screen>

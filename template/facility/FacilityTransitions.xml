@@ -40,6 +40,31 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none"/>
     </transition>
+    <transition name="getLocationList">
+        <parameter name="facilityId"/>
+        <actions>
+            <entity-find entity-name="mantle.facility.FacilityLocation" list="locList" limit="20">
+                <econdition field-name="facilityId" ignore-if-empty="true"/>
+                <econditions combine="or">
+                    <econdition field-name="locationSeqId" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="areaId" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="aisleId" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="sectionId" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="levelId" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="positionId" operator="like" value="%${term}%" ignore-case="true"/>
+                </econditions>
+                <order-by field-name="areaId,aisleId,sectionId,levelId,positionId,description"/>
+            </entity-find>
+            <script>
+                def outList = []
+                for (def facLoc in locList)
+                outList.add([value:facLoc.locationSeqId, label:ec.resource.expand('FacilityLocationNameTemplate','',facLoc?:[:])])
+                ec.web.sendJsonResponse(outList)
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
 
     <widgets/>
 </screen>
