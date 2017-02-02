@@ -16,24 +16,11 @@ along with this software (see the LICENSE.md file). If not, see
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd">
 
     <transition name="createTask">
-        <service-call name="mantle.work.TaskServices.create#SimpleTask" in-map="context"/>
+        <service-call name="mantle.work.TaskServices.create#SimpleTask" in-map="context + [assignToPartyId:ec.user.userAccount.partyId]"/>
         <default-response url="../TaskDetail"/>
     </transition>
     <transition name="taskDetail"><default-response url="../TaskDetail"/></transition>
 
-    <actions>
-        <entity-find entity-name="mantle.work.effort.WorkEffortAndParty" list="myTaskList">
-            <search-form-inputs default-order-by="priority"/><date-filter/>
-            <econdition field-name="workEffortTypeEnumId" value="WetTask"/>
-            <econdition field-name="partyId"/>
-            <econdition field-name="statusId" operator="not-in" value="WeClosed,WeCancelled" ignore="statusId"/>
-            <select-field field-name="workEffortId"/><select-field field-name="workEffortName"/>
-            <select-field field-name="priority"/><select-field field-name="purposeEnumId"/>
-            <select-field field-name="statusId"/><select-field field-name="estimatedCompletionDate"/>
-            <select-field field-name="estimatedWorkTime"/>
-            <select-field field-name="remainingWorkTime"/><select-field field-name="actualWorkTime"/>
-        </entity-find>
-    </actions>
     <widgets>
         <!-- <label text="My Open Tasks" type="h3"/> -->
         <container-dialog id="NewTaskContainer" button-text="New Task">
@@ -66,29 +53,28 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
         <form-list name="MyTasks" list="myTaskList" skip-form="true">
-            <field name="workEffortId">
-                <header-field title="ID" show-order-by="true"><text-line size="8"/></header-field>
-                <default-field><link text="${workEffortId}" url="taskDetail" link-type="anchor"/></default-field>
-            </field>
-            <field name="workEffortName">
-                <header-field title="Name" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
-                <default-field><link text="${workEffortName}" url="taskDetail" link-type="anchor"/></default-field>
-            </field>
-            <field name="priority">
-                <header-field show-order-by="true"/>
-                <default-field title="Priority"><display/></default-field>
-            </field>
+            <entity-find entity-name="mantle.work.effort.WorkEffortAndParty" list="myTaskList">
+                <search-form-inputs default-order-by="priority"/><date-filter/>
+                <econdition field-name="workEffortTypeEnumId" value="WetTask"/>
+                <econdition field-name="partyId"/>
+                <econdition field-name="statusId" operator="not-in" value="WeClosed,WeCancelled" ignore="statusId"/>
+                <econdition field-name="partyStatusId" operator="in" value="WeptAssigned,WeptArrived"/>
+            </entity-find>
+
+            <field name="workEffortId"><header-field title="ID" show-order-by="true"><text-line size="8"/></header-field>
+                <default-field><link text="${workEffortId}" url="taskDetail" link-type="anchor"/></default-field></field>
+            <field name="workEffortName"><header-field title="Name" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+                <default-field><link text="${workEffortName}" url="taskDetail" link-type="anchor"/></default-field></field>
+            <field name="priority"><header-field show-order-by="true"/><default-field title="Priority"><display/></default-field></field>
             <field name="purposeEnumId">
                 <header-field title="Purpose" show-order-by="true">
-                    <drop-down allow-empty="true">
-                        <entity-options key="${enumId}" text="${description}">
-                            <entity-find entity-name="moqui.basic.Enumeration">
-                                <econdition field-name="enumTypeId" value="WorkEffortPurpose"/>
-                                <econdition field-name="parentEnumId" value="WetTask"/>
-                                <order-by field-name="description"/>
-                            </entity-find>
-                        </entity-options>
-                    </drop-down>
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="WorkEffortPurpose"/>
+                            <econdition field-name="parentEnumId" value="WetTask"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
             </field>
@@ -99,10 +85,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
-            <field name="estimatedCompletionDate">
-                <header-field title="Due" show-order-by="true"><date-period/></header-field>
-                <default-field><display format="yyyy-MM-dd"/></default-field>
-            </field>
+            <field name="estimatedCompletionDate"><header-field title="Due" show-order-by="true"><date-period/></header-field>
+                <default-field><display format="yyyy-MM-dd"/></default-field></field>
             <field name="estimatedWorkTime"><default-field title="Est"><display format="0.00"/></default-field></field>
             <field name="remainingWorkTime"><default-field title="Rem"><display format="0.00"/></default-field></field>
             <field name="actualWorkTime"><default-field title="Act"><display format="0.00"/></default-field></field>
