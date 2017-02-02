@@ -14,6 +14,15 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd">
 
+    <transition name="getProjectParties">
+        <actions>
+            <service-call name="mantle.work.ProjectServices.get#ProjectParties" out-map="context"
+                    in-map="[rootWorkEffortId:workEffortId, addOptional:'false']"/>
+            <script>ec.web.sendJsonResponse(resultList)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
     <transition name="getTaskList">
         <parameter name="term"/>
         <parameter name="rootWorkEffortId"/>
@@ -47,6 +56,49 @@ along with this software (see the LICENSE.md file). If not, see
                     ec.web.sendJsonResponse(outList)
                 </script>
             </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <transition name="getOpenClientInvoicesByProject">
+        <actions>
+            <entity-find entity-name="mantle.work.effort.WorkEffortParty" list="billToList">
+                <date-filter/><econdition field-name="workEffortId"/>
+                <econdition field-name="roleTypeId" value="CustomerBillTo"/>
+            </entity-find>
+            <set field="billToWep" from="billToList ? billToList[0] : null"/>
+            <entity-find entity-name="mantle.work.effort.WorkEffortParty" list="billFromList">
+                <date-filter/><econdition field-name="workEffortId"/>
+                <econdition field-name="roleTypeId" value="VendorBillFrom"/>
+            </entity-find>
+            <set field="billFromWep" from="billFromList ? billFromList[0] : null"/>
+
+            <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
+                <econdition field-name="invoiceTypeEnumId" value="InvoiceSales"/>
+                <econdition field-name="statusId" value="InvoiceInProcess"/>
+                <econdition field-name="toPartyId" from="billToWep?.partyId" ignore-if-empty="true"/>
+                <econdition field-name="fromPartyId" from="billFromWep?.partyId" ignore-if-empty="true"/>
+            </entity-find>
+            <set field="resultList" from="[[invoiceId:'', label:'New']]"/>
+            <iterate list="invoiceList" entry="invoice">
+                <script>resultList.add([invoiceId:invoice.invoiceId, label:"#${invoice.invoiceId}: ${invoice.invoiceDate}"])</script>
+            </iterate>
+            <script>ec.web.sendJsonResponse(resultList)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="getOpenVendorInvoicesByFromParty">
+        <actions>
+            <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
+                <econdition field-name="invoiceTypeEnumId" value="InvoiceSales"/>
+                <econdition field-name="statusId" operator="in" value="InvoiceIncoming,InvoiceReceived"/>
+                <econdition field-name="fromPartyId" from="workerPartyId"/>
+            </entity-find>
+            <set field="resultList" from="[[invoiceId:'', label:'New']]"/>
+            <iterate list="invoiceList" entry="invoice">
+                <script>resultList.add([invoiceId:invoice.invoiceId, label:"#${invoice.invoiceId}: ${invoice.invoiceDate}"])</script>
+            </iterate>
+            <script>ec.web.sendJsonResponse(resultList)</script>
         </actions>
         <default-response type="none"/>
     </transition>
