@@ -117,7 +117,7 @@
             <#if headerImagePath?has_content && storeDomain?has_content><tr><td align="center" valign="top">
                 <table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateHeader"><tr width="100%"><td valign="top" class="headerContent" align="center" width="100%">
                     <#-- http://gallery.mailchimp.com/2425ea8ad3/images/header_placeholder_600px.png -->
-                    <img src="http://${storeDomain}/${headerImagePath}" style="max-width:600px;" id="headerImage"/>
+                    <img src="http://${storeDomain}/${headerImagePath}" alt="Header" title="Header" style="display:block;max-width:600px;" id="headerImage"/>
                 </td></tr></table>
             </td></tr></#if>
             <#-- BODY -->
@@ -167,6 +167,6 @@
         </table>
     </td></tr></table>
     <#if emailMessageId?has_content && storeDomain?has_content>
-        <img src="http://${storeDomain}/email/${emailMessageId}.png" alt="" width="1" height="1" border="0"/></#if>
+        <img src="http://${storeDomain}/email/${emailMessageId}.png" alt="Email" title="Email" style="display:block;" width="1" height="1" border="0"/></#if>
 </center></body>
 </html>
