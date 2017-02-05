@@ -16,10 +16,17 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="orderId"/>
     <actions>
         <service-call name="mantle.order.OrderServices.get#OrderDisplayInfo" in-map="[orderId:orderId]" out-map="context"/>
+
+        <!-- EmailLayout.html.ftl fields: subject (in context), preHeaderContent, headerImageUrl, bodyContent or bodyContentLocation, fromName (in context), footerContent -->
+        <if condition="sri.renderMode == 'html'">
+            <set field="preHeaderContent" value="Thank you for your order"/>
+            <set field="bodyContentLocation" value="component://SimpleScreens/screen/email/OrderPlacedBody.html.ftl"/>
+        </if>
     </actions>
     <widgets>
-        <render-mode><text type="html"><![CDATA[<html><body>]]></text></render-mode>
-        <container><label text="Order ${orderId} Placed" type="h2"/></container>
-        <render-mode><text type="html"><![CDATA[</body></html>]]></text></render-mode>
+        <render-mode>
+            <text type="html" location="component://SimpleScreens/screen/email/EmailLayout.html.ftl"/>
+            <text type="text" location="component://SimpleScreens/screen/email/OrderPlaced.text.ftl"/>
+        </render-mode>
     </widgets>
 </screen>
