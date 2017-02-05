@@ -560,14 +560,14 @@ along with this software (see the LICENSE.md file). If not, see
                             <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
                         </default-field></field>
                         <!-- <field name="itemDescription"><default-field><text-line size="60"/></default-field></field> -->
-                        <field name="itemTypeEnumId"><default-field title="Item Type">
+                        <field name="itemTypeEnumId" from="null"><conditional-field condition="orderPartInfo.isCustomerInternalOrg" title="Item Type">
                             <drop-down no-current-selected-key="ItemInventory">
-                                <option key="ItemProduct" text="Sales - Product"/>
+                                <!-- <option key="ItemProduct" text="Sales - Product"/> -->
                                 <option key="ItemInventory" text="Inventory"/>
                                 <option key="ItemAsset" text="Fixed Asset"/>
                                 <option key="ItemExpSupplies" text="Expense - Supplies"/>
                             </drop-down>
-                        </default-field></field>
+                        </conditional-field><default-field><hidden default-value="ItemProduct"/></default-field></field>
                         <field name="quantity"><default-field><text-line size="8"/></default-field></field>
                         <field name="unitAmount"><default-field title="Price"><text-line size="10"/></default-field></field>
                         <field name="requiredByDate" from="orderPartInfo.orderPart.shipBeforeDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
@@ -585,18 +585,26 @@ along with this software (see the LICENSE.md file). If not, see
                                 <list-options list="orderPartInfo.partNoParentOrderItemList" key="${orderItemSeqId}" text="${orderItemSeqId} - ${itemDescription}"/>
                             </drop-down>
                         </default-field></field>
-                        <field name="itemTypeEnumId"><default-field title="Item Type">
+                        <field name="itemTypeEnumId"><conditional-field condition="orderPartInfo.isCustomerInternalOrg" title="Item Type">
                             <drop-down no-current-selected-key="ItemExpense">
                                 <entity-options key="${enumId}" text="${description}">
                                     <entity-find entity-name="moqui.basic.Enumeration">
-                                        <!-- TODO: based on order type (vendor org internal?) or in separate dialogs limit item types -->
-                                        <econdition field-name="parentEnumId" operator="in" value="ItemPurchase,ItemExpense,ItemSales"/>
+                                        <econdition field-name="parentEnumId" operator="in" value="ItemPurchase,ItemExpense"/>
+                                        <order-by field-name="description"/>
+                                    </entity-find>
+                                </entity-options>
+                            </drop-down>
+                        </conditional-field><default-field title="Item Type">
+                            <drop-down no-current-selected-key="ItemShipping">
+                                <entity-options key="${enumId}" text="${description}">
+                                    <entity-find entity-name="moqui.basic.Enumeration">
+                                        <econdition field-name="parentEnumId" value="ItemSales"/>
                                         <order-by field-name="description"/>
                                     </entity-find>
                                 </entity-options>
                             </drop-down>
                         </default-field></field>
-                        <field name="itemDescription"><default-field><text-line size="60"/></default-field></field>
+                        <field name="itemDescription"><default-field title="Description"><text-line size="60"/></default-field></field>
                         <field name="quantity"><default-field><text-line size="8" default-value="1"/></default-field></field>
                         <field name="unitAmount"><default-field title="Price"><text-line size="10"/></default-field></field>
                         <field name="requiredByDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
@@ -718,6 +726,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field><display/></default-field></field>
                 <field name="requiredByDate"><conditional-field condition="orderPartInfo.partEditable"><date-time/></conditional-field>
                     <default-field><display/></default-field></field>
+
+                <field name="unitListPrice"><default-field title="List Price">
+                    <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
                 <field name="unitAmount">
                     <conditional-field condition="orderPartInfo.partEditable" title="Price">
                         <text-line size="8" format="#0.00"/></conditional-field>
@@ -814,7 +825,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="productId"/><field-ref name="productLink"/>
                     <field-ref name="otherPartyProductId"/></form-list-column>
                 <form-list-column><field-ref name="itemDescription"/><field-ref name="comments"/><field-ref name="requiredByDate"/></form-list-column>
-                <form-list-column><field-ref name="unitAmount"/><field-ref name="unitAmountHist"/>
+                <form-list-column><field-ref name="unitListPrice"/><field-ref name="unitAmount"/><field-ref name="unitAmountHist"/>
                     <field-ref name="quantity"/><field-ref name="quantity_changeReason"/><field-ref name="quantityHist"/></form-list-column>
                 <form-list-column><field-ref name="notShippedBilled"/><field-ref name="assetReservations"/></form-list-column>
                 <form-list-column><field-ref name="itemTotal"/><field-ref name="itemPlusChildrenTotal"/></form-list-column>
