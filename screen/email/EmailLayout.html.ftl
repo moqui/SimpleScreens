@@ -117,7 +117,7 @@
             <#if headerImagePath?has_content && storeDomain?has_content><tr><td align="center" valign="top">
                 <table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateHeader"><tr width="100%"><td valign="top" class="headerContent" align="center" width="100%">
                     <#-- http://gallery.mailchimp.com/2425ea8ad3/images/header_placeholder_600px.png -->
-                    <img src="http://${storeDomain}/${headerImagePath}" alt="Header" title="Header" style="display:block;max-width:600px;" id="headerImage"/>
+                    <img src="<#if headerImagePath?starts_with("http")>${headerImagePath}<#else>http://${storeDomain}/${headerImagePath}</#if>" alt="Header" title="Header" style="display:block;max-width:600px;" id="headerImage"/>
                 </td></tr></table>
             </td></tr></#if>
             <#-- BODY -->
@@ -159,7 +159,7 @@
                     <#if profileUrlPath?has_content && storeDomain?has_content>
                         <tr width="100%"><td valign="top" class="footerContent" style="padding-top:0; padding-bottom:40px;" align="center" width="100%">
                             <#--<a href="*|UNSUB|*">unsubscribe from this list</a>&nbsp;&nbsp;&nbsp;-->
-                            <a href="http://${storeDomain}/${profileUrlPath}">Profile and Preferences</a>&nbsp;
+                            <a href="<#if profileUrlPath?starts_with("http")>${profileUrlPath}<#else>http://${storeDomain}/${profileUrlPath}</#if>">Profile and Preferences</a>
                         </td></tr>
                     </#if>
                 </table>

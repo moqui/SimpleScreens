@@ -5,7 +5,7 @@
     <table border="0" cellpadding="8px" cellspacing="0" width="100%"><tr>
         <td width="50%">
             <#if detailLinkPath?has_content>
-                <h2><a href="http://${storeDomain}/${detailLinkPath}?orderId=${orderId}">Order ${orderId} Part ${orderPart.orderPartSeqId}</a></h2>
+                <h2><a href="<#if detailLinkPath?starts_with("http")>${detailLinkPath}<#else>http://${storeDomain}/${detailLinkPath}</#if>?orderId=${orderId}">Order ${orderId} Part ${orderPart.orderPartSeqId}</a></h2>
             <#else>
                 <h2>Order ${orderId} Part ${orderPart.orderPartSeqId}</h2>
             </#if>
