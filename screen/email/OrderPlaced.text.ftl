@@ -1,13 +1,20 @@
 <#list orderPartInfoList as orderPartInfo><#assign orderPart = orderPartInfo.orderPart><#assign contactInfo = orderPartInfo>
+
 Order ${orderId} Part ${orderPart.orderPartSeqId}
 Total ${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId)}
 Placed on ${ec.l10n.format(orderHeader.placedDate, "dd MMM yyyy")}
+Placed by ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}
 
 <#if orderPartInfo.shipmentMethodEnum?has_content>
 Ship By ${orderPartInfo.shipmentMethodEnum.description}
 </#if>
-${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}
 <#if contactInfo.postalAddress?has_content>
+    <#if contactInfo.postalAddress.toName?has_content || contactInfo.postalAddress.attnName?has_content>
+<#if contactInfo.postalAddress.toName?has_content>To: ${contactInfo.postalAddress.toName}</#if>
+<#if contactInfo.postalAddress.attnName?has_content>Attn: ${contactInfo.postalAddress.attnName}</#if>
+    <#else>
+${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}
+    </#if>
 ${(contactInfo.postalAddress.address1)!""}<#if contactInfo.postalAddress.unitNumber?has_content> #${contactInfo.postalAddress.unitNumber}</#if><#if contactInfo.postalAddress.address2?has_content>
 ${contactInfo.postalAddress.address2}</#if>
 ${contactInfo.postalAddress.city!""}, ${(contactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${contactInfo.postalAddress.postalCode!""}<#if contactInfo.postalAddress.postalCodeExt?has_content>-${contactInfo.postalAddress.postalCodeExt}</#if><#if contactInfo.postalAddress.countryGeoId?has_content> ${contactInfo.postalAddress.countryGeoId}</#if>

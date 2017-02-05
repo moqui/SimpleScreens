@@ -49,12 +49,12 @@
         .preheaderContent a:link, .preheaderContent a:visited, <#-- Yahoo! Mail Override --> .preheaderContent a .yshortcuts <#-- Yahoo! Mail Override -->{
             color:#606060;font-weight:normal;text-decoration:underline;}
         </#if>
-        <#if headerImageUrl?has_content>
+        <#if headerImagePath?has_content>
         #templateHeader{background-color:#F4F4F4;border-top:1px solid #FFFFFF;border-bottom:1px solid #CCCCCC;}
         .headerContent{color:#505050;font-family:Helvetica;font-size:20px;font-weight:bold;line-height:100%;
-            padding-top:0;padding-right:0;padding-bottom:0;padding-left:0;text-align:left;vertical-align:middle;}
+            padding-top:0;padding-right:0;padding-bottom:0;padding-left:0;text-align:center;vertical-align:middle;}
         .headerContent a:link, .headerContent a:visited, <#-- Yahoo! Mail Override --> .headerContent a .yshortcuts <#-- Yahoo! Mail Override -->{
-            color:#EB4102;font-weight:normal;text-decoration:underline; }
+            color:#428BCA;font-weight:normal;text-decoration:underline; }
         #headerImage{height:auto;max-width:600px;}
         </#if>
         <#-- ========== Body Styles ========== -->
@@ -62,12 +62,12 @@
         .bodyContent{color:#505050;font-family:Helvetica;font-size:14px;line-height:150%;
             padding-top:20px;padding-right:20px;padding-bottom:20px;padding-left:20px;text-align:left; }
         .bodyContent a:link, .bodyContent a:visited, <#-- Yahoo! Mail Override --> .bodyContent a .yshortcuts <#-- Yahoo! Mail Override -->{
-            color:#EB4102;font-weight:normal;text-decoration:underline;}
+            color:#428BCA;font-weight:normal;text-decoration:underline;}
         .bodyContent img{display:inline;height:auto;max-width:560px;}
         <#-- ========== Footer Styles ========== -->
         #templateFooter{background-color:#F4F4F4;border-top:1px solid #FFFFFF;}
         .footerContent{color:#808080;font-family:Helvetica;font-size:10px;line-height:150%;
-            padding-top:20px;padding-right:20px;padding-bottom:20px;padding-left:20px;text-align:left;}
+            padding-top:20px;padding-right:20px;padding-bottom:20px;padding-left:20px;text-align:center;}
         .footerContent a:link, .footerContent a:visited, <#-- Yahoo! Mail Override --> .footerContent a .yshortcuts, .footerContent a span <#-- Yahoo! Mail Override -->{
             color:#606060;font-weight:normal;text-decoration:underline;}
 
@@ -114,10 +114,10 @@
                 </tr></table>
             </td></tr></#if>
             <#-- HEADER -->
-            <#if headerImageUrl?has_content><tr><td align="center" valign="top">
-                <table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateHeader"><tr><td valign="top" class="headerContent">
+            <#if headerImagePath?has_content && storeDomain?has_content><tr><td align="center" valign="top">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateHeader"><tr width="100%"><td valign="top" class="headerContent" align="center" width="100%">
                     <#-- http://gallery.mailchimp.com/2425ea8ad3/images/header_placeholder_600px.png -->
-                    <img src="${headerImageUrl}" style="max-width:600px;" id="headerImage"/>
+                    <img src="http://${storeDomain}/${headerImagePath}" style="max-width:600px;" id="headerImage"/>
                 </td></tr></table>
             </td></tr></#if>
             <#-- BODY -->
@@ -140,29 +140,33 @@
             <#-- FOOTER -->
             <tr><td align="center" valign="top">
                 <table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateFooter">
+                    <tr width="100%"><td valign="top" class="footerContent" style="padding-top:0;" width="100%">
+                        <#if footerContent?has_content>${footerContent}</#if>
+                        <#if footerContentLocation?has_content>${sri.renderText(footerContentLocation, "true")}</#if>
+                    </td></tr>
                     <#--
                     <tr><td valign="top" class="footerContent">
                         <a href="*|TWITTER:PROFILEURL|*">Follow on Twitter</a>&nbsp;&nbsp;&nbsp;<a href="*|FACEBOOK:PROFILEURL|*">Friend on Facebook</a>&nbsp;&nbsp;&nbsp;<a href="*|FORWARD|*">Forward to Friend</a>&nbsp;
                     </td></tr>
-                    -->
-                    <tr><td valign="top" class="footerContent" style="padding-top:0;">
+                    <tr><td valign="top" class="footerContent" style="padding-top:0; padding-bottom:40px;">
                         <#if fromName?has_content>
                         <em>Copyright &copy; ${ec.l10n.format(ec.user.nowTimestamp, 'yyyy')} ${fromName}, All rights reserved.</em>
                         <br />
                         <br />
                         </#if>
-                        ${footerContent!''}
                     </td></tr>
-                    <#--
-                    <tr>
-                        <td valign="top" class="footerContent" style="padding-top:0; padding-bottom:40px;">
-                            <a href="*|UNSUB|*">unsubscribe from this list</a>&nbsp;&nbsp;&nbsp;<a href="*|UPDATE_PROFILE|*">update subscription preferences</a>&nbsp;
-                        </td>
-                    </tr>
                     -->
+                    <#if profileUrlPath?has_content && storeDomain?has_content>
+                        <tr width="100%"><td valign="top" class="footerContent" style="padding-top:0; padding-bottom:40px;" align="center" width="100%">
+                            <#--<a href="*|UNSUB|*">unsubscribe from this list</a>&nbsp;&nbsp;&nbsp;-->
+                            <a href="http://${storeDomain}/${profileUrlPath}">Profile and Preferences</a>&nbsp;
+                        </td></tr>
+                    </#if>
                 </table>
             </td></tr>
         </table>
     </td></tr></table>
+    <#if emailMessageId?has_content && storeDomain?has_content>
+        <img src="http://${storeDomain}/email/${emailMessageId}.png" alt="" width="1" height="1" border="0"/></#if>
 </center></body>
 </html>
