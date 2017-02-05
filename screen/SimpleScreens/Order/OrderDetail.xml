@@ -119,7 +119,13 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Order #${orderId}" type="h3"/>
 
                 <section name="OpenSection" condition="orderHeader.statusId == 'OrderOpen'"><widgets>
-                    <link url="placeOrder" text="Place Order" link-type="hidden-form"/>
+                    <link url="placeOrder" text="Place Order" link-type="hidden-form" condition="!placeWarnings"/>
+                    <container-dialog id="PlaceOrderDialog" button-text="Place Order" condition="placeWarnings">
+                        <section-iterate name="PlaceWarningsSection" list="placeWarnings" entry="placeWarning"><widgets>
+                            <label text="${placeWarning}" type="p"/>
+                        </widgets></section-iterate>
+                        <link url="placeOrder" text="Place Order" link-type="hidden-form"/>
+                    </container-dialog>
 
                     <container-dialog id="AddPartDialog" button-text="Add Part">
                         <form-single name="AddPartForm" transition="createOrderPart">
@@ -280,11 +286,11 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="customerShipToPartyId" from="orderPartInfo.customerShipToDetail?.partyId"/>
 
             <set field="shippingPostalAddressList" from="[]"/>
-            <if condition="customerPartyId"><then>
+            <if condition="customerPartyId">
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="customerShippingInfo"
                         in-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
                 <set field="shippingPostalAddressList" from="customerShippingInfo.postalAddressList ?: []"/>
-            </then></if>
+            </if>
             <if condition="customerShipToPartyId">
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="shipToShippingInfo"
                         in-map="[partyId:customerShipToPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
@@ -438,9 +444,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </container>
                 <container style="col-lg-6">
                     <section name="PaymentInfoSection"><widgets>
-                        <section name="PaymentNotEnoughSection" condition="orderPartInfo.paymentsTotal &lt; orderPartInfo.orderPart.partTotal"><widgets>
-                            <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0, orderHeader?.currencyUomId)}) is less than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)})" style="text-danger" type="p"/>
-                        </widgets></section>
+                        <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0.0, orderHeader?.currencyUomId)}) is less than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0.0, orderHeader?.currencyUomId)})"
+                                style="text-danger" type="p" condition="orderPartInfo.paymentsTotal &lt; orderPartInfo.orderPart.partTotal"/>
+                        <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0.0, orderHeader?.currencyUomId)}) is greater than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0.0, orderHeader?.currencyUomId)})"
+                                style="text-warning" type="p" condition="(orderPartInfo.paymentsTotal?:0.0) &gt; (orderPartInfo.orderPart.partTotal?:0.0)"/>
                         <container-dialog id="AddPaymentInfo" button-text="Add Payment" condition="orderPartInfo.partEditable">
                             <form-single name="AddPaymentForm" transition="addOrderPartPayment" focus-field="paymentInstrumentEnumId">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
@@ -491,6 +498,8 @@ along with this software (see the LICENSE.md file). If not, see
                                 width="800" condition="orderPartInfo.partEditable"
                                 parameter-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest', orderId:orderId]"/>
                     </box-toolbar><box-body>
+                        <label text="No shipping address selected" style="text-danger" type="p"
+                                condition="!orderPartInfo.isCustomerInternalOrg &amp;&amp; !orderPart.postalContactMechId"/>
                         <container style="float-box" type="ul">
                             <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="postalAddressInfo"><actions>
                                 <set field="contactInfo" from="postalAddressInfo"/>
@@ -508,6 +517,8 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container>
                             </widgets></section-iterate>
                         </container>
+                        <label text="No shipment method selected" style="text-warning" type="p"
+                                condition="!orderPartInfo.isCustomerInternalOrg &amp;&amp; !orderPart.shipmentMethodEnumId"/>
                         <form-single name="SetOrderInfoForm" transition="setOrderBillingShippingInfo">
                             <field name="orderId"><default-field><hidden/></default-field></field>
                             <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId">
