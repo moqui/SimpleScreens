@@ -13,7 +13,7 @@ Ship By ${orderPartInfo.shipmentMethodEnum.description}
 <#if contactInfo.postalAddress.toName?has_content>To: ${contactInfo.postalAddress.toName}</#if>
 <#if contactInfo.postalAddress.attnName?has_content>Attn: ${contactInfo.postalAddress.attnName}</#if>
     <#else>
-${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}
+${(orderPartInfo.customerDetail.organizationName)!""}${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}
     </#if>
 ${(contactInfo.postalAddress.address1)!""}<#if contactInfo.postalAddress.unitNumber?has_content> #${contactInfo.postalAddress.unitNumber}</#if><#if contactInfo.postalAddress.address2?has_content>
 ${contactInfo.postalAddress.address2}</#if>

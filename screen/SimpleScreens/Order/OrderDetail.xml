@@ -296,7 +296,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </container-dialog>
                         </widgets></section>
                     </box-toolbar><box-body>
-                        <form-list name="EmailMesssageList" list="emailMessageList" skip-form="true">
+                        <form-list name="EmailMessageList" list="emailMessageList" skip-form="true">
                             <entity-find entity-name="mantle.order.OrderEmailMessageDetail" list="emailMessageList">
                                 <econdition field-name="orderId"/><order-by field-name="sentDate,emailMessageId"/></entity-find>
                             <field name="emailMessageId"><default-field title="ID"><display/></default-field></field>
@@ -554,29 +554,32 @@ along with this software (see the LICENSE.md file). If not, see
                         </container>
                         <label text="No shipment method selected" style="text-warning" type="p"
                                 condition="!orderPartInfo.isCustomerInternalOrg &amp;&amp; !orderPart.shipmentMethodEnumId"/>
-                        <form-single name="SetOrderInfoForm" transition="setOrderBillingShippingInfo">
+                        <form-single name="SetOrderInfoForm" transition="setOrderBillingShippingInfo" map="orderPartInfo.orderPart">
                             <field name="orderId"><default-field><hidden/></default-field></field>
-                            <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId">
-                                <default-field><hidden/></default-field></field>
+                            <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
                             <field name="paymentMethodId"><default-field><hidden/></default-field></field>
                             <field name="shippingPostalContactMechId"><default-field><hidden/></default-field></field>
                             <field name="shippingTelecomContactMechId"><default-field><hidden/></default-field></field>
 
-                            <field name="carrierAndShipmentMethod"><conditional-field title="Shipment Method" condition="shippingOptions">
-                                <drop-down no-current-selected-key="${orderPart.carrierPartyId ? orderPart.carrierPartyId + ':' + orderPart.shipmentMethodEnumId : ''}">
-                                    <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
-                                                  text="${carrierPartyId == '_NA_' ? '' : (carrierName + ' - ') }${shipmentMethodDescription} ${shippingTotal != null ? ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
-                                </drop-down>
-                            </conditional-field><default-field><ignored/></default-field></field>
+                            <field name="carrierAndShipmentMethod">
+                                <conditional-field title="Shipment Method" condition="shippingOptions &amp;&amp; orderPartInfo.partEditable">
+                                    <drop-down no-current-selected-key="${orderPart.carrierPartyId ? orderPart.carrierPartyId + ':' + orderPart.shipmentMethodEnumId : ''}">
+                                        <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
+                                                      text="${carrierPartyId == '_NA_' ? '' : (carrierName + ' - ') }${shipmentMethodDescription} ${shippingTotal != null ? ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
+                                    </drop-down>
+                                </conditional-field>
+                                <default-field><ignored/></default-field>
+                            </field>
                             <field name="shipmentMethodEnumId">
                                 <conditional-field title="Shipment Method" condition="!shippingOptions &amp;&amp; orderPartInfo.partEditable">
                                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                                         <set field="enumTypeId" value="ShipmentMethod"/><set field="allowEmpty" value="true"/>
                                         <set field="style" value=" "/></widget-template-include>
                                 </conditional-field>
-                                <conditional-field title="Shipment Method" condition="!shippingOptions">
+                                <conditional-field title="Shipment Method" condition="!orderPartInfo.partEditable">
                                     <display-entity entity-name="moqui.basic.Enumeration"/></conditional-field>
-                                <default-field><ignored/></default-field></field>
+                                <default-field><ignored/></default-field>
+                            </field>
                             <field name="submitButton">
                                 <conditional-field condition="orderPartInfo.partEditable" title="Set Shipping Address and Info">
                                     <submit/></conditional-field>

@@ -26,20 +26,20 @@
         #bodyCell{border-top:4px solid #BBBBBB;}
         #templateContainer{border:1px solid #BBBBBB;}
         h1{color:#202020 !important;display:block;
-            font-family:Helvetica;font-size:26px;font-style:normal;font-weight:bold;line-height:100%;letter-spacing:normal;
-            margin-top:0;margin-right:0;margin-bottom:10px;margin-left:0;text-align:left;
+            font-family:Helvetica;font-size:20px;font-style:normal;font-weight:bold;line-height:100%;letter-spacing:normal;
+            margin-top:8px;margin-right:0;margin-bottom:8px;margin-left:0;text-align:left;
         }
         h2{color:#404040 !important;display:block;
-            font-family:Helvetica;font-size:20px;font-style:normal;font-weight:bold;line-height:100%;letter-spacing:normal;
-            margin-top:0;margin-right:0;margin-bottom:10px;margin-left:0;text-align:left;
+            font-family:Helvetica;font-size:18px;font-style:normal;font-weight:bold;line-height:100%;letter-spacing:normal;
+            margin-top:6px;margin-right:0;margin-bottom:6px;margin-left:0;text-align:left;
         }
         h3{color:#606060 !important;display:block;
             font-family:Helvetica;font-size:16px;font-style:italic;font-weight:normal;line-height:100%;letter-spacing:normal;
-            margin-top:0;margin-right:0;margin-bottom:10px;margin-left:0;text-align:left;
+            margin-top:4px;margin-right:0;margin-bottom:4px;margin-left:0;text-align:left;
         }
         h4{color:#808080 !important;display:block;
             font-family:Helvetica;font-size:14px;font-style:italic;font-weight:normal;line-height:100%;letter-spacing:normal;
-            margin-top:0;margin-right:0;margin-bottom:10px;margin-left:0;text-align:left;
+            margin-top:4px;margin-right:0;margin-bottom:4px;margin-left:0;text-align:left;
         }
 
         <#-- ========== Header Styles ========== -->
@@ -140,7 +140,7 @@
             <#-- FOOTER -->
             <tr><td align="center" valign="top">
                 <table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateFooter">
-                    <tr width="100%"><td valign="top" class="footerContent" style="padding-top:0;" width="100%">
+                    <tr width="100%"><td valign="top" class="footerContent" style="padding-top:20px;" width="100%">
                         <#if footerContent?has_content>${footerContent}</#if>
                         <#if footerContentLocation?has_content>${sri.renderText(footerContentLocation, "true")}</#if>
                     </td></tr>

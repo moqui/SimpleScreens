@@ -5,24 +5,22 @@
     <table border="0" cellpadding="8px" cellspacing="0" width="100%"><tr>
         <td width="50%">
             <#if detailLinkPath?has_content>
-                <h2><a href="<#if detailLinkPath?starts_with("http")>${detailLinkPath}<#else>http://${storeDomain}/${detailLinkPath}</#if>?orderId=${orderId}">Order ${orderId} Part ${orderPart.orderPartSeqId}</a></h2>
+                <h1><a href="<#if detailLinkPath?starts_with("http")>${detailLinkPath}<#else>http://${storeDomain}/${detailLinkPath}</#if>?orderId=${orderId}">Order ${orderId} Part ${orderPart.orderPartSeqId}</a></h1>
             <#else>
-                <h2>Order ${orderId} Part ${orderPart.orderPartSeqId}</h2>
+                <h1>Order ${orderId} Part ${orderPart.orderPartSeqId}</h1>
             </#if>
             <h3>Total ${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId)}</h3>
             <h3>Placed on ${ec.l10n.format(orderHeader.placedDate, "dd MMM yyyy")}</h3>
             <h3>Placed by ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</h3>
         </td>
         <td width="50%">
-            <#if orderPartInfo.shipmentMethodEnum?has_content>
-                <strong>Ship By</strong> ${orderPartInfo.shipmentMethodEnum.description}<br/>
-            </#if>
+            <#if orderPartInfo.shipmentMethodEnum?has_content><strong>Ship By</strong> ${orderPartInfo.shipmentMethodEnum.description}<br/></#if>
             <#if contactInfo.postalAddress?has_content>
                 <#if contactInfo.postalAddress.toName?has_content || contactInfo.postalAddress.attnName?has_content>
                     <#if contactInfo.postalAddress.toName?has_content><strong>To: ${contactInfo.postalAddress.toName}</strong><br/></#if>
                     <#if contactInfo.postalAddress.attnName?has_content><strong>Attn: ${contactInfo.postalAddress.attnName}</strong><br/></#if>
                 <#else>
-                    <strong>${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</strong><br/>
+                    <strong>${(orderPartInfo.customerDetail.organizationName)!""} ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</strong><br/>
                 </#if>
                 ${(contactInfo.postalAddress.address1)!""}<#if contactInfo.postalAddress.unitNumber?has_content> #${contactInfo.postalAddress.unitNumber}</#if><br/>
                 <#if contactInfo.postalAddress.address2?has_content>${contactInfo.postalAddress.address2}<br/></#if>

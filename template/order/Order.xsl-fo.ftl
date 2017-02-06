@@ -101,13 +101,13 @@ along with this software (see the LICENSE.md file). If not, see
                         </fo:table-cell>
                         <fo:table-cell padding="3pt" font-size="10pt" width="3.5in">
                             <fo:block font-weight="bold">Ship To</fo:block>
-                            <#if contactInfo.postalAddress.toName?has_content || contactInfo.postalAddress.attnName?has_content>
-                                <#if contactInfo.postalAddress.toName?has_content><fo:block>To: ${contactInfo.postalAddress.toName}</fo:block></#if>
-                                <#if contactInfo.postalAddress.attnName?has_content><fo:block>Attn: ${contactInfo.postalAddress.attnName}</fo:block></#if>
-                            <#else>
-                                <fo:block>${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</fo:block>
-                            </#if>
                             <#if contactInfo.postalAddress?has_content>
+                                <#if contactInfo.postalAddress.toName?has_content || contactInfo.postalAddress.attnName?has_content>
+                                    <#if contactInfo.postalAddress.toName?has_content><fo:block font-weight="bold">To: ${contactInfo.postalAddress.toName}</fo:block></#if>
+                                    <#if contactInfo.postalAddress.attnName?has_content><fo:block font-weight="bold">Attn: ${contactInfo.postalAddress.attnName}</fo:block></#if>
+                                <#else>
+                                    <fo:block font-weight="bold">${(orderPartInfo.customerDetail.organizationName)!""} ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</fo:block>
+                                </#if>
                                 <fo:block>${(contactInfo.postalAddress.address1)!""}<#if contactInfo.postalAddress.unitNumber?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block>
                                 <#if contactInfo.postalAddress.address2?has_content><fo:block>${contactInfo.postalAddress.address2}</fo:block></#if>
                                 <fo:block>${contactInfo.postalAddress.city!""}, ${(contactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${contactInfo.postalAddress.postalCode!""}<#if contactInfo.postalAddress.postalCodeExt?has_content>-${contactInfo.postalAddress.postalCodeExt}</#if><#if contactInfo.postalAddress.countryGeoId?has_content> ${contactInfo.postalAddress.countryGeoId}</#if></fo:block>

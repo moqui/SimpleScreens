@@ -122,8 +122,13 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="3in">
                         <fo:block font-weight="bold">To</fo:block>
-                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toPartyDetail.organizationName!"", true))!""} ${(toPartyDetail.firstName)!""} ${(toPartyDetail.lastName)!""}</fo:block>
                         <#if toContactInfo.postalAddress?has_content>
+                            <#if toContactInfo.postalAddress.toName?has_content || toContactInfo.postalAddress.attnName?has_content>
+                                <#if toContactInfo.postalAddress.toName?has_content><fo:block font-weight="bold">To: ${toContactInfo.postalAddress.toName}</fo:block></#if>
+                                <#if toContactInfo.postalAddress.attnName?has_content><fo:block font-weight="bold">Attn: ${toContactInfo.postalAddress.attnName}</fo:block></#if>
+                            <#else>
+                                <fo:block font-weight="bold">${(toPartyDetail.organizationName)!""} ${(toPartyDetail.firstName)!""} ${(toPartyDetail.middleName)!""} ${(toPartyDetail.lastName)!""}</fo:block>
+                            </#if>
                             <fo:block>${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
                             <#if toContactInfo.postalAddress.address2?has_content><fo:block>${toContactInfo.postalAddress.address2}</fo:block></#if>
                             <fo:block>${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>

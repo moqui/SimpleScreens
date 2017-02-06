@@ -41,6 +41,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/>
     </transition>
 
+    <transition name="sendShipmentStoreEmail"><service-call name="mantle.shipment.ShipmentServices.send#ShipmentStoreEmail"/>
+        <default-response url="."/></transition>
     <transition name="orderDetail"><default-response url="//PopcAdmin/Order/OrderDetail"/></transition>
     <transition name="editInvoice"><default-response url="//PopcAdmin/Accounting/EditInvoice"/></transition>
     <transition name="assetDetail"><default-response url="//PopcAdmin/Asset/AssetDetail"/></transition>
@@ -115,7 +117,7 @@ along with this software (see the LICENSE.md file). If not, see
         </else></if>
     </actions>
     <widgets>
-        <container-row><row-col md="7">
+        <container-row><row-col md="6">
             <label text="Shipment #${shipmentId}" type="h3"/>
 
             <!-- Links -->
@@ -172,12 +174,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
-                <section name="ShipPackedIncomingOrOutgoingSection" condition="isIncoming"><widgets>
+                <section name="ShipShippedIncomingOrOutgoingSection" condition="isIncoming"><widgets>
                     <link url="deliverShipment" text="Set Delivered" link-type="hidden-form" condition="anyReceived"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment" link-type="hidden-form" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
-                    <link url="shipShipment" text="Set Shipped" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="deliverShipment" text="Set Delivered" link-type="hidden-form"><parameter name="shipmentId"/></link>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack PDF"/>
@@ -240,18 +241,18 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-single>
             </widgets><fail-widgets>
                 <section name="ShipmentDisplaySection" condition="isIncoming"><widgets>
-                    <label text="From: ${fromPartyDetail ? ec.resource.expand('PartyNameTemplate', '', fromPartyDetail) : 'Not Set'}" type="p"/>
-                    <label text="Destination Facility: ${lastRouteSegment.destinationFacilityName}" type="p"/>
-                    <label text="Status: ${statusItem.description}" type="p"/>
+                    <label text="From ${fromPartyDetail ? ec.resource.expand('PartyNameTemplate', '', fromPartyDetail) : 'Not Set'}" type="p"/>
+                    <label text="Destination Facility ${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" type="p"/>
+                    <label text="Status ${statusItem.description}" type="p"/>
                     <label text="Estimated arrival: ${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Unknown'}" type="p"/>
                 </widgets><fail-widgets>
-                    <label text="To: ${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}" type="p"/>
-                    <label text="Origin Facility: ${firstRouteSegment.originFacilityName}" type="p"/>
-                    <label text="Status: ${statusItem.description}" type="p"/>
-                    <label text="Estimated ready: ${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Unknown'}" type="p"/>
+                    <label text="To ${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}" type="p"/>
+                    <label text="Origin Facility ${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" type="p"/>
+                    <label text="Status ${statusItem.description}" type="p"/>
+                    <label text="Estimated ready: ${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="p"/>
                 </fail-widgets></section>
             </fail-widgets></section>
-        </row-col><row-col md="5">
+        </row-col><row-col md="6">
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
             <container-box><box-header><label text="Content" type="h5"/></box-header><box-toolbar>
@@ -286,6 +287,38 @@ along with this software (see the LICENSE.md file). If not, see
                     </container>
                 </widgets></section-iterate>
             </box-body></container-box>
+
+            <section name="EmailMessageSection"><widgets>
+                <container-box><box-header><label text="Email Messages" type="h5"/></box-header><box-toolbar>
+                    <section name="SendPlacedEmailSection" condition="shipment.statusId in ['ShipPacked', 'ShipShipped', 'ShipDelivered']"><actions>
+                        <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="emailInfo"
+                                in-map="[partyId:shipment.toPartyId, emailContactMechPurposeId:'EmailOrder', defaultToPrimaryPurpose:true]"/>
+                        <set field="toAddresses" from="emailInfo.emailAddress"/>
+                    </actions><widgets>
+                        <container-dialog id="SendPlacedEmailDialog" button-text="Send Email">
+                            <form-single name="SendPlacedEmailForm" transition="sendShipmentStoreEmail">
+                                <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                <field name="emailTypeEnumId" from="'PsetShipmentShipped'"><default-field><hidden/></default-field></field>
+                                <field name="toAddresses"><default-field title="To Address"><text-line size="40"/></default-field></field>
+                                <field name="submitButton"><default-field title="Send Email"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </widgets></section>
+                </box-toolbar><box-body>
+                    <form-list name="EmailMessageList" list="emailMessageList" skip-form="true">
+                        <entity-find entity-name="mantle.shipment.ShipmentEmailMessageDetail" list="emailMessageList">
+                            <econdition field-name="shipmentId"/><order-by field-name="sentDate,emailMessageId"/></entity-find>
+                        <field name="emailMessageId"><default-field title="ID"><display/></default-field></field>
+                        <field name="sentDate"><default-field><display/></default-field></field>
+                        <field name="toAddresses"><default-field><display/></default-field></field>
+                        <field name="statusId"><default-field title="Status">
+                            <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                        <field name="receivedDate"><default-field><display/></default-field></field>
+                        <field name="emailTypeEnumId"><default-field title="Email Type">
+                            <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                    </form-list>
+                </box-body></container-box>
+            </widgets></section>
         </row-col></container-row>
 
         <!-- Items -->
@@ -553,8 +586,8 @@ along with this software (see the LICENSE.md file). If not, see
                                 </default-field></field>
                                 <field name="weight"><default-field><text-line size="8"/></default-field></field>
                                 <field name="weightUomId"><default-field title="Weight UOM">
-                                    <drop-down allow-empty="true">
-                                        <entity-options key="${uomId}" text="${description} [${uomId}]">
+                                    <drop-down allow-empty="true" no-current-selected-key="WT_lb">
+                                        <entity-options key="${uomId}" text="${description}">
                                             <entity-find entity-name="moqui.basic.Uom">
                                                 <econdition field-name="uomTypeEnumId" value="UT_WEIGHT_MEASURE"/>
                                                 <order-by field-name="description"/></entity-find></entity-options>
