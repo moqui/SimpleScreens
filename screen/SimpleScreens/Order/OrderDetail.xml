@@ -58,7 +58,6 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editVendor"><default-response url="//PopcAdmin/Vendor/EditVendor"/></transition>
     <transition name="editSupplier"><default-response url="//PopcAdmin/Supplier/EditSupplier"/></transition>
     <transition name="editCustomer"><default-response url="//PopcAdmin/Customer/EditCustomer"/></transition>
-    <transition name="updateContactInfo"><default-response url="//PopcAdmin/Customer/EditCustomer/UpdateContactInfo"/></transition>
     <transition name="setOrderBillingShippingInfo"><service-call name="mantle.order.OrderServices.set#OrderBillingShippingInfo"/>
         <default-response url="."/></transition>
 
@@ -107,6 +106,9 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
     </transition>
 
+    <subscreens>
+        <subscreens-item name="UpdateContactInfo" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty/UpdateContactInfo.xml"/>
+    </subscreens>
     <actions>
         <service-call name="mantle.order.OrderServices.get#OrderDisplayInfo" in-map="[orderId:orderId]" out-map="context"/>
         <set field="firstPartInfo" from="orderPartInfoList[0]"/>
@@ -332,7 +334,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <script>shippingPostalAddressList.addAll(shipToShippingInfo.postalAddressList ?: [])</script>
             </if>
 
-            <if condition="productStore != null">
+            <if condition="productStore != null &amp;&amp; orderPartInfo.partEditable">
                 <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
                         in-map="[productStoreId:productStore.productStoreId, orderId:orderId,
                             postalContactMechId:shippingPostalAddressList?.first?.postalContactMechId]"/>
@@ -529,7 +531,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </widgets></section-iterate>
                     </widgets></section>
                     <container-box><box-header><label text="Choose a Shipping Address" type="h5"/></box-header><box-toolbar>
-                        <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="updateContactInfo"
+                        <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo"
                                 width="800" condition="orderPartInfo.partEditable"
                                 parameter-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest', orderId:orderId]"/>
                     </box-toolbar><box-body>
@@ -545,7 +547,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         <div class="text-center"><input type="radio" name="shippingPostalContactMechId_${orderPartInfo_index}" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
                                     ]]></text></render-mode>
                                     <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                                    <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="updateContactInfo"
+                                    <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo"
                                             width="800" condition="orderPartInfo.partEditable"
                                             parameter-map="[partyId:customerPartyId, postalContactMechId:contactInfo.postalContactMechId,
                                                 postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, orderId:orderId]"/>
@@ -780,7 +782,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
                 <field name="unitAmount">
                     <conditional-field condition="orderPartInfo.partEditable" title="Price">
-                        <text-line size="8" format="#0.00"/></conditional-field>
+                        <text-line size="8" format="#0.00#"/></conditional-field>
                     <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
                 </field>
                 <field name="unitAmountHist"><default-field title="">
