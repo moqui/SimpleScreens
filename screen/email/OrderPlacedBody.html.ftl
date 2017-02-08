@@ -5,9 +5,9 @@
     <table border="0" cellpadding="8px" cellspacing="0" width="100%"><tr>
         <td width="50%">
             <#if detailLinkPath?has_content>
-                <h1><a href="<#if detailLinkPath?starts_with("http")>${detailLinkPath}<#else>http://${storeDomain}/${detailLinkPath}</#if>?orderId=${orderId}">Order ${orderId} Part ${orderPart.orderPartSeqId}</a></h1>
+                <h1><a href="<#if detailLinkPath?starts_with("http")>${detailLinkPath}<#else>http://${storeDomain}/${detailLinkPath}</#if>?orderId=${orderId}">Order ${orderId}<#if (orderPartInfoList.size() > 1)> Part ${orderPart.orderPartSeqId}</#if></a></h1>
             <#else>
-                <h1>Order ${orderId} Part ${orderPart.orderPartSeqId}</h1>
+                <h1>Order ${orderId}<#if (orderPartInfoList.size() > 1)> Part ${orderPart.orderPartSeqId}</#if></h1>
             </#if>
             <h3>Total ${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId)}</h3>
             <h3>Placed on ${ec.l10n.format(orderHeader.placedDate, "dd MMM yyyy")}</h3>
@@ -37,33 +37,52 @@
     <table border="0" cellpadding="8px" cellspacing="0" width="100%">
         <tr>
             <td align="center"><strong>Item</strong></td>
-            <td><strong>Type</strong></td>
+            <#-- <td><strong>Type</strong></td> -->
             <td><strong>Description</strong></td>
             <#-- <td><strong>Ship By</strong></td> -->
             <td align="center"><strong>Qty</strong></td>
             <td align="right"><strong>Amount</strong></td>
             <td align="right"><strong>Total</strong></td>
         </tr>
+        <#assign taxTotal = 0>
+        <#assign shippingTotal = 0>
         <#list orderPartInfo.partOrderItemList as orderItem>
-            <#assign itemTypeEnum = orderItem.findRelatedOne("ItemType#moqui.basic.Enumeration", true, false)>
             <#assign orderItemTotalOut = ec.service.sync().name("mantle.order.OrderServices.get#OrderItemTotal").parameter("orderItem", orderItem).call()>
-            <tr>
-                <td align="center">${orderItem.orderItemSeqId}</td>
-                <td>${((itemTypeEnum.description)!"")?replace("Sales - ", "")}</td>
-                <td>${orderItem.itemDescription!""}</td>
-                <#-- <td>${ec.l10n.format(orderItem.requiredByDate, "dd MMM yyyy")}</td> -->
-                <td align="center">${orderItem.quantity!"1"}</td>
-                <td align="right">${ec.l10n.formatCurrency(orderItem.unitAmount!0, orderHeader.currencyUomId)}</td>
-                <td align="right">${ec.l10n.formatCurrency(orderItemTotalOut.itemTotal, orderHeader.currencyUomId)}</td>
-            </tr>
+            <#if orderItem.itemTypeEnumId == "ItemSalesTax">
+                <#assign taxTotal = taxTotal + orderItemTotalOut.itemTotal>
+            <#elseif orderItem.itemTypeEnumId == "ItemShipping">
+                <#assign shippingTotal = shippingTotal + orderItemTotalOut.itemTotal>
+            <#else>
+                <#-- <#assign itemTypeEnum = orderItem.findRelatedOne("ItemType#moqui.basic.Enumeration", true, false)> -->
+                <tr>
+                    <td align="center">${orderItem.orderItemSeqId}</td>
+                    <#-- <td>${((itemTypeEnum.description)!"")?replace("Sales - ", "")}</td> -->
+                    <td>${orderItem.itemDescription!""}</td>
+                    <#-- <td>${ec.l10n.format(orderItem.requiredByDate, "dd MMM yyyy")}</td> -->
+                    <td align="center">${orderItem.quantity!"1"}</td>
+                    <td align="right">${ec.l10n.formatCurrency(orderItem.unitAmount!0, orderHeader.currencyUomId)}</td>
+                    <td align="right">${ec.l10n.formatCurrency(orderItemTotalOut.itemTotal, orderHeader.currencyUomId)}</td>
+                </tr>
+            </#if>
         </#list>
         <tr>
-            <td align="center">&nbsp;</td>
+            <td>&nbsp;</td><!-- <td>&nbsp;</td> -->
+            <td>Shipping</td>
+            <#-- <td>&nbsp;</td> --><td>&nbsp;</td><td>&nbsp;</td>
+            <td align="right">${ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId)}</td>
+        </tr>
+        <#if (taxTotal > 0)>
+            <tr>
+                <td>&nbsp;</td><!-- <td>&nbsp;</td> -->
+                <td>Sales Tax</td>
+            <#-- <td>&nbsp;</td> --><td>&nbsp;</td><td>&nbsp;</td>
+                <td align="right">${ec.l10n.formatCurrency(taxTotal, orderHeader.currencyUomId)}</td>
+            </tr>
+        </#if>
+        <tr>
+            <td>&nbsp;</td><!-- <td>&nbsp;</td> -->
             <td><strong>Total</strong></td>
-            <td>&nbsp;</td>
-            <#-- <td>&nbsp;</td> -->
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
+            <#-- <td>&nbsp;</td> --><td>&nbsp;</td><td>&nbsp;</td>
             <td align="right"><strong>${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId)}</strong></td>
         </tr>
     </table>
