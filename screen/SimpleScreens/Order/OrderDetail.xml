@@ -99,6 +99,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
+    <transition name="EmailMessage" read-only="true"><parameter name="emailMessageId"/><actions>
+        <entity-find-one entity-name="moqui.basic.email.EmailMessage" value-field="emailMessage"/>
+        <script>ec.web.sendTextResponse(emailMessage?.body, "text/html", null)</script>
+    </actions><default-response type="none"/></transition>
     <transition name="PrintOrder.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Order/PrintOrder" url-type="plain">
             <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
@@ -301,7 +305,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <form-list name="EmailMessageList" list="emailMessageList" skip-form="true">
                             <entity-find entity-name="mantle.order.OrderEmailMessageDetail" list="emailMessageList">
                                 <econdition field-name="orderId"/><order-by field-name="sentDate,emailMessageId"/></entity-find>
-                            <field name="emailMessageId"><default-field title="ID"><display/></default-field></field>
+                            <field name="emailMessageId"><default-field title="ID">
+                                <link url="EmailMessage" text="${emailMessageId}" link-type="anchor" target-window="_blank"/>
+                            </default-field></field>
                             <field name="orderRevision"><default-field title="Rev"><display/></default-field></field>
                             <field name="sentDate"><default-field><display/></default-field></field>
                             <field name="toAddresses"><default-field><display/></default-field></field>
@@ -351,8 +357,8 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="customerPartyId"><conditional-field title="Customer" condition="orderPartInfo.isVendorInternalOrg">
                                     <text-line ac-transition="searchPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
                                 </conditional-field></field>
-                                <field name="facilityId"><default-field title="Facility"><drop-down>
-                                    <entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
+                                <field name="facilityId"><default-field title="Facility">
+                                    <drop-down><entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
                                         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
                                             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
                                             <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.vendorPartyId"
@@ -360,8 +366,8 @@ along with this software (see the LICENSE.md file). If not, see
                                             <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"
                                                     ignore="orderPartInfo.isVendorInternalOrg"/>
                                             <order-by field-name="facilityName"/>
-                                        </entity-find></entity-options>
-                                </drop-down></default-field></field>
+                                    </entity-find></entity-options></drop-down>
+                                </default-field></field>
                                 <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
                                 <field name="estimatedDeliveryDate"><default-field title="Delivery Date"><date-time/></default-field></field>
                                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
@@ -375,12 +381,11 @@ along with this software (see the LICENSE.md file). If not, see
                                     <text-line ac-transition="getPartyList" ac-min-length="2" size="60"/>
                                 </default-field></field>
                                 <field name="roleTypeId"><default-field title="Role">
-                                    <drop-down>
-                                        <entity-options key="${roleTypeId}" text="${description}">
-                                            <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
-                                                <econdition field-name="roleGroupEnumId" value="RgpOrder"/>
-                                                <order-by field-name="description"/></entity-find></entity-options>
-                                    </drop-down>
+                                    <drop-down><entity-options key="${roleTypeId}" text="${description}">
+                                        <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                                            <econdition field-name="roleGroupEnumId" value="RgpOrder"/>
+                                            <order-by field-name="description"/></entity-find>
+                                    </entity-options></drop-down>
                                 </default-field></field>
                                 <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                             </form-single>
@@ -391,18 +396,16 @@ along with this software (see the LICENSE.md file). If not, see
                         <expression>quantityNotShippedByPart.get(orderPartInfo.orderPart.orderPartSeqId) &amp;&amp;
                             (orderHeader.statusId == "OrderApproved" || orderHeader.statusId == "OrderSent")</expression>
                     </condition><actions>
-                            <!-- find Shipments going to same Facility -->
-                            <entity-find entity-name="mantle.shipment.ShipmentSegmentFacilityStatus" list="ssfsList">
-                                <econdition field-name="destinationFacilityId" from="orderPartInfo.orderPart.facilityId"/>
-                                <econdition field-name="fromPartyId" from="orderPartInfo.orderPart.vendorPartyId"/>
-                                <econdition field-name="statusId" operator="in" value="ShipInput,ShipScheduled"/>
-                                <order-by field-name="shipmentId"/>
-                            </entity-find>
+                        <!-- find Shipments going to same Facility -->
+                        <entity-find entity-name="mantle.shipment.ShipmentSegmentFacilityStatus" list="ssfsList">
+                            <econdition field-name="destinationFacilityId" from="orderPartInfo.orderPart.facilityId"/>
+                            <econdition field-name="fromPartyId" from="orderPartInfo.orderPart.vendorPartyId"/>
+                            <econdition field-name="statusId" operator="in" value="ShipInput,ShipScheduled"/>
+                            <order-by field-name="shipmentId"/>
+                        </entity-find>
                     </actions><widgets>
-                        <link url="shipOrderPart" text="Create Shipment" link-type="hidden-form">
-                            <parameter name="orderId"/>
-                            <parameter name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"/>
-                        </link>
+                        <link url="shipOrderPart" text="Create Shipment" link-type="hidden-form"><parameter name="orderId"/>
+                            <parameter name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"/></link>
 
                         <section name="AddPartToShipmentSection" condition="ssfsList"><widgets>
                             <container-dialog id="AddOrderPartToShipmentDialog" button-text="Add Part to Shipment">

@@ -78,6 +78,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updatePackageContent"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentPackageContent"/>
         <default-response url="."/></transition>
 
+    <transition name="EmailMessage" read-only="true"><parameter name="emailMessageId"/><actions>
+        <entity-find-one entity-name="moqui.basic.email.EmailMessage" value-field="emailMessage"/>
+        <script>ec.web.sendTextResponse(emailMessage?.body, "text/html", null)</script>
+    </actions><default-response type="none"/></transition>
     <transition name="ShipmentPick.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPick" url-type="plain">
             <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
@@ -308,7 +312,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <form-list name="EmailMessageList" list="emailMessageList" skip-form="true">
                         <entity-find entity-name="mantle.shipment.ShipmentEmailMessageDetail" list="emailMessageList">
                             <econdition field-name="shipmentId"/><order-by field-name="sentDate,emailMessageId"/></entity-find>
-                        <field name="emailMessageId"><default-field title="ID"><display/></default-field></field>
+                        <field name="emailMessageId"><default-field title="ID">
+                            <link url="EmailMessage" text="${emailMessageId}" link-type="anchor" target-window="_blank"/>
+                        </default-field></field>
                         <field name="sentDate"><default-field><display/></default-field></field>
                         <field name="toAddresses"><default-field><display/></default-field></field>
                         <field name="statusId"><default-field title="Status">
