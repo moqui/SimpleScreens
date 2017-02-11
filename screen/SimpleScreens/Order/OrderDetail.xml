@@ -504,7 +504,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="paymentMethodId"><default-field title="Payment Method"><drop-down allow-empty="true">
                                         <entity-options key="${paymentMethodId}" text="${typeDescription} - ${description}">
                                             <entity-find entity-name="mantle.account.method.PaymentMethodAndType">
-                                                <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/></entity-find></entity-options>
+                                                <date-filter/>
+                                                <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/>
+                                            </entity-find></entity-options>
                                 </drop-down></default-field></field>
                                 <field name="finAccountId"><default-field title="Financial Account">
                                     <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
@@ -763,7 +765,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </entity-find></entity-options></drop-down>
                     </conditional-field> -->
                     <default-field title="Type">
-                       <display-entity entity-name="moqui.basic.Enumeration"/>
+                       <display-entity entity-name="moqui.basic.Enumeration" text="${description}${isPromo ? ' (Promotion)' : ''}"/>
                     </default-field>
                 </field>
                 <field name="productId">
@@ -779,17 +781,22 @@ along with this software (see the LICENSE.md file). If not, see
                         <text-line size="25"/></conditional-field>
                     <default-field><display/></default-field></field>
                 <field name="itemDescription">
-                    <conditional-field condition="orderPartInfo.partEditable" title="Description"><text-line size="30"/></conditional-field>
+                    <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'" title="Description">
+                        <text-line size="30"/></conditional-field>
                     <default-field title="Description"><display/></default-field></field>
-                <field name="comments"><conditional-field condition="orderPartInfo.partEditable"><text-line size="30"/></conditional-field>
+                <field name="comments"><conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'">
+                    <text-line size="30"/></conditional-field>
                     <default-field><display/></default-field></field>
-                <field name="requiredByDate"><conditional-field condition="orderPartInfo.partEditable"><date-time/></conditional-field>
-                    <default-field><display/></default-field></field>
+                <field name="requiredByDate">
+                    <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes &amp;&amp; orderPartInfo.partEditable">
+                        <date-time/></conditional-field>
+                    <default-field><display/></default-field>
+                </field>
 
                 <field name="unitListPrice"><default-field title="List Price">
                     <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
                 <field name="unitAmount">
-                    <conditional-field condition="orderPartInfo.partEditable" title="Price">
+                    <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'" title="Price">
                         <text-line size="8" format="#0.00#"/></conditional-field>
                     <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
                 </field>
@@ -807,11 +814,11 @@ along with this software (see the LICENSE.md file). If not, see
                     ]]></text></render-mode>
                 </default-field></field>
                 <field name="quantity">
-                    <conditional-field condition="orderPartInfo.partEditable"><text-line size="5"/></conditional-field>
+                    <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'"><text-line size="5"/></conditional-field>
                     <default-field><display/></default-field>
                 </field>
                 <field name="quantity_changeReason">
-                    <conditional-field condition="orderPartInfo.partEditable">
+                    <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'">
                         <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                             <set field="enumTypeId" value="OrderItemQuantityReason"/><set field="allowEmpty" value="true"/></widget-template-include>
                     </conditional-field>
@@ -876,7 +883,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field title=""><display text=" "/></default-field>
                 </field>
 
-                <field name="submitButton"><conditional-field condition="orderPartInfo.partEditable">
+                <field name="submitButton"><conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'">
                     <submit text="Update"/><link url="deleteItem" text="Delete" condition="itemCanDelete"/>
                 </conditional-field><default-field title=""/></field>
 
