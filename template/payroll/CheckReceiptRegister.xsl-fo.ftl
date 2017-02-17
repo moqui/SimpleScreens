@@ -43,14 +43,23 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-cell width="2in" padding="${cellPadding}"><fo:block text-align="center">Signature</fo:block></fo:table-cell>
                 </fo:table-header>
                 <fo:table-body>
-                <#list checkInfoList as checkInfo>
+                <#list paymentList as payment>
+                    <#assign person = ec.entity.find("mantle.party.Person").condition("partyId", payment.toPartyId).useCache(true).one()>
                     <fo:table-row height="0.5in" font-size="9pt" border-top="solid black">
-                        <fo:table-cell padding="${cellPadding}" display-align="after"><fo:block text-align="left">${ec.resource.expand('PartyLastNameFirstTemplate', '', checkInfo)}</fo:block></fo:table-cell>
-                        <fo:table-cell padding="${cellPadding}" border-left="solid grey" display-align="after"><fo:block text-align="center">${checkInfo.checkNumber}</fo:block></fo:table-cell>
-                        <fo:table-cell padding="${cellPadding}" border-left="solid grey" display-align="after"><fo:block text-align="center">${checkInfo.amount}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}" display-align="after"><fo:block text-align="left">${ec.resource.expand('PartyLastNameFirstTemplate', '', person)}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}" border-left="solid grey" display-align="after"><fo:block text-align="center">${payment.paymentRefNum!}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}" border-left="solid grey" display-align="after"><fo:block text-align="center">${ec.l10n.formatCurrency(payment.amount, payment.amountUomId)}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}" border-left="solid grey" display-align="after"><fo:block text-align="center"></fo:block></fo:table-cell>
                     </fo:table-row>
                 </#list>
+                <#if !paymentList>
+                    <fo:table-row height="0.5in" font-size="9pt" border-top="solid black">
+                        <fo:table-cell padding="${cellPadding}" display-align="after"><fo:block text-align="left"></fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}" border-left="solid grey" display-align="after"><fo:block text-align="center"></fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}" border-left="solid grey" display-align="after"><fo:block text-align="center"></fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}" border-left="solid grey" display-align="after"><fo:block text-align="center"></fo:block></fo:table-cell>
+                    </fo:table-row>
+                </#if>
                 </fo:table-body>
             </fo:table>
         </fo:flow>
