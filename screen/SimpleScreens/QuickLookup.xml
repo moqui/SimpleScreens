@@ -40,7 +40,7 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
     </actions>
     <widgets>
-        <label text="Lookup by ID for Asset, Container, Facility, Invoice, Order, Party, Badge, Payment, Product, Shipment, Work Effort (Run, Load)" type="p"/>
+        <label text="Lookup by ID for Asset, Facility, Invoice, Order, Party, Badge, Payment, Product, Shipment" type="p"/>
         <form-single name="QuickLookupForm" transition="." focus-field="lookupId">
             <field name="lookupId"><default-field title=""><text-line size="20"/></default-field></field>
             <field name="submitButton"><default-field title="Lookup by ID"><submit/></default-field></field>
@@ -80,7 +80,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <row-col lg="1"><label text="Received" type="strong"/></row-col>
                             <row-col lg="2"><label text="${ec.l10n.format(asset.receivedDate, null)}"/></row-col>
                             <row-col lg="1"><label text="From Shipment" type="strong"/></row-col>
-                            <row-col lg="2"><link url="receivingShipmentDetail" text="${asset.acquireShipmentId}"
+                            <row-col lg="2"><link url="shipmentDetail" text="${asset.acquireShipmentId}"
                                     parameter-map="[shipmentId:asset.acquireShipmentId]" link-type="anchor" condition="asset.acquireShipmentId"/></row-col>
                         </container-row>
                     </box-body>
@@ -139,6 +139,25 @@ along with this software (see the LICENSE.md file). If not, see
                             <row-col lg="1"><label text="To" type="strong"/></row-col>
                             <row-col lg="3"><link url="editParty" text="PartyNameTemplate" text-map="toParty"
                                     parameter-map="[partyId:toParty?.partyId]" link-type="anchor" condition="toParty"/></row-col>
+                        </container-row>
+                    </box-body>
+                </container-box>
+            </widgets>
+        </section>
+        <section name="OrderSection" condition="orderHeader">
+            <actions>
+                <set field="orderStatus" from="orderHeader.status"/>
+            </actions>
+            <widgets>
+                <container-box>
+                    <box-header><label text="Order #${orderId}" type="h5"/></box-header>
+                    <box-toolbar><link url="orderDetail" text="Order"/></box-toolbar>
+                    <box-body>
+                        <container-row>
+                            <row-col lg="1"><label text="Status" type="strong"/></row-col>
+                            <row-col lg="2"><label text="${orderStatus?.description?:''}"/></row-col>
+                            <row-col lg="1"><label text="Total" type="strong"/></row-col>
+                            <row-col lg="2"><label text="${ec.l10n.formatCurrency(orderHeader.grandTotal, orderHeader.currencyUomId)}"/></row-col>
                         </container-row>
                     </box-body>
                 </container-box>

@@ -622,10 +622,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <!-- <field name="itemDescription"><default-field><text-line size="60"/></default-field></field> -->
                         <field name="itemTypeEnumId" from="null"><conditional-field condition="orderPartInfo.isCustomerInternalOrg" title="Item Type">
                             <drop-down no-current-selected-key="ItemInventory">
-                                <!-- <option key="ItemProduct" text="Sales - Product"/> -->
                                 <option key="ItemInventory" text="Inventory"/>
                                 <option key="ItemAsset" text="Fixed Asset"/>
-                                <option key="ItemExpSupplies" text="Expense - Supplies"/>
+                                <option key="ItemExpSupplies" text="Supplies"/>
                             </drop-down>
                         </conditional-field><default-field><hidden default-value="ItemProduct"/></default-field></field>
                         <field name="quantity"><default-field><text-line size="8"/></default-field></field>
@@ -645,23 +644,12 @@ along with this software (see the LICENSE.md file). If not, see
                                 <list-options list="orderPartInfo.partNoParentOrderItemList" key="${orderItemSeqId}" text="${orderItemSeqId} - ${itemDescription}"/>
                             </drop-down>
                         </default-field></field>
-                        <field name="itemTypeEnumId"><conditional-field condition="orderPartInfo.isCustomerInternalOrg" title="Item Type">
-                            <drop-down no-current-selected-key="ItemExpense">
-                                <entity-options key="${enumId}" text="${description}">
-                                    <entity-find entity-name="moqui.basic.Enumeration">
-                                        <econdition field-name="parentEnumId" operator="in" value="ItemPurchase,ItemExpense"/>
-                                        <order-by field-name="description"/>
-                                    </entity-find>
-                                </entity-options>
-                            </drop-down>
-                        </conditional-field><default-field title="Item Type">
+                        <field name="itemTypeEnumId"><default-field title="Item Type">
                             <drop-down no-current-selected-key="ItemShipping">
                                 <entity-options key="${enumId}" text="${description}">
-                                    <entity-find entity-name="moqui.basic.Enumeration">
-                                        <econdition field-name="parentEnumId" value="ItemSales"/>
-                                        <order-by field-name="description"/>
-                                    </entity-find>
-                                </entity-options>
+                                    <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
+                                        <econdition field-name="enumGroupEnumId" from="orderPartInfo.isCustomerInternalOrg ? 'EngItemsPurchase' : 'EngItemsSales'"/>
+                                        <order-by field-name="description"/></entity-find></entity-options>
                             </drop-down>
                         </default-field></field>
                         <field name="itemDescription"><default-field title="Description"><text-line size="60"/></default-field></field>
