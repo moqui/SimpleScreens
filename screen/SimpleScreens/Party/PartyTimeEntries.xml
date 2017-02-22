@@ -50,6 +50,8 @@ along with this software (see the LICENSE.md file). If not, see
 
         <service-call name="mantle.humanres.PositionServices.get#PartyEmployersAndPositionClasses"
                 in-map="[partyId:partyId]" out-map="context"/>
+
+        <set field="hasRatePermission" from="ec.user.hasPermission('TIME_ENTRY_RATE')"/>
     </actions>
     <widgets>
         <container-dialog id="AddTimeDialog" button-text="Record Time">
@@ -132,10 +134,18 @@ along with this software (see the LICENSE.md file). If not, see
                 </conditional-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId"/></default-field>
             </field>
+            <field name="clientHourRate">
+                <conditional-field condition="entryEditable &amp;&amp; hasRatePermission"><text-line size="8" format="0.00#"/></conditional-field>
+                <default-field><display format="0.00#"/></default-field>
+            </field>
             <field name="rateAmountId"><default-field title="Client Hour Rate">
                 <display-entity text="C: ${ec.l10n.format(rateAmount, '0.00')} (${rateAmountId})" entity-name="mantle.humanres.rate.RateAmount" use-cache="true"/>
             </default-field></field>
-            <field name="vendorRateAmountId"><default-field title="Payroll Hour Rate">
+            <field name="vendorHourRate">
+                <conditional-field condition="entryEditable &amp;&amp; hasRatePermission"><text-line size="8" format="0.00"/></conditional-field>
+                <default-field title="Payroll Hour Rate"><display format="0.00"/></default-field>
+            </field>
+            <field name="vendorRateAmountId"><default-field title="Worker Hour Rate">
                 <display-entity text="P: ${ec.l10n.format(rateAmount, '0.00')} (${rateAmountId})" entity-name="mantle.humanres.rate.RateAmount" use-cache="true"/>
             </default-field></field>
 
@@ -160,13 +170,25 @@ along with this software (see the LICENSE.md file). If not, see
                 </conditional-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId"/></default-field>
             </field>
+            <field name="clientPieceRate">
+                <conditional-field condition="entryEditable &amp;&amp; hasRatePermission"><text-line size="8" format="0.00#"/></conditional-field>
+                <default-field><display format="0.00#"/></default-field>
+            </field>
             <field name="pieceRateAmountId"><default-field title="Client Piece Rate">
                 <display-entity text="C: ${ec.l10n.format(rateAmount, '0.00')} (${rateAmountId})" entity-name="mantle.humanres.rate.RateAmount" use-cache="true"/>
             </default-field></field>
-            <field name="vendorPieceRateAmountId"><default-field title="Payroll Piece Rate">
+            <field name="vendorPieceRate">
+                <conditional-field condition="entryEditable &amp;&amp; hasRatePermission"><text-line size="8" format="0.00#"/></conditional-field>
+                <default-field><display format="0.00#"/></default-field>
+            </field>
+            <field name="vendorPieceRateAmountId"><default-field title="Worker Piece Rate">
                 <display-entity text="P: ${ec.l10n.format(rateAmount, '0.00')} (${rateAmountId})" entity-name="mantle.humanres.rate.RateAmount" use-cache="true"/>
             </default-field></field>
 
+            <field name="hasModifiedRates">
+                <header-field title="Mod" show-order-by="true"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
+                <default-field><display/></default-field>
+            </field>
             <field name="comments">
                 <header-field show-order-by="true"/>
                 <conditional-field condition="entryEditable"><text-area cols="40" rows="3"/></conditional-field>
@@ -195,10 +217,12 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="pieceCount"/><field-ref name="hours"/><field-ref name="breakHours"/></form-list-column>
             <form-list-column><field-ref name="clientPartyId"/><field-ref name="workEffortId"/>
                 <field-ref name="workTypeEnumId"/></form-list-column>
-            <form-list-column><field-ref name="rateTypeEnumId"/><field-ref name="rateAmountId"/>
-                <field-ref name="vendorRateAmountId"/></form-list-column>
-            <form-list-column><field-ref name="pieceRateTypeEnumId"/><field-ref name="pieceRateAmountId"/>
-                <field-ref name="vendorPieceRateAmountId"/></form-list-column>
+            <form-list-column><field-ref name="rateTypeEnumId"/><field-ref name="clientHourRate"/><field-ref name="rateAmountId"/>
+                <field-ref name="vendorHourRate"/><field-ref name="vendorRateAmountId"/></form-list-column>
+            <form-list-column><field-ref name="pieceRateTypeEnumId"/><field-ref name="clientPieceRate"/><field-ref name="pieceRateAmountId"/>
+                <field-ref name="vendorPieceRate"/><field-ref name="vendorPieceRateAmountId"/></form-list-column>
+            <form-list-column><field-ref name="hasModifiedRates"/></form-list-column>
+            <form-list-column><field-ref name="hasModifiedRates"/></form-list-column>
             <form-list-column><field-ref name="comments"/></form-list-column>
             <form-list-column><field-ref name="invoiceId"/><field-ref name="vendorInvoiceId"/></form-list-column>
             <form-list-column><field-ref name="findButton"/></form-list-column>
