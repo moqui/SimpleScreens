@@ -17,10 +17,11 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="organizationPartyId" required="true"/>
     <parameter name="timePeriodIdList" required="true"/>
+    <transition name="findTransactionEntry"><default-response url="../../Transaction/FindTransactionEntry"/></transition>
 
     <actions>
-        <if condition="timePeriodIdList instanceof String"><set field="timePeriodIdList" from="[timePeriodIdList]"/></if>
         <service-call name="mantle.ledger.LedgerReportServices.run#IncomeStatement" out-map="context" in-map="context"/>
+        <set field="findEntryUrl" from="sri.buildUrlInfo('findTransactionEntry')"/>
     </actions>
     <widgets>
         <render-mode><text type="html,vuet" location="component://SimpleScreens/template/ledger/IncomeStatement.html.ftl"
