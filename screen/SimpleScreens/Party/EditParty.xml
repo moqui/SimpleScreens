@@ -18,6 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="partyId" required="true"/>
 
     <transition name="findOrder"><default-response url="//${appRoot}/Order/FindOrder"/></transition>
+    <transition name="findShipment"><default-response url="//${appRoot}/Shipment/FindShipment"/></transition>
     <transition name="findInvoice"><default-response url="//${appRoot}/Accounting/Invoice/FindInvoice"/></transition>
     <transition name="findPayment"><default-response url="//${appRoot}/Accounting/Payment/FindPayment"/></transition>
 
@@ -65,10 +66,20 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updateUserAccount"><service-call name="mantle.party.PartyServices.update#PartyUserAccount"/>
         <default-response url="."/></transition>
+    <transition name="createUserGroupMember"><service-call name="create#moqui.security.UserGroupMember"/>
+        <default-response url="."/></transition>
+    <transition name="updateUserGroupMember"><service-call name="update#moqui.security.UserGroupMember"/>
+        <default-response url="."/></transition>
+    <transition name="createPartyRelationship"><service-call name="create#mantle.party.PartyRelationship"/>
+        <default-response url="."/></transition>
+    <transition name="updatePartyRelationship"><service-call name="update#mantle.party.PartyRelationship"/>
+        <default-response url="."/></transition>
 
     <transition name="removePaymentMethod"><service-call name="mantle.account.PaymentMethodServices.delete#PaymentMethod"/>
         <default-response url="."/></transition>
     <transition name="editPaymentMethod"><default-response url="../PaymentMethod/EditPaymentMethod"/></transition>
+    <transition name="findFinancialAccount"><default-response url="//${appRoot}/Accounting/FinancialAccount/FindFinancialAccount"/></transition>
+    <transition name="editFinancialAccount"><default-response url="//${appRoot}/Accounting/FinancialAccount/EditFinancialAccount"/></transition>
 
     <transition name="removeContactInfo"><service-call name="mantle.party.ContactServices.delete#PartyContactMech"/>
         <default-response url="."/></transition>
@@ -93,16 +104,42 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
         <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
             <field-map field-name="partyId"/></entity-find-one>
+
+        <entity-find-count entity-name="mantle.order.OrderPart" count-field="customerOrderPartCount">
+            <econdition field-name="customerPartyId" from="partyId"/></entity-find-count>
+        <entity-find-count entity-name="mantle.order.OrderPart" count-field="vendorOrderPartCount">
+            <econdition field-name="vendorPartyId" from="partyId"/></entity-find-count>
+
+        <entity-find-count entity-name="mantle.shipment.Shipment" count-field="fromShipmentCount">
+            <econdition field-name="fromPartyId" from="partyId"/></entity-find-count>
+        <entity-find-count entity-name="mantle.shipment.Shipment" count-field="toShipmentCount">
+            <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
+
+        <entity-find-count entity-name="mantle.account.invoice.Invoice" count-field="fromInvoiceCount">
+            <econdition field-name="fromPartyId" from="partyId"/></entity-find-count>
+        <entity-find-count entity-name="mantle.account.invoice.Invoice" count-field="toInvoiceCount">
+            <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
+
+        <entity-find-count entity-name="mantle.account.payment.Payment" count-field="fromPaymentCount">
+            <econdition field-name="fromPartyId" from="partyId"/></entity-find-count>
+        <entity-find-count entity-name="mantle.account.payment.Payment" count-field="toPaymentCount">
+            <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
     </actions>
     <widgets>
         <container-row><row-col lg="6">
-            <!-- TODO add invoice, payment links with counts for from/to -->
-            <!-- TODO get order counts show in links, hide links if zero -->
-            <link url="findOrder" text="Sales Orders" parameter-map="[customerPartyId:partyId]"/>
-            <link url="findOrder" text="Purchase Orders" parameter-map="[vendorPartyId:partyId]"/>
+            <!-- TODO EmailMessage tab -->
+
+            <link url="findOrder" text="Sales Orders (${customerOrderPartCount})" parameter-map="[customerPartyId:partyId]" condition="customerOrderPartCount"/>
+            <link url="findOrder" text="Purchase Orders (${vendorOrderPartCount})" parameter-map="[vendorPartyId:partyId]" condition="vendorOrderPartCount"/>
+            <link url="findShipment" text="Shipments From (${fromShipmentCount})" parameter-map="[fromPartyId:partyId]" condition="fromShipmentCount"/>
+            <link url="findShipment" text="Shipments To (${toShipmentCount})" parameter-map="[toPartyId:partyId]" condition="toShipmentCount"/>
+            <link url="findInvoice" text="Invoices From (${fromInvoiceCount})" parameter-map="[fromPartyId:partyId]" condition="fromInvoiceCount"/>
+            <link url="findInvoice" text="Invoices To (${toInvoiceCount})" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount"/>
+            <link url="findPayment" text="Payments From (${fromPaymentCount})" parameter-map="[fromPartyId:partyId]" condition="fromPaymentCount"/>
+            <link url="findPayment" text="Payments To (${toPaymentCount})" parameter-map="[toPartyId:partyId]" condition="toPaymentCount"/>
             <dynamic-dialog id="FindDuplicatesDialog" button-text="Find Duplicates" transition="FindDuplicates" width="960"/>
 
-            <section name="NonUserPerson" condition="party?.partyTypeEnumId == 'PtyPerson' &amp;&amp; !userAccount"><actions>
+            <section name="NonUserPerson" condition="!userAccount"><actions><!-- NOTE: allowing accounts for Organization too: party?.partyTypeEnumId == 'PtyPerson' &amp;&amp;  -->
                 <entity-find entity-name="mantle.party.contact.PartyContactMechInfo" list="primaryEmailList">
                     <date-filter/><econdition field-name="partyId"/>
                     <econdition field-name="contactMechPurposeId" value="EmailPrimary"/>
@@ -121,7 +158,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="requirePasswordChange"><default-field><hidden default-value="Y"/></default-field></field>
                         <field name="userGroupId"><default-field title="Group">
                             <drop-down allow-empty="true"><entity-options key="${userGroupId}" text="${description}">
-                                <entity-find entity-name="moqui.security.UserGroup"><order-by field-name="description"/></entity-find>
+                                <entity-find entity-name="moqui.security.UserGroup">
+                                    <econdition field-name="groupTypeEnumId" value="UgtPopcAdmin"/>
+                                    <order-by field-name="description"/></entity-find>
                             </entity-options></drop-down>
                         </default-field></field>
                         <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
@@ -193,7 +232,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="roleTypeId"><default-field title="Role">
                             <display-entity entity-name="mantle.party.RoleType"/>
                         </default-field></field>
-                        <field name="submitButton"><default-field title="Remove"><submit/></default-field></field>
+                        <field name="submitButton"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
@@ -227,7 +266,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="classificationTypeEnumId"><default-field title="Type">
                             <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
                         <field name="description"><default-field title="Class"><display/></default-field></field>
-                        <field name="submitButton"><default-field title="Remove"><submit/></default-field></field>
+                        <field name="submitButton"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
@@ -267,7 +306,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="expireDate"><default-field><date-time type="date"/></default-field></field>
                         <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                         <field name="removeButton"><default-field title="">
-                            <link url="deletePartyIdentification" text="Remove"/>
+                            <link url="deletePartyIdentification" text=" " icon="glyphicon glyphicon-trash"/>
                         </default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
@@ -305,7 +344,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="partySettingTypeId"><default-field title="Type">
                             <display-entity entity-name="mantle.party.PartySettingType"/></default-field></field>
                         <field name="settingValue"><default-field title="Value"><display text="${valueEnum ? valueEnum.description : settingValue}"/></default-field></field>
-                        <field name="submitButton"><default-field title="Remove"><submit/></default-field></field>
+                        <field name="submitButton"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
@@ -313,6 +352,13 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="UserSecuritySection" condition="userAccount"><actions>
                 <entity-find entity-name="moqui.security.UserGroupMember" list="userGroupMemberList">
                     <date-filter/><econdition field-name="userId" from="userAccount?.userId"/></entity-find>
+                <set field="userOrgRelationshipTypes" from="['PrtAgent', 'PrtEmployee', 'PrtMember', 'PrtTeamMember']"/>
+                <entity-find entity-name="mantle.party.PartyToAndRelationship" list="userOrgRelList">
+                    <date-filter/><econdition field-name="fromPartyId" from="partyId"/>
+                    <econdition field-name="relationshipTypeEnumId" operator="in" from="userOrgRelationshipTypes"/>
+                    <econdition field-name="toRoleTypeId" value="OrgInternal"/>
+                    <order-by field-name="pseudoId,organizationName"/>
+                </entity-find>
 
                 <set field="localeStringList" from="[]"/>
                 <iterate list="Locale.getAvailableLocales()" entry="lcl"><script>localeStringList.add([locale:lcl.toString(), name:lcl.getDisplayName(ec.user.locale)])</script></iterate>
@@ -347,6 +393,82 @@ along with this software (see the LICENSE.md file). If not, see
 
                         <field name="submitButton"><default-field title="Update User"><submit/></default-field></field>
                     </form-single>
+                </box-body></container-box>
+                <container-box><box-header><label text="Security Groups" type="h5"/></box-header><box-toolbar>
+                    <container-dialog id="AddGroupDialog" button-text="Add to Group">
+                        <form-single name="AddGroupForm" transition="createUserGroupMember">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="userId" from="userAccount.userId"><default-field><hidden/></default-field></field>
+                            <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+                            <field name="userGroupId"><default-field title="Group">
+                                <drop-down><entity-options key="${userGroupId}" text="${description}">
+                                    <entity-find entity-name="moqui.security.UserGroup">
+                                        <econdition field-name="groupTypeEnumId" value="UgtPopcAdmin"/>
+                                        <order-by field-name="description"/></entity-find>
+                                </entity-options></drop-down>
+                            </default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <form-list name="GroupsForm" list="userGroupMemberList" transition="updateUserGroupMember" skip-header="true">
+                        <field name="partyId"><default-field><hidden/></default-field></field>
+                        <field name="userId"><default-field><hidden/></default-field></field>
+                        <field name="fromDate"><default-field><hidden/></default-field></field>
+                        <field name="thruDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+                        <field name="userGroupId"><default-field title="Group">
+                            <display-entity entity-name="moqui.security.UserGroup"/>
+                        </default-field></field>
+                        <field name="submitButton" align="right"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
+                    </form-list>
+                </box-body></container-box>
+                <container-box><box-header><label text="Organizations" type="h5"/></box-header><box-toolbar>
+                    <container-dialog id="AddOrgDialog" button-text="Add to Organization">
+                        <form-single name="NewToRelForm" transition="createPartyRelationship">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="fromPartyId" from="partyId"><default-field><hidden/></default-field></field>
+                            <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+                            <field name="toRoleTypeId"><default-field><hidden default-value="OrgInternal"/></default-field></field>
+
+                            <field name="relationshipTypeEnumId"><default-field title="Rel. Type"><drop-down>
+                                <entity-options key="${enumId}">
+                                    <entity-find entity-name="moqui.basic.Enumeration">
+                                        <econdition field-name="enumId" operator="in" from="userOrgRelationshipTypes"/>
+                                        <order-by field-name="description"/>
+                                    </entity-find>
+                                </entity-options>
+                            </drop-down></default-field></field>
+
+                            <field name="toPartyId"><default-field title="Organization"><drop-down>
+                                <entity-options key="${partyId}" text="PartyNameTemplate">
+                                    <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                        <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                        <econdition field-name="disabled" value="N" or-null="true"/>
+                                        <order-by field-name="organizationName"/>
+                                    </entity-find>
+                                </entity-options>
+                            </drop-down></default-field></field>
+
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <form-list name="UserOrgRelList" list="userOrgRelList" transition="updatePartyRelationship">
+                        <field name="partyRelationshipId"><default-field><hidden/></default-field></field>
+                        <field name="partyId"><header-field><hidden/></header-field><default-field><hidden/></default-field></field>
+                        <field name="relationshipTypeEnumId"><default-field title="Rel. Type">
+                            <display-entity entity-name="moqui.basic.Enumeration" text="${description}"/></default-field></field>
+
+                        <field name="toPartyId"><default-field title="Organization">
+                            <link url="." text="PartyNameTemplate" entity-name="mantle.party.PartyDetail"
+                                    parameter-map="[partyId:toPartyId]" link-type="anchor"/>
+                        </default-field></field>
+
+                        <field name="fromDate"><default-field><display/></default-field></field>
+                        <field name="thruDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+
+                        <field name="submitButton" align="right"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
+                    </form-list>
                 </box-body></container-box>
             </widgets></section>
         </row-col><row-col lg="6">
@@ -383,33 +505,6 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body></container-box>
             </widgets></section>
 
-            <section name="PaymentMethodSection"><actions>
-                <service-call name="mantle.account.PaymentMethodServices.get#PartyPaymentMethodInfoList"
-                        in-map="[partyId:partyId]" out-map="ppmiOut"/>
-            </actions><widgets>
-                <container-box><box-header><label text="Payment Methods" type="h5"/></box-header><box-toolbar>
-                    <dynamic-dialog id="CreateCreditCardDialog" button-text="Create Credit Card"
-                            transition="UpdatePaymentMethodInfo" width="800"
-                            parameter-map="[partyId:partyId, paymentMethodTypeEnumId:'PmtCreditCard']"/>
-                    <dynamic-dialog id="CreateBankAccountDialog" button-text="Create Bank Account"
-                            transition="UpdatePaymentMethodInfo" width="800"
-                            parameter-map="[partyId:partyId, paymentMethodTypeEnumId:'PmtBankAccount']"/>
-                </box-toolbar><box-body>
-                    <container style="float-box" type="ul">
-                        <section-iterate name="BillingInfoSection" list="ppmiOut.methodInfoList" entry="methodInfo"><widgets>
-                            <container type="li">
-                                <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/PaymentMethodInfo.html.gstring"/></render-mode>
-                                <dynamic-dialog id="UpdatePaymentMethodDialog" button-text="Update"
-                                        transition="UpdatePaymentMethodInfo" width="800"
-                                        parameter-map="[partyId:partyId, paymentMethodId:methodInfo.paymentMethodId]"/>
-                                <link url="removePaymentMethod" text="Remove" parameter-map="[paymentMethodId:methodInfo.paymentMethodId]"/>
-                                <link url="editPaymentMethod" text="Detail" parameter-map="[partyId:partyId, paymentMethodId:methodInfo.paymentMethodId]"/>
-                            </container>
-                        </widgets></section-iterate>
-                    </container>
-                </box-body></container-box>
-            </widgets></section>
-
             <section name="ContactInfoSection"><actions>
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="contactOut"
                         in-map="[partyId:partyId, getAll:true]"/>
@@ -424,7 +519,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     transition="UpdateContactInfo"
                                     parameter-map="[partyId:partyId, emailContactMechId:contactInfo.emailContactMechId,
                                         emailContactMechPurposeId:contactInfo.emailContactMechPurposeId]"/>
-                            <link url="removeContactInfo" text="Remove"
+                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.emailContactMechId,
                                         contactMechPurposeId:contactInfo.emailContactMechPurposeId]"/>
                         </row-col><row-col lg="6">
@@ -444,7 +539,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     transition="UpdateContactInfo"
                                     parameter-map="[partyId:partyId, telecomContactMechId:contactInfo.telecomContactMechId,
                                         telecomContactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
-                            <link url="removeContactInfo" text="Remove"
+                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.telecomContactMechId,
                                         contactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
                         </row-col><row-col lg="6">
@@ -464,7 +559,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     transition="UpdateContactInfo" width="840"
                                     parameter-map="[partyId:partyId, postalContactMechId:contactInfo.postalContactMechId,
                                         postalContactMechPurposeId:contactInfo.postalContactMechPurposeId]"/>
-                            <link url="removeContactInfo" text="Remove"
+                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.postalContactMechId,
                                         contactMechPurposeId:contactInfo.postalContactMechPurposeId]"/>
                         </row-col><row-col lg="6">
@@ -472,6 +567,61 @@ along with this software (see the LICENSE.md file). If not, see
                             <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                         </row-col></container-row>
                     </widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
+
+            <section name="PaymentMethodSection"><actions>
+                <service-call name="mantle.account.PaymentMethodServices.get#PartyPaymentMethodInfoList"
+                        in-map="[partyId:partyId]" out-map="ppmiOut"/>
+            </actions><widgets>
+                <container-box><box-header><label text="Payment Methods" type="h5"/></box-header><box-toolbar>
+                    <dynamic-dialog id="CreateCreditCardDialog" button-text="Create Credit Card"
+                            transition="UpdatePaymentMethodInfo" width="800"
+                            parameter-map="[partyId:partyId, paymentMethodTypeEnumId:'PmtCreditCard']"/>
+                    <dynamic-dialog id="CreateBankAccountDialog" button-text="Create Bank Account"
+                            transition="UpdatePaymentMethodInfo" width="800"
+                            parameter-map="[partyId:partyId, paymentMethodTypeEnumId:'PmtBankAccount']"/>
+                </box-toolbar><box-body>
+                    <container style="float-box" type="ul">
+                        <section-iterate name="BillingInfoSection" list="ppmiOut.methodInfoList" entry="methodInfo"><widgets>
+                            <container type="li">
+                                <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/PaymentMethodInfo.html.gstring"/></render-mode>
+                                <dynamic-dialog id="UpdatePaymentMethodDialog" button-text="Update"
+                                        transition="UpdatePaymentMethodInfo" width="800"
+                                        parameter-map="[partyId:partyId, paymentMethodId:methodInfo.paymentMethodId]"/>
+                                <link url="removePaymentMethod" text=" " icon="glyphicon glyphicon-trash" parameter-map="[paymentMethodId:methodInfo.paymentMethodId]"/>
+                                <link url="editPaymentMethod" text="Detail" parameter-map="[partyId:partyId, paymentMethodId:methodInfo.paymentMethodId]"/>
+                            </container>
+                        </widgets></section-iterate>
+                    </container>
+                </box-body></container-box>
+            </widgets></section>
+            <section name="FinancialAccountSection"><actions>
+                <entity-find entity-name="mantle.account.financial.FinancialAccount" list="financialAccountList">
+                    <econdition field-name="ownerPartyId" from="partyId"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header><label text="Financial Accounts" type="h5"/></box-header><box-toolbar>
+                    <link url="findFinancialAccount" text="Find Accounts" parameter-map="[ownerPartyId:partyId]"/>
+                    <link url="findFinancialAccount" text="Create Account"
+                            parameter-map="[ownerPartyId:partyId, _openDialog:'NewFinancialAccountDialog']"/>
+                </box-toolbar><box-body>
+                    <form-list name="FinancialAccountList" list="financialAccountList" skip-form="true">
+                        <field name="finAccountName"><default-field title="Account">
+                            <link url="editFinancialAccount" text="FinancialAccountNameTemplate" link-type="anchor"/></default-field></field>
+                        <field name="finAccountTypeId"><default-field title="Type">
+                            <display-entity entity-name="mantle.account.financial.FinancialAccountType"/></default-field></field>
+                        <field name="organizationPartyId"><default-field title="Organization">
+                            <link url="." entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                                    parameter-map="[partyId:organizationPartyId]"/>
+                        </default-field></field>
+                        <field name="statusId"><default-field title="Status">
+                            <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
+
+                        <field name="actualBalance" align="right"><default-field title="Balance">
+                            <display currency-unit-field="currencyUomId"/></default-field></field>
+                        <field name="availableBalance" align="right"><default-field title="Available">
+                            <display currency-unit-field="currencyUomId"/></default-field></field>
+                    </form-list>
                 </box-body></container-box>
             </widgets></section>
 
