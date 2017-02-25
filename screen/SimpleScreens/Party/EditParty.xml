@@ -17,7 +17,10 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="partyId" required="true"/>
 
-    <transition name="findOrder"><default-response url="../../Order/FindOrder"/></transition>
+    <transition name="findOrder"><default-response url="//${appRoot}/Order/FindOrder"/></transition>
+    <transition name="findInvoice"><default-response url="//${appRoot}/Accounting/Invoice/FindInvoice"/></transition>
+    <transition name="findPayment"><default-response url="//${appRoot}/Accounting/Payment/FindPayment"/></transition>
+
     <transition name="updateParty"><service-call name="mantle.party.PartyServices.update#PartyDetail"/>
         <default-response url="."/></transition>
 
@@ -93,6 +96,8 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container-row><row-col lg="6">
+            <!-- TODO add invoice, payment links with counts for from/to -->
+            <!-- TODO get order counts show in links, hide links if zero -->
             <link url="findOrder" text="Sales Orders" parameter-map="[customerPartyId:partyId]"/>
             <link url="findOrder" text="Purchase Orders" parameter-map="[vendorPartyId:partyId]"/>
             <dynamic-dialog id="FindDuplicatesDialog" button-text="Find Duplicates" transition="FindDuplicates" width="960"/>
@@ -125,17 +130,26 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
 
             <section name="HasDuplicatesSection"><actions>
-                <if condition="party.hasDuplicates != 'Y'"><service-call name="mantle.party.PartyServices.find#PartyHasDuplicates"
+                <if condition="party.hasDuplicates != 'Y'"><service-call name="mantle.party.DuplicateServices.find#PartyHasDuplicates"
                         in-map="[partyId:partyId]" out-map="context"/></if>
+                <entity-find entity-name="mantle.party.Party" list="mergedFromList">
+                    <econdition field-name="mergedToPartyId" from="partyId"/></entity-find>
             </actions><widgets>
                 <label text="Duplicates found (by ${party.hasDuplicates == 'Y' ? 'address/name, phone/name, ' : ''}identification, email, or birth date and name)" type="p" style="text-danger"
                         condition="party.hasDuplicates == 'Y' || hasDuplicates"/>
+                <container><link url="." text="This party was merged into ${party.mergedToPartyId}" link-type="anchor"
+                        parameter-map="[partyId:party.mergedToPartyId]" condition="party.mergedToPartyId"/></container>
+                <section-iterate name="MergedFromList" list="mergedFromList" entry="mergedFrom"><widgets>
+                    <container><link url="." text="This party has data merged from ${mergedFrom.partyId}" link-type="anchor"
+                            parameter-map="[partyId:mergedFrom.partyId]"/></container>
+                </widgets></section-iterate>
             </widgets></section>
             <section name="EditPartySection" condition="party?.partyTypeEnumId == 'PtyOrganization'"><widgets>
                 <form-single name="EditOrganizationForm" map="party" transition="updateParty">
                     <field name="partyId"><default-field><hidden/></default-field></field>
                     <field name="pseudoId"><default-field title="ID"><text-line size="15"/></default-field></field>
                     <field name="organizationName"><default-field><text-line size="60"/></default-field></field>
+                    <!-- TODO add externalId -->
                     <field name="disabled"><default-field><drop-down>
                         <option key="N"/><option key="Y"/></drop-down></default-field></field>
 
@@ -149,6 +163,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="middleName"><default-field><text-line size="20"/></default-field></field>
                     <field name="lastName"><default-field><text-line size="30"/></default-field></field>
                     <field name="birthDate"><default-field><date-time type="date"/></default-field></field>
+                    <!-- TODO add externalId -->
                     <field name="disabled"><default-field><drop-down>
                         <option key="N"/><option key="Y"/></drop-down></default-field></field>
 

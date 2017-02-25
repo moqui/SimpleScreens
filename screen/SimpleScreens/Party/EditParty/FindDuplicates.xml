@@ -17,10 +17,12 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="partyId" required="true"/>
 
-    <!-- TODO: add merge option -->
+    <transition name="mergeParties"><service-call name="mantle.party.DuplicateServices.merge#Parties"/>
+        <default-response url=".."/></transition>
 
     <actions>
-        <service-call name="mantle.party.PartyServices.find#PartyDuplicates" in-map="[partyId:partyId]" out-map="context"/>
+        <set field="toPartyId" from="partyId"/>
+        <service-call name="mantle.party.DuplicateServices.find#PartyDuplicates" in-map="[partyId:partyId]" out-map="context"/>
         <script>
             dupInfoList = []
             for (List matchList in matchingInfoByPartyId.values()) {
@@ -48,6 +50,9 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="postalCodeExt"><default-field title="Ext"><display/></default-field></field>
             <field name="countryGeoId"><default-field title="Country"><display/></default-field></field>
 
+            <field name="mergeLink"><default-field title=""><link url="mergeParties" text="Merge From ${partyId}"
+                    parameter-map="[partyId:toPartyId, toPartyId:toPartyId, fromPartyId:partyId]"/></default-field></field>
+
             <form-list-column><field-ref name="partyId"/></form-list-column>
             <form-list-column><field-ref name="idValue"/></form-list-column>
             <form-list-column><field-ref name="infoString"/></form-list-column>
@@ -56,6 +61,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="address1"/><field-ref name="unitNumber"/></form-list-column>
             <form-list-column><field-ref name="postalCode"/><field-ref name="postalCodeExt"/></form-list-column>
             <form-list-column><field-ref name="countryGeoId"/></form-list-column>
+            <form-list-column><field-ref name="mergeLink"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
