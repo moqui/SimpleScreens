@@ -24,13 +24,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateStatus"><service-call name="update#mantle.account.payment.Payment"/>
         <default-response url="."/></transition>
 
-    <transition name="authorize"><service-call name="mantle.account.PaymentServices.authorize#SinglePayment"/>
+    <transition name="gatewayAuthorize"><service-call name="mantle.account.PaymentServices.authorize#SinglePayment"/>
         <default-response url="."/></transition>
-    <transition name="capture"><service-call name="mantle.account.PaymentServices.capture#SinglePayment"/>
+    <transition name="gatewayCapture"><service-call name="mantle.account.PaymentServices.capture#SinglePayment"/>
         <default-response url="."/></transition>
-    <transition name="release"><service-call name="mantle.account.PaymentServices.release#SinglePayment"/>
+    <transition name="gatewayRelease"><service-call name="mantle.account.PaymentServices.release#SinglePayment"/>
         <default-response url="."/></transition>
-    <transition name="refund"><service-call name="mantle.account.PaymentServices.refund#SinglePayment"/>
+    <transition name="gatewayRefund"><service-call name="mantle.account.PaymentServices.refund#SinglePayment"/>
         <default-response url="."/></transition>
 
     <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
@@ -242,10 +242,28 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </row-col><row-col lg="6">
             <section name="PaymentGatewayActionsSection" condition="payment.paymentGatewayConfigId || payment.paymentInstrumentEnumId == 'PiFinancialAccount'"><widgets>
-                <link url="authorize" text="Gateway Authorize" condition="payment.statusId in ['PmntPromised', 'PmntProposed']" parameter-map="[payment:null]"/>
-                <link url="capture" text="Gateway Capture" condition="payment.statusId in ['PmntAuthorized']" parameter-map="[payment:null]"/>
-                <link url="release" text="Gateway Release" condition="payment.statusId in ['PmntAuthorized']" parameter-map="[payment:null]"/>
-                <link url="refund" text="Gateway Refund" condition="payment.statusId in ['PmntDelivered']" parameter-map="[payment:null]"/>
+                <container-dialog id="GatewayAuthorizeDialog" button-text="Gateway Authorize" condition="payment.statusId in ['PmntPromised', 'PmntProposed']">
+                    <form-single name="GatewayAuthorizeForm" map="payment" transition="gatewayAuthorize">
+                        <field name="paymentId"><default-field><hidden/></default-field></field>
+                        <field name="cardSecurityCode"><default-field><text-line size="4"/></default-field></field>
+                        <field name="submitButton"><default-field title="Authorize"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+                <container-dialog id="GatewayCaptureDialog" button-text="Gateway Capture" condition="payment.statusId == 'PmntAuthorized'">
+                    <form-single name="GatewayCaptureForm" map="payment" transition="gatewayCapture">
+                        <field name="paymentId"><default-field><hidden/></default-field></field>
+                        <field name="amount"><default-field><text-line size="10"/></default-field></field>
+                        <field name="submitButton"><default-field title="Capture"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+                <link url="gatewayRelease" text="Gateway Release Auth" condition="payment.statusId == 'PmntAuthorized'" parameter-map="[payment:null]"/>
+                <container-dialog id="GatewayRefundDialog" button-text="Gateway Refund" condition="payment.statusId == 'PmntDelivered'">
+                    <form-single name="GatewayRefundForm" map="payment" transition="gatewayRefund">
+                        <field name="paymentId"><default-field><hidden/></default-field></field>
+                        <field name="amount"><default-field><text-line size="10"/></default-field></field>
+                        <field name="submitButton"><default-field title="Refund"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
             </widgets></section>
 
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
@@ -358,8 +376,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="resultSuccess"><default-field title="Success"><display/></default-field></field>
                         <field name="resultDeclined"><default-field title="Decline"><display/></default-field></field>
                         <field name="resultError"><default-field title="Error"><display/></default-field></field>
-                        <field name="avsResult"><default-field title="AVS"><display/></default-field></field>
-                        <field name="cvResult"><default-field title="CV"><display/></default-field></field>
+                        <field name="avsResult"><default-field title="AVS"><display text="${avsResult?:'N/A'}"/></default-field></field>
+                        <field name="cvResult"><default-field title="CdV"><display text="${cvResult?:'N/A'}"/></default-field></field>
                         <field name="resultNsf"><default-field title="NSF"><display/></default-field></field>
                         <field name="resultBadExpire"><default-field title="Exp"><display/></default-field></field>
                         <field name="resultBadCardNumber"><default-field title="Bad#"><display/></default-field></field>
