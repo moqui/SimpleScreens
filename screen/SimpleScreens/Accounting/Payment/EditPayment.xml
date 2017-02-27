@@ -24,6 +24,15 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateStatus"><service-call name="update#mantle.account.payment.Payment"/>
         <default-response url="."/></transition>
 
+    <transition name="authorize"><service-call name="mantle.account.PaymentServices.authorize#SinglePayment"/>
+        <default-response url="."/></transition>
+    <transition name="capture"><service-call name="mantle.account.PaymentServices.capture#SinglePayment"/>
+        <default-response url="."/></transition>
+    <transition name="release"><service-call name="mantle.account.PaymentServices.release#SinglePayment"/>
+        <default-response url="."/></transition>
+    <transition name="refund"><service-call name="mantle.account.PaymentServices.refund#SinglePayment"/>
+        <default-response url="."/></transition>
+
     <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
         <default-response url="."/></transition>
@@ -67,6 +76,7 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="statusId" from="payment?.statusId"/>
         <set field="paymentEditable" from="statusId in ['PmntProposed', 'PmntPromised', 'PmntAuthorized']"/>
         <set field="paymentVoid" from="statusId in ['PmntCancelled', 'PmntVoid', 'PmntRefunded']"/>
+        <set field="isCheck" from="payment.paymentInstrumentEnumId in ['PiPersonalCheck', 'PiCompanyCheck']"/>
     </actions>
     <widgets>
         <container-row><row-col lg="6">
@@ -78,8 +88,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="editTransaction" text="TX #${acctgTransId}" link-type="anchor-button"/>
                 </widgets></section-iterate>
 
-                <link url="PaymentCheck.pdf" text="Check PDF"/>
-                <link url="PaymentDetail.pdf" text="Detail PDF"/>
+                <link url="PaymentCheck.pdf" text="Check PDF" condition="isCheck"/>
+                <link url="PaymentDetail.pdf" text="Detail PDF" condition="isCheck"/>
             </container>
 
             <form-single name="EditPayment" transition="updatePayment" map="payment">
@@ -133,7 +143,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="paymentInstrumentEnumId">
                     <conditional-field title="Instrument" condition="paymentEditable">
                         <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                            <set field="enumTypeId" value="PaymentInstrument"/></widget-template-include>
+                            <set field="enumTypeId" value="PaymentInstrument"/><set field="allowEmpty" value="true"/></widget-template-include>
                     </conditional-field>
                     <default-field title="Instrument"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
                 </field>
@@ -167,7 +177,15 @@ along with this software (see the LICENSE.md file). If not, see
                                 text="${typeDescription} - ${description}"/>
                     </default-field>
                 </field>
-                <!-- TODO add paymentGatewayConfigId, if specified show forms to authorize, capture, auth/cap, refund -->
+                <field name="paymentGatewayConfigId"><default-field title="Payment Gateway">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${paymentGatewayConfigId}" text="${description}">
+                            <entity-find entity-name="mantle.account.method.PaymentGatewayConfig">
+                                <econdition field-name="paymentGatewayTypeEnumId" operator="not-equals" value="PgtTest"/>
+                                <order-by field-name="description"/></entity-find>
+                        </entity-options>
+                    </drop-down>
+                </default-field></field>
                 <!--
                 <field name="distGroupEnumId"><default-field title="Distribution Group">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -223,6 +241,13 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
             </form-single>
         </row-col><row-col lg="6">
+            <section name="PaymentGatewayActionsSection" condition="payment.paymentGatewayConfigId || payment.paymentInstrumentEnumId == 'PiFinancialAccount'"><widgets>
+                <link url="authorize" text="Gateway Authorize" condition="payment.statusId in ['PmntPromised', 'PmntProposed']" parameter-map="[payment:null]"/>
+                <link url="capture" text="Gateway Capture" condition="payment.statusId in ['PmntAuthorized']" parameter-map="[payment:null]"/>
+                <link url="release" text="Gateway Release" condition="payment.statusId in ['PmntAuthorized']" parameter-map="[payment:null]"/>
+                <link url="refund" text="Gateway Refund" condition="payment.statusId in ['PmntDelivered']" parameter-map="[payment:null]"/>
+            </widgets></section>
+
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
@@ -339,9 +364,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="resultBadExpire"><default-field title="Exp"><display/></default-field></field>
                         <field name="resultBadCardNumber"><default-field title="Bad#"><display/></default-field></field>
 
-                        <form-list-column><field-ref name="paymentOperationEnumId"/><field-ref name="amount"/>
-                            <field-ref name="transactionDate"/><field-ref name="referenceNum"/></form-list-column>
-                        <form-list-column><field-ref name="approvalCode"/><field-ref name="responseCode"/><field-ref name="reasonCode"/></form-list-column>
+                        <form-list-column><field-ref name="paymentGatewayConfigId"/><field-ref name="paymentOperationEnumId"/>
+                            <field-ref name="amount"/><field-ref name="transactionDate"/></form-list-column>
+                        <form-list-column><field-ref name="referenceNum"/><field-ref name="approvalCode"/>
+                            <field-ref name="responseCode"/><field-ref name="reasonCode"/></form-list-column>
                         <form-list-column><field-ref name="resultSuccess"/><field-ref name="resultDeclined"/><field-ref name="resultError"/></form-list-column>
                         <form-list-column><field-ref name="avsResult"/><field-ref name="cvResult"/></form-list-column>
                         <form-list-column><field-ref name="resultNsf"/><field-ref name="resultBadExpire"/><field-ref name="resultBadCardNumber"/></form-list-column>
