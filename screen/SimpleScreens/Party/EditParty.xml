@@ -352,16 +352,6 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
 
             <section name="UserSecuritySection" condition="userAccount"><actions>
-                <entity-find entity-name="moqui.security.UserGroupMember" list="userGroupMemberList">
-                    <date-filter/><econdition field-name="userId" from="userAccount?.userId"/></entity-find>
-                <set field="userOrgRelationshipTypes" from="['PrtAgent', 'PrtEmployee', 'PrtMember', 'PrtTeamMember']"/>
-                <entity-find entity-name="mantle.party.PartyToAndRelationship" list="userOrgRelList">
-                    <date-filter/><econdition field-name="fromPartyId" from="partyId"/>
-                    <econdition field-name="relationshipTypeEnumId" operator="in" from="userOrgRelationshipTypes"/>
-                    <econdition field-name="toRoleTypeId" value="OrgInternal"/>
-                    <order-by field-name="pseudoId,organizationName"/>
-                </entity-find>
-
                 <set field="localeStringList" from="[]"/>
                 <iterate list="Locale.getAvailableLocales()" entry="lcl"><script>localeStringList.add([locale:lcl.toString(), name:lcl.getDisplayName(ec.user.locale)])</script></iterate>
                 <order-map-list list="localeStringList"><order-by field-name="name"/></order-map-list>
@@ -396,6 +386,18 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Update User"><submit/></default-field></field>
                     </form-single>
                 </box-body></container-box>
+            </widgets></section>
+            <section name="UserAuthzSection" condition="userAccount"><actions>
+                <entity-find entity-name="moqui.security.UserGroupMember" list="userGroupMemberList">
+                    <date-filter/><econdition field-name="userId" from="userAccount?.userId"/></entity-find>
+                <set field="userOrgRelationshipTypes" from="['PrtAgent', 'PrtEmployee', 'PrtMember', 'PrtTeamMember']"/>
+                <entity-find entity-name="mantle.party.PartyToAndRelationship" list="userOrgRelList">
+                    <date-filter/><econdition field-name="fromPartyId" from="partyId"/>
+                    <econdition field-name="relationshipTypeEnumId" operator="in" from="userOrgRelationshipTypes"/>
+                    <econdition field-name="toRoleTypeId" value="OrgInternal"/>
+                    <order-by field-name="pseudoId,organizationName"/>
+                </entity-find>
+            </actions><widgets>
                 <container-box><box-header><label text="Security Groups" type="h5"/></box-header><box-toolbar>
                     <container-dialog id="AddGroupDialog" button-text="Add to Group">
                         <form-single name="AddGroupForm" transition="createUserGroupMember">
