@@ -23,17 +23,21 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="../EditParty"/></transition>
     <transition name="createOrganization"><service-call name="mantle.party.PartyServices.create#Organization"/>
         <default-response url="../EditParty"/></transition>
-    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
-    <!-- <pre-actions><set field="roleTypeId" value="Customer"/></pre-actions> -->
     <actions>
         <service-call name="mantle.party.PartyServices.find#Party" in-map="context + [leadingWildcard:true]" out-map="context"/>
     </actions>
     <widgets>
         <container-dialog id="FindOptionsDialog" button-text="Find Options">
             <form-single name="FindOptionsForm" transition=".">
-                <field name="roleTypeId"><default-field><hidden/></default-field></field>
                 <field name="partyId"><default-field><text-line size="20"/></default-field></field>
+                <field name="roleTypeId"><default-field title="Role">
+                    <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                        <entity-find entity-name="mantle.party.RoleType">
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
 
                 <field name="combinedName"><default-field><text-line size="40"/></default-field></field>
                 <field name="organizationName"><default-field><text-line size="40"/></default-field></field>
@@ -43,17 +47,15 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="address1"><default-field><text-line size="40"/></default-field></field>
                 <field name="city"><default-field><text-line size="30"/></default-field></field>
-                <field name="stateProvinceGeoId">
-                    <default-field title="State">
-                        <drop-down allow-empty="true"><entity-options key="${toGeoId}" text="${geoName}">
-                            <entity-find entity-name="moqui.basic.GeoAssocAndToDetail">
-                                <econdition field-name="geoId" value="USA"/>
-                                <econdition field-name="geoAssocTypeEnumId" value="GAT_REGIONS"/>
-                                <order-by field-name="geoName"/>
-                            </entity-find>
-                        </entity-options></drop-down>
-                    </default-field>
-                </field>
+                <field name="stateProvinceGeoId"><default-field title="State">
+                    <drop-down allow-empty="true"><entity-options key="${toGeoId}" text="${geoName}">
+                        <entity-find entity-name="moqui.basic.GeoAssocAndToDetail">
+                            <econdition field-name="geoId" value="USA"/>
+                            <econdition field-name="geoAssocTypeEnumId" value="GAT_REGIONS"/>
+                            <order-by field-name="geoName"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
                 <field name="postalCode"><default-field><text-line size="10"/></default-field></field>
 
                 <field name="emailAddress"><default-field><text-line size="40"/></default-field></field>
@@ -61,7 +63,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="contactNumber"><default-field><text-line size="10"/></default-field></field>
 
                 <field name="contactOwnerPartyId"><default-field title="Contact Owner">
-                    <text-line ac-transition="getPartyList" ac-min-length="2" size="40" parameter-map="[roleTypeId:null]"/></default-field></field>
+                    <text-line ac-transition="searchPartyList" ac-min-length="2" size="40" parameter-map="[roleTypeId:null]"/></default-field></field>
 
                 <field name="submitButton"><default-field title="Find"><submit/></default-field></field>
             </form-single>
