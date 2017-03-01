@@ -19,6 +19,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="findInvoice"><default-response url="."/></transition>
     <transition name="editInvoice"><default-response url="../EditInvoice"/></transition>
 
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+
     <transition name="createInvoice"><service-call name="mantle.account.InvoiceServices.create#Invoice"/>
         <default-response url="../EditInvoice"/></transition>
     <transition name="createProjectInvoiceItems"><service-call name="mantle.account.InvoiceServices.create#ProjectInvoiceItems"/>
@@ -27,6 +29,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getOpenClientInvoicesByProject" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
     <transition-include name="getOpenVendorInvoicesByFromParty" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
     <transition-include name="getProjectParties" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
         <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
@@ -37,60 +40,16 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container>
-            <!--
-            <container-dialog id="FindInvoiceDialog" button-text="Search Invoices" width="700">
-                <form-single name="FindInvoice" transition="findInvoice">
+            <container-dialog id="NewPayableDialog" button-text="New Payable">
+                <form-single name="NewPayableForm" transition="createInvoice">
                     <field name="fromPartyId"><default-field title="From">
-                        <drop-down allow-empty="true">
-                            <entity-options key="${partyId}" text="${organizationName?:''} ${firstName?:''} ${lastName?:''} [${partyId}]">
-                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                    <econdition field-name="roleTypeId" operator="in" value="Supplier,Vendor,VendorBillFrom,OrgInternal"/>
-                                    <econdition field-name="disabled" value="N" or-null="true"/>
-                                </entity-find>
-                            </entity-options>
-                        </drop-down>
-                    </default-field></field>
-                    <field name="toPartyId"><default-field title="To">
-                        <drop-down allow-empty="true">
-                            <entity-options key="${partyId}" text="${organizationName?:''} ${firstName?:''} ${lastName?:''} [${partyId}]">
-                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                    <econdition field-name="roleTypeId" operator="in" value="Customer,CustomerBillTo,OrgInternal"/>
-                                    <econdition field-name="disabled" value="N" or-null="true"/>
-                                </entity-find>
-                            </entity-options>
-                        </drop-down>
-                    </default-field></field>
-                    <field name="invoiceTypeEnumId"><default-field title="Type">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                            <set field="enumTypeId" value="InvoiceType"/><set field="noCurrentSelectedKey" value="InvoiceSales"/></widget-template-include>
-                    </default-field></field>
-                    <field name="invoiceDate"><default-field><date-find type="timestamp"/></default-field></field>
-                    <field name="statusId"><default-field title="Status">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                            <set field="statusTypeId" value="Invoice"/><set field="allowEmpty" value="true"/></widget-template-include>
-                    </default-field></field>
-                    <field name="referenceNumber"><default-field><text-line size="20"/></default-field></field>
-                    <field name="searchButton"><default-field title="Find"><submit/></default-field></field>
-                </form-single>
-            </container-dialog>
-            -->
-
-            <container-dialog id="NewInvoiceDialog" button-text="New Invoice">
-                <form-single name="NewInvoiceForm" transition="createInvoice">
-                    <field name="fromPartyId"><default-field title="From">
-                        <drop-down>
-                            <entity-options key="${partyId}" text="PartyNameTemplate">
-                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                    <econdition field-name="roleTypeId" operator="in" value="Supplier,Vendor,VendorBillFrom,OrgInternal"/>
-                                    <econdition field-name="disabled" value="N" or-null="true"/>
-                                    <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
-                        </drop-down>
+                        <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/>
                     </default-field></field>
                     <field name="toPartyId"><default-field title="To">
                         <drop-down>
                             <entity-options key="${partyId}" text="PartyNameTemplate">
                                 <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                    <econdition field-name="roleTypeId" operator="in" value="Customer,CustomerBillTo,OrgInternal"/>
+                                    <econdition field-name="roleTypeId" value="OrgInternal"/>
                                     <econdition field-name="disabled" value="N" or-null="true"/>
                                     <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
                         </drop-down>
@@ -113,7 +72,23 @@ along with this software (see the LICENSE.md file). If not, see
                         <text-line size="20"/></default-field></field>
                     <field name="invoiceDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
 
-                    <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                    <field name="submitButton"><default-field title="Create Invoice"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+            <container-dialog id="NewReceivableDialog" button-text="New Receivable">
+                <form-single name="NewReceivableForm" transition="createInvoice" extends="NewPayableForm">
+                    <field name="fromPartyId"><default-field title="From">
+                        <drop-down>
+                            <entity-options key="${partyId}" text="PartyNameTemplate">
+                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                    <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
+                                    <econdition field-name="disabled" value="N" or-null="true"/>
+                                    <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
+                        </drop-down>
+                    </default-field></field>
+                    <field name="toPartyId"><default-field title="To">
+                        <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/>
+                    </default-field></field>
                 </form-single>
             </container-dialog>
             <section name="ProjectInvoiceSection"><widgets>
@@ -196,25 +171,15 @@ along with this software (see the LICENSE.md file). If not, see
                     </entity-options>
                 </drop-down></header-field>
                 <default-field>
-                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
-                    <!-- <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
-                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/> -->
+                    <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/>
                 </default-field>
             </field>
             <field name="toPartyId">
-                <header-field title="To"><drop-down allow-empty="true">
-                    <entity-options key="${partyId}" text="PartyNameTemplate">
-                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                            <econdition field-name="roleTypeId" operator="in" value="Customer,CustomerBillTo,OrgInternal"/>
-                            <econdition field-name="disabled" value="N" or-null="true"/>
-                            <order-by field-name="organizationName,firstName"/>
-                        </entity-find>
-                    </entity-options>
-                </drop-down></header-field>
+                <header-field title="To"><text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/></header-field>
                 <default-field>
-                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
-                    <!-- <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
-                        link-type="anchor" parameter-map="[partyId:toPartyId]"/> -->
+                    <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:toPartyId]"/>
                 </default-field>
             </field>
             <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>

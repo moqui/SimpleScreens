@@ -40,7 +40,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="addOrderPartToShipment"><service-call name="mantle.shipment.ShipmentServices.add#OrderPartToShipment"/>
         <default-response url="."/></transition>
-    <transition name="shipmentDetail"><default-response url="//PopcAdmin/Shipment/ShipmentDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
 
     <transition name="createNote"><service-call name="create#mantle.order.OrderNote"/><default-response url="."/></transition>
     <transition name="updateNote"><service-call name="update#mantle.order.OrderNote"/><default-response url="."/></transition>
@@ -55,18 +55,18 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
-    <transition name="editVendor"><default-response url="//PopcAdmin/Vendor/EditVendor"/></transition>
-    <transition name="editSupplier"><default-response url="//PopcAdmin/Supplier/EditSupplier"/></transition>
-    <transition name="editCustomer"><default-response url="//PopcAdmin/Customer/EditCustomer"/></transition>
+    <transition name="editVendor"><default-response url="//${appRoot}/Vendor/EditVendor"/></transition>
+    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
     <transition name="setOrderBillingShippingInfo"><service-call name="mantle.order.OrderServices.set#OrderBillingShippingInfo"/>
         <default-response url="."/></transition>
 
-    <transition name="editFacility"><default-response url="//PopcAdmin/Facility/EditFacility"/></transition>
-    <transition name="editProduct"><default-response url="//PopcAdmin/Product/EditProduct"/></transition>
-    <transition name="assetDetail"><default-response url="//PopcAdmin/Asset/AssetDetail"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Product/EditProduct"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
 
-    <transition name="editInvoice"><default-response url="//PopcAdmin/Accounting/EditInvoice"/></transition>
-    <transition name="editPayment"><default-response url="//PopcAdmin/Accounting/EditPayment"/></transition>
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
 
     <transition name="createOrderPart"><service-call name="mantle.order.OrderServices.create#OrderPart"/>
         <default-response url="."/></transition>
@@ -79,7 +79,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="createReturnFromOrder"><service-call name="mantle.order.ReturnServices.create#ReturnFromOrder"/>
         <default-response url="."/></transition>
-    <transition name="editReturn"><default-response url="../../Return/EditReturn"/></transition>
+    <transition name="editReturn"><default-response url="//${appRoot}/Return/EditReturn"/></transition>
 
     <transition name="createOrderPartParty"><service-call name="create#mantle.order.OrderPartParty"/>
         <default-response url="."/></transition>
@@ -495,7 +495,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
 
                                 <field name="paymentInstrumentEnumId"><default-field title="Instrument">
-                                    <drop-down allow-empty="true" no-current-selected-key="${orderPartInfo.isCustomerInternalOrg ? 'PiCompanyCheck' : 'PiCreditCard'}">
+                                    <drop-down allow-empty="true">
                                         <entity-options key="${enumId}" text="${description}">
                                             <entity-find entity-name="moqui.basic.Enumeration">
                                                 <econdition field-name="enumTypeId" value="PaymentInstrument"/></entity-find>
@@ -526,6 +526,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </actions><widgets>
                             <container>
                                 <label text="${partPaymentInfo.paymentMethodTypeEnum?.description?:''} ${ec.l10n.formatCurrency(partPaymentInfo.partPayment.amount, partPaymentInfo.partPayment.amountUomId)}" type="strong"/>
+                                <label text="Status: ${partPaymentInfo.statusItem?.description}" type="strong"/>
                                 <container-dialog id="UpdatePaymentDialog" button-text="Update" condition="orderPartInfo.partEditable">
                                     <form-single name="UpdatePaymentForm" transition="updatePayment"
                                             map="partPaymentInfo.partPayment" extends="AddPaymentForm">
@@ -536,6 +537,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 </container-dialog>
                                 <link url="editPayment" text="Edit Payment ${partPaymentInfo.partPayment.paymentId}" parameter-map="[paymentId:partPaymentInfo.partPayment.paymentId]"/>
                                 <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/PaymentMethodInfo.html.gstring"/></render-mode>
+                                <label text="CIM ID: ${methodInfo.paymentMethod.gatewayCimId}" type="div" condition="methodInfo.paymentMethod?.gatewayCimId"/>
                             </container>
                         </widgets></section-iterate>
                     </widgets></section>
@@ -626,7 +628,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <option key="ItemAsset" text="Fixed Asset"/>
                                 <option key="ItemExpSupplies" text="Supplies"/>
                             </drop-down>
-                        </conditional-field><default-field>
+                        </conditional-field><default-field title="Item Type">
                             <drop-down no-current-selected-key="ItemProduct">
                                 <option key="ItemProduct" text="Product"/>
                                 <option key="ItemAsset" text="Fixed Asset"/>

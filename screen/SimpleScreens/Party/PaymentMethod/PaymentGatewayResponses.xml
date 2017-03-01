@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Gateway Responses" default-menu-index="5">
+
+    <parameter name="paymentMethodId" required="true"/>
+    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
+
+    <actions>
+        <entity-find entity-name="mantle.account.method.PaymentGatewayResponse" list="gatewayResponseList">
+            <search-form-inputs default-order-by="-transactionDate"/><econdition field-name="paymentMethodId"/></entity-find>
+    </actions>
+    <widgets>
+        <form-list name="GatewayResponseList" list="gatewayResponseList" skip-form="true" header-dialog="true" show-csv-button="true">
+            <field name="paymentMethodId"><header-field><hidden/></header-field></field>
+            <field name="partyId"><header-field><hidden/></header-field></field>
+
+            <field name="paymentGatewayConfigId"><default-field title="Gateway Config">
+                <display-entity entity-name="mantle.account.method.PaymentGatewayConfig" text="${description}"/></default-field></field>
+            <field name="paymentOperationEnumId">
+                <header-field title="Operation">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="PaymentOperation"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="amount"><header-field show-order-by="true"/>
+                <default-field><display currency-unit-field="amountUomId"/></default-field></field>
+            <field name="transactionDate"><header-field title="TX Date" show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="referenceNum"><header-field title="Ref Num" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="approvalCode"><header-field title="Approval Code" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="responseCode"><header-field title="Response Code" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="reasonCode"><header-field title="Reason Code" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field tooltip="${reasonMessage}"><display/></default-field></field>
+            <field name="resultSuccess"><header-field title="Success"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
+                <default-field><display/></default-field></field>
+            <field name="resultDeclined"><header-field title="Declined"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
+                <default-field><display/></default-field></field>
+            <field name="resultError"><header-field title="Error"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
+                <default-field><display/></default-field></field>
+            <field name="avsResult"><default-field title="AVS"><display/></default-field></field>
+            <field name="cvResult"><default-field title="CV"><display/></default-field></field>
+            <field name="resultNsf"><header-field title="NSF"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
+                <default-field><display/></default-field></field>
+            <field name="resultBadExpire"><header-field title="Expired"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
+                <default-field><display/></default-field></field>
+            <field name="resultBadCardNumber"><header-field title="Bad#"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="transactionDate"/><field-ref name="amount"/><field-ref name="referenceNum"/></form-list-column>
+            <form-list-column><field-ref name="paymentGatewayConfigId"/><field-ref name="paymentOperationEnumId"/></form-list-column>
+            <form-list-column><field-ref name="approvalCode"/><field-ref name="responseCode"/><field-ref name="reasonCode"/></form-list-column>
+            <form-list-column><field-ref name="resultSuccess"/><field-ref name="resultDeclined"/><field-ref name="resultError"/></form-list-column>
+            <form-list-column><field-ref name="avsResult"/><field-ref name="cvResult"/></form-list-column>
+            <form-list-column><field-ref name="resultNsf"/><field-ref name="resultBadExpire"/><field-ref name="resultBadCardNumber"/></form-list-column>
+        </form-list>
+    </widgets>
+</screen>

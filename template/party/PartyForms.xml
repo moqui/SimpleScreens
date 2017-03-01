@@ -58,7 +58,10 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="roleTypeId"/>
         <parameter name="indexName"/>
         <parameter name="documentType"/>
+        <parameter name="includeDisabled"/>
         <actions>
+            <if condition="!term"><script>ec.web.sendJsonResponse([])</script><return/></if>
+
             <set field="indexName" from="indexName ?: searchIndexName ?: 'mantle'"/>
             <set field="documentType" from="documentType ?: searchPartyDocType ?: 'MantleParty'"/>
             <!-- <log message="====== searchPartyList indexName=${indexName}, documentType=${documentType}, term=${term}"/> -->
@@ -73,9 +76,12 @@ along with this software (see the LICENSE.md file). If not, see
                 </script>
             </then><else>
                 <script><![CDATA[
-                    StringBuilder termSb = new StringBuilder()
-                    termSb.append(term).append('*')
-                    if (roleTypeId) termSb.append(' AND roles.roleTypeId:').append(roleTypeId)
+                    StringBuilder termSb = new StringBuilder('(')
+                    if (term.contains('*')) termSb.append(term)
+                    else term.split(' ').each({ termSb.append(it).append('* ') })
+                    termSb.append(')')
+                    if (roleTypeId) termSb.append(' AND roles.roleTypeId:(').append(roleTypeId.replaceAll(/,/, ' ')).append(')')
+                    if (!'true'.equals(includeDisabled)) termSb.append(' AND (NOT disabled:Y)')
                 ]]></script>
                 <!-- <log level="warn" message="Doing party search with queryString [${termSb.toString()}], indexName:${indexName}, documentType:${documentType}"/> -->
                 <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
@@ -343,7 +349,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><ignored/></default-field>
             </field>
             <field name="cardNumber">
-                <conditional-field title="" condition="isCreditCard &amp;&amp; !paymentMethodId">
+                <conditional-field title="" condition="isCreditCard &amp;&amp; (!paymentMethodId || ec.user.hasPermission('CARD_NUMBER_EDIT'))">
                     <text-line size="16"/></conditional-field>
                 <conditional-field title="" condition="isCreditCard">
                     <display text="${maskedCardNumber?:''}" also-hidden="false"/></conditional-field>
