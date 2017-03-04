@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-include="false">
+
+    <transition name="editGlAccount"><default-response url="../EditGlAccount"/></transition>
+
+    <widgets>
+        <section-include name="GlAccountClassRefSection" location="component://SimpleScreens/screen/SimpleScreens/Accounting/GlAccount/FindGlAccount.xml"/>
+
+        <tree name="AccountTree">
+            <tree-node name="AccountNode">
+                <link url="editGlAccount" text="${nodeList_entry.accountCode}: ${nodeList_entry.accountName} (${nodeList_entry.classEnum?.description ?: 'No Class'})${nodeList_entry.disallowPosting ? ' Non-Posting' : ''}"
+                        id="${treeNodeId == '#' ? '' : treeNodeId + '/'}${nodeList_entry.glAccountId}">
+                    <parameter name="glAccountId" from="nodeList_entry.glAccountId"/></link>
+                <tree-sub-node node-name="AccountNode" list="childAccounts">
+                    <actions>
+                        <set field="parentGlAccountId" from="treeNodeId.split('/').last()"/>
+                        <entity-find entity-name="mantle.ledger.account.GlAccount" list="childAccounts">
+                            <econdition field-name="parentGlAccountId"/>
+                            <order-by field-name="accountCode"/>
+                        </entity-find>
+                    </actions>
+                </tree-sub-node>
+            </tree-node>
+            <tree-sub-node node-name="AccountNode" list="topLevelAccounts"><actions>
+                <entity-find entity-name="mantle.ledger.account.GlAccount" list="topLevelAccounts">
+                    <econdition field-name="parentGlAccountId" from="null"/>
+                    <order-by field-name="accountCode"/>
+                </entity-find>
+            </actions></tree-sub-node>
+        </tree>
+    </widgets>
+</screen>

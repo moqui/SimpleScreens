@@ -15,9 +15,8 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
         default-menu-include="false">
 
-    <transition name="findGlAccount"><default-response url="."/></transition>
     <transition name="editGlAccount"><default-response url="../EditGlAccount"/></transition>
-
+    <transition name="glAccountTree"><default-response url="../GlAccountTree"/></transition>
     <transition name="createGlAccount"><service-call name="mantle.ledger.LedgerServices.create#GlAccount"/>
         <default-response url="../EditGlAccount"/></transition>
 
@@ -29,28 +28,98 @@ along with this software (see the LICENSE.md file). If not, see
         </entity-find>
     </actions>
     <widgets>
+        <link url="glAccountTree" text="Account Tree"/>
+        <section name="GlAccountClassRefSection"><widgets><container-dialog id="GlAccountClassRef" button-text="Account Class Reference">
+            <render-mode><text type="html,vuet"><![CDATA[
+            <ul>
+                <li>Debit<ul>
+                    <li><strong>Asset (Balance Sheet)</strong><ul>
+                        <li>Current Asset<ul>
+                            <li>Cash and Equivalent</li>
+                            <li>Inventory Asset</li>
+                            <li>Accounts Receivable</li>
+                            <li>Loans Receivable</li>
+                            <li>Prepaid Expense (paid, not yet incurred)</li>
+                            <li>Accrued Revenue (earned, not yet received)</li>
+                        </ul></li>
+                        <li>Long Term Asset<ul>
+                            <li>Land and Building</li>
+                            <li>Equipment</li>
+                            <li>Other Asset</li>
+                        </ul></li>
+                        <li>Other Asset</li>
+                    </ul></li>
+                    <li><strong>Cost of Sales (Income Statement)</strong><ul>
+                        <li>Cost of Goods Sold<ul>
+                            <li>Inventory Shrinkage</li>
+                        </ul></li>
+                        <li>Cost of Services Sold</li>
+                        <li>Discounts and Write-downs</li>
+                    </ul></li>
+                    <li><strong>Expense (Income Statement)</strong><ul>
+                        <li>Cash Expense</li>
+                        <li>Interest Expense</li>
+                        <li>Compensation</li>
+                        <li>Sales, General, and Administrative Expense</li>
+                        <li>Tax Expense</li>
+                        <li>Non-Cash Expense<ul>
+                            <li>Depreciation</li>
+                            <li>Amortization</li>
+                        </ul></li>
+                    </ul></li>
+                    <li><strong>Contra Revenue (Income Statement)</strong></li>
+                    <li><strong>Equity Distribution</strong><ul>
+                        <li>Return of Capital</li>
+                        <li>Dividends</li>
+                    </ul></li>
+                </ul></li>
+                <li>Credit<ul>
+                    <li><strong>Liability (Balance Sheet)</strong><ul>
+                        <li>Current Liability<ul>
+                            <li>Accounts Payable</li>
+                            <li>Accrued Expenses (incurred, not yet paid)</li>
+                            <li>Unearned Revenue (received, not yet earned)</li>
+                            <li>Third-Party Holdings</li>
+                        </ul></li>
+                        <li>Long Term Liability</li>
+                    </ul></li>
+                    <li><strong>Contra Asset (Balance Sheet)</strong><ul>
+                        <li>Accumulated Depreciation</li>
+                        <li>Accumulated Amortization</li>
+                        <li>Allowance For Bad Debts</li>
+                    </ul></li>
+                    <li><strong>Equity (Balance Sheet)</strong><ul>
+                        <li>Owners Equity</li>
+                        <li>Retained Earnings</li>
+                    </ul></li>
+                    <li><strong>Revenue (Income Statement)</strong><ul>
+                        <li>Goods Revenue</li>
+                        <li>Services Revenue</li>
+                    </ul></li>
+                    <li><strong>Income (Income Statement)</strong><ul>
+                        <li>Cash Income</li>
+                        <li>Interest Income</li>
+                        <li>Non-Cash Income</li>
+                    </ul></li>
+                </ul></li>
+            </ul>
+            ]]></text></render-mode>
+        </container-dialog></widgets></section>
         <container-dialog id="NewGlAccountDialog" button-text="New GL Account">
             <form-single name="NewGlAccountForm" transition="createGlAccount">
                 <field name="parentGlAccountId"><default-field title="Parent Account">
-                    <text-line size="50" ac-transition="getGlAccountList"/>
-                    <!-- <drop-down>
-                        <entity-options key="${glAccountId}" text="${accountCode} - ${accountName}">
-                            <entity-find entity-name="mantle.ledger.account.GlAccount">
-                                <order-by field-name="accountCode"/></entity-find>
-                        </entity-options>
-                    </drop-down> -->
-                </default-field></field>
+                    <text-line size="50" ac-transition="getGlAccountList"/></default-field></field>
 
                 <field name="accountCode"><default-field><text-line size="20"/></default-field></field>
                 <field name="accountName"><default-field><text-line size="40"/></default-field></field>
 
-                <field name="glAccountTypeEnumId"><default-field title="Account Type">
-                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                        <set field="enumTypeId" value="GlAccountType"/><set field="allowEmpty" value="true"/></widget-template-include>
-                </default-field></field>
                 <field name="glAccountClassEnumId"><default-field title="Account Class">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="GlAccountClass"/></widget-template-include>
+                </default-field></field>
+                <field name="glAccountTypeEnumId"><default-field title="Account Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="GlAccountType"/><set field="allowEmpty" value="true"/></widget-template-include>
                 </default-field></field>
 
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
@@ -60,7 +129,7 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="GlAccountListForm" list="glAccountList" skip-form="true">
             <field name="accountCode">
                 <header-field show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><link url="editGlAccount" text="${accountCode}"/></default-field>
+                <default-field><link url="editGlAccount" text="${accountCode}" link-type="anchor"/></default-field>
             </field>
             <field name="accountName">
                 <header-field title="Name" show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
