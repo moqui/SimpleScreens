@@ -31,27 +31,33 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="customerPartyId"><default-field title="Customer">
                     <text-line ac-transition="searchPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
                 </default-field></field>
+                <field name="productStoreId"><default-field title="Store">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                            <entity-find entity-name="mantle.product.store.ProductStore">
+                                <order-by field-name="storeName"/></entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
                 <field name="assignToPartyId"><default-field title="Assign To" tooltip="If empty will be assigned to current user">
                     <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/>
                 </default-field></field>
 
-                <field name="requestName"><default-field title="Name"><text-line size="60"/></default-field></field>
+                <field name="requestName"><default-field title="Request Name"><text-line size="60"/></default-field></field>
                 <field name="priority"><default-field>
-                    <drop-down allow-empty="true"><option key="1"/><option key="2"/><option key="3"/><option key="4"/>
+                    <drop-down no-current-selected-key="5"><option key="1"/><option key="2"/><option key="3"/><option key="4"/>
                         <option key="5"/><option key="6"/><option key="7"/><option key="8"/><option key="9"/></drop-down>
                 </default-field></field>
+                <field name="responseRequiredDate"><default-field title="Due Date">
+                    <date-time type="date-time"/></default-field></field>
                 <field name="requestTypeEnumId"><default-field title="Type">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="RequestType"/><set field="noCurrentSelectedKey" value="RqtSupport"/>
                     </widget-template-include>
                 </default-field></field>
-                <field name="statusId"><default-field title="Status">
+                <field name="statusId"><default-field title="Initial Status">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                        <set field="statusTypeId" value="Request"/></widget-template-include>
+                        <set field="statusTypeId" value="Request"/><set field="noCurrentSelectedKey" value="ReqSubmitted"/></widget-template-include>
                 </default-field></field>
-                <field name="responseRequiredDate">
-                    <default-field title="Due Date"><date-time type="date-time"/></default-field>
-                </field>
                 <field name="description"><default-field title="Description"><text-area rows="10"/></default-field></field>
 
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
@@ -60,27 +66,27 @@ along with this software (see the LICENSE.md file). If not, see
 
         <form-list name="ListRequests" list="requestList" skip-form="true" header-dialog="true">
             <entity-find entity-name="mantle.request.RequestAndParty" list="requestList">
-                <search-form-inputs default-order-by="priority" skip-fields="partyId"/>
+                <search-form-inputs default-order-by="priority" skip-fields="partyId">
+                    <default-parameters statusId="ReqDraft,ReqSubmitted,ReqReviewed,ReqInProgress" statusId_op="in"/></search-form-inputs>
                 <date-filter ignore="!findPartyId"/>
                 <econdition field-name="partyId" from="findPartyId" ignore-if-empty="true"/>
             </entity-find>
             <row-actions>
-                <entity-find entity-name="mantle.request.RequestParty" list="customerRpList">
-                    <date-filter/><econdition field-name="requestId"/>
-                    <econdition field-name="roleTypeId" operator="in" value="Customer"/>
-                </entity-find>
-                <set field="customerRp" from="customerRpList?.getAt(0)"/>
+                <entity-find entity-name="mantle.request.RequestParty" list="partyList">
+                    <date-filter/><econdition field-name="requestId"/></entity-find>
+                <set field="customerRp" from="partyList.find({ it.roleTypeId == 'Customer' })"/>
+                <set field="assigneeRp" from="partyList.find({ it.roleTypeId == 'Assignee' })"/>
             </row-actions>
             <field name="findPartyId"><header-field title="Party">
                 <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/>
             </header-field></field>
 
             <field name="priority">
-                <header-field show-order-by="true">
+                <header-field show-order-by="true" title="Pri">
                     <drop-down allow-empty="true"><option key="1"/><option key="2"/><option key="3"/><option key="4"/>
                         <option key="5"/><option key="6"/><option key="7"/><option key="8"/><option key="9"/></drop-down>
                 </header-field>
-                <default-field><display also-hidden="false"/></default-field>
+                <default-field><display/></default-field>
             </field>
             <field name="requestId">
                 <header-field title="ID"><text-find size="10" hide-options="true"/></header-field>
@@ -88,9 +94,22 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="requestName">
                 <header-field title="Name" show-order-by="case-insensitive"><text-find size="30"/></header-field>
-                <default-field><display also-hidden="false"/></default-field>
+                <default-field><link url="editRequest" text="${requestName}" link-type="anchor"/></default-field>
             </field>
             <field name="customerPartyId" from="customerRp?.partyId"><default-field title="Customer">
+                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
+            </default-field></field>
+            <field name="productStoreId">
+                <header-field title="Store">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                            <entity-find entity-name="mantle.product.store.ProductStore">
+                                <order-by field-name="storeName"/></entity-find></entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.product.store.ProductStore" text="${storeName}"/></default-field>
+            </field>
+            <field name="assignToPartyId" from="assigneeRp?.partyId"><default-field title="Assigned To">
                 <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
             </default-field></field>
             <field name="requestTypeEnumId">
@@ -99,7 +118,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <set field="enumTypeId" value="RequestType"/><set field="allowEmpty" value="true"/>
                         <set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
             <field name="statusId">
                 <header-field title="Status" show-order-by="true">
@@ -107,7 +126,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <set field="statusTypeId" value="Request"/><set field="allowEmpty" value="true"/>
                         <set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
             <field name="requestResolutionEnumId">
                 <header-field title="Resolution" show-order-by="true">
@@ -115,13 +134,25 @@ along with this software (see the LICENSE.md file). If not, see
                         <set field="enumTypeId" value="RequestResolution"/><set field="allowEmpty" value="true"/>
                         <set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="requestDate">
+                <header-field title="Request Date" show-order-by="true"><date-period allow-empty="true"/></header-field>
+                <default-field><display/></default-field>
             </field>
             <field name="responseRequiredDate">
                 <header-field title="Due Date" show-order-by="true"><date-period allow-empty="true"/></header-field>
                 <default-field><display/></default-field>
             </field>
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="priority"/></form-list-column>
+            <form-list-column><field-ref name="requestName"/><field-ref name="requestId"/></form-list-column>
+            <form-list-column><field-ref name="customerPartyId"/><field-ref name="productStoreId"/></form-list-column>
+            <form-list-column><field-ref name="assignToPartyId"/></form-list-column>
+            <form-list-column><field-ref name="requestTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="statusId"/><field-ref name="requestResolutionEnumId"/></form-list-column>
+            <form-list-column><field-ref name="requestDate"/><field-ref name="responseRequiredDate"/></form-list-column>
         </form-list>
     </widgets>
 </screen>

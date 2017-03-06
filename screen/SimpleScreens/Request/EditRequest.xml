@@ -54,17 +54,25 @@ along with this software (see the LICENSE.md file). If not, see
         <container-row><row-col md="7">
             <form-single name="EditRequest" transition="updateRequest" map="request">
                 <field name="requestId"><default-field title="Request ID"><display/></default-field></field>
+                <field name="requestDate"><default-field><display/></default-field></field>
                 <field name="filedByPartyId"><default-field title="Filed By">
                     <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
                 <field name="displayCustomerId" from="customerRp?.partyId"><default-field title="Customer">
                     <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
                 <!-- <field name="customerPartyId" from="customerRp?.partyId"><default-field title="Set Customer">
                     <text-line ac-transition="searchPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
-                </default-field></field>-->
+                </default-field></field> -->
+                <field name="productStoreId"><default-field title="Store">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${productStoreId}" text="${storeName}">
+                            <entity-find entity-name="mantle.product.store.ProductStore">
+                                <order-by field-name="storeName"/></entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
                 <field name="displayAssigneeId" from="assignToRp?.partyId"><default-field title="Assignee">
                     <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
                 <field name="assignToPartyId"><default-field title="Set Assignee">
-                    <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/>
+                    <text-line ac-transition="searchPartyList" ac-min-length="2" size="25"/>
                 </default-field></field>
 
                 <field name="requestName"><default-field title="Name"><text-line/></default-field></field>
@@ -72,6 +80,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <drop-down allow-empty="true"><option key="1"/><option key="2"/><option key="3"/><option key="4"/>
                         <option key="5"/><option key="6"/><option key="7"/><option key="8"/><option key="9"/></drop-down>
                 </default-field></field>
+                <field name="responseRequiredDate"><default-field title="Due Date"><date-time type="date-time"/></default-field></field>
                 <field name="requestTypeEnumId"><default-field title="Type">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="RequestType"/><set field="noCurrentSelectedKey" value="RfSupport"/></widget-template-include>
@@ -85,11 +94,19 @@ along with this software (see the LICENSE.md file). If not, see
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="RequestResolution"/><set field="noCurrentSelectedKey" value="RrUnresolved"/></widget-template-include>
                 </default-field></field>
-                <field name="responseRequiredDate">
-                    <default-field title="Due Date"><date-time type="date-time"/></default-field>
-                </field>
-                <field name="description"><default-field title=""><text-area rows="20"/></default-field></field>
+                <field name="description"><default-field><text-area rows="20"/></default-field></field>
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+
+                <field-layout>
+                    <field-row><field-ref name="requestId"/><field-ref name="requestDate"/></field-row>
+                    <field-row><field-ref name="filedByPartyId"/></field-row>
+                    <field-row><field-ref name="displayCustomerId"/><field-ref name="displayAssigneeId"/></field-row>
+                    <field-row><field-ref name="productStoreId"/><field-ref name="assignToPartyId"/></field-row>
+                    <field-row><field-ref name="priority"/><field-ref name="responseRequiredDate"/></field-row>
+                    <field-row><field-ref name="requestTypeEnumId"/></field-row>
+                    <field-row><field-ref name="statusId"/><field-ref name="requestResolutionEnumId"/></field-row>
+                    <fields-not-referenced/>
+                </field-layout>
             </form-single>
         </row-col><row-col md="5">
             <container-box><box-header><label text="Parties" type="h5"/></box-header><box-toolbar>
