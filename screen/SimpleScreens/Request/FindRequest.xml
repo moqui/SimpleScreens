@@ -16,8 +16,6 @@ along with this software (see the LICENSE.md file). If not, see
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
         default-menu-include="false">
 
-    <parameter name="findPartyId"/>
-
     <transition name="findRequest"><default-response url="."/></transition>
     <transition name="editRequest"><default-response url="../EditRequest"/></transition>
     <transition name="createRequest"><service-call name="mantle.request.RequestServices.create#Request"/>
@@ -25,6 +23,9 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
+    <actions>
+        <set field="partyId" from="partyId ?: findPartyId"/>
+    </actions>
     <widgets>
         <container-dialog id="NewRequestContainer" button-text="New Request">
             <form-single name="NewRequestForm" transition="createRequest">
@@ -66,10 +67,9 @@ along with this software (see the LICENSE.md file). If not, see
 
         <form-list name="ListRequests" list="requestList" skip-form="true" header-dialog="true">
             <entity-find entity-name="mantle.request.RequestAndParty" list="requestList">
-                <search-form-inputs default-order-by="priority" skip-fields="partyId">
+                <search-form-inputs default-order-by="priority,requestDate">
                     <default-parameters statusId="ReqDraft,ReqSubmitted,ReqReviewed,ReqInProgress" statusId_op="in"/></search-form-inputs>
-                <date-filter ignore="!findPartyId"/>
-                <econdition field-name="partyId" from="findPartyId" ignore-if-empty="true"/>
+                <date-filter ignore="!partyId"/>
             </entity-find>
             <row-actions>
                 <entity-find entity-name="mantle.request.RequestParty" list="partyList">
@@ -77,6 +77,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="customerRp" from="partyList.find({ it.roleTypeId == 'Customer' })"/>
                 <set field="assigneeRp" from="partyList.find({ it.roleTypeId == 'Assignee' })"/>
             </row-actions>
+            <!-- called findPartyId instead of partyId so form-list.entity-find doesn't automatically select partyId
+                (don't want unless querying by partyId to avoid duplicate records from the RequestParty join) -->
             <field name="findPartyId"><header-field title="Party">
                 <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/>
             </header-field></field>
@@ -147,11 +149,11 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="priority"/></form-list-column>
+            <form-list-column><field-ref name="requestDate"/><field-ref name="responseRequiredDate"/></form-list-column>
             <form-list-column><field-ref name="requestName"/><field-ref name="requestId"/></form-list-column>
             <form-list-column><field-ref name="customerPartyId"/><field-ref name="productStoreId"/></form-list-column>
             <form-list-column><field-ref name="requestTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="requestResolutionEnumId"/></form-list-column>
-            <form-list-column><field-ref name="requestDate"/><field-ref name="responseRequiredDate"/></form-list-column>
             <form-list-column><field-ref name="assignToPartyId"/></form-list-column>
         </form-list>
     </widgets>

@@ -21,6 +21,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="findShipment"><default-response url="//${appRoot}/Shipment/FindShipment"/></transition>
     <transition name="findInvoice"><default-response url="//${appRoot}/Accounting/Invoice/FindInvoice"/></transition>
     <transition name="findPayment"><default-response url="//${appRoot}/Accounting/Payment/FindPayment"/></transition>
+    <transition name="findRequest"><default-response url="//${appRoot}/Request/FindRequest"/></transition>
 
     <transition name="updateParty"><service-call name="mantle.party.PartyServices.update#PartyDetail"/>
         <default-response url="."/></transition>
@@ -105,8 +106,11 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
             <field-map field-name="partyId"/></entity-find-one>
 
+        <entity-find-count entity-name="mantle.request.RequestAndParty" count-field="requestCount">
+            <econdition field-name="partyId"/></entity-find-count>
+
         <entity-find-count entity-name="mantle.order.OrderPart" count-field="customerOrderPartCount">
-            <econdition field-name="customerPartyId" from="partyId"/></entity-find-count>
+            <date-filter/><econdition field-name="customerPartyId" from="partyId"/></entity-find-count>
         <entity-find-count entity-name="mantle.order.OrderPart" count-field="vendorOrderPartCount">
             <econdition field-name="vendorPartyId" from="partyId"/></entity-find-count>
 
@@ -129,6 +133,7 @@ along with this software (see the LICENSE.md file). If not, see
         <container-row><row-col lg="6">
             <!-- TODO EmailMessage tab -->
 
+            <link url="findRequest" text="Requests (${requestCount})" parameter-map="[findPartyId:partyId]" condition="requestCount"/>
             <link url="findOrder" text="Sales Orders (${customerOrderPartCount})" parameter-map="[customerPartyId:partyId]" condition="customerOrderPartCount"/>
             <link url="findOrder" text="Purchase Orders (${vendorOrderPartCount})" parameter-map="[vendorPartyId:partyId]" condition="vendorOrderPartCount"/>
             <link url="findShipment" text="Shipments From (${fromShipmentCount})" parameter-map="[fromPartyId:partyId]" condition="fromShipmentCount"/>
