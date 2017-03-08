@@ -37,10 +37,11 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="editableStatusIds" from="new HashSet(['InvoiceInProcess', 'InvoiceIncoming', 'InvoiceReceived'])"/>
         <set field="invoiceEditable" from="invoice.statusId in editableStatusIds"/>
 
-
         <entity-find entity-name="mantle.party.PartyRole" list="fromOrgInternalList">
             <econdition field-name="partyId" from="invoice.fromPartyId"/><econdition field-name="roleTypeId" value="OrgInternal"/></entity-find>
         <set field="isFromPartyOrgInternal" from="fromOrgInternalList as boolean"/>
+        <set field="organizationPartyId" from="isFromPartyOrgInternal ? invoice.fromPartyId : invoice.toPartyId"/>
+
         <if condition="invoice.invoiceTypeEnumId == 'InvoiceSales' || invoice.invoiceTypeEnumId == 'InvoiceReturn'"><then>
             <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
                 <econdition field-name="enumGroupEnumId" from="isFromPartyOrgInternal ? 'EngItemsSales' : 'EngItemsPurchase'"/><order-by field-name="description"/></entity-find>
@@ -85,8 +86,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
             <field name="overrideGlAccountId">
-                <conditional-field condition="invoiceEditable">
-                    <text-line size="50" ac-transition="getGlAccountList"/></conditional-field>
+                <conditional-field condition="invoiceEditable" tooltip="Use % (percent) as a wildcard">
+                    <text-line size="50" ac-transition="getGlAccountList"
+                            parameter-map="[onlyPostingAllowed:'true', organizationPartyId:organizationPartyId]"/></conditional-field>
                 <default-field title="Override GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
                         text="GlAccountNameTemplate"/></default-field>
             </field>

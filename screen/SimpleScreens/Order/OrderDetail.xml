@@ -133,7 +133,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <section-iterate name="PlaceWarningsSection" list="placeWarnings" entry="placeWarning"><widgets>
                             <label text="${placeWarning}" type="p"/>
                         </widgets></section-iterate>
-                        <link url="placeOrder" text="Place Order" link-type="hidden-form"/>
+                        <link url="placeOrder" text="Place Order Anyway" link-type="hidden-form"/>
                     </container-dialog>
 
                     <container-dialog id="AddPartDialog" button-text="Add Part">
@@ -289,9 +289,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <container-box><box-header><label text="Email Messages" type="h5"/></box-header><box-toolbar>
                         <section name="SendPlacedEmailSection" condition="!(orderHeader.statusId in ['OrderBeingChanged', 'OrderOpen', 'OrderRequested', 'OrderProposed'])"><actions>
                             <set field="customerPartyId" from="orderPartList[0].customerPartyId"/>
-                            <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="emailInfo"
-                                    in-map="[partyId:customerPartyId, emailContactMechPurposeId:'EmailOrder', defaultToPrimaryPurpose:true]"/>
-                            <set field="toAddresses" from="emailInfo.emailAddress"/>
+                            <if condition="customerPartyId">
+                                <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="emailInfo"
+                                        in-map="[partyId:customerPartyId, emailContactMechPurposeId:'EmailOrder', defaultToPrimaryPurpose:true]"/>
+                                <set field="toAddresses" from="emailInfo.emailAddress"/>
+                            </if>
                         </actions><widgets>
                             <container-dialog id="SendPlacedEmailDialog" button-text="Send Email">
                                 <form-single name="SendPlacedEmailForm" transition="sendOrderStoreEmail">
@@ -446,7 +448,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
                             <link url="editCustomer" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
                                     link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; !orderPartInfo.isCustomerInternalOrg"/>
-                            <label text="No Customer Selected" style="text-warning" condition="orderPartInfo.customerDetail == null"/>
+                            <label text="No Customer Selected" style="text-danger" condition="orderPartInfo.customerDetail == null"/>
                         </container>
                         <label text="Store" type="dt" condition="productStore != null"/>
                         <label text="${productStore.productStoreId}: ${productStore.storeName}" type="dd" condition="productStore != null"/>
@@ -508,7 +510,7 @@ along with this software (see the LICENSE.md file). If not, see
                                                 <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/>
                                             </entity-find></entity-options>
                                 </drop-down></default-field></field>
-                                <field name="finAccountId"><default-field title="Financial Account">
+                                <field name="finAccountId"><default-field title="Customer Account">
                                     <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
                                         <entity-find entity-name="mantle.account.financial.FinancialAccount">
                                             <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/></entity-find>
@@ -635,7 +637,8 @@ along with this software (see the LICENSE.md file). If not, see
                             </drop-down>
                         </default-field></field>
                         <field name="quantity"><default-field><text-line size="8"/></default-field></field>
-                        <field name="unitAmount"><default-field title="Price"><text-line size="10"/></default-field></field>
+                        <field name="unitAmount"><default-field title="Price" tooltip="Leave empty to lookup automatically">
+                            <text-line size="10"/></default-field></field>
                         <field name="requiredByDate" from="orderPartInfo.orderPart.shipBeforeDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
 
                         <field name="submitButton"><default-field title="Add"><submit/></default-field></field>

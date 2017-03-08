@@ -21,6 +21,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="findShipment"><default-response url="//${appRoot}/Shipment/FindShipment"/></transition>
     <transition name="findInvoice"><default-response url="//${appRoot}/Accounting/Invoice/FindInvoice"/></transition>
     <transition name="findPayment"><default-response url="//${appRoot}/Accounting/Payment/FindPayment"/></transition>
+    <transition name="findRequest"><default-response url="//${appRoot}/Request/FindRequest"/></transition>
 
     <transition name="updateParty"><service-call name="mantle.party.PartyServices.update#PartyDetail"/>
         <default-response url="."/></transition>
@@ -105,6 +106,9 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
             <field-map field-name="partyId"/></entity-find-one>
 
+        <entity-find-count entity-name="mantle.request.RequestAndParty" count-field="requestCount">
+            <date-filter/><econdition field-name="partyId"/></entity-find-count>
+
         <entity-find-count entity-name="mantle.order.OrderPart" count-field="customerOrderPartCount">
             <econdition field-name="customerPartyId" from="partyId"/></entity-find-count>
         <entity-find-count entity-name="mantle.order.OrderPart" count-field="vendorOrderPartCount">
@@ -129,6 +133,7 @@ along with this software (see the LICENSE.md file). If not, see
         <container-row><row-col lg="6">
             <!-- TODO EmailMessage tab -->
 
+            <link url="findRequest" text="Requests (${requestCount})" parameter-map="[partyId:partyId]" condition="requestCount"/>
             <link url="findOrder" text="Sales Orders (${customerOrderPartCount})" parameter-map="[customerPartyId:partyId]" condition="customerOrderPartCount"/>
             <link url="findOrder" text="Purchase Orders (${vendorOrderPartCount})" parameter-map="[vendorPartyId:partyId]" condition="vendorOrderPartCount"/>
             <link url="findShipment" text="Shipments From (${fromShipmentCount})" parameter-map="[fromPartyId:partyId]" condition="fromShipmentCount"/>
@@ -519,8 +524,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-toolbar><box-body>
                     <section-iterate name="EmailInfoSection" list="contactOut.emailAddressList" entry="contactInfo"><widgets>
                         <container-row><row-col lg="6">
-                            <dynamic-dialog id="UpdateEmailInfo" button-text="Update"
-                                    transition="UpdateContactInfo"
+                            <dynamic-dialog id="UpdateEmailInfo" button-text="Update" transition="UpdateContactInfo"
                                     parameter-map="[partyId:partyId, emailContactMechId:contactInfo.emailContactMechId,
                                         emailContactMechPurposeId:contactInfo.emailContactMechPurposeId]"/>
                             <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
@@ -539,8 +543,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-toolbar><box-body>
                     <section-iterate name="PhoneInfoSection" list="contactOut.telecomNumberList" entry="contactInfo"><widgets>
                         <container-row><row-col lg="6">
-                            <dynamic-dialog id="UpdatePhoneInfo" button-text="Update"
-                                    transition="UpdateContactInfo"
+                            <dynamic-dialog id="UpdatePhoneInfo" button-text="Update" transition="UpdateContactInfo"
                                     parameter-map="[partyId:partyId, telecomContactMechId:contactInfo.telecomContactMechId,
                                         telecomContactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
                             <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
@@ -559,8 +562,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-toolbar><box-body>
                     <section-iterate name="PostalInfoSection" list="contactOut.postalAddressList" entry="contactInfo"><widgets>
                         <container-row><row-col lg="6">
-                            <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address"
-                                    transition="UpdateContactInfo" width="840"
+                            <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo" width="840"
                                     parameter-map="[partyId:partyId, postalContactMechId:contactInfo.postalContactMechId,
                                         postalContactMechPurposeId:contactInfo.postalContactMechPurposeId]"/>
                             <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
