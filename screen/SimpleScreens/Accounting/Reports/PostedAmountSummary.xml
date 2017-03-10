@@ -31,12 +31,18 @@ along with this software (see the LICENSE.md file). If not, see
     </default-response></transition>
 
     <actions>
+        <service-call name="mantle.ledger.LedgerServices.find#PartyAcctgPreference" out-map="context"
+                in-map="[organizationPartyId:organizationPartyId]"/>
+
         <if condition="dateRange_period">
             <set field="rangeList" from="ec.user.getPeriodRange(dateRange_period, dateRange_poffset)"/>
             <set field="fromDate" from="rangeList[0]"/>
             <set field="thruDate" from="rangeList[1]"/>
         </if>
         <service-call name="mantle.ledger.LedgerReportServices.run#PostedAmountSummary" out-map="context" in-map="context"/>
+
+        <set field="glAccountCodeMask" from="partyAcctgPreference?.glAccountCodeMask ?: ec.user.getPreference('GlAccountCodeMask')"/>
+        <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
     </actions>
     <widgets>
         <container>
@@ -44,7 +50,8 @@ along with this software (see the LICENSE.md file). If not, see
             <link url="PostedAmountSummaryExport.xml" text="Get as XML" expand-transition-url="false"/>
         </container>
         <form-list name="ResultListForm" skip-form="true" list="resultList">
-            <field name="accountCode"><default-field><display/></default-field></field>
+            <field name="accountCode"><default-field title="Acct Code">
+                <display text="${accountCodeFormatter != null ? accountCodeFormatter.valueToString(accountCode) : accountCode}"/></default-field></field>
             <field name="accountName"><default-field><display/></default-field></field>
             <field name="glAccountClassEnumId"><default-field title="Account Class">
                 <display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId" text="${description}"/>
