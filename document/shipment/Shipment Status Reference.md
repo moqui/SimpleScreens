@@ -1,0 +1,70 @@
+## Shipment Status Reference
+
+All Shipments have From and To parties. If the From party is an internal organization it is an outgoing shipment, 
+otherwise it is an incoming shipment.
+
+### Incoming Status Flow
+
+- Input
+- Scheduled
+- Picked (optional, if notified by From party)
+- Packed (optional, if notified by From party)
+- Shipped (optional, if notified by From party)
+- Delivered (received)
+
+To be received an incoming shipment must be in the Scheduled or later status.
+
+A shipment may be marked Delivered if it is at least partially received.
+
+### Outgoing Status Flow
+
+- Input
+- Scheduled
+- Picked (optional)
+- Packed (required)
+- Shipped (optional)
+- Delivered (optional)
+
+To be packed an outgoing shipment must be in the Scheduled or later status.
+
+Note that as item quantities are packed (independent of the packed status) they are issued to the shipment and accounting transactions are posted.
+
+The most important status for an outgoing shipment is Packed. In this status the shipment is considered final and maybe invoiced.
+For outgoing shipments with items associated with order items and invoice will be generated and authorized payments captured 
+when a shipment changes to the Packed status.
+
+### Status Definitions
+
+#### Input
+
+This is generally the initial status for a Shipment and means it is being input and prepared.
+
+In this status a shipment is still tentative. Incoming shipments may not be received, and outgoing shipments may not be packed.
+
+#### Scheduled
+
+The shipment is scheduled, or at least the input is complete and the shipment ready to be processed.
+
+#### Picked
+
+Items for the shipment have been picked from storage locations.
+
+#### Packed
+
+Items for the shipment have been packed into final packaging and packages have been weighed, etc.
+
+#### Shipped
+
+The shipment has been picked up by the Carrier or loaded onto a delivery truck.
+
+#### Delivered
+
+The shipment has been delivered to the To party. For incoming shipments this denotes the shipment has been fully received.
+
+#### Rejected
+
+Rejected on attempt to deliver.
+
+#### Cancelled
+
+Cancelled before shipping.
