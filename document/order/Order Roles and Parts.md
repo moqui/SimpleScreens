@@ -10,16 +10,16 @@ share the same set of statuses though the flow through the statuses varies sligh
 All orders must has a single Customer and Vendor. In addition to these there may be additional parties such as:
 
 - Customer
-  - Ship To (shipments are sent to this Party) 
-  - Bill To (invoices are sent to this Party)
-  - Placed By
-  - End User
+    - Ship To (shipments are sent to this Party) 
+    - Bill To (invoices are sent to this Party)
+    - Placed By
+    - End User
 - Vendor
-  - Bill From
-  - Ship From
-  - Pick Up From
+    - Bill From
+    - Ship From
+    - Pick Up From
 - Supplier
-  - A supplier is an external vendor that an internal organization purchases from
+    - A supplier is an external vendor that an internal organization purchases from
 - Sales Representative
 - Order Clerk
 - Buyer

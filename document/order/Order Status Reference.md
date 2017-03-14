@@ -26,7 +26,8 @@ For purchase orders this means the order has been placed by a buyer but is await
 
 #### Approved
 
-An order in this status has been approved by the vendor for fulfillment.
+An order in this status has been approved by the vendor for fulfillment. In this status one or more shipments may be created for 
+items on the order.
 
 An approved order may be modified with certain constraints. Fulfilled quantities may not be cancelled but may be returned. 
 For partially fulfilled orders if unfulfilled quantities are cancelled or removed the order will go to the Completed status.

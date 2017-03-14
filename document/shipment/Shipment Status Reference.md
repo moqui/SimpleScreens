@@ -14,7 +14,9 @@ otherwise it is an incoming shipment.
 
 To be received an incoming shipment must be in the Scheduled or later status.
 
-A shipment may be marked Delivered if it is at least partially received.
+A shipment may be marked Delivered if it is at least partially received and means that no further items are expected.
+
+When a shipment goes into the Delivered status an incoming (payable/purchase) invoice will be generated for items not already billed.
 
 ### Outgoing Status Flow
 
@@ -30,8 +32,8 @@ To be packed an outgoing shipment must be in the Scheduled or later status.
 Note that as item quantities are packed (independent of the packed status) they are issued to the shipment and accounting transactions are posted.
 
 The most important status for an outgoing shipment is Packed. In this status the shipment is considered final and maybe invoiced.
-For outgoing shipments with items associated with order items and invoice will be generated and authorized payments captured 
-when a shipment changes to the Packed status.
+For outgoing shipments with items associated with order items and an outgoing (receivable/sales) invoice will be generated and 
+authorized payments captured when a shipment changes to the Packed status.
 
 ### Status Definitions
 
@@ -53,6 +55,8 @@ Items for the shipment have been picked from storage locations.
 
 Items for the shipment have been packed into final packaging and packages have been weighed, etc.
 
+For outgoing shipments this triggers creating an outgoing (receivable/sales) invoice for items not already billed.
+
 #### Shipped
 
 The shipment has been picked up by the Carrier or loaded onto a delivery truck.
@@ -60,6 +64,8 @@ The shipment has been picked up by the Carrier or loaded onto a delivery truck.
 #### Delivered
 
 The shipment has been delivered to the To party. For incoming shipments this denotes the shipment has been fully received.
+
+For incoming shipments this triggers creating an incoming (payable/purchase) invoice for items not already billed.
 
 #### Rejected
 
