@@ -122,7 +122,7 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="customerRole" value="OrgInternal,Customer"/>
         <set field="productItemTypes" from="['ItemProduct', 'ItemInventory', 'ItemAsset', 'ItemExpSupplies']"/>
 
-        <if condition="orderHeader.statusId == 'OrderPlaced'">
+        <if condition="orderHeader.statusId in ['OrderPlaced', 'OrderProcessing']">
             <service-call name="mantle.order.OrderServices.check#OrderPreApprove" in-map="[orderId:orderId]" out-map="context"/></if>
     </actions>
     <widgets>
@@ -157,7 +157,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-single>
                     </container-dialog>
                 </widgets></section>
-                <section name="PlacedSection" condition="orderHeader.statusId == 'OrderPlaced'"><widgets>
+                <section name="PlacedSection" condition="orderHeader.statusId  in ['OrderPlaced', 'OrderProcessing']"><widgets>
                     <link url="approveOrder" text="Approve Order" link-type="hidden-form"
                             condition="ec.user.hasPermission('ORDER_APPROVE') &amp;&amp; !approveWarnings"/>
                     <container-dialog id="ApproveOrderDialog" button-text="Approve Warnings" condition="approveWarnings">
@@ -171,7 +171,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="sendOrder" text="Order Sent" link-type="hidden-form"
                         condition="orderHeader.statusId == 'OrderApproved'"/>
                 <link url="cancelOrder" text="Cancel Order" link-type="hidden-form"
-                        condition="orderHeader.statusId in ['OrderOpen', 'OrderPlaced', 'OrderApproved']"/>
+                        condition="orderHeader.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved']"/>
 
                 <link url="cloneOrder" text="Clone Order" parameter-map="[baseOrderId:orderId]"/>
                 <link url="PrintOrder.pdf" text="Order PDF"/>
