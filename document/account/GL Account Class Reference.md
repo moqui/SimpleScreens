@@ -1,0 +1,54 @@
+- Debit
+    - **Asset** (Balance Sheet)
+        - Current Asset
+            - Cash and Equivalent
+            - Inventory Asset
+            - Accounts Receivable
+            - Loans Receivable
+            - Prepaid Expense (paid, not yet incurred)
+            - Accrued Revenue (earned, not yet received)
+        - Long Term Asset
+            - Land and Building
+            - Equipment
+            - Other Asset
+        - Other Asset
+    - **Cost of Sales** (Income Statement)
+        - Cost of Goods Sold
+            - Inventory Shrinkage
+        - Cost of Services Sold
+        - Discounts and Write-downs
+    - **Expense** (Income Statement)
+        - Cash Expense
+        - Interest Expense
+        - Compensation
+        - Sales, General, and Administrative Expense
+        - Tax Expense
+        - Non-Cash Expense
+            - Depreciation
+            - Amortization
+    - **Contra Revenue** (Income Statement)
+    - **Equity Distribution**
+        - Return of Capital
+        - Dividends
+- Credit
+    - **Liability** (Balance Sheet)
+        - Current Liability
+            - Accounts Payable
+            - Accrued Expenses (incurred, not yet paid)
+            - Unearned Revenue (received, not yet earned)
+            - Third-Party Holdings
+        - Long Term Liability
+    - **Contra Asset** (Balance Sheet)
+        - Accumulated Depreciation
+        - Accumulated Amortization
+        - Allowance For Bad Debts
+    - **Equity** (Balance Sheet)
+        - Owners Equity
+        - Retained Earnings
+    - **Revenue** (Income Statement)
+        - Goods Revenue
+        - Services Revenue
+    - **Income** (Income Statement)
+        - Cash Income
+        - Interest Income
+        - Non-Cash Income
