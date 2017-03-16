@@ -85,7 +85,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfoById.REVENUE.totalPostedByTimePeriod['ALL']!0 + classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod['ALL']!0, currencyUomId)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfoById.REVENUE.totalPostedByTimePeriod[timePeriodId]!0 + classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod[timePeriodId]!0, currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency((classInfoById.REVENUE.totalPostedByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod[timePeriodId]!0), currencyUomId)}</strong></td>
             </#list>
         </tr>
 
