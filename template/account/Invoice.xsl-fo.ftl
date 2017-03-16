@@ -84,7 +84,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-cell padding="3pt" width="1.75in">
                         <fo:block font-weight="bold">Date</fo:block>
                         <fo:block>${ec.l10n.format(invoice.invoiceDate, dateFormat)}</fo:block>
-                        <#if invoice.dueDate?exists>
+                        <#if invoice.dueDate??>
                             <fo:block font-weight="bold">Due</fo:block>
                             <fo:block>${ec.l10n.format(invoice.dueDate, dateFormat)}</fo:block>
                         </#if>
@@ -124,21 +124,21 @@ along with this software (see the LICENSE.md file). If not, see
                 </fo:table-header>
                 <fo:table-body>
                 <#list invoiceItemList as invoiceItem>
-                    <#assign itemTypeEnum = invoiceItem.findRelatedOne("ItemType#moqui.basic.Enumeration", true, false)>
-                    <#assign timeEntry = invoiceItem.findRelatedOne("mantle.work.time.TimeEntry", false, false)?if_exists>
+                    <#assign itemTypeEnum = invoiceItem.findRelatedOne("ItemType#moqui.basic.Enumeration", true, false)!>
+                    <#assign timeEntry = invoiceItem.findRelatedOne("mantle.work.time.TimeEntry", false, false)!>
                     <#assign rateTypeEnum = "">
                     <#assign workEffort = "">
                     <#if timeEntry?has_content>
-                        <#assign rateTypeEnum = timeEntry.findRelatedOne("RateType#moqui.basic.Enumeration", true, false)?if_exists>
-                        <#assign workEffort = timeEntry.findRelatedOne("mantle.work.effort.WorkEffort", false, false)?if_exists>
+                        <#assign rateTypeEnum = timeEntry.findRelatedOne("RateType#moqui.basic.Enumeration", true, false)!>
+                        <#assign workEffort = timeEntry.findRelatedOne("mantle.work.effort.WorkEffort", false, false)!>
                     </#if>
                     <fo:table-row font-size="8pt" border-bottom="thin solid black">
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.invoiceItemSeqId}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block>${(itemTypeEnum.description)!""}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block>${ec.l10n.format(invoiceItem.itemDate, dateFormat)}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}">
-                            <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(invoiceItem.description!"", true)}</fo:block>
-                            <#if (timeEntry.workEffortId)?has_content><fo:block>Task: ${timeEntry.workEffortId} - ${workEffort.workEffortName!""}</fo:block></#if>
+                            <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(invoiceItem.description!"", false)}</fo:block>
+                            <#if (timeEntry.workEffortId)?has_content><fo:block>Task: ${timeEntry.workEffortId} - ${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(workEffort.workEffortName!"", false)}</fo:block></#if>
                             <#if rateTypeEnum?has_content><fo:block>Rate: ${rateTypeEnum.description}</fo:block></#if>
                             <#if timeEntry?has_content><fo:block>${ec.l10n.format(timeEntry.fromDate, "dd MMM yyyy hh:mm")} to ${ec.l10n.format(timeEntry.thruDate, "dd MMM yyyy hh:mm")}, Break ${timeEntry.breakHours!"0"}h</fo:block></#if>
                         </fo:table-cell>
