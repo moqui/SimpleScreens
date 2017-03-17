@@ -14,9 +14,8 @@
         - Other Asset
     - **Cost of Sales** (Income Statement)
         - Cost of Goods Sold
-            - Inventory Shrinkage
+        - Inventory Shrinkage
         - Cost of Services Sold
-        - Discounts and Write-downs
     - **Expense** (Income Statement)
         - Cash Expense
         - Interest Expense
@@ -27,6 +26,7 @@
             - Depreciation
             - Amortization
     - **Contra Revenue** (Income Statement)
+        - Discounts and Write-downs
     - **Equity Distribution**
         - Return of Capital
         - Dividends
