@@ -16,6 +16,9 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign showDetail = (detail! == "true")>
 
 <#macro showClass classInfo depth>
+    <#-- skip classes with nothing posted and no balance -->
+    <#if (classInfo.totalBalanceByTimePeriod['ALL']!0) == 0 && (classInfo.totalPostedByTimePeriod['ALL']!0) == 0><#return></#if>
+
     <tr>
         <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}</td>
         <#if (timePeriodIdList?size > 1)>

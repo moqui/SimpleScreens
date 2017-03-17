@@ -16,6 +16,9 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign showDetail = (detail! == "true")>
 
 <#macro showClass classInfo depth>
+    <#-- skip classes with no balance -->
+    <#if (classInfo.totalBalanceByTimePeriod['ALL']!0) == 0><#return></#if>
+
     <#assign hasChildren = classInfo.childClassInfoList?has_content>
     <tr>
         <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}</td>
