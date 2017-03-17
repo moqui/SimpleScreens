@@ -14,8 +14,14 @@
         - Other Asset
     - **Cost of Sales** (Income Statement)
         - Cost of Goods Sold
-        - Inventory Shrinkage
+            - Good and Material Cost
+            - Good Freight Cost
+            - Good Royalties Cost
+            - Inventory Shrinkage
         - Cost of Services Sold
+    - **Contra Revenue** (Income Statement)
+        - Discounts and Write-downs
+        - Customer Returns
     - **Expense** (Income Statement)
         - Cash Expense
         - Interest Expense
@@ -25,8 +31,6 @@
         - Non-Cash Expense
             - Depreciation
             - Amortization
-    - **Contra Revenue** (Income Statement)
-        - Discounts and Write-downs
     - **Equity Distribution**
         - Return of Capital
         - Dividends
