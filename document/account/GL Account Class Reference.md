@@ -22,15 +22,39 @@
     - **Contra Revenue** (Income Statement)
         - Discounts and Write-downs
         - Customer Returns
-    - **Expense** (Income Statement)
-        - Cash Expense
-        - Interest Expense
-        - Compensation
-        - Sales, General, and Administrative Expense
-        - Tax Expense
+    - **Operating Expense** (Income Statement)
+        - Sales and Marketing Expense
+            - Sales Compensation
+            - Advertising
+            - Promotional Materials
+            - Sales Travel
+            - Sales Samples (custom)
+            - Internet Expenses / Consulting (custom)
+        - General and Administrative Expense
+            - Banking Service Charges
+            - Compensation
+            - Data Processing
+            - Dues and Subscriptions
+            - Education Expense
+            - Facility Expense
+            - Insurance Expense
+            - Miscellaneous Expense
+            - Office and Supplies
+            - Product Research (custom)
+            - Professional Services
+            - Tax Expense - Income
+            - Tax Expense - Other
+            - Utilities Expense
+            - Vehicle Expense
+            - Travel and Entertainment
         - Non-Cash Expense
-            - Depreciation
             - Amortization
+            - Bad Debt Expense
+            - Depreciation
+    - **Non-operating Expense** (Income Statement)
+        - Interest Expense
+        - Company Owned Life Insurance
+        - Royalties Expense - Non-COGS
     - **Equity Distribution**
         - Return of Capital
         - Dividends
