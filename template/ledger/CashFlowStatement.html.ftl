@@ -129,6 +129,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#if classInfoById.COST_OF_SALES??><@showClassTotals classInfoById.COST_OF_SALES/></#if>
         <#if classInfoById.INCOME??><@showClassTotals classInfoById.INCOME/></#if>
         <#if classInfoById.EXPENSE??><@showClassTotals classInfoById.EXPENSE/></#if>
+        <#if classInfoById.NON_OP_EXPENSE??><@showClassTotals classInfoById.NON_OP_EXPENSE/></#if>
         <tr class="text-warning">
             <td><strong>${ec.l10n.localize("Net Income (see details on Income Statement)")}</strong></td>
             <#if (timePeriodIdList?size > 1)>

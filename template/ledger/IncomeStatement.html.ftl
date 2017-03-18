@@ -83,7 +83,7 @@ along with this software (see the LICENSE.md file). If not, see
         <@showClass classInfoById.REVENUE 1/>
         <@showClass classInfoById.CONTRA_REVENUE 1/>
         <tr class="text-info">
-            <td><strong>${ec.l10n.localize("Net Revenue")}</strong> (${ec.l10n.localize("Revenue")} - ${ec.l10n.localize("Contra Revenue")})</td>
+            <td><strong>${ec.l10n.localize("Net Revenue")}</strong> (${ec.l10n.localize("Revenue")} + ${ec.l10n.localize("Contra Revenue")})</td>
             <#if (timePeriodIdList?size > 1)>
                 <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfoById.REVENUE.totalPostedByTimePeriod['ALL']!0 + classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod['ALL']!0, currencyUomId)}</strong></td>
             </#if>
@@ -94,7 +94,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <@showClass classInfoById.COST_OF_SALES 1/>
         <tr class="text-success" style="border-bottom: solid black;">
-            <td><strong>${ec.l10n.localize("Gross Profit On Sales")}</strong> (${ec.l10n.localize("Net Revenue")} - ${ec.l10n.localize("Cost of Sales")})</td>
+            <td><strong>${ec.l10n.localize("Gross Profit On Sales")}</strong> (${ec.l10n.localize("Net Revenue")} + ${ec.l10n.localize("Cost of Sales")})</td>
             <#if (timePeriodIdList?size > 1)>
                 <td class="text-right"><strong>${ec.l10n.formatCurrency(grossProfitOnSalesMap['ALL']!0, currencyUomId)}</strong></td>
             </#if>
@@ -115,6 +115,7 @@ along with this software (see the LICENSE.md file). If not, see
             </#list>
         </tr>
 
+        <@showClass classInfoById.NON_OP_EXPENSE 1/>
         <tr class="text-success" style="border-bottom: solid black;">
             <td><strong>${ec.l10n.localize("Net Income")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
