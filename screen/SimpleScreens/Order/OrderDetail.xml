@@ -60,6 +60,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
     <transition name="setOrderBillingShippingInfo"><service-call name="mantle.order.OrderServices.set#OrderBillingShippingInfo"/>
         <default-response url="."/></transition>
+    <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
+        <default-response url="."/></transition>
 
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Product/EditProduct"/></transition>
@@ -574,6 +576,13 @@ along with this software (see the LICENSE.md file). If not, see
                                             width="800" condition="orderPartInfo.partEditable"
                                             parameter-map="[partyId:customerPartyId, postalContactMechId:contactInfo.postalContactMechId,
                                                 postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, orderId:orderId]"/>
+
+                                    <container>
+                                        <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
+                                        <link url="validateAddress" text="Validate"
+                                                parameter-map="[orderId:orderId, partyId:customerPartyId, contactMechId:contactInfo.postalContactMechId]"
+                                                condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
+                                    </container>
                                 </container>
                             </widgets></section-iterate>
                         </container>
