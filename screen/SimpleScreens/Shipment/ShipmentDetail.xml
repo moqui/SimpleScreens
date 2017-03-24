@@ -19,6 +19,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateShipment"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentAndRouteSegment"/>
         <default-response url="."/></transition>
+    <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
+        <default-response url="."/></transition>
 
     <transition name="scheduleShipment">
         <service-call name="update#mantle.shipment.Shipment" in-map="[shipmentId:shipmentId, statusId:'ShipScheduled']"/>
@@ -101,6 +103,9 @@ along with this software (see the LICENSE.md file). If not, see
         </default-response>
     </transition>
 
+    <subscreens>
+        <subscreens-item name="UpdateContactInfo" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty/UpdateContactInfo.xml"/>
+    </subscreens>
     <actions>
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
 
@@ -119,6 +124,27 @@ along with this software (see the LICENSE.md file). If not, see
             <iterate list="shipmentItemSourceList" entry="sisCheck">
                 <if condition="sisCheck.quantityNotHandled &gt; 0"><set field="allItemsPacked" from="false"/><break/></if></iterate>
         </else></if>
+
+        <set field="shippingPostalAddressList" from="[]"/>
+        <if condition="toPartyId &amp;&amp; !isIncoming">
+            <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="toPartyShippingInfo"
+                    in-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
+            <set field="shippingPostalAddressList" from="toPartyShippingInfo.postalAddressList ?: []"/>
+        </if>
+        <if condition="!isIncoming">
+            <set field="shippingOptions" from="[]"/>
+            <entity-find entity-name="mantle.shipment.carrier.CarrierShipmentMethod" list="shipOptionList" cache="true">
+                <order-by field-name="sequenceNum"/></entity-find>
+            <iterate list="shipOptionList" entry="shipOption">
+                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="carrierDetail" cache="true">
+                    <field-map field-name="partyId" from="shipOption.carrierPartyId"/></entity-find-one>
+                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="shipmentMethodEnum">
+                    <field-map field-name="enumId" from="shipOption.shipmentMethodEnumId"/></entity-find-one>
+                <script>shippingOptions.add([carrierPartyId:shipOption.carrierPartyId, carrierName:ec.resource.expand('PartyNameTemplate','',carrierDetail),
+                    shipmentMethodEnumId:shipOption.shipmentMethodEnumId, shipmentMethodDescription:shipmentMethodEnum.description])</script>
+            </iterate>
+            <order-map-list list="shippingOptions"><order-by field-name="carrierName"/></order-map-list>
+        </if>
     </actions>
     <widgets>
         <container-row><row-col md="6">
@@ -199,8 +225,47 @@ along with this software (see the LICENSE.md file). If not, see
 
             <!-- Header -->
             <section name="ShipmentHeaderSection" condition="allowUpdate"><widgets>
+                <section name="DestPostalAddressSection" condition="!isIncoming"><widgets>
+                    <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
+                            parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/>
+                    <label text="No shipping address selected" style="text-danger" type="p" condition="!firstRouteSegment.destPostalContactMechId"/>
+                    <container style="float-box" type="ul">
+                        <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="contactInfo"><actions>
+                            <set field="checkRadio" from="(firstRouteSegment.destPostalContactMechId &amp;&amp; firstRouteSegment.destPostalContactMechId == contactInfo.postalContactMechId) || (!firstRouteSegment.destPostalContactMechId &amp;&amp; contactInfo_index == 0)"/>
+                        </actions><widgets>
+                            <container type="li">
+                                <render-mode><text type="html,vuet"><![CDATA[
+                                    <div class="text-center"><input type="radio" name="shippingPostalContactMechId" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
+                                ]]></text></render-mode>
+                                <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                                <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo"
+                                        width="800" condition="allowUpdate"
+                                        parameter-map="[partyId:toPartyId, postalContactMechId:contactInfo.postalContactMechId,
+                                                postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, shipmentId:shipmentId]"/>
+
+                                <container>
+                                    <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
+                                    <link url="validateAddress" text="Validate"
+                                            parameter-map="[shipmentId:shipmentId, partyId:toPartyId, contactMechId:contactInfo.postalContactMechId]"
+                                            condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
+                                </container>
+                            </container>
+                        </widgets></section-iterate>
+                    </container>
+                    <label text="No shipment method selected" style="text-warning" type="p" condition="!firstRouteSegment.shipmentMethodEnumId"/>
+                </widgets></section>
+
                 <form-single name="EditShipment" transition="updateShipment" map="shipment">
                     <field name="shipmentId"><default-field><hidden/></default-field></field>
+                    <field name="destPostalContactMechId"><default-field><hidden/></default-field></field>
+
+                    <field name="carrierAndShipmentMethod"><default-field title="Shipment Method">
+                        <drop-down no-current-selected-key="${firstRouteSegment.carrierPartyId ? firstRouteSegment.carrierPartyId + ':' + firstRouteSegment.shipmentMethodEnumId : ''}">
+                            <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
+                                    text="${carrierPartyId == '_NA_' ? '' : (carrierName + ' - ') }${shipmentMethodDescription}"/>
+                        </drop-down>
+                    </default-field></field>
+
                     <field name="shipmentTypeEnumId"><default-field title="Shipment Type">
                         <display text="${shipmentTypeEnum.description}" also-hidden="false"/></default-field></field>
                     <field name="statusId"><default-field title="Status">
@@ -234,15 +299,22 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="estimatedReadyDate"><conditional-field condition="!isIncoming"><date-time/></conditional-field></field>
                     <field name="estimatedArrivalDate"><default-field><date-time/></default-field></field>
 
-                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                    <field name="submitButton"><default-field title="Update Shipment"><submit/></default-field></field>
 
                     <field-layout>
+                        <field-ref name="carrierAndShipmentMethod"/>
                         <field-row><field-ref name="shipmentTypeEnumId"/><field-ref name="statusId"/></field-row>
                         <fields-not-referenced/>
                         <field-row><field-ref name="estimatedReadyDate"/><field-ref name="estimatedArrivalDate"/></field-row>
                         <field-ref name="submitButton"/>
                     </field-layout>
                 </form-single>
+                <render-mode><text type="html,vuet"><![CDATA[
+                    <script>
+                        $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val());
+                        $("input[name=shippingPostalContactMechId]:radio").change( function() { $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val()); })
+                    </script>
+                ]]></text></render-mode>
             </widgets><fail-widgets>
                 <section name="ShipmentDisplaySection" condition="isIncoming"><widgets>
                     <label text="From ${fromPartyDetail ? ec.resource.expand('PartyNameTemplate', '', fromPartyDetail) : 'Not Set'}" type="p"/>
@@ -254,6 +326,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text="Origin Facility ${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" type="p"/>
                     <label text="Status ${statusItem.description}" type="p"/>
                     <label text="Estimated ready: ${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="p"/>
+                    <!-- TODO: show  -->
                 </fail-widgets></section>
             </fail-widgets></section>
         </row-col><row-col md="6">
