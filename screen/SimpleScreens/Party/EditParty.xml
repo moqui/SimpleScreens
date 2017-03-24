@@ -84,6 +84,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="removeContactInfo"><service-call name="mantle.party.ContactServices.delete#PartyContactMech"/>
         <default-response url="."/></transition>
+    <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
+        <default-response url="."/></transition>
 
     <transition name="createPartyNote"><service-call name="create#mantle.party.PartyNote"/>
         <default-response url="."/></transition>
@@ -568,6 +570,11 @@ along with this software (see the LICENSE.md file). If not, see
                             <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.postalContactMechId,
                                         contactMechPurposeId:contactInfo.postalContactMechPurposeId]"/>
+                            <container>
+                                <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
+                                <link url="validateAddress" text="Validate" parameter-map="[partyId:partyId, contactMechId:contactInfo.postalContactMechId]"
+                                        condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
+                            </container>
                         </row-col><row-col lg="6">
                             <label text="${contactInfo.postalContactMechPurpose.description}" type="p"/>
                             <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
