@@ -20,6 +20,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="createFacility"><service-call name="create#mantle.facility.Facility"/>
         <default-response url="../EditFacility"/></transition>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
@@ -54,26 +55,20 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editFacility" text="${pseudoId}" link-type="anchor"/></default-field>
             </field>
             <field name="facilityName">
-                <header-field title="Name" show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
+                <header-field title="Name" show-order-by="case-insensitive"><text-find size="50" hide-options="true"/></header-field>
                 <default-field><link url="editFacility" text="${facilityName}" link-type="anchor"/></default-field>
             </field>
 
             <field name="facilityTypeEnumId">
-                <header-field title="Facility Type" show-order-by="true">
+                <header-field title="Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="FacilityType"/><set field="allowEmpty" value="true"/></widget-template-include>
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
             <field name="ownerPartyId">
-                <header-field title="Owner" show-order-by="true"><drop-down allow-empty="true">
-                    <entity-options key="${partyId}" text="PartyNameTemplate">
-                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                            <econdition field-name="roleTypeId" value="OrgInternal"/>
-                            <econdition field-name="disabled" value="N" or-null="true"/>
-                            <order-by field-name="organizationName"/>
-                        </entity-find></entity-options>
-                </drop-down></header-field>
+                <header-field title="Owner" show-order-by="true">
+                    <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/></header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
 

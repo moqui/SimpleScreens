@@ -20,36 +20,37 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editFacility"><default-response url="."/></transition>
     <transition name="updateFacility"><service-call name="mantle.facility.FacilityServices.update#Facility"/>
         <default-response url="."/></transition>
+    <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
+        <default-response url="."/></transition>
 
     <transition name="createFacilityNote"><service-call name="mantle.facility.FacilityServices.create#FacilityNote"/>
         <default-response url="."/></transition>
     <transition name="updateFacilityNote"><service-call name="update#mantle.facility.FacilityNote"/>
         <default-response url="."/></transition>
 
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getGeoStateCounties" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getGeoCountryStates" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
         <service-call name="mantle.facility.FacilityServices.get#Facility" in-map="context" out-map="facility"/>
+        <set field="contactInfo" from="facility.contactInfo"/>
     </actions>
     <widgets>
         <container-row><row-col lg="7">
+            <link url="validateAddress" text="Validate Address" parameter-map="[facilityId:facilityId, contactMechId:contactInfo.postalContactMechId]"
+                    condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
+
             <form-single name="EditFacilityForm" map="facility" transition="updateFacility">
                 <field name="facilityId"><default-field><hidden/></default-field></field>
-                <field name="pseudoId"><default-field title="ID"><text-line size="50"/></default-field></field>
-                <field name="facilityName"><default-field><text-line size="50"/></default-field></field>
-                <field name="facilityTypeEnumId"><default-field title="Facility Type">
+                <field name="pseudoId"><default-field title="ID"><text-line size="15"/></default-field></field>
+                <field name="facilityName"><default-field title="Name"><text-line size="50"/></default-field></field>
+                <field name="facilityTypeEnumId"><default-field title="Type">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="FacilityType"/><set field="noCurrentSelectedKey" value="FcTpWarehouse"/></widget-template-include>
                 </default-field></field>
-                <field name="ownerPartyId"><default-field title="Owner"><drop-down>
-                    <entity-options key="${partyId}" text="${organizationName?:''}${firstName?:''} ${lastName?:''}">
-                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                            <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
-                            <econdition field-name="disabled" value="N" or-null="true"/>
-                            <order-by field-name="organizationName"/>
-                        </entity-find></entity-options>
-                </drop-down></default-field></field>
+                <field name="ownerPartyId"><default-field title="Owner">
+                    <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/></default-field></field>
                 <field name="parentFacilityId"><default-field title="Parent Facility">
                     <drop-down allow-empty="true"><entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
                         <entity-find entity-name="mantle.facility.Facility">
@@ -60,8 +61,8 @@ along with this software (see the LICENSE.md file). If not, see
                             parameter-map="[facilityId:facility.parentFacilityId]"/>
                 </default-field></field>
 
-                <field name="openedDate"><default-field><date-time type="date"/></default-field></field>
-                <field name="closedDate"><default-field><date-time type="date"/></default-field></field>
+                <field name="openedDate"><default-field title="Opened"><date-time type="date"/></default-field></field>
+                <field name="closedDate"><default-field title="Closed"><date-time type="date"/></default-field></field>
 
                 <field name="facilitySize"><default-field title="" tooltip="Facility Size"><text-line size="10"/></default-field></field>
                 <field name="facilitySizeUomId"><default-field title="" tooltip="Size UOM">
@@ -90,6 +91,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <depends-on field="countryGeoId"/></dynamic-options>
                     </drop-down></default-field>
                 </field>
+                <field name="addressTrust"><default-field>
+                    <display text="${contactInfo.postalTrustLevelEnum?.description ?: 'New'} ${contactInfo.postalContactMech.validateMessage?:''}"/>
+                </default-field></field>
 
                 <field name="latitude"><default-field title="" tooltip="Latitude"><text-line size="15"/></default-field></field>
                 <field name="longitude"><default-field title="" tooltip="Longitude"><text-line size="15"/></default-field></field>
@@ -105,13 +109,15 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field-layout>
                     <fields-not-referenced/>
-                    <field-row-big title="Facility Size/UOM"><field-ref name="facilitySize"/>
+                    <field-row><field-ref name="openedDate"/><field-ref name="closedDate"/></field-row>
+                    <field-row-big title="Size/UOM"><field-ref name="facilitySize"/>
                         <field-ref name="facilitySizeUomId"/></field-row-big>
                     <field-ref name="address1"/><field-ref name="address2"/>
                     <field-row-big title="City/Zip"><field-ref name="city"/>
                         <field-ref name="postalCode"/><field-ref name="postalCodeExt"/></field-row-big>
                     <field-row-big title="Country/State"><field-ref name="countryGeoId"/>
                         <field-ref name="stateProvinceGeoId"/></field-row-big>
+                    <field-ref name="addressTrust"/>
                     <field-row-big title="Latitude / Longitude"><field-ref name="latitude"/>
                         <field-ref name="longitude"/></field-row-big>
                     <field-row-big title="Phone"><field-ref name="countryCode"/><field-ref name="areaCode"/><field-ref name="contactNumber"/></field-row-big>
