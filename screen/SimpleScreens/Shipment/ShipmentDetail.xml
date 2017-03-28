@@ -213,13 +213,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
+                    <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
                     <link url="shipShipment" text="Set Shipped"/>
                     <link url="deliverShipment" text="Set Delivered"/>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
-                    <link url="refundShipmentLabels" text="Refund Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
-                    <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
@@ -229,12 +228,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment" condition="!anyReceived"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
+                    <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
                     <link url="deliverShipment" text="Set Delivered"/>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
-                    <link url="refundShipmentLabels" text="Refund Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
-                    <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
                 </fail-widgets></section>
             </widgets></section>
 
@@ -248,7 +246,7 @@ along with this software (see the LICENSE.md file). If not, see
             <label text="Shipping Gateway: ${shippingGatewayConfig.description}" type="p" condition="shippingGatewayConfig != null"/>
 
             <!-- Header -->
-            <section name="ShipmentHeaderSection" condition="allowUpdate"><widgets>
+            <section name="ShipmentHeaderSection" condition="allowUpdate || shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="DestPostalAddressSection" condition="!isIncoming"><widgets>
                     <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
                             parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/>
@@ -298,13 +296,12 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <!-- Incoming Shipment Fields -->
                     <field name="fromPartyId"><conditional-field title="From Party" condition="isIncoming">
-                        <drop-down>
-                            <entity-options key="${partyId}" text="PartyNameTemplate">
-                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                    <econdition field-name="roleTypeId" value="Supplier"/>
-                                    <econdition field-name="disabled" value="N" or-null="true"/>
-                                    <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
-                        </drop-down>
+                        <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="Supplier"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName,firstName"/></entity-find>
+                        </entity-options></drop-down>
                     </conditional-field></field>
                     <field name="destinationFacilityId" from="lastRouteSegment.destinationFacilityId">
                         <conditional-field title="Destination Facility" condition="isIncoming">
@@ -313,12 +310,17 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
 
                     <!-- Outgoing Shipment Fields -->
-                    <field name="toPartyId"><conditional-field title="To Party" condition="!isIncoming">
+                    <field name="toPartyId"><conditional-field title="To Party" condition="!isIncoming &amp;&amp; allowUpdate">
                         <text-line ac-transition="getPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
+                    </conditional-field><conditional-field condition="!isIncoming" title="To Party">
+                        <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/>
                     </conditional-field></field>
                     <field name="originFacilityId" from="firstRouteSegment.originFacilityId">
-                        <conditional-field title="Origin Facility" condition="!isIncoming">
+                        <conditional-field title="Origin Facility" condition="!isIncoming &amp;&amp; allowUpdate">
                             <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                        </conditional-field>
+                        <conditional-field title="Origin Facility" condition="!isIncoming">
+                            <label text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}"/>
                         </conditional-field>
                     </field>
                     <field name="estimatedReadyDate"><conditional-field condition="!isIncoming"><date-time/></conditional-field></field>
@@ -701,8 +703,16 @@ along with this software (see the LICENSE.md file). If not, see
                             </form-single>
                         </container-dialog>
 
+                        <link url="trackShipmentLabels" text="Track" condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId"
+                                parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
+                                    shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
                         <link url="${packageRouteSeg.trackingUrl}" text="Carrier Track" url-type="plain" target-window="_blank" condition="packageRouteSeg?.trackingUrl"/>
                         <link url="${packageRouteSeg.labelUrl}" text="Label" url-type="plain" target-window="_blank" condition="packageRouteSeg?.labelUrl"/>
+                        <link url="refundShipmentLabels" text="Refund Label"
+                                confirmation="Request refund? If package has not yet shipped a refund will be processed and label will not be valid for shipping."
+                                condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId &amp;&amp; !packageRouteSeg?.gatewayRefundId"
+                                parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
+                                    shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
                     </box-toolbar><box-body>
                         <container-row>
                             <row-col sm="1"><label text="Status" type="strong"/></row-col>
@@ -716,9 +726,9 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-row>
                         <container-row>
                             <row-col sm="1"><label text="Gateway" type="strong"/></row-col>
-                            <row-col sm="1"><label text="${packageRouteSeg?.gatewayStatus?:'N/A'}"/></row-col>
+                            <row-col sm="2"><label text="${packageRouteSeg?.gatewayStatus?:'N/A'}"/></row-col>
                             <row-col sm="1"><label text="Message" type="strong"/></row-col>
-                            <row-col sm="7"><label text="${packageRouteSeg?.gatewayMessage?:'N/A'}"/></row-col>
+                            <row-col sm="6"><label text="${packageRouteSeg?.gatewayMessage?:'N/A'}"/></row-col>
                             <row-col sm="1"><label text="Refund" type="strong"/></row-col>
                             <row-col sm="1"><label text="${packageRouteSeg?.gatewayRefundStatus?:'N/A'}"/></row-col>
                         </container-row>
