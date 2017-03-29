@@ -55,7 +55,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="sendShipmentStoreEmail"><service-call name="mantle.shipment.ShipmentServices.send#ShipmentStoreEmail"/>
         <default-response url="."/></transition>
     <transition name="orderDetail"><default-response url="//PopcAdmin/Order/OrderDetail"/></transition>
-    <transition name="editInvoice"><default-response url="//PopcAdmin/Accounting/EditInvoice"/></transition>
+    <transition name="editInvoice"><default-response url="//PopcAdmin/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="editPayment"><default-response url="//PopcAdmin/Accounting/Payment/EditPayment"/></transition>
     <transition name="assetDetail"><default-response url="//PopcAdmin/Asset/AssetDetail"/></transition>
 
     <transition name="createContent"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentContent"/>
@@ -268,7 +269,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="contactInfo"><actions>
                             <set field="checkRadio" from="(firstRouteSegment.destPostalContactMechId &amp;&amp; firstRouteSegment.destPostalContactMechId == contactInfo.postalContactMechId) || (!firstRouteSegment.destPostalContactMechId &amp;&amp; contactInfo_index == 0)"/>
                         </actions><widgets>
-                            <container type="li">
+                            <container type="li" style="box-narrow">
                                 <render-mode><text type="html,vuet"><![CDATA[
                                     <div class="text-center"><input type="radio" name="shippingPostalContactMechId" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
                                 ]]></text></render-mode>
@@ -376,6 +377,25 @@ along with this software (see the LICENSE.md file). If not, see
             </fail-widgets></section>
         </row-col><row-col md="6">
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+            <container-box><box-header><label text="Payments" type="h5"/></box-header><box-body-nopad>
+                <form-list name="ShipmentPaymentDetailList" list="shipmentPaymentDetailList">
+                    <entity-find entity-name="mantle.shipment.ShipmentPaymentDetail" list="shipmentPaymentDetailList">
+                        <econdition field-name="shipmentId"/>
+                        <select-field field-name="invoiceId,paymentId,amountApplied,appliedDate,statusId,paymentRefNum,amountUomId"/>
+                        <order-by field-name="invoiceId,paymentId"/>
+                    </entity-find>
+                    <field name="invoiceId"><default-field title="Invoice">
+                        <link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+                    <field name="paymentId"><default-field title="Payment">
+                        <link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+                    <field name="amountApplied"><default-field title="Amount"><display currency-unit-field="amountUomId"/></default-field></field>
+                    <field name="appliedDate"><default-field title="Applied"><display/></default-field></field>
+                    <field name="statusId"><default-field title="Status" container-style="strong ${statusId in ['PmntDelivered','PmntConfirmed'] ? 'text-success' : 'text-danger'}">
+                        <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                    <field name="paymentRefNum" from="payment?.paymentRefNum"><default-field title="Ref"><display/></default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
 
             <container-box><box-header><label text="Content" type="h5"/></box-header><box-toolbar>
                 <container-dialog id="NewContentDialog" button-text="Add Content">
