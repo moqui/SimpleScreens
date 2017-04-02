@@ -101,6 +101,29 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
+    <transition name="getShippingOptions"><parameter name="orderId"/><parameter name="orderPartSeqId"/><actions>
+        <entity-find-one entity-name="mantle.order.OrderHeader" value-field="orderHeader"/>
+        <set field="productStoreId" from="orderHeader.productStoreId"/>
+        <if condition="productStoreId"><then>
+            <log message="orderPartSeqId: ${orderPartSeqId}"/>
+            <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="shipOptsOut"
+                    in-map="[productStoreId:productStoreId, orderId:orderId, orderPartSeqId:orderPartSeqId,
+                            postalContactMechId:postalContactMechId]"/>
+            <set field="outList" from="[]"/>
+            <script>
+                for (sop in shipOptsOut.shippingOptions) outList.add([value:"${sop.carrierPartyId}:${sop.shipmentMethodEnumId}",
+                    label:"${sop.carrierPartyId == '_NA_' ? '' : (sop.carrierName + ' - ') }${sop.shipmentMethodDescription} ${sop.shippingTotal != null ? ec.l10n.formatCurrency(sop.shippingTotal, orderHeader.currencyUomId) : ''}"])
+            </script>
+        </then><else>
+            <entity-find entity-name="moqui.basic.Enumeration" list="methodEnumList">
+                <econdition field-name="enumTypeId" value="ShipmentMethod"/><order-by field-name="sequenceNum,description"/></entity-find>
+            <set field="outList" from="[]"/>
+            <iterate list="methodEnumList" entry="methodEnum">
+                <script>outList.add([value:"_NA_:${methodEnum.enumId}", label:methodEnum.description])</script></iterate>
+        </else></if>
+        <script>ec.web.sendJsonResponse(outList)</script>
+    </actions><default-response type="none"/></transition>
+
     <transition name="EmailMessage" read-only="true"><parameter name="emailMessageId"/><actions>
         <entity-find-one entity-name="moqui.basic.email.EmailMessage" value-field="emailMessage"/>
         <script>ec.web.sendTextResponse(emailMessage?.body, "text/html", null)</script>
@@ -340,7 +363,8 @@ along with this software (see the LICENSE.md file). If not, see
         <section-iterate name="OrderPartSection" list="orderPartInfoList" entry="orderPartInfo"><actions>
             <set field="contactInfo" from="orderPartInfo.facilityContactInfo"/>
             <set field="orderPart" from="orderPartInfo.orderPart"/>
-            <set field="customerPartyId" from="orderPartInfo.customerDetail?.partyId"/>
+            <set field="orderPartSeqId" from="orderPart.orderPartSeqId"/>
+            <set field="customerPartyId" from="orderPart.customerPartyId"/>
             <set field="customerShipToPartyId" from="orderPartInfo.customerShipToDetail?.partyId"/>
 
             <set field="shippingPostalAddressList" from="[]"/>
@@ -358,12 +382,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curPaInfo"
                         in-map="[partyId:customerPartyId, postalContactMechId:orderPart.postalContactMechId]"/>
                 <script>shippingPostalAddressList.add(0, curPaInfo)</script>
-            </if>
-
-            <if condition="productStore != null &amp;&amp; orderPartInfo.partEditable">
-                <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
-                        in-map="[productStoreId:productStore.productStoreId, orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId,
-                            postalContactMechId:orderPart.postalContactMechId ?: shippingPostalAddressList?.first?.postalContactMechId]"/>
             </if>
         </actions><widgets>
             <container style="row shaded-area">
@@ -601,22 +619,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="shippingTelecomContactMechId"><default-field><hidden/></default-field></field>
 
                             <field name="carrierAndShipmentMethod">
-                                <conditional-field title="Shipment Method" condition="shippingOptions &amp;&amp; orderPartInfo.partEditable">
-                                    <drop-down no-current-selected-key="${orderPart.carrierPartyId ? orderPart.carrierPartyId + ':' + orderPart.shipmentMethodEnumId : ''}">
-                                        <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
-                                                      text="${carrierPartyId == '_NA_' ? '' : (carrierName + ' - ') }${shipmentMethodDescription} ${shippingTotal != null ? ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
-                                    </drop-down>
+                                <conditional-field title="Shipment Method" condition="orderPartInfo.partEditable">
+                                    <drop-down allow-empty="true" no-current-selected-key="${orderPart.carrierPartyId ? orderPart.carrierPartyId + ':' + orderPart.shipmentMethodEnumId : ''}">
+                                        <dynamic-options transition="getShippingOptions"/></drop-down>
                                 </conditional-field>
-                                <default-field><ignored/></default-field>
-                            </field>
-                            <field name="shipmentMethodEnumId">
-                                <conditional-field title="Shipment Method" condition="!shippingOptions &amp;&amp; orderPartInfo.partEditable">
-                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                                        <set field="enumTypeId" value="ShipmentMethod"/><set field="allowEmpty" value="true"/>
-                                        <set field="style" value=" "/></widget-template-include>
-                                </conditional-field>
-                                <conditional-field title="Shipment Method" condition="!orderPartInfo.partEditable">
-                                    <display-entity entity-name="moqui.basic.Enumeration"/></conditional-field>
                                 <default-field><ignored/></default-field>
                             </field>
                             <field name="submitButton">
@@ -625,7 +631,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <default-field><ignored/></default-field>
                             </field>
 
-                            <field-layout><field-row-big><field-ref name="carrierAndShipmentMethod"/><field-ref name="shipmentMethodEnumId"/>
+                            <field-layout><field-row-big><field-ref name="carrierAndShipmentMethod"/>
                                 <field-ref name="submitButton"/></field-row-big></field-layout>
                         </form-single>
                         <render-mode><text type="html,vuet"><![CDATA[
