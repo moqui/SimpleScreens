@@ -55,7 +55,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
-    <transition name="editVendor"><default-response url="//${appRoot}/Vendor/EditVendor"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
     <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
     <transition name="setOrderBillingShippingInfo"><service-call name="mantle.order.OrderServices.set#OrderBillingShippingInfo"/>
@@ -362,16 +362,16 @@ along with this software (see the LICENSE.md file). If not, see
 
             <if condition="productStore != null &amp;&amp; orderPartInfo.partEditable">
                 <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
-                        in-map="[productStoreId:productStore.productStoreId, orderId:orderId,
+                        in-map="[productStoreId:productStore.productStoreId, orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId,
                             postalContactMechId:orderPart.postalContactMechId ?: shippingPostalAddressList?.first?.postalContactMechId]"/>
             </if>
         </actions><widgets>
             <container style="row shaded-area">
                 <container style="col-lg-6">
-                    <container><label text="${orderPartInfo.isVendorInternalOrg ? 'Sales' : 'Purchase'} Order Part ${orderPartInfo.orderPart.orderPartSeqId}" type="strong"/></container>
+                    <container><label text="${orderPartInfo.isVendorInternalOrg ? 'Sales' : 'Purchase'} Order Part ${orderPart.orderPartSeqId}" type="strong"/></container>
                     <section name="EditPartSection" condition="orderPartInfo.partEditable"><widgets>
-                        <container-dialog id="EditPartDialog" button-text="Edit Part ${orderPartInfo.orderPart.orderPartSeqId}">
-                            <form-single name="EditPartForm" transition="updateOrderPart" map="orderPartInfo.orderPart">
+                        <container-dialog id="EditPartDialog" button-text="Edit Part ${orderPart.orderPartSeqId}">
+                            <form-single name="EditPartForm" transition="updateOrderPart" map="orderPart">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
                                 <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
                                 <field name="customerPartyId"><conditional-field title="Customer" condition="orderPartInfo.isVendorInternalOrg">
@@ -394,7 +394,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </form-single>
                         </container-dialog>
                         <container-dialog id="AddPartPartyDialog" button-text="Add Party">
-                            <form-single name="CreateOrderPartParty" transition="createOrderPartParty" map="orderPartInfo.orderPart">
+                            <form-single name="CreateOrderPartParty" transition="createOrderPartParty" map="orderPart">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
                                 <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
                                 <field name="partyId"><default-field title="Party">
@@ -413,7 +413,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </widgets></section>
 
                     <section name="ShipOrderPartSection"><condition>
-                        <expression>quantityNotShippedByPart.get(orderPartInfo.orderPart.orderPartSeqId) &amp;&amp;
+                        <expression>quantityNotShippedByPart.get(orderPart.orderPartSeqId) &amp;&amp;
                             (orderHeader.statusId == "OrderApproved" || orderHeader.statusId == "OrderSent")</expression>
                     </condition><actions>
                         <!-- find Shipments going to same Facility -->
@@ -425,13 +425,13 @@ along with this software (see the LICENSE.md file). If not, see
                         </entity-find>
                     </actions><widgets>
                         <link url="shipOrderPart" text="Create Shipment" link-type="hidden-form"><parameter name="orderId"/>
-                            <parameter name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"/></link>
+                            <parameter name="orderPartSeqId" from="orderPart.orderPartSeqId"/></link>
 
                         <section name="AddPartToShipmentSection" condition="ssfsList"><widgets>
                             <container-dialog id="AddOrderPartToShipmentDialog" button-text="Add Part to Shipment">
                                 <form-single name="AddOrderPartToShipmentForm" transition="addOrderPartToShipment">
                                     <field name="orderId"><default-field><hidden/></default-field></field>
-                                    <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId">
+                                    <field name="orderPartSeqId" from="orderPart.orderPartSeqId">
                                         <default-field><hidden/></default-field></field>
                                     <field name="shipmentId"><default-field title="Shipment"><drop-down>
                                         <list-options list="ssfsList" key="${shipmentId}" text="${shipmentId}"/>
@@ -446,13 +446,13 @@ along with this software (see the LICENSE.md file). If not, see
                     </widgets></section-iterate>
 
                     <link url="completeOrderPart" text="Complete Part" link-type="hidden-form"
-                            parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
+                            parameter-map="[orderPartSeqId:orderPart.orderPartSeqId]"
                             condition="orderPartInfo.orderPart.statusId in ['OrderApproved', 'OrderSent']"/>
                     <link url="invoiceOrderPart" text="Create Invoice" link-type="hidden-form"
-                            parameter-map="[orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
+                            parameter-map="[orderPartSeqId:orderPart.orderPartSeqId]"
                             condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId)"/>
                     <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList"
-                          parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"/>
+                          parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"/>
 
                     <label text="Warning: both vendor and customer are internal organizations" style="text-danger" type="p"
                            condition="orderPartInfo.isVendorInternalOrg &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
@@ -461,7 +461,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)}" type="dd"/>
                         <label text="Customer" type="dt"/>
                         <container type="dd">
-                            <link url="editVendor" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
+                            <link url="editParty" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
                                     link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
                             <link url="editCustomer" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
                                     link-type="anchor" parameter-map="[partyId:orderPartInfo.customerDetail.partyId]" condition="orderPartInfo.customerDetail != null &amp;&amp; !orderPartInfo.isCustomerInternalOrg"/>
@@ -471,7 +471,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="${productStore.productStoreId}: ${productStore.storeName}" type="dd" condition="productStore != null"/>
                         <label text="Vendor" type="dt"/>
                         <container type="dd">
-                            <link url="editVendor" text="PartyNameTemplate" text-map="orderPartInfo.vendorDetail"
+                            <link url="editParty" text="PartyNameTemplate" text-map="orderPartInfo.vendorDetail"
                                     link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="orderPartInfo.isVendorInternalOrg"/>
                             <link url="editSupplier" text="PartyNameTemplate" text-map="orderPartInfo.vendorDetail"
                                     link-type="anchor" parameter-map="[partyId:orderPartInfo.vendorDetail.partyId]" condition="!orderPartInfo.isVendorInternalOrg"/>
