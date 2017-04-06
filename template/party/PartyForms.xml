@@ -295,15 +295,18 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="postalContactMechPurposeId"/>
                 <field-ref name="toName"/>
                 <field-ref name="attnName"/>
+
                 <field-row><field-ref name="address1"/><field-ref name="unitNumber"/></field-row>
                 <field-ref name="address2"/>
                 <field-row-big title="City/Zip"><field-ref name="city"/>
                     <field-ref name="postalCode"/><field-ref name="postalCodeExt"/></field-row-big>
                 <field-row-big title="Country/State"><field-ref name="countryGeoId"/>
                     <field-ref name="stateProvinceGeoId"/></field-row-big>
+
                 <field-ref name="telecomContactMechPurposeId"/>
                 <field-row-big title="Phone"><field-ref name="countryCode"/><field-ref name="areaCode"/>
                     <field-ref name="contactNumber"/><field-ref name="telecomExtension"/></field-row-big>
+
                 <field-ref name="emailContactMechPurposeId"/>
                 <field-ref name="emailAddress"/>
                 <fields-not-referenced/>
@@ -366,8 +369,8 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="expireYear">
                 <conditional-field title="" condition="isCreditCard"><drop-down current="selected">
-                    <option key="2015"/><option key="2016"/><option key="2017"/><option key="2018"/>
-                    <option key="2019"/><option key="2020"/><option key="2021"/><option key="2022"/>
+                    <option key="2017"/><option key="2018"/><option key="2019"/><option key="2020"/><option key="2021"/>
+                    <option key="2022"/><option key="2023"/><option key="2024"/><option key="2025"/><option key="2026"/>
                 </drop-down></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
@@ -383,19 +386,23 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><ignored/></default-field>
             </field>
 
-            <field name="countryGeoId"><default-field title="Country"><hidden default-value="USA"/></default-field></field>
             <field name="address1"><default-field title="Address 1"><text-line size="30"/></default-field></field>
             <field name="unitNumber"><default-field title="Unit"><text-line size="10"/></default-field></field>
             <field name="address2"><default-field title="Address 2"><text-line size="30"/></default-field></field>
             <field name="city"><default-field title="" tooltip="City"><text-line size="16"/></default-field></field>
+
+            <field name="countryGeoId"><default-field title="">
+                <drop-down no-current-selected-key="USA">
+                    <entity-options key="${geoId}" text="${geoName}">
+                        <entity-find entity-name="moqui.basic.Geo" list="geoList">
+                            <econdition field-name="geoTypeEnumId" value="GEOT_COUNTRY"/>
+                            <order-by field-name="geoName"/></entity-find>
+                    </entity-options>
+                </drop-down>
+            </default-field></field>
             <field name="stateProvinceGeoId"><default-field title="">
-                <drop-down><entity-options key="${toGeoId}" text="${geoName}">
-                    <entity-find entity-name="GeoAssocAndToDetail">
-                        <econdition field-name="geoId" value="USA"/>
-                        <econdition field-name="geoAssocTypeEnumId" value="GAT_REGIONS"/>
-                        <order-by field-name="geoName"/>
-                    </entity-find>
-                </entity-options></drop-down>
+                <drop-down><dynamic-options transition="getGeoCountryStates" value-field="geoId" label-field="label">
+                    <depends-on field="countryGeoId"/></dynamic-options></drop-down>
             </default-field></field>
             <field name="postalCode"><default-field title="" tooltip="Zip/Postal Code"><text-line size="8"/></default-field></field>
             <field name="postalCodeExt"><default-field title="" tooltip="Zip/Postal Code Extension"><text-line size="4"/></default-field></field>
@@ -434,11 +441,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-ref name="expireYear"/></field-row-big>
 
                 <field-ref name="postalContactMechId"/>
-                <field-ref name="countryGeoId"/>
                 <field-row><field-ref name="address1"/><field-ref name="unitNumber"/></field-row>
                 <field-ref name="address2"/>
-                <field-row-big title="City/State/Zip"><field-ref name="city"/><field-ref name="stateProvinceGeoId"/>
+                <field-row-big title="City/Zip"><field-ref name="city"/>
                     <field-ref name="postalCode"/><field-ref name="postalCodeExt"/></field-row-big>
+                <field-row-big title="Country/State"><field-ref name="countryGeoId"/>
+                    <field-ref name="stateProvinceGeoId"/></field-row-big>
                 <field-ref name="telecomContactMechId"/>
                 <field-row-big title="Phone"><field-ref name="countryCode"/><field-ref name="areaCode"/>
                     <field-ref name="contactNumber"/></field-row-big>
