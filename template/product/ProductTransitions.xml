@@ -108,17 +108,19 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="assetTypeEnumId" ignore-if-empty="true"/>
                 <econdition field-name="classEnumId" ignore-if-empty="true"/>
                 <econditions combine="or">
-                    <econdition field-name="assetId" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="assetId" operator="like" value="%${term}%"/>
                     <econdition field-name="assetName" operator="like" value="%${term}%" ignore-case="true"/>
-                    <econdition field-name="pseudoId" operator="like" value="%${term}%" ignore-case="true"/>
-                    <econdition field-name="productName" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="lotId" operator="like" value="%${term}%"/>
+                    <econdition field-name="lotNumber" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="pseudoId" operator="like" value="%${term}%" ignore-case="true" ignore="productId"/>
+                    <econdition field-name="productName" operator="like" value="%${term}%" ignore-case="true" ignore="productId"/>
                 </econditions>
-                <select-field field-name="assetId,assetName,availableToPromiseTotal,lotId,pseudoId,productName"/>
+                <select-field field-name="assetId,assetName,availableToPromiseTotal,lotId,lotNumber,pseudoId,productName"/>
                 <order-by field-name="${assetOrderBy ?: '-receivedDate'}"/>
             </entity-find>
             <script>
                 def outList = []
-                for (asset in assetList) outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)} ATP ${ec.l10n.format(asset.availableToPromiseTotal, '#,##0.###')}${asset.lotId ? ' Lot ' + asset.lotId : ''}".toString()])
+                for (asset in assetList) outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)} ATP ${ec.l10n.format(asset.availableToPromiseTotal, '#,##0.###')}${asset.lotId || asset.lotNumber ? ' Lot ' + (asset.lotNumber ?: asset.lotId) : ''}".toString()])
                 ec.web.sendJsonResponse(outList)
             </script>
         </actions>
