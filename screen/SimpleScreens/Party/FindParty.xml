@@ -199,33 +199,23 @@ along with this software (see the LICENSE.md file). If not, see
             <form-single name="CreateAccountForm" transition="createAccount">
                 <field name="organizationName"><default-field><text-line size="60"/></default-field></field>
                 <field name="parentAccountPartyId"><default-field title="Parent Account">
-                    <drop-down allow-empty="true">
-                        <entity-options key="${partyId}" text="PartyNameTemplate">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="roleTypeId" value="Account"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName"/><order-by field-name="firstName"/>
-                            </entity-find>
-                        </entity-options>
-                    </drop-down>
+                    <text-line ac-transition="searchPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Account']"/>
                 </default-field></field>
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
             </form-single>
         </container-dialog>
         <container-dialog id="CreateContactDialog" button-text="New Sales Contact">
             <form-single name="CreateContactForm" transition="createContact">
+                <field name="accountPartyId"><default-field title="Account">
+                    <text-line ac-transition="searchPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Account']"/>
+                </default-field></field>
                 <field name="firstName"><default-field><text-line size="30"/></default-field></field>
                 <field name="lastName"><default-field><text-line size="30"/></default-field></field>
-                <field name="accountPartyId"><default-field title="Account">
-                    <drop-down>
-                        <entity-options key="${partyId}" text="PartyNameTemplate">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="roleTypeId" value="Account"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName"/><order-by field-name="firstName"/>
-                            </entity-find>
-                        </entity-options>
-                    </drop-down>
+                <field name="fromRoleTypeId"><default-field title="Role">
+                    <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                        <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                            <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
+                            <order-by field-name="description"/></entity-find></entity-options></drop-down>
                 </default-field></field>
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
             </form-single>

@@ -27,10 +27,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
-    <transition name="createPartyRole"><service-call name="create#mantle.party.PartyRole"/>
-        <default-response url="."/></transition>
-    <transition name="deletePartyRole"><service-call name="delete#mantle.party.PartyRole"/>
-        <default-response url="."/></transition>
+    <transition name="createPartyRole"><service-call name="create#mantle.party.PartyRole"/><default-response url="."/></transition>
+    <transition name="deletePartyRole"><service-call name="delete#mantle.party.PartyRole"/><default-response url="."/></transition>
 
     <transition name="setPartyClassification"><service-call name="mantle.party.PartyServices.set#PartyClassification"/>
         <default-response url="."/></transition>
@@ -177,7 +175,6 @@ along with this software (see the LICENSE.md file). If not, see
             <link url="findInvoice" text="Invoices To (${toInvoiceCount})" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount"/>
             <link url="findPayment" text="Payments From (${fromPaymentCount})" parameter-map="[fromPartyId:partyId]" condition="fromPaymentCount"/>
             <link url="findPayment" text="Payments To (${toPaymentCount})" parameter-map="[toPartyId:partyId]" condition="toPaymentCount"/>
-            <dynamic-dialog id="FindDuplicatesDialog" button-text="Find Duplicates" transition="FindDuplicates" width="960"/>
 
             <section name="NonUserPerson" condition="!userAccount"><actions><!-- NOTE: allowing accounts for Organization too: party?.partyTypeEnumId == 'PtyPerson' &amp;&amp;  -->
                 <entity-find entity-name="mantle.party.contact.PartyContactMechInfo" list="primaryEmailList">
@@ -213,13 +210,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="partyId" from="contactPartyId"><default-field title="Contact">
                             <text-line ac-transition="searchPartyList" ac-min-length="2" size="40" parameter-map="[roleTypeId:null]"/>
                         </default-field></field>
-                        <field name="toRoleTypeId"><default-field title="Role">
-                            <drop-down>
-                                <entity-options key="${roleTypeId}" text="${description}">
-                                    <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
-                                        <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
-                                        <order-by field-name="description"/></entity-find></entity-options>
-                            </drop-down>
+                        <field name="fromRoleTypeId"><default-field title="Role">
+                            <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                                <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                                    <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
+                                    <order-by field-name="description"/></entity-find></entity-options></drop-down>
                         </default-field></field>
                         <field name="accountPartyId" from="partyId"><default-field title="Account">
                             <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
@@ -231,8 +226,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <form-single name="CreateContactForm" transition="createContact">
                         <field name="firstName"><default-field><text-line size="30"/></default-field></field>
                         <field name="lastName"><default-field><text-line size="30"/></default-field></field>
-                        <field name="toRoleTypeId"><default-field title="Role">
-                            <drop-down>
+                        <field name="fromRoleTypeId"><default-field title="Role">
+                            <drop-down allow-empty="true">
                                 <entity-options key="${roleTypeId}" text="${description}">
                                     <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
                                         <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
@@ -246,6 +241,8 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-single>
                 </container-dialog>
             </widgets></section>
+
+            <dynamic-dialog id="FindDuplicatesDialog" button-text="Find Duplicates" transition="FindDuplicates" width="960"/>
 
             <section name="HasDuplicatesSection"><actions>
                 <if condition="party.hasDuplicates != 'Y'"><service-call name="mantle.party.DuplicateServices.find#PartyHasDuplicates"
@@ -558,11 +555,11 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="AccountRelListSection" condition="accountRelList"><widgets>
                 <container-box><box-header><label text="Accounts" type="h5"/></box-header><box-body>
                     <form-list name="AccountRelList" list="accountRelList" list-entry="accountRel" skip-header="true" skip-form="true">
+                        <field name="fromRoleTypeId" from="accountRel.fromRoleTypeId"><default-field title="Role">
+                            <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
                         <field name="toPartyId"><default-field>
                             <link url="." text="PartyNameTemplate" text-map="accountRel" link-type="anchor"
                                     parameter-map="[partyId:accountRel.toPartyId]"/></default-field></field>
-                        <field name="toRoleTypeId" from="accountRel.toRoleTypeId"><default-field title="Role">
-                            <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
                         <field name="removeButton" align="right"><default-field title="">
                             <link url="removeContact" icon="glyphicon glyphicon-trash" parameter-map="accountRel"
                                     confirmation="Are you sure you want to remove this contact from the account?"/></default-field></field>
@@ -574,7 +571,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <form-list name="ContactRelList" list="contactRelList" list-entry="contactRel" skip-form="true" skip-header="true">
                         <field name="fromPartyId"><default-field><link url="." text="PartyNameTemplate" text-map="contactRel"
                                 link-type="anchor" parameter-map="[partyId:contactRel.fromPartyId]"/></default-field></field>
-                        <field name="toRoleTypeId" from="contactRel.toRoleTypeId"><default-field title="Role">
+                        <field name="fromRoleTypeId" from="contactRel.fromRoleTypeId"><default-field title="Role">
                             <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
                         <field name="removeButton" align="right"><default-field>
                             <link url="removeContact" icon="glyphicon glyphicon-trash" parameter-map="contactRel"
