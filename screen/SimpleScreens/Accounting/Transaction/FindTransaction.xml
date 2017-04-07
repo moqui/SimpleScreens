@@ -24,12 +24,11 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
     <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
 
-    <actions>
-        <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
-            <search-form-inputs default-order-by="-transactionDate"/>
-        </entity-find>
-    </actions>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
     <widgets>
         <link url="findTransactionEntry" text="Find Entries"/>
         <container-dialog id="CreateTxDialog" button-text="New Transaction">
@@ -39,23 +38,18 @@ along with this software (see the LICENSE.md file). If not, see
                         <set field="enumTypeId" value="AcctgTransType"/></widget-template-include>
                 </default-field></field>
 
-                <field name="organizationPartyId">
-                    <default-field title="Organization">
-                        <drop-down>
-                            <entity-options key="${partyId}" text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]">
-                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                    <econdition field-name="roleTypeId" value="OrgInternal"/>
-                                    <econdition field-name="disabled" value="N" or-null="true"/>
-                                    <order-by field-name="organizationName"/>
-                                </entity-find>
-                            </entity-options>
-                        </drop-down>
-                    </default-field>
-                </field>
+                <field name="organizationPartyId"><default-field title="Organization">
+                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/></entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
                 <field name="transactionDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
 
                 <field name="amountUomId"><default-field title="Currency">
-                    <drop-down no-current-selected-key="USD"><entity-options key="${uomId}" text="${description} [${uomId}]">
+                    <drop-down no-current-selected-key="USD"><entity-options key="${uomId}" text="UomNameTemplate">
                         <entity-find entity-name="moqui.basic.Uom">
                             <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
                             <order-by field-name="description"/>
@@ -76,21 +70,21 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-
         <form-list name="TransactionList" list="acctgTransList" skip-form="true" header-dialog="true" select-columns="true"
                    saved-finds="true" show-csv-button="true">
+            <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
+                <search-form-inputs default-order-by="-transactionDate"/>
+            </entity-find>
             <row-actions>
                 <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
                         in-map="[acctgTransId:acctgTransId]" out-map="context"/>
             </row-actions>
-            <field name="editTransactionLink"><header-field show-order-by="case-insensitive" title="TX ID"/><default-field>
-                <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/>
-            </default-field></field>
 
-            <field name="glJournalId">
-                <header-field title="Journal"><text-find size="8" hide-options="true"/></header-field>
-                <default-field><display/></default-field>
-            </field>
+            <field name="acctgTransId"><header-field show-order-by="case-insensitive" title="TX ID"/><default-field>
+                <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
+            <field name="glJournalId"><header-field title="Journal"><text-find size="20" hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
+
             <field name="acctgTransTypeEnumId">
                 <header-field title="TX Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -100,51 +94,37 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
             <field name="organizationPartyId">
-                <header-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <entity-options key="${partyId}" text="${organizationName?:''} ${firstName?:''} ${lastName?:''} [${pseudoId}]">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="roleTypeId" value="OrgInternal"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName"/>
-                            </entity-find>
-                        </entity-options>
-                    </drop-down>
-                </header-field>
-                <default-field>
-                    <display-entity entity-name="mantle.party.PartyDetail" also-hidden="false" key-field-name="partyId"
-                            text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]"/>
-                </default-field>
+                <header-field title="Organization"><drop-down allow-empty="true">
+                    <entity-options key="${partyId}" text="PartyNameTemplate"><entity-find entity-name="mantle.party.PartyDetailAndRole">
+                        <econdition field-name="roleTypeId" value="OrgInternal"/>
+                        <econdition field-name="disabled" value="N" or-null="true"/>
+                        <order-by field-name="organizationName"/>
+                    </entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><link url="editParty" link-type="anchor" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
+            </field>
+            <field name="otherPartyId">
+                <header-field title="Other Party"><text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/></header-field>
+                <default-field><link url="editParty" link-type="anchor" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="otherPartyId"/></default-field>
             </field>
 
-            <field name="invoiceId">
-                <header-field title="Invoice" show-order-by="true"><text-find size="5" hide-options="true"/></header-field>
-                <default-field><link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/></default-field>
-            </field>
-            <field name="paymentId">
-                <header-field title="Payment" show-order-by="true"><text-find size="5" hide-options="true"/></header-field>
-                <default-field><link url="editPayment" text="${paymentId?:''}" link-type="anchor"/></default-field>
-            </field>
+            <field name="invoiceId"><header-field title="Invoice" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+                <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor" condition="invoiceId"/></default-field></field>
+            <field name="paymentId"><header-field title="Payment" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+                <default-field><link url="editPayment" text="${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
+            <field name="assetId"><header-field title="Asset" show-order-by="true"><text-line size="10"/></header-field>
+                <default-field><link url="assetDetail" text="${assetId}" link-type="anchor" condition="assetId"/></default-field></field>
 
-            <field name="transactionDate">
-                <header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display also-hidden="false"/></default-field>
-            </field>
+            <field name="transactionDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display also-hidden="false"/></default-field></field>
             <field name="isPosted">
-                <header-field title="Posted" show-order-by="true">
-                    <drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down>
-                </header-field>
+                <header-field title="Posted" show-order-by="true"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
                 <default-field><display/></default-field>
             </field>
 
-            <field name="debitTotal">
-                <default-field title="Total"><display currency-unit-field="amountUomId"/></default-field>
-            </field>
+            <field name="debitTotal"><default-field title="Total"><display currency-unit-field="amountUomId"/></default-field></field>
 
-            <field name="find">
-                <header-field title="Find"><submit/></header-field>
-                <default-field><display text=""/></default-field>
-            </field>
+            <field name="find"><header-field title="Find"><submit/></header-field></field>
         </form-list>
     </widgets>
 </screen>
