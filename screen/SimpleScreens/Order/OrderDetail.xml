@@ -103,24 +103,14 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="getShippingOptions"><parameter name="orderId"/><parameter name="orderPartSeqId"/><actions>
         <entity-find-one entity-name="mantle.order.OrderHeader" value-field="orderHeader"/>
-        <set field="productStoreId" from="orderHeader.productStoreId"/>
-        <if condition="productStoreId"><then>
-            <log message="orderPartSeqId: ${orderPartSeqId}"/>
-            <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="shipOptsOut"
-                    in-map="[productStoreId:productStoreId, orderId:orderId, orderPartSeqId:orderPartSeqId,
-                            postalContactMechId:postalContactMechId]"/>
-            <set field="outList" from="[]"/>
-            <script>
-                for (sop in shipOptsOut.shippingOptions) outList.add([value:"${sop.carrierPartyId}:${sop.shipmentMethodEnumId}",
-                    label:"${sop.carrierPartyId == '_NA_' ? '' : (sop.carrierName + ' - ') }${sop.shipmentMethodDescription} ${sop.shippingTotal != null ? ec.l10n.formatCurrency(sop.shippingTotal, orderHeader.currencyUomId) : ''}"])
-            </script>
-        </then><else>
-            <entity-find entity-name="moqui.basic.Enumeration" list="methodEnumList">
-                <econdition field-name="enumTypeId" value="ShipmentMethod"/><order-by field-name="sequenceNum,description"/></entity-find>
-            <set field="outList" from="[]"/>
-            <iterate list="methodEnumList" entry="methodEnum">
-                <script>outList.add([value:"_NA_:${methodEnum.enumId}", label:methodEnum.description])</script></iterate>
-        </else></if>
+        <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="shipOptsOut"
+                in-map="[productStoreId:orderHeader.productStoreId, orderId:orderId, orderPartSeqId:orderPartSeqId,
+                            postalContactMechId:postalContactMechId, getRates:true]"/>
+        <set field="outList" from="[]"/>
+        <script>
+            for (sop in shipOptsOut.shippingOptions) outList.add([value:"${sop.carrierPartyId}:${sop.shipmentMethodEnumId}",
+            label:"${sop.carrierName ? (sop.carrierName + ' - ') : ''}${sop.shipmentMethodDescription}${sop.shippingTotal != null ? ' ' + ec.l10n.formatCurrency(sop.shippingTotal, orderHeader.currencyUomId) : ''}"])
+        </script>
         <script>ec.web.sendJsonResponse(outList)</script>
     </actions><default-response type="none"/></transition>
 
@@ -367,6 +357,11 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="customerPartyId" from="orderPart.customerPartyId"/>
             <set field="customerShipToPartyId" from="orderPartInfo.customerShipToDetail?.partyId"/>
 
+            <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->
+            <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
+                    in-map="[productStoreId:orderHeader.productStoreId, orderId:orderId, orderPartSeqId:orderPartSeqId,
+                            postalContactMechId:orderPart.postalContactMechId, getRates:false]"/>
+
             <set field="shippingPostalAddressList" from="[]"/>
             <if condition="customerPartyId">
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="customerShippingInfo"
@@ -521,6 +516,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </widgets></section-iterate>
                 </container>
                 <container style="col-lg-6">
+                    <!-- Payment Information -->
                     <section name="PaymentInfoSection"><widgets>
                         <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0.0, orderHeader?.currencyUomId)}) is less than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0.0, orderHeader?.currencyUomId)})"
                                 style="text-danger" type="p" condition="orderPartInfo.paymentsTotal &lt; orderPartInfo.orderPart.partTotal"/>
@@ -577,6 +573,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </container>
                         </widgets></section-iterate>
                     </widgets></section>
+                    <!-- Shipping Address, Carrier/Method -->
                     <container-box><box-header><label text="Choose a Shipping Address" type="h5"/></box-header><box-toolbar>
                         <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo"
                                 width="800" condition="orderPartInfo.partEditable"
@@ -621,7 +618,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="carrierAndShipmentMethod">
                                 <conditional-field title="Shipment Method" condition="orderPartInfo.partEditable">
                                     <drop-down allow-empty="true" no-current-selected-key="${orderPart.carrierPartyId ? orderPart.carrierPartyId + ':' + orderPart.shipmentMethodEnumId : ''}">
-                                        <dynamic-options transition="getShippingOptions"/></drop-down>
+                                        <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
+                                                text="${carrierName ? (carrierName + ' - ') : ''}${shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
+                                        <dynamic-options transition="getShippingOptions"/>
+                                    </drop-down>
                                 </conditional-field>
                                 <default-field><ignored/></default-field>
                             </field>
