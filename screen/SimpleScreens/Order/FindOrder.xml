@@ -74,6 +74,7 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="customerRole" value="Customer,CustomerBillTo"/>
 
         <set field="defaultProductStoreId" from="ec.user.getPreference('OrderSalesStoreDefault')"/>
+        <set field="defaultFacilityId" from="ec.user.getPreference('FacilityGeneralDefault')"/>
     </actions>
     <widgets>
         <container-dialog id="CreatePurchaseOrderDialog" button-text="Create Purchase Order">
@@ -100,7 +101,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </entity-options>
                     </drop-down>
                 </default-field></field>
-                <field name="facilityId"><default-field title="Facility">
+                <field name="facilityId" from="facilityId ?: defaultFacilityId"><default-field title="Facility">
                     <drop-down><dynamic-options transition="getWhFacilitiesByOwner" value-field="facilityId" label-field="label">
                         <depends-on field="customerPartyId"/></dynamic-options></drop-down>
                 </default-field></field>
@@ -122,7 +123,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <drop-down><dynamic-options transition="getStoreOrgOrAllOrgInternal" depends-optional="true">
                         <depends-on field="productStoreId"/></dynamic-options></drop-down>
                 </default-field></field>
-                <field name="facilityId"><default-field title="Facility">
+                <field name="facilityId" from="facilityId ?: (!defaultProductStoreId ? defaultFacilityId : null)"><default-field title="Facility">
                     <drop-down><dynamic-options transition="getWhFacilitiesByOwner" value-field="facilityId" label-field="label" depends-optional="true">
                         <depends-on field="vendorPartyId"/><depends-on field="productStoreId"/></dynamic-options></drop-down>
                 </default-field></field>

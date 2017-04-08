@@ -43,6 +43,8 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
             <order-by field-name="facilityName"/>
         </entity-find>
+
+        <set field="defaultFacilityId" from="ec.user.getPreference('FacilityGeneralDefault')"/>
     </actions>
     <widgets>
         <container-dialog id="NewOutgoingShipmentDialog" button-text="New Outgoing Shipment">
@@ -50,10 +52,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="shipmentTypeEnumId"><default-field title="Type">
                     <drop-down><list-options list="outgoingTypeOut.enumerationList" key="${enumId}" text="${description}"/></drop-down>
                 </default-field></field>
-                <field name="originFacilityId"><default-field title="Origin Facility">
-                    <drop-down>
-                        <list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/>
-                    </drop-down>
+                <field name="originFacilityId" from="originFacilityId ?: defaultFacilityId"><default-field title="Origin Facility">
+                    <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
                 </default-field></field>
                 <field name="toPartyId"><default-field title="To Party">
                     <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/>
@@ -70,10 +70,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="fromPartyId"><default-field title="From Party">
                     <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/>
                 </default-field></field>
-                <field name="destinationFacilityId"><default-field title="Destination Facility">
-                    <drop-down>
-                        <list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/>
-                    </drop-down>
+                <field name="destinationFacilityId" from="destinationFacilityId ?: defaultFacilityId"><default-field title="Destination Facility">
+                    <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
                 </default-field></field>
                 <field name="estimatedReadyDate"><default-field title="Ready Date"><date-time/></default-field></field>
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
