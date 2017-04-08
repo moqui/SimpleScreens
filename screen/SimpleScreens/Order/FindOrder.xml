@@ -20,6 +20,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="../OrderDetail"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
     <transition name="getWhFacilitiesByOwner">
         <service-call name="mantle.facility.FacilityServices.get#FacilitiesByOwner"
                 in-map="[ownerPartyId:(customerPartyId ?: vendorPartyId), productStoreId:productStoreId, facilityTypeEnumId:'FcTpWarehouse']"
@@ -50,25 +52,8 @@ along with this software (see the LICENSE.md file). If not, see
     </actions><default-response type="none"/></transition>
 
     <actions>
-        <if condition="'sales'.equalsIgnoreCase(orderType)"><then>
-            <set field="vendorRoleTypeId" value="OrgInternal"/>
-        </then><else-if condition="'purchase'.equalsIgnoreCase(orderType)">
-            <set field="customerRoleTypeId" value="OrgInternal"/>
-        </else-if></if>
-        <entity-find entity-name="mantle.order.OrderHeaderPartFacilityStatus" list="orderList">
-            <search-form-inputs default-order-by="-entryDate,-orderId,orderPartSeqId"
-                    skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId">
-                <default-parameters statusId="OrderOpen,OrderPlaced,OrderApproved" statusId_op="in"
-                        entryDate_poffset="-1" entryDate_period="30d"/></search-form-inputs>
-            <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate"/>
-            <econdition field-name="vendorRoleTypeId" ignore-if-empty="true"/>
-            <econdition field-name="customerRoleTypeId" ignore-if-empty="true"/>
-            <econdition field-name="customerClassificationId" ignore-if-empty="true"/>
-            <select-field field-name="orderId,orderPartSeqId,partTotal,grandTotal,productStoreId"/>
-            <select-field field-name="entryDate,placedDate,shipBeforeDate"/>
-            <select-field field-name="vendorPartyId,customerPartyId"/>
-            <select-field field-name="statusId,facilityId"/>
-        </entity-find>
+        <if condition="'sales'.equalsIgnoreCase(orderType)"><then><set field="vendorRoleTypeId" value="OrgInternal"/></then>
+            <else-if condition="'purchase'.equalsIgnoreCase(orderType)"><set field="customerRoleTypeId" value="OrgInternal"/></else-if></if>
 
         <set field="vendorRole" value="Supplier,Vendor,VendorBillFrom"/>
         <set field="customerRole" value="Customer,CustomerBillTo"/>
@@ -136,7 +121,21 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <form-list name="OrderHistoryList" list="orderList" header-dialog="true" select-columns="true" saved-finds="true" show-csv-button="true">
+        <form-list name="OrderList" list="orderList" header-dialog="true" select-columns="true" saved-finds="true" show-csv-button="true">
+            <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
+                <search-form-inputs default-order-by="-entryDate,-orderId,orderPartSeqId"
+                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId">
+                    <default-parameters statusId="OrderOpen,OrderPlaced,OrderApproved" statusId_op="in"
+                            entryDate_poffset="-1" entryDate_period="30d"/></search-form-inputs>
+                <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate"/>
+                <econdition field-name="vendorRoleTypeId" ignore-if-empty="true"/>
+                <econdition field-name="customerRoleTypeId" ignore-if-empty="true"/>
+                <econdition field-name="customerClassificationId" ignore-if-empty="true"/>
+                <econdition field-name="productId" from="findProductId" ignore-if-empty="true"/>
+                <econdition field-name="itemTypeEnumId" from="salesItemTypeEnumId" ignore-if-empty="true"/>
+                <econdition field-name="itemTypeEnumId" from="purchaseItemTypeEnumId" ignore-if-empty="true"/>
+                <select-field field-name="orderPartSeqId"/>
+            </entity-find>
             <row-actions>
                 <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
                     <date-filter/><econdition field-name="partyId" from="customerPartyId"/>
@@ -159,7 +158,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <set field="statusTypeId" value="OrderHeader"/><set field="allowMultiple" value="true"/>
                         <set field="allowEmpty" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+                <default-field container-style="text-strong"><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
             <field name="facilityId"><header-field title="Facility" show-order-by="true">
                 <drop-down allow-empty="true">
@@ -218,11 +217,28 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="partTotal"><header-field show-order-by="true" title="Total"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+
+            <field name="purchaseItemTypeEnumId"><header-field title="Purchase Item Type">
+                <drop-down allow-empty="true">
+                    <entity-options key="${enumId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
+                            <econdition field-name="enumGroupEnumId" value="EngItemsPurchase"/>
+                            <order-by field-name="description"/></entity-find></entity-options>
+                </drop-down>
+            </header-field></field>
+            <field name="salesItemTypeEnumId"><header-field title="Sales Item Type">
+                <drop-down allow-empty="true">
+                    <entity-options key="${enumId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
+                            <econdition field-name="enumGroupEnumId" value="EngItemsSales"/>
+                            <order-by field-name="description"/></entity-find></entity-options>
+                </drop-down>
+            </header-field></field>
+            <field name="findProductId"><header-field title="Product">
+                <text-line ac-transition="getProductList" ac-min-length="2" size="50"/></header-field></field>
             <field name="orderType"><header-field><radio><option key="" text="Any"/><option key="Sales"/><option key="Purchase"/></radio></header-field>
                 <default-field><display/></default-field></field>
-
-            <field name="submitButton"><header-field title="Find"><submit/></header-field>
-                <default-field><link url="orderDetail" text="View"/></default-field></field>
+            <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="orderId"/></form-list-column>
             <form-list-column><field-ref name="entryDate"/><field-ref name="placedDate"/>
