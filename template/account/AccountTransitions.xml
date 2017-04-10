@@ -51,6 +51,48 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
     <!-- NOTE: getOrgGlAccountList deprecated, use getGlAccountList with organizationPartyId parameter -->
+    <transition name="getGlAccountListPaginated">
+        <parameter name="organizationPartyId"/>
+        <parameter name="onlyPostingAllowed"/>
+        <parameter name="pageIndex"/>
+        <parameter name="pageSize"/>
+        <parameter name="term"/>
+        <actions>
+            <set field="pageIndex" from="pageIndex ?: 0"/>
+            <set field="pageSize" from="pageSize ?: 20"/>
+            <set field="term" from="term ?: ''"/>
+            <entity-find-one entity-name="mantle.ledger.account.GlAccount" value-field="glAccount">
+                <field-map field-name="glAccountId" from="term"/></entity-find-one>
+            <if condition="glAccount"><then>
+                <set field="glaList" from="[glAccount]"/>
+            </then><else>
+                <entity-find entity-name="mantle.ledger.account.GlAccountAndOrganization" list="glaList">
+                    <search-form-inputs default-order-by="accountCode" skip-fields="disallowPosting"/>
+                    <!-- <econdition field-name="organizationPartyId" ignore-if-empty="true"/> -->
+                    <econdition field-name="disallowPosting" value="N" or-null="true" ignore="onlyPostingAllowed != 'true'"/>
+                    <econditions combine="or">
+                        <econdition field-name="glAccountId" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="accountCode" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="accountName" operator="like" value="%${term}%" ignore-case="true"/>
+                    </econditions>
+                    <select-field field-name="glAccountId,accountCode,accountName"/>
+                    <order-by field-name="accountCode"/>
+                </entity-find>
+            </else></if>
+            <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
+            <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
+            <script>
+                def outList = []
+                for (gla in glaList) {
+                Map glaMap = gla.getMap()
+                    // GlAccountNameTemplate uses accountCodeFormatter if present so no need for explicit mask
+                    outList.add([value:gla.glAccountId, label:ec.resource.expand('GlAccountNameTemplate','',glaMap)])
+                }
+                ec.web.sendJsonResponse([options:outList, pageSize:pageSize, count:(glaListCount?:glaList.size())])
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
 
     <widgets>
     </widgets>

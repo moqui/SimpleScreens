@@ -26,7 +26,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="deleteInvoiceItem"><service-call name="mantle.account.InvoiceServices.delete#InvoiceItem"/>
         <default-response url="."/></transition>
 
-    <transition-include name="getGlAccountList" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
+    <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
     <actions>
         <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
@@ -63,8 +63,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="itemTypeEnumId"><default-field title="Type">
                             <drop-down><list-options list="itemTypeEnumList" key="${enumId}" text="${description}"/></drop-down>
                         </default-field></field>
-                        <field name="overrideGlAccountId"><default-field title="Override GL Account">
-                            <text-line size="50" ac-transition="getGlAccountList"/></default-field></field>
+                        <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
+                            <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></default-field></field>
                         <field name="description"><default-field><text-line size="50"/></default-field></field>
                         <field name="itemDate"><default-field><date-time/></default-field></field>
                         <field name="quantity"><default-field><text-line size="4"/></default-field></field>
@@ -86,9 +86,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
             <field name="overrideGlAccountId">
-                <conditional-field condition="invoiceEditable" tooltip="Use % (percent) as a wildcard">
-                    <text-line size="50" ac-transition="getGlAccountList"
-                            parameter-map="[onlyPostingAllowed:'true', organizationPartyId:organizationPartyId]"/></conditional-field>
+                <conditional-field condition="invoiceEditable" tooltip="Use % (percent) as a wildcard"><drop-down allow-empty="true">
+                    <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></conditional-field>
                 <default-field title="Override GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
                         text="GlAccountNameTemplate"/></default-field>
             </field>
