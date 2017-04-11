@@ -53,20 +53,49 @@ along with this software (see the LICENSE.md file). If not, see
     <!-- NOTE: getOrgGlAccountList deprecated, use getGlAccountList with organizationPartyId parameter -->
     <transition name="getGlAccountListPaginated">
         <parameter name="organizationPartyId"/>
+        <parameter name="invoiceId"/>
         <parameter name="onlyPostingAllowed"/>
         <parameter name="pageIndex"/>
         <parameter name="pageSize"/>
         <parameter name="term"/>
         <actions>
+            <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
+            <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
             <set field="pageIndex" from="pageIndex ?: 0"/>
             <set field="pageSize" from="pageSize ?: 20"/>
             <set field="term" from="term ?: ''"/>
-            <entity-find-one entity-name="mantle.ledger.account.GlAccount" value-field="glAccount">
+
+            <if condition="invoiceId &amp;&amp; !term">
+                <!-- get most frequently used override GL accounts for other party -->
+                <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
+                <entity-find-count entity-name="mantle.party.PartyRole" count-field="fromOrgInternalCount">
+                    <econdition field-name="partyId" from="invoice.fromPartyId"/>
+                    <econdition field-name="roleTypeId" value="OrgInternal"/></entity-find-count>
+                <set field="isFromOrgInternal" from="fromOrgInternalCount &gt; 0"/>
+                <entity-find entity-name="mantle.account.invoice.InvoiceItemSummary" list="itemSummaryList" limit="20">
+                    <econdition field-name="fromPartyId" from="invoice.fromPartyId" ignore="isFromOrgInternal"/>
+                    <econdition field-name="toPartyId" from="invoice.toPartyId" ignore="!isFromOrgInternal"/>
+                    <econdition field-name="overrideGlAccountId" operator="is-not-null"/>
+                    <select-field field-name="overrideGlAccountId,quantityTotal"/><order-by field-name="-quantityTotal,overrideGlAccountId"/>
+                </entity-find>
+                <if condition="itemSummaryList">
+                    <set field="outList" from="[]"/>
+                    <iterate list="itemSummaryList" entry="itemSummary">
+                        <entity-find-one entity-name="mantle.ledger.account.GlAccount" value-field="glAccount" cache="true">
+                            <field-map field-name="glAccountId" from="itemSummary.overrideGlAccountId"/></entity-find-one>
+                        <script>outList.add([value:glAccount.glAccountId, label:ec.resource.expand('GlAccountNameTemplate','',glAccount.getMap())])</script>
+                    </iterate>
+                    <script>ec.web.sendJsonResponse([options:outList])</script>
+                    <return/>
+                </if>
+            </if>
+
+            <entity-find-one entity-name="mantle.ledger.account.GlAccount" value-field="glAccount" cache="true">
                 <field-map field-name="glAccountId" from="term"/></entity-find-one>
             <if condition="glAccount"><then>
                 <set field="glaList" from="[glAccount]"/>
             </then><else>
-                <entity-find entity-name="mantle.ledger.account.GlAccountAndOrganization" list="glaList">
+                <entity-find entity-name="mantle.ledger.account.GlAccountAndOrganization" list="glaList" cache="false">
                     <search-form-inputs default-order-by="accountCode" skip-fields="disallowPosting"/>
                     <!-- <econdition field-name="organizationPartyId" ignore-if-empty="true"/> -->
                     <econdition field-name="disallowPosting" value="N" or-null="true" ignore="onlyPostingAllowed != 'true'"/>
@@ -79,8 +108,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <order-by field-name="accountCode"/>
                 </entity-find>
             </else></if>
-            <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
-            <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
             <script>
                 def outList = []
                 for (gla in glaList) {
