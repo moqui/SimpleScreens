@@ -19,6 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="productFeatureIds"/>
         <parameter name="indexName"/>
         <parameter name="documentType"/>
+        <parameter name="pageIndex"/>
         <actions>
             <set field="indexName" from="indexName ?: searchIndexName ?: 'mantle'"/>
             <set field="documentType" from="documentType ?: searchProductDocType ?: 'MantleProduct'"/>
@@ -49,13 +50,16 @@ along with this software (see the LICENSE.md file). If not, see
                     }
                 ]]></script>
                 <!-- <log level="warn" message="Doing product search with queryString [${termSb.toString()}], indexName:${indexName}, documentType:${documentType}"/> -->
+                <set field="orderByFields" from="term ? null : ['pseudoId']"/>
                 <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
-                        in-map="[queryString:termSb.toString(), indexName:indexName, documentType:documentType]"/>
+                        in-map="[queryString:termSb.toString(), indexName:indexName, documentType:documentType,
+                            orderByFields:orderByFields, pageIndex:pageIndex, pageSize:(pageSize?:20)]"/>
                 <!-- <log level="warn" message="Got product search results: ${documentList}"/> -->
                 <script>
                     def outList = []
                     for (document in documentList) outList.add([value:document._id, label:ec.resource.expand("ProductNameTemplate", "", [productName:document.name,productId:document._id,pseudoId:document.pseudoId])])
-                    ec.web.sendJsonResponse(outList)
+                    if (pageIndex) ec.web.sendJsonResponse([options:outList, pageSize:documentListPageSize, count:documentListCount])
+                    else ec.web.sendJsonResponse(outList)
                 </script>
                 <!-- <log level="warn" message="Got product search outList: ${outList}"/> -->
             </else></if>
