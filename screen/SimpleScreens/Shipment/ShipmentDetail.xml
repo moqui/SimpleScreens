@@ -69,7 +69,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
-    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
@@ -315,12 +315,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <!-- Incoming Shipment Fields -->
                     <field name="fromPartyId"><conditional-field title="From Party" condition="isIncoming">
-                        <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="roleTypeId" value="Supplier"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName,firstName"/></entity-find>
-                        </entity-options></drop-down>
+                        <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                     </conditional-field></field>
                     <field name="destinationFacilityId" from="lastRouteSegment.destinationFacilityId">
                         <conditional-field title="Destination Facility" condition="isIncoming">
@@ -330,7 +325,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <!-- Outgoing Shipment Fields -->
                     <field name="toPartyId"><conditional-field title="To Party" condition="!isIncoming &amp;&amp; allowUpdate">
-                        <text-line ac-transition="getPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
+                        <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                     </conditional-field><conditional-field condition="!isIncoming" title="To Party">
                         <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/>
                     </conditional-field></field>
@@ -496,7 +491,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <form-single name="AddItemForm" transition="addItem">
                         <field name="shipmentId"><default-field><hidden/></default-field></field>
                         <field name="productId"><default-field title="Product">
-                            <drop-down allow-empty="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                            <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
                         </default-field></field>
                         <field name="quantity"><default-field><text-line size="10"/></default-field></field>
                         <field name="submitButton"><default-field title="Add Item"><submit/></default-field></field>
