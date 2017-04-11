@@ -92,6 +92,17 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createShipmentAutoPackages"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentAutoPackages"/>
         <default-response url="."/></transition>
 
+    <transition name="getShippingOptions"><actions>
+        <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="shipOptsOut"
+                in-map="[shipmentId:shipmentId, getRates:true]"/>
+        <script>
+            outList = []
+            for (sop in shipOptsOut.shippingOptions) outList.add([value:"${sop.carrierPartyId}:${sop.shipmentMethodEnumId}",
+                label:"${sop.carrierPartyId != '_NA_' ? (sop.carrierName + ' - ') : ''}${sop.shipmentMethodDescription}${sop.shippingTotal != null ? ' ' + ec.l10n.format(sop.shippingTotal, '#,##0.00') : ''}"])
+            ec.web.sendJsonResponse(outList)
+        </script>
+    </actions><default-response type="none"/></transition>
+
     <transition name="EmailMessage" read-only="true"><parameter name="emailMessageId"/><actions>
         <entity-find-one entity-name="moqui.basic.email.EmailMessage" value-field="emailMessage"/>
         <script>ec.web.sendTextResponse(emailMessage?.body, "text/html", null)</script>
@@ -161,18 +172,9 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
 
         <if condition="!isIncoming">
-            <set field="shippingOptions" from="[]"/>
-            <entity-find entity-name="mantle.shipment.carrier.CarrierShipmentMethod" list="shipOptionList" cache="true">
-                <order-by field-name="sequenceNum"/></entity-find>
-            <iterate list="shipOptionList" entry="shipOption">
-                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="carrierDetail" cache="true">
-                    <field-map field-name="partyId" from="shipOption.carrierPartyId"/></entity-find-one>
-                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="shipmentMethodEnum">
-                    <field-map field-name="enumId" from="shipOption.shipmentMethodEnumId"/></entity-find-one>
-                <script>shippingOptions.add([carrierPartyId:shipOption.carrierPartyId, carrierName:ec.resource.expand('PartyNameTemplate','',carrierDetail),
-                    shipmentMethodEnumId:shipOption.shipmentMethodEnumId, shipmentMethodDescription:shipmentMethodEnum.description])</script>
-            </iterate>
-            <order-map-list list="shippingOptions"><order-by field-name="carrierName"/></order-map-list>
+            <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->
+            <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="context"
+                    in-map="[shipmentId:shipmentId, getRates:false]"/>
 
             <entity-find-one entity-name="mantle.party.PartyDetail" value-field="curCarrierDetail" cache="true">
                 <field-map field-name="partyId" from="firstRouteSegment.carrierPartyId"/></entity-find-one>
@@ -298,12 +300,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="shipmentId"><default-field><hidden/></default-field></field>
                     <field name="destPostalContactMechId"><default-field><hidden/></default-field></field>
 
-                    <field name="carrierAndShipmentMethod"><default-field title="Shipment Method">
-                        <drop-down no-current-selected-key="${firstRouteSegment.carrierPartyId ? firstRouteSegment.carrierPartyId + ':' + firstRouteSegment.shipmentMethodEnumId : ''}">
+                    <field name="carrierAndShipmentMethod"><conditional-field title="Shipment Method" condition="!hasAllLabels">
+                        <drop-down allow-empty="true" no-current-selected-key="${firstRouteSegment.carrierPartyId ? firstRouteSegment.carrierPartyId + ':' + firstRouteSegment.shipmentMethodEnumId : ''}">
                             <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
-                                    text="${carrierPartyId == '_NA_' ? '' : (carrierName + ' - ') }${shipmentMethodDescription}"/>
+                                    text="${carrierPartyId != '_NA_' ? (carrierName + ' - ') : ''}${shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
+                            <dynamic-options transition="getShippingOptions"/>
                         </drop-down>
-                    </default-field></field>
+                    </conditional-field></field>
 
                     <field name="shipmentTypeEnumId"><default-field title="Shipment Type">
                         <display text="${shipmentTypeEnum.description}" also-hidden="false"/></default-field></field>

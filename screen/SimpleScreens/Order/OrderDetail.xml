@@ -106,12 +106,12 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="shipOptsOut"
                 in-map="[productStoreId:orderHeader.productStoreId, orderId:orderId, orderPartSeqId:orderPartSeqId,
                             postalContactMechId:postalContactMechId, getRates:true]"/>
-        <set field="outList" from="[]"/>
         <script>
+            outList = []
             for (sop in shipOptsOut.shippingOptions) outList.add([value:"${sop.carrierPartyId}:${sop.shipmentMethodEnumId}",
-            label:"${sop.carrierName ? (sop.carrierName + ' - ') : ''}${sop.shipmentMethodDescription}${sop.shippingTotal != null ? ' ' + ec.l10n.formatCurrency(sop.shippingTotal, orderHeader.currencyUomId) : ''}"])
+                label:"${sop.carrierPartyId != '_NA_' ? (sop.carrierName + ' - ') : ''}${sop.shipmentMethodDescription}${sop.shippingTotal != null ? ' ' + ec.l10n.formatCurrency(sop.shippingTotal, orderHeader.currencyUomId) : ''}"])
+            ec.web.sendJsonResponse(outList)
         </script>
-        <script>ec.web.sendJsonResponse(outList)</script>
     </actions><default-response type="none"/></transition>
 
     <transition name="EmailMessage" read-only="true"><parameter name="emailMessageId"/><actions>
@@ -619,7 +619,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <conditional-field title="Shipment Method" condition="orderPartInfo.partEditable">
                                     <drop-down allow-empty="true" no-current-selected-key="${orderPart.carrierPartyId ? orderPart.carrierPartyId + ':' + orderPart.shipmentMethodEnumId : ''}">
                                         <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
-                                                text="${carrierName ? (carrierName + ' - ') : ''}${shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
+                                                text="${carrierPartyId != '_NA_' ? (carrierName + ' - ') : ''}${shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
                                         <dynamic-options transition="getShippingOptions"/>
                                     </drop-down>
                                 </conditional-field>
