@@ -89,6 +89,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updatePackageContent"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentPackageContent"/>
         <default-response url="."/></transition>
+    <transition name="createShipmentAutoPackages"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentAutoPackages"/>
+        <default-response url="."/></transition>
 
     <transition name="EmailMessage" read-only="true"><parameter name="emailMessageId"/><actions>
         <entity-find-one entity-name="moqui.basic.email.EmailMessage" value-field="emailMessage"/>
@@ -719,6 +721,8 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- Packages -->
         <section name="ShipmentPackageSection" condition="!isIncoming"><widgets>
             <container-box><box-header><label text="Packages" type="h5"/></box-header><box-toolbar>
+                <link url="createShipmentAutoPackages" text="Auto Packages" condition="shippingGatewayConfig?.getAutoPackageInfoName"
+                    parameter-map="[resetExisting:true]" confirmation="Remove existing packages and create new based on auto-package data?"/>
                 <link url="createPackage" text="Add Package"/>
             </box-toolbar><box-body>
                 <section-iterate name="PackageListSection" list="shipmentPackageList" entry="shipmentPackage"><actions>
