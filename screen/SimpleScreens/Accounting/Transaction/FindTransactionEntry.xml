@@ -22,10 +22,12 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
     <transition name="editGlAccount"><default-response url="../../GlAccount/EditGlAccount"/></transition>
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
 
-    <transition-include name="getGlAccountList" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
+    <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
         <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
@@ -68,12 +70,17 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editParty" link-type="anchor" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="otherPartyId"/></default-field>
             </field>
 
-            <field name="invoiceId"><header-field title="Invoice" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+            <field name="invoiceId"><header-field title="Invoice" show-order-by="true"><text-find size="20" hide-options="ignore-case"/></header-field>
                 <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor" condition="invoiceId"/></default-field></field>
-            <field name="paymentId"><header-field title="Payment" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+            <field name="paymentId"><header-field title="Payment" show-order-by="true"><text-find size="20" hide-options="ignore-case"/></header-field>
                 <default-field><link url="editPayment" text="${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
-            <field name="assetId"><header-field title="Asset" show-order-by="true"><text-line size="10"/></header-field>
+            <field name="assetId"><header-field title="Asset" show-order-by="true"><text-find size="10" hide-options="ignore-case"/></header-field>
                 <default-field><link url="assetDetail" text="${assetId}" link-type="anchor" condition="assetId"/></default-field></field>
+            <field name="productId">
+                <header-field title="Product" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><link url="editProduct" text="${productId}" link-type="anchor" condition="productId"/></default-field>
+            </field>
 
             <field name="transactionDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display also-hidden="false"/></default-field></field>
@@ -87,7 +94,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display format="#,##0.00"/></default-field></field>
             <field name="debitCreditFlag"><default-field title="C/D"><display/></default-field></field>
             <field name="glAccountId">
-                <header-field title="GL Account" show-order-by="true"><text-line size="60" ac-transition="getGlAccountList"/></header-field>
+                <header-field title="GL Account" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></header-field>
                 <default-field><link url="editGlAccount" link-type="anchor" entity-name="mantle.ledger.account.GlAccount"
                         text="GlAccountNameTemplate"/></default-field>
             </field>
