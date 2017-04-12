@@ -39,6 +39,7 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntrySummary" list="acctgTransEntryList">
                 <search-form-inputs default-order-by="-transactionDate,-acctgTransId,acctgTransEntrySeqId">
                     <default-parameters transactionDate_poffset="-1" transactionDate_period="30d"/></search-form-inputs>
+                <select-field field-name="amount,debitCreditFlag"/><!-- always select amount and debit/credit flag in case are not displayed but debit/credit are -->
             </entity-find>
 
             <field name="acctgTransId"><header-field show-order-by="case-insensitive" title="TX ID"/><default-field>
@@ -46,14 +47,23 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="glJournalId"><header-field title="Journal"><text-find size="10" hide-options="true"/></header-field>
                 <default-field><display/></default-field></field>
 
+            <field name="transactionDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display also-hidden="false"/></default-field></field>
+            <field name="isPosted">
+                <header-field title="Posted" show-order-by="true"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
+                <default-field><display/></default-field>
+            </field>
+
             <field name="acctgTransTypeEnumId">
                 <header-field title="TX Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="AcctgTransType"/><set field="allowEmpty" value="true"/>
-                        <set field="style" value=" "/></widget-template-include>
+                        <set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
+            <field name="description"><header-field show-order-by="true"><text-find size="40"/></header-field>
+                <default-field><display/></default-field></field>
             <field name="organizationPartyId">
                 <header-field title="Organization"><drop-down allow-empty="true">
                     <entity-options key="${partyId}" text="PartyNameTemplate"><entity-find entity-name="mantle.party.PartyDetailAndRole">
@@ -82,25 +92,33 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editProduct" text="${productId}" link-type="anchor" condition="productId"/></default-field>
             </field>
 
-            <field name="transactionDate"><header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display also-hidden="false"/></default-field></field>
-            <field name="isPosted">
-                <header-field title="Posted" show-order-by="true"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
-                <default-field><display/></default-field>
-            </field>
-
             <field name="acctgTransEntrySeqId"><default-field title="Entry"><display/></default-field></field>
-            <field name="amount" align="right"><header-field><range-find size="15"/></header-field>
-                <default-field><display format="#,##0.00"/></default-field></field>
-            <field name="debitCreditFlag"><default-field title="C/D"><display/></default-field></field>
             <field name="glAccountId">
                 <header-field title="GL Account" show-order-by="true"><drop-down allow-empty="true">
                     <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></header-field>
                 <default-field><link url="editGlAccount" link-type="anchor" entity-name="mantle.ledger.account.GlAccount"
                         text="GlAccountNameTemplate"/></default-field>
             </field>
+            <field name="debitCreditFlag"><default-field title="C/D"><display/></default-field></field>
+            <field name="amount" align="right"><header-field><range-find size="15"/></header-field>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="debit" align="right"><default-field><display text="${debitCreditFlag == 'D' ? ec.l10n.format(amount, '#,##0.00') : ''}"/></default-field></field>
+            <field name="credit" align="right"><default-field><display text="${debitCreditFlag == 'C' ? ec.l10n.format(amount, '#,##0.00') : ''}"/></default-field></field>
 
             <field name="find"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="acctgTransId"/><field-ref name="glJournalId"/></form-list-column>
+            <form-list-column><field-ref name="transactionDate"/><field-ref name="isPosted"/></form-list-column>
+            <form-list-column><field-ref name="acctgTransTypeEnumId"/><field-ref name="description"/></form-list-column>
+            <form-list-column><field-ref name="organizationPartyId"/><field-ref name="otherPartyId"/></form-list-column>
+            <form-list-column><field-ref name="invoiceId"/></form-list-column>
+            <form-list-column><field-ref name="paymentId"/></form-list-column>
+            <form-list-column><field-ref name="assetId"/></form-list-column>
+            <form-list-column><field-ref name="productId"/></form-list-column>
+            <form-list-column><field-ref name="acctgTransEntrySeqId"/></form-list-column>
+            <form-list-column><field-ref name="glAccountId"/></form-list-column>
+            <form-list-column><field-ref name="debit"/></form-list-column>
+            <form-list-column><field-ref name="credit"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
