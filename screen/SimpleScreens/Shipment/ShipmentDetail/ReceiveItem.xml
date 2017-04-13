@@ -22,6 +22,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="receive"><service-call name="mantle.shipment.ShipmentServices.receive#ShipmentProduct"/><default-response url=".."/></transition>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
         <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
@@ -46,20 +47,15 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <field name="receivedDate" from="ec.user.nowTimestamp"><default-field title="Received Date"><date-time/></default-field></field>
-            <!-- TODO allow mfgPartyId separate from Shipment.fromPartyId: add drop-down here for MFGs, make lotId dynamic and dependent on it -->
+
+            <field name="mfgPartyId" from="shipment.fromPartyId"><default-field title="Manufacturer"><drop-down allow-empty="true">
+                <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,Manufacturer']"/>
+            </drop-down></default-field></field>
             <field name="lotId"><default-field title="Lot" tooltip="Select an existing Lot, for new enter Lot Number (and Dates) below">
-                <drop-down allow-empty="true"><dynamic-options transition="getLotList" server-search="true" min-length="0"/></drop-down>
+                <drop-down allow-empty="true"><dynamic-options transition="getLotList" server-search="true" min-length="0">
+                    <depends-on field="mfgPartyId"/></dynamic-options></drop-down>
             </default-field></field>
-            <!--
-            <field name="lotId"><default-field title="Lot">
-                <drop-down allow-empty="true">
-                    <entity-options key="${lotId}" text="${lotId}: ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')}">
-                        <entity-find entity-name="mantle.product.asset.Lot">
-                            <econdition field-name="mfgPartyId" from="shipment.fromPartyId"/>
-                            <order-by field-name="lotNumber"/></entity-find></entity-options>
-                </drop-down>
-            </default-field></field>
-            -->
+            
             <field name="lotNumber"><default-field tooltip="For new lot enter Lot Number (and Dates), for existing select above">
                 <text-line size="20"/></default-field></field>
             <field name="manufacturedDate"><default-field title="Manufactured"><date-time type="date"/></default-field></field>

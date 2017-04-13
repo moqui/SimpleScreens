@@ -24,7 +24,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
     <transition name="findTransactionEntry"><default-response url="//${appRoot}/Accounting/Transaction/FindTransactionEntry"/></transition>
 
-    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
@@ -66,7 +66,6 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="productionRun" text="${asset.acquireWorkEffortId}" link-type="anchor" condition="asset.acquireWorkEffortId"
                                 parameter-map="[workEffortId:asset.acquireWorkEffortId]"/></default-field></field>
 
-
                     <field name="classEnumId"><default-field title="Class">
                         <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                             <set field="enumTypeId" value="AssetClass"/><set field="allowEmpty" value="true"/></widget-template-include>
@@ -76,7 +75,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="editProduct" text="Edit Product" parameter-map="[productId:asset.productId]" condition="asset.productId"/>
                     </default-field></field>
                     <field name="ownerPartyId"><default-field title="Owner Party">
-                        <text-line ac-transition="getPartyList" size="50"/></default-field></field>
+                        <drop-down><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                    </default-field></field>
                     <field name="acquiredDate"><default-field><date-time/></default-field></field>
                     <field name="manufacturedDate"><default-field><date-time/></default-field></field>
                     <field name="expectedEndOfLife"><default-field><date-time type="date"/></default-field></field>

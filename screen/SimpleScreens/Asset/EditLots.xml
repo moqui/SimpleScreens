@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-include="false">
+
+    <transition name="createLot"><service-call name="create#mantle.product.asset.Lot"/><default-response url="."/></transition>
+    <transition name="updateLot"><service-call name="update#mantle.product.asset.Lot"/><default-response url="."/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <widgets>
+        <container-dialog id="CreateLotDialog" button-text="Create Lot">
+            <form-single name="CreateLot" transition="createLot">
+                <field name="mfgPartyId"><default-field title="Manufacturer"><drop-down>
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,Manufacturer']"/>
+                </drop-down></default-field></field>
+                <field name="lotNumber"><default-field><text-line size="20"/></default-field></field>
+                <field name="manufacturedDate"><default-field><date-time/></default-field></field>
+                <field name="expirationDate"><default-field><date-time type="date"/></default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <form-list name="LotList" list="lotList" transition="updateLot" header-dialog="true" show-csv-button="true">
+            <entity-find entity-name="mantle.product.asset.Lot" list="lotList">
+                <search-form-inputs default-order-by="lotNumber"/>
+            </entity-find>
+
+            <field name="lotId">
+                <header-field title="Lot ID" show-order-by="true"><text-find size="15" hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="mfgPartyId">
+                <header-field title="Manufacturer"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,Manufacturer']"/>
+                </drop-down></header-field>
+                <default-field><drop-down>
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,Manufacturer']"/>
+                </drop-down></default-field>
+            </field>
+            <field name="lotNumber">
+                <header-field show-order-by="case-insensitive"><text-find size="20"/></header-field>
+                <default-field><text-line size="15"/></default-field>
+            </field>
+
+            <field name="manufacturedDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><date-time/></default-field></field>
+            <field name="expirationDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><date-time type="date"/></default-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field>
+                <default-field title="Update"><submit/></default-field></field>
+            <field name="assetsLink"><default-field title="">
+                <link url="../FindAsset" text="Assets" parameter-map="[lotId:lotId]"/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>
