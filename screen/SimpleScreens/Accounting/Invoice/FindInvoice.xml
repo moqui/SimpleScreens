@@ -32,11 +32,18 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
-        <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
-            <search-form-inputs default-order-by="-invoiceDate,+invoiceId">
-                <default-parameters statusId="InvoiceInProcess,InvoiceFinalized,InvoiceSent,InvoiceIncoming,InvoiceReceived,InvoiceApproved"
-                        statusId_op="in" invoiceDate_poffset="-1" invoiceDate_period="30d"/></search-form-inputs>
-        </entity-find>
+        <!-- NOTE: the way the aging summary is calculated is ugly (would be nice in a separate service) but minimizes runtime
+            overhead and maintains compatibility with column selection, etc -->
+        <set field="periodDays" from="periodDays ? periodDays as Integer : 30"/>
+        <set field="periodDaysBd" from="new BigDecimal(periodDays)"/>
+        <set field="nowTimestamp" from="ec.user.nowTimestamp"/>
+        <!-- using AtomicBoolean as a mutable boolean so that in spite of context nesting these fields will be set -->
+        <set field="hasReceivableAging" from="new java.util.concurrent.atomic.AtomicBoolean(false)"/>
+        <set field="hasPayableAging" from="new java.util.concurrent.atomic.AtomicBoolean(false)"/>
+        <set field="receivableAgingList" from="new ArrayList([0.0, 0.0, 0.0, 0.0, 0.0])"/>
+        <set field="receivableDueAgingList" from="new ArrayList([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])"/>
+        <set field="payableAgingList" from="new ArrayList([0.0, 0.0, 0.0, 0.0, 0.0])"/>
+        <set field="payableDueAgingList" from="new ArrayList([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])"/>
     </actions>
     <widgets>
         <container>
@@ -143,13 +150,44 @@ along with this software (see the LICENSE.md file). If not, see
         </container>
 
         <form-list name="InvoiceList" list="invoiceList" skip-form="true" header-dialog="true" select-columns="true"
-                   saved-finds="true" show-csv-button="true">
+                   saved-finds="true" show-csv-button="true" show-all-button="true">
+            <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
+                <search-form-inputs default-order-by="-invoiceDate,+invoiceId">
+                    <default-parameters statusId="InvoiceInProcess,InvoiceFinalized,InvoiceSent,InvoiceIncoming,InvoiceReceived,InvoiceApproved"
+                            statusId_op="in" invoiceDate_poffset="-1" invoiceDate_period="30d"/></search-form-inputs>
+            </entity-find>
             <row-actions>
                 <service-call name="mantle.account.InvoiceServices.get#InvoiceTotal" in-map="[invoiceId:invoiceId]" out-map="context"/>
+                <script><![CDATA[
+                if (unpaidTotal) {
+                    Integer invoiceDateDays = invoiceDate != null ? nowTimestamp - invoiceDate : null
+                    Integer invoiceDateIdx = invoiceDateDays != null ? ((invoiceDateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() : null
+                    if (invoiceDateIdx != null && invoiceDateIdx > 4) invoiceDateIdx = 4
+                    Integer dueDateDays = dueDate != null ? nowTimestamp - dueDate : null
+                    Integer dueDateIdx = dueDateDays != null ? (dueDateDays < 0 ? 0 :
+                            ((dueDateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1 ) : null
+                    if (dueDateIdx != null && dueDateIdx > 4) dueDateIdx = 4
+
+                    if (statusId in ['InvoiceInProcess','InvoiceFinalized','InvoiceSent']) {
+                        if (invoiceDateIdx != null) receivableAgingList[invoiceDateIdx] = receivableAgingList[invoiceDateIdx] + unpaidTotal
+                        if (dueDateIdx != null) receivableDueAgingList[dueDateIdx] = receivableDueAgingList[dueDateIdx] + unpaidTotal
+                        hasReceivableAging.set(true)
+                    } else if (statusId in ['InvoiceIncoming','InvoiceReceived','InvoiceApproved']) {
+                        if (invoiceDateIdx != null) payableAgingList[invoiceDateIdx] = payableAgingList[invoiceDateIdx] + unpaidTotal
+                        if (dueDateIdx != null) payableDueAgingList[dueDateIdx] = payableDueAgingList[dueDateIdx] + unpaidTotal
+                        hasPayableAging.set(true)
+                    }
+                }
+                ]]></script>
             </row-actions>
-            <field name="editInvoiceLink"><header-field show-order-by="case-insensitive" title="Edit"/><default-field>
-                <link url="editInvoice" text="Edit ${invoiceId}" link-type="anchor"/>
+            <field name="invoiceId"><header-field show-order-by="true" title="Invoice"/><default-field>
+                <link url="editInvoice" text="${invoiceId}" link-type="anchor"/>
             </default-field></field>
+            <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display format="yyyy-MM-dd"/></default-field></field>
+            <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display format="yyyy-MM-dd"/></default-field></field>
+
             <field name="invoiceTypeEnumId">
                 <header-field title="Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -158,8 +196,6 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
-            <field name="referenceNumber"><header-field><text-find size="10" hide-options="true"/></header-field>
-                <default-field><display/></default-field></field>
             <field name="fromPartyId">
                 <header-field title="From"><drop-down allow-empty="true">
                     <entity-options key="${partyId}" text="PartyNameTemplate">
@@ -181,26 +217,61 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
                         link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
             </field>
-            <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display also-hidden="false"/></default-field></field>
-            <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
+            <field name="referenceNumber"><header-field title="Ref Num (PO/etc)"><text-find size="10" hide-options="true"/></header-field>
                 <default-field><display/></default-field></field>
+
+            <field name="receivableStatuses"><header-field title="Receivable"><display text="In-Process, Finalized, Sent, Payment Received"/></header-field></field>
+            <field name="payableStatuses"><header-field title="Payable"><display text="Incoming, Received, Approved, Payment Sent"/></header-field></field>
             <field name="statusId">
                 <header-field title="Status" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
                         <set field="statusTypeId" value="Invoice"/><set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
-            <field name="invoiceTotal"><header-field title="Find"><submit/></header-field>
-                <default-field title="Total"><display currency-unit-field="currencyUomId"/></default-field></field>
 
-            <form-list-column><field-ref name="editInvoiceLink"/></form-list-column>
-            <form-list-column><field-ref name="invoiceTypeEnumId"/><field-ref name="referenceNumber"/></form-list-column>
-            <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
-            <form-list-column><field-ref name="invoiceDate"/><field-ref name="dueDate"/></form-list-column>
-            <form-list-column><field-ref name="statusId"/></form-list-column>
-            <form-list-column><field-ref name="invoiceTotal"/></form-list-column>
+            <field name="invoiceTotal" align="right" show-total="true"><default-field title="Total">
+                <display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="unpaidTotal" align="right" show-total="true"><default-field title="Unpaid">
+                <display currency-unit-field="currencyUomId"/></default-field></field>
+
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>
+
+        <!-- TODO: add find for Customer Statement -->
+        <section name="AgingSummarySection" condition="hasReceivableAging.get() || hasPayableAging.get()"><actions>
+            <script>
+                agingSummaryList = []
+                if (hasReceivableAging.get()) {
+                    agingSummaryList.add([description:'Receivable by Invoice Date', period0:receivableAgingList[0], period1:receivableAgingList[1],
+                            period2:receivableAgingList[2], period3:receivableAgingList[3], periodRemaining:receivableAgingList[4], total:receivableAgingList.sum()])
+                    agingSummaryList.add([description:'Receivable by Due Date', current:receivableDueAgingList[0], period0:receivableDueAgingList[1],
+                            period1:receivableDueAgingList[2], period2:receivableDueAgingList[3], period3:receivableDueAgingList[4], periodRemaining:receivableDueAgingList[5], total:receivableDueAgingList.sum()])
+                }
+                if (hasPayableAging.get()) {
+                    agingSummaryList.add([description:'Payable by Invoice Date', period0:payableAgingList[0], period1:payableAgingList[1],
+                            period2:payableAgingList[2], period3:payableAgingList[3], periodRemaining:payableAgingList[4], total:payableAgingList.sum()])
+                    agingSummaryList.add([description:'Payable by Due Date', current:payableDueAgingList[0], period0:payableDueAgingList[1],
+                            period1:payableDueAgingList[2], period2:payableDueAgingList[3], period3:payableDueAgingList[4], periodRemaining:payableDueAgingList[5], total:payableDueAgingList.sum()])
+                }
+            </script>
+        </actions><widgets>
+            <form-list name="AgingSummaryList" list="agingSummaryList" skip-form="true">
+                <field name="description"><default-field title="Aging Summary (displayed records only)">
+                    <display text="${ec.l10n.localize(description)}"/></default-field></field>
+                <field name="current" align="right"><default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="period0" align="right"><header-field title="0 - ${periodDays} days"/>
+                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="period1" align="right"><header-field title="${periodDays+1} - ${periodDays*2} days"/>
+                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="period2" align="right"><header-field title="${periodDays*2+1} - ${periodDays*3} days"/>
+                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="period3" align="right"><header-field title="${periodDays*3+1} - ${periodDays*4} days"/>
+                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="periodRemaining" align="right"><header-field title="&gt; ${periodDays*4} days"/>
+                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="total" align="right"><default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+            </form-list>
+        </widgets></section>
     </widgets>
 </screen>
