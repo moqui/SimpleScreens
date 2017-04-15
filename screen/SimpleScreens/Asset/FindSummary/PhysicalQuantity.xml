@@ -18,11 +18,12 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="productId" required="true"/>
     <parameter name="facilityId" required="true"/>
     <parameter name="locationSeqId"/>
+    <parameter name="lotId"/>
 
     <transition name="recordQuantity"><service-call name="mantle.product.AssetServices.record#PhysicalInventoryQuantity"/>
         <default-response url=".."/></transition>
 
-    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
         <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
@@ -35,6 +36,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field></field>
             <field name="locationSeqId"><default-field title="Location">
                 <display text="FacilityLocationNameTemplate" text-map="facLoc?:[locationSeqId:'Any']"/></default-field></field>
+            <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
+                <dynamic-options transition="getLotList" server-search="true" min-length="2"/></drop-down></default-field></field>
 
             <field name="quantity"><default-field title="Physical Quantity"><text-line size="6"/></default-field></field>
             <field name="quantityChange"><default-field><ignored/></default-field></field>
