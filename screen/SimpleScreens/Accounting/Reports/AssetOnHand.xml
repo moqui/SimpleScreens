@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
+        default-menu-title="Asset On Hand" default-menu-include="false">
+
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <actions>
+        <set field="hasDetails" from="showDetails == 'true'"/>
+        <if condition="facilityId &amp;&amp; dateRange_period &amp;&amp; dateRange_poffset"><then>
+            <set field="rangeList" from="ec.user.getPeriodRange(dateRange_period, dateRange_poffset)"/>
+            <!-- special case for AssetOnHandSummary, these 2 Timestamps must be in the context -->
+            <set field="fromDate" from="rangeList[0]"/>
+            <set field="thruDate" from="rangeList[1]"/>
+
+            <entity-find entity-name="mantle.product.asset.AssetOnHandSummary" list="summaryList">
+                <search-form-inputs default-order-by="pseudoId" paginate="false"/>
+                <!-- NOTE: this query will get slower over time, not a good approach for large inventory histories but only way to
+                    get valuation at any point in time unless we calculate and save interim values -->
+                <econdition field-name="effectiveDate" operator="less-equals" from="thruDate"/>
+                <select-field field-name="productId,pseudoId,productName,facilityId,locationSeqId,startingOnHand,onHandChange"/>
+            </entity-find>
+
+            <if condition="hasDetails">
+                <set field="origList" from="summaryList"/>
+                <set field="summaryList" from="[]"/>
+                <iterate list="origList" entry="orig">
+                    <entity-find entity-name="mantle.product.asset.AssetOnHandDetail" list="detailList">
+                        <econdition field-name="productId" from="orig.productId"/>
+                        <econdition field-name="facilityId" from="orig.facilityId"/>
+                        <econdition field-name="locationSeqId" from="orig.locationSeqId"/>
+                        <econdition field-name="effectiveDate" operator="greater-equals" from="fromDate"/>
+                        <econdition field-name="effectiveDate" operator="less-equals" from="thruDate"/>
+                        <econdition field-name="quantityOnHandDiff" operator="not-equals" from="0.0"/>
+                        <select-field field-name="assetId,effectiveDate,shipmentId,issOrderId,issInvoiceId,recOrderId,recInvoiceId,quantityOnHandDiff"/>
+                        <order-by field-name="effectiveDate"/>
+                    </entity-find>
+                    <script>
+                        summaryList.add(orig.getMap())
+                        for (det in detailList) summaryList.add([assetId:det.assetId, effectiveDate:det.effectiveDate,
+                                orderId:(det.issOrderId ?: det.recOrderId), invoiceId:(det.issInvoiceId ?: det.recInvoiceId),
+                                shipmentId:det.shipmentId, onHandChange:det.quantityOnHandDiff])
+                    </script>
+                </iterate>
+            </if>
+        </then><else>
+            <set field="dateRange_period" from="dateRange_period ?: 'week'"/>
+            <set field="dateRange_poffset" from="dateRange_poffset ?: '-1'"/>
+        </else></if>
+
+        <set field="sharedMap" from="[startingOnHand:null]"/>
+    </actions>
+    <widgets>
+        <!--
+- Product, Facility, Location, Starting Quantity, Quantity Change, Ending Quantity
+- Asset, Change Date, Order, Invoice, Quantity Change
+        -->
+        <form-list name="AssetOnHandSummary" list="summaryList" skip-form="true" header-dialog="true" saved-finds="true" show-csv-button="true">
+            <row-actions>
+                <if condition="locationSeqId">
+                    <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true">
+                        <field-map field-name="facilityId"/><field-map field-name="locationSeqId"/></entity-find-one>
+                </if>
+                <if condition="startingOnHand != null"><then>
+                    <set field="sharedMap.startingOnHand" from="startingOnHand"/>
+                    <set field="sharedMap.prevStarting" from="startingOnHand"/>
+                    <set field="isSummaryRow" from="hasDetails"/>
+                </then><else>
+                    <set field="sharedMap.startingOnHand" from="sharedMap.prevStarting"/>
+                    <set field="sharedMap.prevStarting" from="sharedMap.prevStarting + onHandChange"/>
+                </else></if>
+            </row-actions>
+            <field name="dateRange"><header-field><date-period/></header-field></field>
+            <field name="productId"><header-field title="Product" show-order-by="true"><drop-down allow-empty="true">
+                <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field></field>
+            <field name="facilityId">
+                <header-field title="Warehouse"><drop-down>
+                    <entity-options text="FacilityNameTemplate"><entity-find entity-name="mantle.facility.Facility">
+                        <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                        <order-by field-name="facilityName"/>
+                    </entity-find></entity-options>
+                </drop-down></header-field>
+                <!-- now requiring facilityId parameter, don't display: <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="${pseudoId}" link-type="anchor"/></default-field> -->
+            </field>
+
+            <field name="pseudoId">
+                <header-field title="Product ID" show-order-by="true"/>
+                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="productName">
+                <header-field title="Product Name" show-order-by="true"/>
+                <default-field><link url="editProduct" text="${productName}" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="locationSeqId">
+                <header-field title="Location"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLocationList" server-search="true" min-length="0"><depends-on field="facilityId"/></dynamic-options>
+                </drop-down></header-field>
+                <default-field><label text="FacilityLocationNameTemplate" text-map="facLoc" condition="facLoc != null"/></default-field>
+            </field>
+
+            <field name="assetId"><header-field title="Asset"/>
+                <default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+            <field name="effectiveDate"><default-field title="Date"><display/></default-field></field>
+            <field name="orderId"><header-field title="Order"/>
+                <default-field><link url="orderDetail" text="${orderId}" link-type="anchor" condition="orderId"/></default-field></field>
+            <field name="shipmentId"><header-field title="Shipment"/>
+                <default-field><link url="shipmentDetail" text="${shipmentId}" link-type="anchor" condition="shipmentId"/></default-field></field>
+            <field name="invoiceId"><header-field title="Invoice"/>
+                <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor" condition="invoiceId"/></default-field></field>
+
+            <field name="startingOnHand" from="sharedMap.startingOnHand" align="right">
+                <default-field title="Starting" container-style="${isSummaryRow ? 'text-strong text-success' : ''}"><display/></default-field></field>
+            <field name="onHandChange" align="right">
+                <default-field title="Change" container-style="${isSummaryRow ? 'text-strong text-success' : ''}"><display/></default-field></field>
+            <field name="endingOnHand" from="(sharedMap.startingOnHand ?: 0.0) + (onHandChange ?: 0.0)" align="right">
+                <default-field title="Ending" container-style="${isSummaryRow ? 'text-strong text-success' : ''}"><display/></default-field></field>
+
+            <field name="showDetails"><header-field><check><option key="true" text=" "/></check></header-field></field>
+            <field name="find"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+    </widgets>
+</screen>
