@@ -16,11 +16,15 @@ along with this software (see the LICENSE.md file). If not, see
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.0.xsd"
         default-menu-include="false">
 
-    <transition name="editTransaction"><default-response url="../EditTransaction"/></transition>
+    <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
 
     <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
     <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
     <transition name="editGlAccount"><default-response url="../../GlAccount/EditGlAccount"/></transition>
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
@@ -34,20 +38,32 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
     </actions>
     <widgets>
+        <!--
+Options: Facility, From/Thru Date (default to previous month)
+Output: TX ID, TX Date, TX Type (always Shipment Receipt?), Shipment, Party (Supplier), Product ID, Product Name, $ Amount, Receipt Date, Qty Received, Lot #, PO #, Vendor Invoice # (always empty in current report?)
+        -->
         <form-list name="TransactionEntryList" list="acctgTransEntryList" skip-form="true" header-dialog="true"
                    select-columns="true" saved-finds="true" show-csv-button="true">
-            <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntrySummary" list="acctgTransEntryList">
+            <entity-find entity-name="mantle.ledger.transaction.AcctgTransEntryReceiptSummary" list="acctgTransEntryList">
                 <search-form-inputs default-order-by="-transactionDate,-acctgTransId,acctgTransEntrySeqId">
-                    <default-parameters transactionDate_poffset="-1" transactionDate_period="30d"/></search-form-inputs>
+                    <default-parameters transactionDate_poffset="0" transactionDate_period="month" debitCreditFlag="D"/></search-form-inputs>
                 <select-field field-name="amount,debitCreditFlag"/><!-- always select amount and debit/credit flag in case are not displayed but debit/credit are -->
             </entity-find>
 
+            <field name="facilityId">
+                <header-field title="Warehouse"><drop-down allow-empty="true">
+                    <entity-options text="FacilityNameTemplate"><entity-find entity-name="mantle.facility.Facility">
+                        <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                        <order-by field-name="facilityName"/>
+                    </entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
+
             <field name="acctgTransId"><header-field show-order-by="true" title="TX ID"/><default-field>
                 <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
-            <field name="glJournalId"><header-field title="Journal"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><display/></default-field></field>
 
-            <field name="transactionDate"><header-field show-order-by="true"><date-period/></header-field>
+            <field name="transactionDate"><header-field title="TX Date" show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
             <field name="isPosted">
                 <header-field title="Posted" show-order-by="true"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
@@ -62,8 +78,6 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
-            <field name="description"><header-field show-order-by="true"><text-find size="40"/></header-field>
-                <default-field><display/></default-field></field>
             <field name="organizationPartyId">
                 <header-field title="Organization"><drop-down allow-empty="true">
                     <entity-options key="${partyId}" text="PartyNameTemplate"><entity-find entity-name="mantle.party.PartyDetailAndRole">
@@ -82,17 +96,27 @@ along with this software (see the LICENSE.md file). If not, see
                         entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="otherPartyId"/></default-field>
             </field>
 
+            <field name="shipmentId"><header-field title="Shipment" show-order-by="true"><text-find size="20" hide-options="ignore-case"/></header-field>
+                <default-field><link url="shipmentDetail" text="${shipmentId}" link-type="anchor" condition="shipmentId"/></default-field></field>
+            <field name="orderId"><header-field title="Order" show-order-by="true"><text-find size="20" hide-options="ignore-case"/></header-field>
+                <default-field><link url="orderDetail" text="${orderId}" link-type="anchor" condition="orderId"/></default-field></field>
             <field name="invoiceId"><header-field title="Invoice" show-order-by="true"><text-find size="20" hide-options="ignore-case"/></header-field>
                 <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor" condition="invoiceId"/></default-field></field>
-            <field name="paymentId"><header-field title="Payment" show-order-by="true"><text-find size="20" hide-options="ignore-case"/></header-field>
-                <default-field><link url="editPayment" text="${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
             <field name="assetId"><header-field title="Asset" show-order-by="true"><text-find size="10" hide-options="ignore-case"/></header-field>
                 <default-field><link url="assetDetail" text="${assetId}" link-type="anchor" condition="assetId"/></default-field></field>
             <field name="productId">
                 <header-field title="Product" show-order-by="true"><drop-down allow-empty="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
-                <default-field><link url="editProduct" text="${productId}" link-type="anchor" condition="productId"/></default-field>
+                <default-field><link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor" condition="productId"/></default-field>
             </field>
+            <field name="mfgPartyId">
+                <header-field title="Manufacturer"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
+                <default-field><link url="editParty" link-type="anchor" parameter-map="[partyId:mfgPartyId]"
+                        entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="mfgPartyId"/></default-field>
+            </field>
+            <field name="lotNumber"><header-field><text-find size="15" hide-options="ignore-case"/></header-field>
+                <default-field><display/></default-field></field>
 
             <field name="acctgTransEntrySeqId"><default-field title="Entry"><display/></default-field></field>
             <field name="glAccountId">
@@ -107,20 +131,29 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="debit" align="right"><default-field><display text="${debitCreditFlag == 'D' ? ec.l10n.format(amount, '#,##0.00') : ''}"/></default-field></field>
             <field name="credit" align="right"><default-field><display text="${debitCreditFlag == 'C' ? ec.l10n.format(amount, '#,##0.00') : ''}"/></default-field></field>
 
+            <field name="receivedDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="quantityAccepted" align="right"><header-field title="Qty Received" show-order-by="true"><range-find/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="acquireCost" align="right"><header-field title="Unit Cost" show-order-by="true"><range-find size="15"/></header-field>
+                <default-field><display format="#,##0.00"/></default-field></field>
+
+
             <field name="find"><header-field title="Find"><submit/></header-field></field>
 
-            <form-list-column><field-ref name="acctgTransId"/><field-ref name="glJournalId"/></form-list-column>
-            <form-list-column><field-ref name="transactionDate"/><field-ref name="isPosted"/></form-list-column>
-            <form-list-column><field-ref name="acctgTransTypeEnumId"/><field-ref name="description"/></form-list-column>
-            <form-list-column><field-ref name="organizationPartyId"/><field-ref name="otherPartyId"/></form-list-column>
+            <form-list-column><field-ref name="acctgTransId"/><field-ref name="transactionDate"/></form-list-column>
+            <form-list-column><field-ref name="acctgTransTypeEnumId"/><field-ref name="organizationPartyId"/></form-list-column>
+            <form-list-column><field-ref name="shipmentId"/></form-list-column>
+            <form-list-column><field-ref name="orderId"/></form-list-column>
             <form-list-column><field-ref name="invoiceId"/></form-list-column>
-            <form-list-column><field-ref name="paymentId"/></form-list-column>
             <form-list-column><field-ref name="assetId"/></form-list-column>
             <form-list-column><field-ref name="productId"/></form-list-column>
-            <form-list-column><field-ref name="acctgTransEntrySeqId"/></form-list-column>
-            <form-list-column><field-ref name="glAccountId"/></form-list-column>
-            <form-list-column><field-ref name="debit"/></form-list-column>
-            <form-list-column><field-ref name="credit"/></form-list-column>
+            <form-list-column><field-ref name="mfgPartyId"/></form-list-column>
+            <form-list-column><field-ref name="lotNumber"/></form-list-column>
+            <form-list-column><field-ref name="amount"/></form-list-column>
+            <form-list-column><field-ref name="receivedDate"/></form-list-column>
+            <form-list-column><field-ref name="quantityAccepted"/></form-list-column>
+            <form-list-column><field-ref name="acquireCost"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
