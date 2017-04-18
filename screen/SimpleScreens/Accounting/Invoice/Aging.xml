@@ -16,6 +16,7 @@ along with this software (see the LICENSE.md file). If not, see
         default-menu-include="false" default-menu-title="Aging">
 
     <transition name="findInvoice"><default-response url="../FindInvoice"/></transition>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
         <set field="periodDays" from="(periodDays ?: '30') as int"/>
@@ -23,7 +24,7 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="statusId" from="invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved' : 'InvoiceFinalized,InvoiceSent'"/>
         <set field="statusId_op" value="in"/>
         <entity-find entity-name="mantle.account.invoice.InvoiceAgingSummary" list="invoiceAgingList">
-            <search-form-inputs default-order-by="-period1"/></entity-find>
+            <search-form-inputs default-order-by="-totalDue"/></entity-find>
     </actions>
     <widgets>
         <form-single name="ReportOptions" transition=".">
@@ -42,7 +43,8 @@ along with this software (see the LICENSE.md file). If not, see
         </form-single>
         <label text="NOTE: For invoices with no Due Date specified try running the report by Invoice Date."/>
 
-        <form-list name="InvoiceAgingList" list="invoiceAgingList" skip-form="true" header-dialog="true" saved-finds="true">
+        <form-list name="InvoiceAgingList" list="invoiceAgingList" skip-form="true" header-dialog="true" saved-finds="true"
+                show-all-button="true" show-csv-button="true">
             <field name="invoiceCount">
                 <header-field title="Invoices" show-order-by="true"><range-find size="4"/></header-field>
                 <default-field><link url="findInvoice" text="${invoiceCount} invoice${invoiceCount &gt; 1 ? 's' : ''}"
@@ -50,25 +52,15 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="fromPartyId">
                 <header-field title="From">
-                    <drop-down allow-empty="true"><entity-options key="${partyId}" text="PartyNameTemplate">
-                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                            <econdition field-name="roleTypeId" operator="in" value="Supplier,Vendor,VendorBillFrom,OrgInternal"/>
-                            <econdition field-name="disabled" value="N" or-null="true"/>
-                            <order-by field-name="organizationName,firstName"/>
-                        </entity-find>
-                    </entity-options></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                            parameter-map="[roleTypeId:'Supplier,Vendor,VendorBillFrom,OrgInternal']"/></drop-down>
                 </header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
             <field name="toPartyId">
                 <header-field title="To">
-                    <drop-down allow-empty="true"><entity-options key="${partyId}" text="PartyNameTemplate">
-                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                            <econdition field-name="roleTypeId" operator="in" value="Customer,CustomerBillTo,OrgInternal"/>
-                            <econdition field-name="disabled" value="N" or-null="true"/>
-                            <order-by field-name="organizationName,firstName"/>
-                        </entity-find>
-                    </entity-options></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"
+                            parameter-map="[roleTypeId:'Customer,CustomerBillTo,OrgInternal']"/></drop-down>
                 </header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
@@ -80,6 +72,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
 
+            <field name="currentDue" align="right"><header-field title="Current" show-order-by="true"/>
+                <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
             <field name="period1" align="right"><header-field title="0 - ${periodDays} days" show-order-by="true"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
             <field name="period2" align="right"><header-field title="${periodDays+1} - ${periodDays*2} days" show-order-by="true"/>
@@ -89,6 +83,8 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="period4" align="right"><header-field title="${periodDays*3+1} - ${periodDays*4} days" show-order-by="true"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
             <field name="periodRemaining" align="right"><header-field title="&gt; ${periodDays*4} days" show-order-by="true"/>
+                <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="totalDue" align="right"><header-field title="Total" show-order-by="true"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field>
