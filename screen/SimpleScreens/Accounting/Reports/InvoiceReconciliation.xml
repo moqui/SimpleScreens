@@ -17,10 +17,33 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
     <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
+    <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editShipment"><default-response url="//${appRoot}/Shipment/EditShipment"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="txTypeMemberList">
+            <econdition field-name="enumGroupEnumId" value="EngAccTxTypesInvoice"/></entity-find>
+        <set field="txTypeEnumIdList" from="txTypeMemberList*.enumId"/>
+
+        <if condition="!invoiceDate_period &amp;&amp; !dueDate_period &amp;&amp; !appliedDate_period">
+            <set field="invoiceDate_period" value="30d"/><set field="invoiceDate_poffset" value="-1"/></if>
+        <if condition="invoiceDate_period"><then>
+            <set field="rangeList" from="ec.user.getPeriodRange(invoiceDate_period, invoiceDate_poffset)"/>
+            <set field="fromDate" from="rangeList[0]"/>
+            <set field="thruDate" from="rangeList[1]"/>
+        </then><else-if condition="dueDate_period">
+            <set field="rangeList" from="ec.user.getPeriodRange(dueDate_period, dueDate_poffset)"/>
+            <set field="fromDate" from="rangeList[0]"/>
+            <set field="thruDate" from="rangeList[1]"/>
+        </else-if><else-if condition="appliedDate_period">
+            <set field="rangeList" from="ec.user.getPeriodRange(appliedDate_period, appliedDate_poffset)"/>
+            <set field="fromDate" from="rangeList[0]"/>
+            <set field="thruDate" from="rangeList[1]"/>
+        </else-if></if>
     </actions>
     <widgets>
         <container-box><box-header><label text="Invoice Payment Reconciliation" type="h5"/></box-header><box-body-nopad>
@@ -84,13 +107,78 @@ along with this software (see the LICENSE.md file). If not, see
         </box-body-nopad></container-box>
 
         <container-box><box-header><label text="Transactions not Posted" type="h5"/></box-header><box-body-nopad>
-            <!-- TODO -->
+            <form-list name="NotPostedTxList" list="notPostedTxList" skip-form="true">
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="notPostedTxList">
+                    <econdition field-name="transactionDate" operator="greater-equals" from="fromDate"/>
+                    <econdition field-name="transactionDate" operator="less-equals" from="thruDate"/>
+                    <econdition field-name="isPosted" operator="not-equals" value="Y" or-null="true"/>
+                </entity-find>
+                <row-actions>
+                    <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
+                            in-map="[acctgTransId:acctgTransId]" out-map="context"/>
+                </row-actions>
+
+                <field name="acctgTransId"><default-field title="Transaction">
+                    <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
+                <field name="acctgTransTypeEnumId"><default-field title="Type">
+                    <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="transactionDate"><default-field title="Date"><display/></default-field></field>
+                <field name="otherPartyId"><default-field><link url="editParty" entity-name="mantle.party.PartyDetail"
+                        text="PartyNameTemplate" link-type="anchor" parameter-map="[partyId:otherPartyId]"/></default-field></field>
+
+                <field name="invoiceId"><default-field title="Invoice">
+                    <link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+                <field name="paymentId"><default-field title="Payment">
+                    <link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+                <field name="shipmentId"><default-field title="Shipment">
+                    <link url="editShipment" text="${shipmentId}" link-type="anchor"/></default-field></field>
+                <field name="assetId"><default-field title="Asset">
+                    <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+
+                <field name="debitTotal" align="right"><default-field title="Total">
+                    <display currency-unit-field="amountUomId"/></default-field></field>
+            </form-list>
         </box-body-nopad></container-box>
         <container-box><box-header><label text="Transactions with no Invoice" type="h5"/></box-header><box-body-nopad>
-            <!-- TODO -->
+            <form-list name="NoInvoiceTxList" list="noInvoiceTxList" skip-form="true">
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="noInvoiceTxList">
+                    <econdition field-name="acctgTransTypeEnumId" operator="in" from="txTypeEnumIdList"/>
+                    <econdition field-name="transactionDate" operator="greater-equals" from="fromDate"/>
+                    <econdition field-name="transactionDate" operator="less-equals" from="thruDate"/>
+                    <econdition field-name="invoiceId" operator="is-null"/>
+                </entity-find>
+                <row-actions>
+                    <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
+                            in-map="[acctgTransId:acctgTransId]" out-map="context"/>
+                </row-actions>
+
+                <field name="acctgTransId"><default-field title="Transaction">
+                    <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
+                <field name="acctgTransTypeEnumId"><default-field title="Type">
+                    <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="transactionDate"><default-field title="Date"><display/></default-field></field>
+                <field name="otherPartyId"><default-field><link url="editParty" entity-name="mantle.party.PartyDetail"
+                        text="PartyNameTemplate" link-type="anchor" parameter-map="[partyId:otherPartyId]"/></default-field></field>
+                <field name="debitTotal" align="right"><default-field title="Total">
+                    <display currency-unit-field="amountUomId"/></default-field></field>
+            </form-list>
         </box-body-nopad></container-box>
-        <container-box><box-header><label text="Payment Applications with Invoice outside Period" type="h5"/></box-header><box-body-nopad>
-            <!-- TODO -->
+        <container-box><box-header><label text="Payment Applications with Invoice after Period" type="h5"/></box-header><box-body-nopad>
+            <form-list name="ApplicationFutureInvoiceList" list="applicationFutureInvoiceList" skip-form="true">
+                <entity-find entity-name="mantle.account.payment.PaymentApplicationAndInvoice" list="applicationFutureInvoiceList">
+                    <econdition field-name="appliedDate" operator="greater-equals" from="fromDate"/>
+                    <econdition field-name="appliedDate" operator="less-equals" from="thruDate"/>
+                    <econdition field-name="invoiceDate" operator="greater" from="thruDate"/>
+                </entity-find>
+                <field name="paymentApplicationId"><default-field title="Application ID">
+                    <display/></default-field></field>
+                <field name="paymentId"><default-field title="Payment">
+                    <link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+                <field name="appliedDate"><default-field><display/></default-field></field>
+                <field name="invoiceId"><default-field title="Invoice">
+                    <link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+                <field name="invoiceDate"><default-field><display/></default-field></field>
+            </form-list>
         </box-body-nopad></container-box>
     </widgets>
 </screen>
