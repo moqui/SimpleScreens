@@ -12,8 +12,7 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-include="false">
 
     <transition name="editInvoice"><default-response url="../EditInvoice"/></transition>
@@ -178,9 +177,8 @@ along with this software (see the LICENSE.md file). If not, see
                 }
                 ]]></script>
             </row-actions>
-            <field name="invoiceId"><header-field show-order-by="true" title="Invoice"/><default-field>
-                <link url="editInvoice" text="${invoiceId}" link-type="anchor"/>
-            </default-field></field>
+            <field name="invoiceId"><header-field show-order-by="true" title="Invoice"/>
+                <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
             <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
             <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
@@ -196,18 +194,11 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="fromPartyId">
                 <header-field title="From"><drop-down allow-empty="true">
-                    <entity-options key="${partyId}" text="PartyNameTemplate">
-                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                            <econdition field-name="roleTypeId" operator="in" value="Supplier,Vendor,VendorBillFrom,OrgInternal"/>
-                            <econdition field-name="disabled" value="N" or-null="true"/>
-                            <order-by field-name="organizationName,firstName"/>
-                        </entity-find>
-                    </entity-options>
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                            parameter-map="[roleTypeId:'Supplier,Vendor,VendorBillFrom,OrgInternal']"/>
                 </drop-down></header-field>
-                <default-field>
-                    <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
-                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/>
-                </default-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field>
             </field>
             <field name="toPartyId">
                 <header-field title="To"><drop-down allow-empty="true">
@@ -228,10 +219,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
 
-            <field name="invoiceTotal" align="right" show-total="true"><default-field title="Total">
-                <display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="unpaidTotal" align="right" show-total="true"><default-field title="Unpaid">
-                <display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="invoiceTotal" align="right" show-total="true"><header-field title="Total"><range-find/></header-field>
+                <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="unpaidTotal" align="right" show-total="true"><header-field title="Unpaid"><range-find/></header-field>
+                <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>

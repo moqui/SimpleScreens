@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false">
+
+    <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
+    <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <actions>
+    </actions>
+    <widgets>
+        <container-box><box-header><label text="Invoice Payment Reconciliation" type="h5"/></box-header><box-body-nopad>
+            <form-list name="InvoiceAndPaymentApplicationList" list="invoiceList" skip-form="true" header-dialog="true" select-columns="true"
+                    saved-finds="true" show-csv-button="true" show-all-button="true">
+                <entity-find entity-name="mantle.account.invoice.InvoiceAndPaymentApplication" list="invoiceList">
+                    <search-form-inputs default-order-by="-invoiceDate,invoiceId,paymentId">
+                        <default-parameters invoiceDate_poffset="-1" invoiceDate_period="30d"/></search-form-inputs>
+                    <econdition field-name="unpaidTotal" operator="not-equals" from="0.0" or-null="true"/>
+                </entity-find>
+
+                <field name="invoiceId" aggregate="group-by"><header-field show-order-by="true" title="Invoice"/>
+                    <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+                <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
+                    <default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
+                    <default-field><display format="yyyy-MM-dd"/></default-field></field>
+
+                <field name="fromPartyId">
+                    <header-field title="From"><drop-down allow-empty="true">
+                        <dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                                parameter-map="[roleTypeId:'Supplier,Vendor,VendorBillFrom,OrgInternal']"/>
+                    </drop-down></header-field>
+                    <default-field>
+                        <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                                link-type="anchor" parameter-map="[partyId:fromPartyId]"/>
+                    </default-field>
+                </field>
+                <field name="toPartyId">
+                    <header-field title="To"><drop-down allow-empty="true">
+                        <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
+                    <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                            link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
+                </field>
+                <field name="referenceNumber"><header-field title="Ref Num (PO/etc)"><text-find size="10" hide-options="true"/></header-field>
+                    <default-field><display/></default-field></field>
+
+                <field name="statusId">
+                    <header-field title="Status" show-order-by="true">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                            <set field="statusTypeId" value="Invoice"/><set field="allowMultiple" value="true"/></widget-template-include>
+                    </header-field>
+                    <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+                </field>
+
+                <field name="invoiceTotal" align="right" show-total="true"><header-field title="Total"><range-find/></header-field>
+                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="unpaidTotal" align="right" show-total="true"><header-field title="Unpaid"><range-find/></header-field>
+                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+
+                <!-- PaymentApplication fields -->
+                <field name="paymentId" aggregate="sub-list"><header-field title="Payment" show-order-by="true"/>
+                    <default-field><link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+                <field name="appliedDate" aggregate="sub-list"><header-field show-order-by="true"><date-period/></header-field>
+                    <default-field><display/></default-field></field>
+                <field name="amountApplied" aggregate="sub-list"><header-field show-order-by="true"><range-find/></header-field>
+                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+
+                <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+
+        <container-box><box-header><label text="Transactions not Posted" type="h5"/></box-header><box-body-nopad>
+            <!-- TODO -->
+        </box-body-nopad></container-box>
+        <container-box><box-header><label text="Transactions with no Invoice" type="h5"/></box-header><box-body-nopad>
+            <!-- TODO -->
+        </box-body-nopad></container-box>
+        <container-box><box-header><label text="Payment Applications with Invoice outside Period" type="h5"/></box-header><box-body-nopad>
+            <!-- TODO -->
+        </box-body-nopad></container-box>
+    </widgets>
+</screen>
