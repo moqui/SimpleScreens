@@ -16,9 +16,7 @@ along with this software (see the LICENSE.md file). If not, see
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-include="false">
 
-    <transition name="findInvoice"><default-response url="."/></transition>
     <transition name="editInvoice"><default-response url="../EditInvoice"/></transition>
-
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
 
     <transition name="createInvoice"><service-call name="mantle.account.InvoiceServices.create#Invoice"/>
@@ -168,7 +166,7 @@ along with this software (see the LICENSE.md file). If not, see
                     Integer dueDateDays = dueDate != null ? nowTimestamp - dueDate : null
                     Integer dueDateIdx = dueDateDays != null ? (dueDateDays < 0 ? 0 :
                             ((dueDateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1 ) : null
-                    if (dueDateIdx != null && dueDateIdx > 4) dueDateIdx = 4
+                    if (dueDateIdx != null && dueDateIdx > 5) dueDateIdx = 5
 
                     if (statusId in ['InvoiceInProcess','InvoiceFinalized','InvoiceSent']) {
                         if (invoiceDateIdx != null) receivableAgingList[invoiceDateIdx] = receivableAgingList[invoiceDateIdx] + unpaidTotal
@@ -194,7 +192,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="InvoiceType"/><set field="allowEmpty" value="true"/>
-                        <set field="style" value=" "/><set field="allowMultiple" value="true"/></widget-template-include>
+                        <set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
