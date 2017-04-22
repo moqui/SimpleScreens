@@ -60,7 +60,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </#if>
                     <#if fromContactInfo.emailAddress?has_content> -- ${fromContactInfo.emailAddress}</#if>
                 </fo:block>
-                <fo:block text-align="center">Statement -- ${ec.l10n.format(asOfDate, dateFormat)} -- Page <fo:page-number/> of <fo:page-number-citation-last ref-id="mainSequence"/></fo:block>
+                <fo:block text-align="center">Statement -- ${ec.l10n.format(asOfTimestamp, dateFormat)} -- Page <fo:page-number/> of <fo:page-number-citation-last ref-id="mainSequence"/></fo:block>
             </fo:block>
         </fo:static-content>
 
@@ -89,7 +89,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="1.5in">
                         <fo:block font-weight="bold">As of Date</fo:block>
-                        <fo:block>${ec.l10n.format(asOfDate, dateFormat)}</fo:block>
+                        <fo:block>${ec.l10n.format(asOfTimestamp, dateFormat)}</fo:block>
                     </fo:table-cell>
                 </fo:table-row></fo:table-body>
             </fo:table>
@@ -101,8 +101,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
                     <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Invoice #</fo:block></fo:table-cell>
                     <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="left">PO #</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Date</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Due</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Invoice Date</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Due Date</fo:block></fo:table-cell>
                     <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
                     <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">Unpaid</fo:block></fo:table-cell>
                 </fo:table-header>
