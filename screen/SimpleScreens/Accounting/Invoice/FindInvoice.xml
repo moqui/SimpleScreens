@@ -28,6 +28,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getProjectParties" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
+    <transition name="receivableStatement">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Accounting/Invoice/ReceivableStatement" url-type="plain">
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="toPartyId"/><parameter name="filename" value="Statement-${toPartyId}-${ec.l10n.format(ec.user.nowTimestamp, 'yyyy-MM-dd')}.pdf"/>
+        </default-response>
+    </transition>
+
     <actions>
         <!-- NOTE: the way the aging summary is calculated is ugly (would be nice in a separate service) but minimizes runtime
             overhead and maintains compatibility with column selection, etc -->
@@ -48,7 +55,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="fromPartyId"><default-field title="From">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
-                <field name="toPartyId"><default-field title="To">
+                <field name="toPartyId"><default-field title="Organization">
                     <drop-down>
                         <entity-options key="${partyId}" text="PartyNameTemplate">
                             <entity-find entity-name="mantle.party.PartyDetailAndRole">
@@ -80,7 +87,7 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
         <container-dialog id="NewReceivableDialog" button-text="New Receivable">
             <form-single name="NewReceivableForm" transition="createInvoice" extends="NewPayableForm">
-                <field name="fromPartyId"><default-field title="From">
+                <field name="fromPartyId"><default-field title="Organization">
                     <drop-down>
                         <entity-options key="${partyId}" text="PartyNameTemplate">
                             <entity-find entity-name="mantle.party.PartyDetailAndRole">
@@ -94,6 +101,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field></field>
             </form-single>
         </container-dialog>
+
         <section name="ProjectInvoiceSection"><widgets>
             <container-dialog id="ProjectInvoiceDialog" button-text="Invoice Project Client" width="700">
                 <form-single name="ProjectInvoice" transition="createProjectInvoiceItems">
@@ -147,10 +155,29 @@ along with this software (see the LICENSE.md file). If not, see
             </container-dialog>
         </widgets></section>
 
+        <container-dialog id="CustomerStatementDialog" button-text="Customer Statement PDF">
+            <form-single name="CustomerStatementForm" transition="receivableStatement">
+                <field name="fromPartyId"><default-field title="Organization">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="toPartyId"><default-field title="Customer">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                </default-field></field>
+
+                <field name="submitButton"><default-field title="Download PDF"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
         <form-list name="InvoiceList" list="invoiceList" skip-form="true" header-dialog="true" select-columns="true"
                    saved-finds="true" show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
-                <search-form-inputs default-order-by="-invoiceDate,+invoiceId">
+                <search-form-inputs default-order-by="-invoiceDate,invoiceId">
                     <default-parameters statusId="InvoiceInProcess,InvoiceFinalized,InvoiceSent,InvoiceIncoming,InvoiceReceived,InvoiceApproved"
                             statusId_op="in" invoiceDate_poffset="-1" invoiceDate_period="30d"/></search-form-inputs>
             </entity-find>
@@ -162,7 +189,7 @@ along with this software (see the LICENSE.md file). If not, see
                     if (invoiceDateIdx != null && invoiceDateIdx > 4) invoiceDateIdx = 4
                     Integer dueDateDays = dueDate != null ? nowTimestamp - dueDate : null
                     Integer dueDateIdx = dueDateDays != null ? (dueDateDays < 0 ? 0 :
-                            ((dueDateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1 ) : null
+                            ((dueDateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1) : null
                     if (dueDateIdx != null && dueDateIdx > 5) dueDateIdx = 5
 
                     if (statusId in ['InvoiceInProcess','InvoiceFinalized','InvoiceSent']) {
@@ -234,13 +261,15 @@ along with this software (see the LICENSE.md file). If not, see
                     agingSummaryList.add([description:'Receivable by Invoice Date', period0:receivableAgingList[0], period1:receivableAgingList[1],
                             period2:receivableAgingList[2], period3:receivableAgingList[3], periodRemaining:receivableAgingList[4], total:receivableAgingList.sum()])
                     agingSummaryList.add([description:'Receivable by Due Date', current:receivableDueAgingList[0], period0:receivableDueAgingList[1],
-                            period1:receivableDueAgingList[2], period2:receivableDueAgingList[3], period3:receivableDueAgingList[4], periodRemaining:receivableDueAgingList[5], total:receivableDueAgingList.sum()])
+                            period1:receivableDueAgingList[2], period2:receivableDueAgingList[3], period3:receivableDueAgingList[4],
+                            periodRemaining:receivableDueAgingList[5], total:receivableDueAgingList.sum()])
                 }
                 if (hasPayableAging.get()) {
                     agingSummaryList.add([description:'Payable by Invoice Date', period0:payableAgingList[0], period1:payableAgingList[1],
                             period2:payableAgingList[2], period3:payableAgingList[3], periodRemaining:payableAgingList[4], total:payableAgingList.sum()])
                     agingSummaryList.add([description:'Payable by Due Date', current:payableDueAgingList[0], period0:payableDueAgingList[1],
-                            period1:payableDueAgingList[2], period2:payableDueAgingList[3], period3:payableDueAgingList[4], periodRemaining:payableDueAgingList[5], total:payableDueAgingList.sum()])
+                            period1:payableDueAgingList[2], period2:payableDueAgingList[3], period3:payableDueAgingList[4],
+                            periodRemaining:payableDueAgingList[5], total:payableDueAgingList.sum()])
                 }
             </script>
         </actions><widgets>

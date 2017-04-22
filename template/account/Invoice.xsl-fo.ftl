@@ -29,7 +29,7 @@ along with this software (see the LICENSE.md file). If not, see
     <fo:page-sequence master-reference="letter-portrait" id="mainSequence">
         <fo:static-content flow-name="xsl-region-before">
             <fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", true))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
-            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">INVOICE</fo:block>
+            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Invoice</fo:block>
             <#if logoImageLocation?has_content>
                 <fo:block-container absolute-position="absolute" top="0in" left="0.25in" width="2in">
                     <fo:block text-align="left">
@@ -73,9 +73,25 @@ along with this software (see the LICENSE.md file). If not, see
         </fo:static-content>
 
         <fo:flow flow-name="xsl-region-body">
-            <fo:table table-layout="fixed" margin-bottom="0.1in" width="7.5in">
+            <fo:table table-layout="fixed" margin-bottom="0.2in" width="7.5in">
                 <fo:table-body><fo:table-row>
-                    <fo:table-cell padding="3pt" width="1.75in">
+                    <fo:table-cell padding="3pt" width="3.25in">
+                    <#if toBillingRep?has_content><fo:block>Attention: ${(toBillingRep.organizationName)!""} ${(toBillingRep.firstName)!""} ${(toBillingRep.lastName)!""}</fo:block></#if>
+                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toParty.organizationName!"", true))!""} ${(toParty.firstName)!""} ${(toParty.lastName)!""}</fo:block>
+                    <#if toContactInfo.postalAddress?has_content>
+                        <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
+                        <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>
+                        <fo:block font-size="8pt">${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                        <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
+                    </#if>
+                    <#if toContactInfo.telecomNumber?has_content>
+                        <fo:block font-size="8pt"><#if toContactInfo.telecomNumber.countryCode?has_content>${toContactInfo.telecomNumber.countryCode}-</#if><#if toContactInfo.telecomNumber.areaCode?has_content>${toContactInfo.telecomNumber.areaCode}-</#if>${toContactInfo.telecomNumber.contactNumber!""}</fo:block>
+                    </#if>
+                    <#if toContactInfo.emailAddress?has_content>
+                        <fo:block font-size="8pt">${toContactInfo.emailAddress}</fo:block>
+                    </#if>
+                    </fo:table-cell>
+                    <fo:table-cell padding="3pt" width="1.5in">
                         <fo:block font-weight="bold">Invoice #</fo:block>
                         <fo:block>${invoiceId}</fo:block>
                         <fo:block font-weight="bold">Total</fo:block>
@@ -91,22 +107,6 @@ along with this software (see the LICENSE.md file). If not, see
                         <#if settlementTerm?has_content>
                             <fo:block font-weight="bold">Term</fo:block>
                             <fo:block>${settlementTerm.description}</fo:block>
-                        </#if>
-                    </fo:table-cell>
-                    <fo:table-cell padding="3pt" width="3in">
-                        <#if toBillingRep?has_content><fo:block>Attention: ${(toBillingRep.organizationName)!""} ${(toBillingRep.firstName)!""} ${(toBillingRep.lastName)!""}</fo:block></#if>
-                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toParty.organizationName!"", true))!""} ${(toParty.firstName)!""} ${(toParty.lastName)!""}</fo:block>
-                        <#if toContactInfo.postalAddress?has_content>
-                            <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
-                            <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>
-                            <fo:block font-size="8pt">${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
-                            <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
-                        </#if>
-                        <#if toContactInfo.telecomNumber?has_content>
-                            <fo:block font-size="8pt"><#if toContactInfo.telecomNumber.countryCode?has_content>${toContactInfo.telecomNumber.countryCode}-</#if><#if toContactInfo.telecomNumber.areaCode?has_content>${toContactInfo.telecomNumber.areaCode}-</#if>${toContactInfo.telecomNumber.contactNumber!""}</fo:block>
-                        </#if>
-                        <#if toContactInfo.emailAddress?has_content>
-                            <fo:block font-size="8pt">${toContactInfo.emailAddress}</fo:block>
                         </#if>
                     </fo:table-cell>
                 </fo:table-row></fo:table-body>
