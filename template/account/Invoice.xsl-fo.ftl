@@ -31,13 +31,13 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", true))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
             <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Invoice</fo:block>
             <#if logoImageLocation?has_content>
-                <fo:block-container absolute-position="absolute" top="0in" left="0.25in" width="2in">
+                <fo:block-container absolute-position="absolute" top="0in" left="0.1in" width="2in">
                     <fo:block text-align="left">
-                        <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" scaling="uniform"/>
+                        <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" width="2in" scaling="uniform"/>
                     </fo:block>
                 </fo:block-container>
             </#if>
-            <fo:block-container absolute-position="absolute" top="0.3in" right="0.25in" width="3in">
+            <fo:block-container absolute-position="absolute" top="0.3in" right="0.1in" width="3in">
                 <fo:block text-align="right">
                     <fo:instream-foreign-object>
                         <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${invoiceId}">

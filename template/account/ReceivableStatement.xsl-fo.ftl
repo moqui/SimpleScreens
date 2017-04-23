@@ -42,9 +42,9 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:block font-size="16pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", false))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
             <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Billing Statement</fo:block>
             <#if logoImageLocation?has_content>
-                <fo:block-container absolute-position="absolute" top="0in" left="0.25in" width="2in">
+                <fo:block-container absolute-position="absolute" top="0in" left="0.1in" width="2in">
                     <fo:block text-align="left">
-                        <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" scaling="uniform"/>
+                        <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" width="2in" scaling="uniform"/>
                     </fo:block>
                 </fo:block-container>
             </#if>
