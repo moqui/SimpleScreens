@@ -33,20 +33,25 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="../SelectAsset" text="Move Asset"/>
         <link url="../EditLots" text="Lots"/>
 
-        <form-list name="ListAssets" list="assetList" skip-form="true" header-dialog="true" saved-finds="true" select-columns="true" show-csv-button="true">
+        <form-list name="AssetSummary" list="assetList" skip-form="true" header-dialog="true" saved-finds="true"
+                select-columns="true" show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="assetList">
                 <search-form-inputs default-order-by="productName"/>
                 <having-econditions combine="or">
                     <econdition field-name="quantityOnHandTotal" operator="not-equals" from="0.0"/>
                     <econdition field-name="availableToPromiseTotal" operator="not-equals" from="0.0"/>
                 </having-econditions>
-                <select-field field-name="pseudoId,amountUomId"/>
+                <select-field field-name="productId"/>
             </entity-find>
             <row-actions>
                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true"/>
             </row-actions>
 
-            <field name="productId">
+            <field name="assetsLink">
+                <default-field title="Assets"><link url="findAsset" text="Assets" parameter-map="[pseudoId:pseudoId, statusId:statusId,
+                            facilityId:facilityId, locationSeqId:locationSeqId, lotId:lotId]" condition="pseudoId"/></default-field>
+            </field>
+            <field name="pseudoId">
                 <header-field title="Product" show-order-by="case-insensitive">
                     <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
                 </header-field>
@@ -96,37 +101,35 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="lotId">
                 <header-field title="Lot"><drop-down allow-empty="true">
-                    <dynamic-options transition="getLotList" server-search="true" min-length="0"/></drop-down></header-field>
+                    <dynamic-options transition="getLotList" server-search="true" min-length="2"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field>
             </field>
 
-            <field name="availableToPromiseTotal" align="right"><header-field title="ATP Total" show-order-by="true"/>
+            <field name="availableToPromiseTotal" align="right" show-total="true"><header-field title="Available" show-order-by="true"/>
                 <default-field><display/></default-field></field>
-            <field name="quantityOnHandTotal" align="right"><header-field title="QOH Total" show-order-by="true"/>
+            <field name="quantityOnHandTotal" align="right" show-total="true"><header-field title="On Hand" show-order-by="true"/>
                 <default-field><display/></default-field></field>
-            <field name="amountUomId"><header-field title="UOM"/>
+            <field name="amountUomId" align="right"><header-field title="UOM"/>
                 <default-field><display-entity entity-name="moqui.basic.Uom" default-text="each"/></default-field>
             </field>
 
-            <field name="physicalQuantity"><default-field title="">
-                <dynamic-dialog id="PhysicalQuantityDialog" button-text="Physical Quantity" transition="PhysicalQuantity" width="800"/>
+            <field name="physicalQuantity"><default-field title="PhI Qty">
+                <dynamic-dialog id="PhysicalQuantityDialog" button-text="PhI Qty" transition="PhysicalQuantity" width="800" condition="productId"/>
             </default-field></field>
-            <field name="physicalChange"><default-field title="">
-                <dynamic-dialog id="PhysicalChange" button-text="Physical Diff" transition="PhysicalChange" width="800"/>
+            <field name="physicalChange"><default-field title="PhI Diff">
+                <dynamic-dialog id="PhysicalChange" button-text="PhI Diff" transition="PhysicalChange" width="800" condition="productId"/>
             </default-field></field>
 
-            <field name="submitButton">
-                <header-field title="Find"><submit/></header-field>
-                <default-field><link url="findAsset" text="Assets" parameter-map="[pseudoId:pseudoId, statusId:statusId,
-                            facilityId:facilityId, locationSeqId:locationSeqId]"/></default-field>
-            </field>
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
 
-            <form-list-column><field-ref name="submitButton"/></form-list-column>
-            <form-list-column><field-ref name="productId"/><field-ref name="productName"/></form-list-column>
-            <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/><field-ref name="statusId"/></form-list-column>
-            <form-list-column><field-ref name="facilityId"/><field-ref name="locationSeqId"/><field-ref name="lotId"/></form-list-column>
-            <form-list-column><field-ref name="quantityOnHandTotal"/><field-ref name="availableToPromiseTotal"/><field-ref name="amountUomId"/></form-list-column>
-            <form-list-column><field-ref name="physicalQuantity"/><field-ref name="physicalChange"/></form-list-column>
+            <form-list-column><field-ref name="assetsLink"/></form-list-column>
+            <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/></form-list-column>
+            <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/></form-list-column>
+            <form-list-column><field-ref name="facilityId"/></form-list-column>
+            <form-list-column><field-ref name="availableToPromiseTotal"/></form-list-column>
+            <form-list-column><field-ref name="quantityOnHandTotal"/></form-list-column>
+            <form-list-column><field-ref name="physicalQuantity"/></form-list-column>
+            <form-list-column><field-ref name="physicalChange"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
