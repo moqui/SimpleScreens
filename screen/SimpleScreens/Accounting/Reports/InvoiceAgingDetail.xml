@@ -13,57 +13,69 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
-        default-menu-include="false" default-menu-title="Aging">
+        default-menu-include="false" default-menu-title="Aging Detail">
 
-    <transition name="findInvoice"><default-response url="../FindInvoice"/></transition>
+    <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
         <set field="periodDays" from="(periodDays ?: '30') as int"/>
+        <set field="periodDaysBd" from="new BigDecimal(periodDays)"/>
+        <set field="dateField" from="dateField ?: 'dueDate'"/>
         <set field="invoiceType" from="invoiceType ?: 'Receivable'"/>
         <set field="statusId" from="statusId ?: (invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved' : 'InvoiceFinalized,InvoiceSent')"/>
         <set field="statusId_op" value="in"/>
         <set field="referenceNumber" from="refNum"/>
-        <set field="dbConfName" from="ec.entity.getDatabaseConfName('mantle.account.invoice.Invoice')"/>
-        <!-- special case where must be named asOfDate as InvoiceAgingSummary looks for this field in the context -->
-        <!-- this doesn't work with current InvoiceAgingSummary view-entity definition, see comments in view-entity AccountingAccountViewEntities.xml
-        <set field="asOfDate" from="asOfDate ? ec.l10n.parseTimestamp(asOfDate + ' 23:59:59.999', 'yyyy-MM-dd HH:mm:ss.SSS') : null"/>
-        -->
+        <set field="asOfDate" from="asOfDate ? ec.l10n.parseTimestamp(asOfDate + ' 23:59:59.999', 'yyyy-MM-dd HH:mm:ss.SSS') : ec.user.nowTimestamp"/>
     </actions>
     <widgets>
         <form-single name="ReportOptions" transition=".">
             <field name="invoiceType"><default-field title="AR/AP"><drop-down><option key="Receivable" text="Receivable"/>
                     <option key="Payable" text="Payable"/></drop-down></default-field></field>
             <field name="periodDays"><default-field><text-line size="2"/></default-field></field>
-            <field name="dateField"><default-field title="Find By"><drop-down><option key="DUE_DATE" text="Due Date"/>
-                    <option key="INVOICE_DATE" text="Invoice Date"/></drop-down></default-field></field>
+            <field name="dateField"><default-field title="Find By"><drop-down><option key="dueDate" text="Due Date"/>
+                    <option key="invoiceDate" text="Invoice Date"/></drop-down></default-field></field>
+            <field name="asOfDate"><default-field><date-time type="date"/></default-field></field>
             <field name="submitButton"><default-field><submit text="Run Report"/></default-field></field>
             <field-layout><field-row-big><field-ref name="invoiceType"/><field-ref name="periodDays"/>
-                <field-ref name="dateField"/><field-ref name="submitButton"/></field-row-big></field-layout>
+                <field-ref name="dateField"/><field-ref name="asOfDate"/><field-ref name="submitButton"/></field-row-big></field-layout>
         </form-single>
-        <label text="NOTE: For invoices with no Due Date specified try running the report by Invoice Date."/>
 
         <form-list name="InvoiceAgingList" list="invoiceAgingList" skip-form="true" header-dialog="true" saved-finds="true"
                 show-all-button="true" show-csv-button="true">
-            <entity-find entity-name="mantle.account.invoice.InvoiceAgingSummary" list="invoiceAgingList">
-                <search-form-inputs default-order-by="-totalDue"/>
+            <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceAgingList">
+                <search-form-inputs default-order-by="invoiceDate"/>
             </entity-find>
+            <row-actions>
+                <script><![CDATA[
+                    agingList = new ArrayList([null, null, null, null, null, null])
+                    Timestamp dateTs = context.get(dateField)
+                    Integer dateDays = dateTs != null ? asOfDate - dateTs : null
+                    Integer dateIdx = dateDays != null ? (dateDays < 0 ? 0 :
+                            ((dateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1) : null
+                    if (dateIdx != null && dateIdx > 5) dateIdx = 5
+                    if (dateIdx != null) agingList[dateIdx] = unpaidTotal
+                ]]></script>
+            </row-actions>
 
             <field name="invoiceType"><header-field title="AR/AP"><drop-down><option key="Receivable" text="Receivable"/>
                     <option key="Payable" text="Payable"/></drop-down></header-field></field>
             <field name="periodDays"><header-field><text-line size="6"/></header-field></field>
-            <field name="dateField"><header-field title="Find By"><drop-down><option key="DUE_DATE" text="Due Date"/>
-                    <option key="INVOICE_DATE" text="Invoice Date"/></drop-down></header-field></field>
-            <!-- <field name="asOfDate"><header-field><date-time type="date"/></header-field></field> -->
-            <!-- NOTE: not named referenceNumber so it doesn't get selected -->
-            <field name="refNum"><header-field title="Ref Number"><text-find/></header-field></field>
+            <field name="dateField"><header-field title="Find By"><drop-down><option key="dueDate" text="Due Date"/>
+                    <option key="invoiceDate" text="Invoice Date"/></drop-down></header-field></field>
+            <field name="asOfDate"><header-field><date-time type="date"/></header-field></field>
 
-            <field name="invoiceCount">
-                <header-field title="Invoices" show-order-by="true"><range-find size="4"/></header-field>
-                <default-field><link url="findInvoice" text="${invoiceCount ? (invoiceCount + ' invoice' + (invoiceCount &gt; 1 ? 's' : '')) : ''}"
-                    link-type="anchor" parameter-map="[fromPartyId:fromPartyId, toPartyId:toPartyId, statusId:statusId]"/></default-field>
-            </field>
+            <field name="invoiceId"><header-field show-order-by="true" title="Invoice"/><default-field>
+                <link url="editInvoice" text="${invoiceId}" link-type="anchor"/>
+            </default-field></field>
+            <field name="referenceNumber"><header-field title="Ref Number"><text-find/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display format="yyyy-MM-dd"/></default-field></field>
+            <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display format="yyyy-MM-dd"/></default-field></field>
+
             <field name="invoiceTypeEnumId">
                 <header-field title="Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -97,22 +109,34 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
 
-            <field name="currentDue" align="right" show-total="true"><header-field title="Current" show-order-by="true"/>
+            <field name="currentDue" from="agingList[0]" align="right" show-total="true"><header-field title="Current"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="period1" align="right" show-total="true"><header-field title="0 - ${periodDays} days" show-order-by="true"/>
+            <field name="period1" from="agingList[1]" align="right" show-total="true"><header-field title="0 - ${periodDays} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="period2" align="right" show-total="true"><header-field title="${periodDays+1} - ${periodDays*2} days" show-order-by="true"/>
+            <field name="period2" from="agingList[2]" align="right" show-total="true"><header-field title="${periodDays+1} - ${periodDays*2} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="period3" align="right" show-total="true"><header-field title="${periodDays*2+1} - ${periodDays*3} days" show-order-by="true"/>
+            <field name="period3" from="agingList[3]" align="right" show-total="true"><header-field title="${periodDays*2+1} - ${periodDays*3} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="period4" align="right" show-total="true"><header-field title="${periodDays*3+1} - ${periodDays*4} days" show-order-by="true"/>
+            <field name="period4" from="agingList[4]" align="right" show-total="true"><header-field title="${periodDays*3+1} - ${periodDays*4} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="periodRemaining" align="right" show-total="true"><header-field title="&gt; ${periodDays*4} days" show-order-by="true"/>
+            <field name="periodRemaining" from="agingList[5]" align="right" show-total="true"><header-field title="&gt; ${periodDays*4} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="totalDue" align="right" show-total="true"><header-field title="Total" show-order-by="true"/>
+            <field name="unpaidTotal" align="right" show-total="true"><header-field show-order-by="true"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="invoiceId"/><field-ref name="referenceNumber"/></form-list-column>
+            <form-list-column><field-ref name="invoiceDate"/><field-ref name="dueDate"/></form-list-column>
+            <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
+            <form-list-column><field-ref name="statusId"/></form-list-column>
+            <form-list-column><field-ref name="currentDue"/></form-list-column>
+            <form-list-column><field-ref name="period1"/></form-list-column>
+            <form-list-column><field-ref name="period2"/></form-list-column>
+            <form-list-column><field-ref name="period3"/></form-list-column>
+            <form-list-column><field-ref name="period4"/></form-list-column>
+            <form-list-column><field-ref name="periodRemaining"/></form-list-column>
+            <form-list-column><field-ref name="unpaidTotal"/></form-list-column>
         </form-list>
     </widgets>
 </screen>

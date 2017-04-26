@@ -54,10 +54,10 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="sendShipmentStoreEmail"><service-call name="mantle.shipment.ShipmentServices.send#ShipmentStoreEmail"/>
         <default-response url="."/></transition>
-    <transition name="orderDetail"><default-response url="//PopcAdmin/Order/OrderDetail"/></transition>
-    <transition name="editInvoice"><default-response url="//PopcAdmin/Accounting/Invoice/EditInvoice"/></transition>
-    <transition name="editPayment"><default-response url="//PopcAdmin/Accounting/Payment/EditPayment"/></transition>
-    <transition name="assetDetail"><default-response url="//PopcAdmin/Asset/AssetDetail"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
 
     <transition name="createContent"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentContent"/>
         <default-response url="."/></transition>
@@ -209,8 +209,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="packShipment" text="Set Packed" condition="allItemsPacked"><parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment"><parameter name="shipmentId"/></link>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
-                    <link url="ShipmentPack.pdf" text="Pack PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
+                    <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
@@ -222,8 +222,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment"><parameter name="shipmentId"/></link>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                 </fail-widgets></section>
-                <link url="ShipmentPack.pdf" text="Pack PDF"/>
                 <link url="ShipmentByPackage.pdf" text="Package PDF"/>
+                <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
             </widgets></section>
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="ShipPackedInOutSection" condition="isIncoming"><widgets>
@@ -237,8 +237,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped"/>
                     <link url="deliverShipment" text="Set Delivered"/>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
-                    <link url="ShipmentPack.pdf" text="Pack PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
+                    <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
@@ -251,8 +251,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
                     <link url="deliverShipment" text="Set Delivered"/>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
-                    <link url="ShipmentPack.pdf" text="Pack PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
+                    <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
                 </fail-widgets></section>
             </widgets></section>
 
@@ -380,7 +380,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <container-box><box-header><label text="Payments" type="h5"/></box-header><box-body-nopad>
                 <form-list name="ShipmentOrderPaymentList" list="shipmentPaymentList">
-                    <entity-find entity-name="mantle.shipment.ShipmentOrderPayment" list="shipmentPaymentList">
+                    <entity-find entity-name="mantle.shipment.ShipmentOrderPayment" list="shipmentPaymentList" distinct="true">
                         <econdition field-name="shipmentId"/>
                         <select-field field-name="orderId,paymentId,paymentInstrumentEnumId,statusId,paymentRefNum,amountUomId"/>
                         <order-by field-name="orderId,paymentId"/>
@@ -397,7 +397,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="paymentRefNum" from="payment?.paymentRefNum"><default-field title="Ref"><display/></default-field></field>
                 </form-list>
                 <form-list name="ShipmentInvoicePaymentList" list="shipmentPaymentList">
-                    <entity-find entity-name="mantle.shipment.ShipmentInvoicePayment" list="shipmentPaymentList">
+                    <entity-find entity-name="mantle.shipment.ShipmentInvoicePayment" list="shipmentPaymentList" distinct="true">
                         <econdition field-name="shipmentId"/>
                         <select-field field-name="invoiceId,paymentId,amountApplied,appliedDate,paymentInstrumentEnumId,statusId,paymentRefNum,amountUomId"/>
                         <order-by field-name="invoiceId,paymentId"/>
@@ -536,8 +536,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 </drop-down></default-field></field>
                                 <field name="quantity" from="quantityRemaining">
                                     <default-field><text-line size="8"/></default-field></field>
-                                <field name="assetId"><default-field title="Asset"><text-line size="50" ac-transition="getAssetList"
-                                        parameter-map="[facilityId:firstRouteSegment.originFacilityId, productId:productId, assetTypeEnumId:null]"/>
+                                <field name="assetId"><default-field title="Asset">
+                                    <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="0"
+                                            parameter-map="[facilityId:firstRouteSegment.originFacilityId, productId:productId, assetTypeEnumId:null]"/></drop-down>
                                 </default-field></field>
                                 <field name="submitButton"><default-field title="Pack Quantity"><submit/></default-field></field>
                             </form-single>

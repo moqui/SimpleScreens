@@ -19,6 +19,9 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="invoiceId" required="true" from="invoiceId ?: invoiceId_0"/>
     <parameter name="invoiceId_0"/>
 
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+
     <transition name="createInvoiceItem"><service-call name="mantle.account.InvoiceServices.create#InvoiceItem"/>
         <default-response url="."/></transition>
     <transition name="updateInvoiceItem"><service-call name="mantle.account.InvoiceServices.update#InvoiceItem"/>
@@ -26,11 +29,12 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="deleteInvoiceItem"><service-call name="mantle.account.InvoiceServices.delete#InvoiceItem"/>
         <default-response url="."/></transition>
 
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
     <actions>
         <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
-        <service-call name="mantle.account.InvoiceServices.get#InvoiceTotal" in-map="[invoiceId:invoiceId]" out-map="context"/>
         <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
             <econdition field-name="invoiceId"/></entity-find>
 
@@ -76,7 +80,7 @@ along with this software (see the LICENSE.md file). If not, see
             </container>
         </widgets></section>
 
-        <label text="Invoice Total: ${ec.l10n.formatCurrency(invoiceTotal, invoice.currencyUomId)}"/>
+        <label text="Invoice Total: ${ec.l10n.formatCurrency(invoice.invoiceTotal, invoice.currencyUomId)}, Unpaid: ${ec.l10n.formatCurrency(invoice.unpaidTotal, invoice.currencyUomId)}"/>
         <form-list name="EditInvoiceItems" list="invoiceItemList" transition="updateInvoiceItem" multi="true">
             <field name="invoiceId"><default-field><hidden/></default-field></field>
             <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
@@ -93,7 +97,7 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="itemDate">
                 <conditional-field condition="invoiceEditable" title="Date"><date-time/></conditional-field>
-                <default-field title="Date"><display/></default-field>
+                <default-field title="Item Date"><display/></default-field>
             </field>
             <field name="description">
                 <conditional-field condition="invoiceEditable"><text-line size="60"/></conditional-field>
@@ -103,6 +107,22 @@ along with this software (see the LICENSE.md file). If not, see
                 <conditional-field condition="invoiceEditable"><text-line size="4"/></conditional-field>
                 <default-field><display/></default-field>
             </field>
+
+            <field name="productId">
+                <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></conditional-field>
+                <default-field title="Product"><link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
+                        link-type="anchor" condition="productId"/></default-field>
+            </field>
+            <field name="assetId">
+                <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
+                    <dynamic-options transition="getAssetList" server-search="true" min-length="0">
+                        <depends-on field="productId"/></dynamic-options>
+                </drop-down></conditional-field>
+                <default-field title="Asset"><link url="assetDetail" text="AssetNameTemplate" entity-name="mantle.product.asset.Asset"
+                        link-type="anchor" condition="assetId"/></default-field>
+            </field>
+
             <field name="amount">
                 <conditional-field condition="invoiceEditable"><text-line size="8"/></conditional-field>
                 <default-field><display currency-unit-field="invoice.currencyUomId"/></default-field>
@@ -121,8 +141,8 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <form-list-column><field-ref name="invoiceItemSeqId"/></form-list-column>
-            <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="overrideGlAccountId"/></form-list-column>
-            <form-list-column><field-ref name="itemDate"/><field-ref name="description"/></form-list-column>
+            <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="overrideGlAccountId"/><field-ref name="itemDate"/></form-list-column>
+            <form-list-column><field-ref name="description"/><field-ref name="productId"/><field-ref name="assetId"/></form-list-column>
             <form-list-column><field-ref name="quantity"/><field-ref name="amount"/></form-list-column>
             <form-list-column><field-ref name="total"/></form-list-column>
             <form-list-column><field-ref name="deleteButton"/></form-list-column>

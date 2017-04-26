@@ -12,13 +12,10 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-include="false">
 
-    <transition name="findInvoice"><default-response url="."/></transition>
     <transition name="editInvoice"><default-response url="../EditInvoice"/></transition>
-
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
 
     <transition name="createInvoice"><service-call name="mantle.account.InvoiceServices.create#Invoice"/>
@@ -30,6 +27,14 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getOpenVendorInvoicesByFromParty" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
     <transition-include name="getProjectParties" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <transition name="receivableStatement">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Accounting/Invoice/ReceivableStatement" url-type="plain">
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="toPartyId"/><parameter name="fromPartyId"/><parameter name="periodDays"/><parameter name="asOfDate"/>
+            <parameter name="filename" value="Statement-${toPartyId}-${asOfDate ?: ec.l10n.format(ec.user.nowTimestamp, 'yyyy-MM-dd')}.pdf"/>
+        </default-response>
+    </transition>
 
     <actions>
         <!-- NOTE: the way the aging summary is calculated is ugly (would be nice in a separate service) but minimizes runtime
@@ -46,120 +51,142 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="payableDueAgingList" from="new ArrayList([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])"/>
     </actions>
     <widgets>
-        <container>
-            <container-dialog id="NewPayableDialog" button-text="New Payable">
-                <form-single name="NewPayableForm" transition="createInvoice">
-                    <field name="fromPartyId"><default-field title="From">
-                        <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
-                    </default-field></field>
-                    <field name="toPartyId"><default-field title="To">
-                        <drop-down>
-                            <entity-options key="${partyId}" text="PartyNameTemplate">
-                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                    <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
-                                    <econdition field-name="roleTypeId" value="OrgInternal"/>
-                                    <econdition field-name="disabled" value="N" or-null="true"/>
-                                    <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
+        <container-dialog id="NewPayableDialog" button-text="New Payable">
+            <form-single name="NewPayableForm" transition="createInvoice">
+                <field name="fromPartyId"><default-field title="From">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                </default-field></field>
+                <field name="toPartyId"><default-field title="Organization">
+                    <drop-down>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="invoiceTypeEnumId"><default-field title="Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="InvoiceType"/><set field="noCurrentSelectedKey" value="InvoiceSales"/></widget-template-include>
+                </default-field></field>
+                <!-- set based on PartyAcctgPreference.baseCurrencyUomId, for now same for all org invoices:
+                <field name="currencyUomId"><default-field title="Currency">
+                    <drop-down no-current-selected-key="USD"><entity-options key="${uomId}" text="UomNameTemplate">
+                        <entity-find entity-name="moqui.basic.Uom">
+                            <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                -->
+                <field name="referenceNumber"><default-field tooltip="Other party invoice reference number">
+                    <text-line size="20"/></default-field></field>
+                <field name="invoiceDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+
+                <field name="submitButton"><default-field title="Create Invoice"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="NewReceivableDialog" button-text="New Receivable">
+            <form-single name="NewReceivableForm" transition="createInvoice" extends="NewPayableForm">
+                <field name="fromPartyId"><default-field title="Organization">
+                    <drop-down>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                                <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="toPartyId"><default-field title="To">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                </default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <section name="ProjectInvoiceSection"><widgets>
+            <container-dialog id="ProjectInvoiceDialog" button-text="Invoice Project Client" width="700">
+                <form-single name="ProjectInvoice" transition="createProjectInvoiceItems">
+                    <field name="workEffortId"><default-field title="Project">
+                        <drop-down allow-empty="false" combo-box="false">
+                            <entity-options key="${workEffortId}" text="WorkEffortNameTemplate">
+                                <entity-find entity-name="mantle.work.effort.WorkEffort">
+                                    <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+                                    <order-by field-name="workEffortId"/>
+                                </entity-find>
+                            </entity-options>
                         </drop-down>
                     </default-field></field>
-                    <field name="invoiceTypeEnumId"><default-field title="Type">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                            <set field="enumTypeId" value="InvoiceType"/><set field="noCurrentSelectedKey" value="InvoiceSales"/></widget-template-include>
-                    </default-field></field>
-                    <!-- set based on PartyAcctgPreference.baseCurrencyUomId, for now same for all org invoices:
-                    <field name="currencyUomId"><default-field title="Currency">
-                        <drop-down no-current-selected-key="USD"><entity-options key="${uomId}" text="UomNameTemplate">
-                            <entity-find entity-name="moqui.basic.Uom">
-                                <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
-                                <order-by field-name="description"/>
-                            </entity-find>
-                        </entity-options></drop-down>
-                    </default-field></field>
-                    -->
-                    <field name="referenceNumber"><default-field tooltip="Other party invoice reference number">
-                        <text-line size="20"/></default-field></field>
-                    <field name="invoiceDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
 
-                    <field name="submitButton"><default-field title="Create Invoice"><submit/></default-field></field>
+                    <field name="thruDate"><default-field><date-time type="date-time"/></default-field></field>
+                    <field name="invoiceId"><default-field title="Existing Invoice"><drop-down>
+                        <dynamic-options transition="getOpenClientInvoicesByProject" value-field="invoiceId" label-field="label"
+                                server-search="true" min-length="0">
+                            <depends-on field="workEffortId"/></dynamic-options>
+                    </drop-down></default-field></field>
+                    <field name="submitButton"><default-field title="Invoice Time and Expenses"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
-            <container-dialog id="NewReceivableDialog" button-text="New Receivable">
-                <form-single name="NewReceivableForm" transition="createInvoice" extends="NewPayableForm">
-                    <field name="fromPartyId"><default-field title="From">
-                        <drop-down>
-                            <entity-options key="${partyId}" text="PartyNameTemplate">
-                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                    <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
-                                    <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
-                                    <econdition field-name="disabled" value="N" or-null="true"/>
-                                    <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
+            <container-dialog id="WorkerInvoiceDialog" button-text="Worker Invoice" width="700">
+                <form-single name="WorkerInvoice" transition="createProjectInvoiceItems">
+                    <field name="ratePurposeEnumId"><default-field><hidden default-value="RaprVendor"/></default-field></field>
+                    <field name="workEffortId"><default-field title="Project">
+                        <drop-down allow-empty="false" combo-box="false">
+                            <entity-options key="${workEffortId}" text="${workEffortId} - ${workEffortName}">
+                                <entity-find entity-name="mantle.work.effort.WorkEffort">
+                                    <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+                                    <order-by field-name="workEffortId"/>
+                                </entity-find>
+                            </entity-options>
                         </drop-down>
                     </default-field></field>
-                    <field name="toPartyId"><default-field title="To">
-                        <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
-                    </default-field></field>
+                    <field name="workerPartyId"><default-field title="Worker"><drop-down>
+                        <dynamic-options transition="getProjectParties" value-field="partyId" label-field="name"
+                                server-search="true" min-length="0">
+                            <depends-on field="workEffortId"/></dynamic-options>
+                    </drop-down></default-field></field>
+
+                    <field name="thruDate"><default-field><date-time type="date-time"/></default-field></field>
+                    <field name="invoiceId"><default-field title="Existing Invoice"><drop-down>
+                        <dynamic-options transition="getOpenVendorInvoicesByFromParty" value-field="invoiceId" label-field="label"
+                                server-search="true" min-length="0">
+                            <depends-on field="workerPartyId"/></dynamic-options>
+                    </drop-down></default-field></field>
+                    <field name="submitButton"><default-field title="Invoice Time"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
-            <section name="ProjectInvoiceSection"><widgets>
-                <container-dialog id="ProjectInvoiceDialog" button-text="Invoice Project Client" width="700">
-                    <form-single name="ProjectInvoice" transition="createProjectInvoiceItems">
-                        <field name="workEffortId"><default-field title="Project">
-                            <drop-down allow-empty="false" combo-box="false">
-                                <entity-options key="${workEffortId}" text="WorkEffortNameTemplate">
-                                    <entity-find entity-name="mantle.work.effort.WorkEffort">
-                                        <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
-                                        <order-by field-name="workEffortId"/>
-                                    </entity-find>
-                                </entity-options>
-                            </drop-down>
-                        </default-field></field>
+        </widgets></section>
 
-                        <field name="thruDate"><default-field><date-time type="date-time"/></default-field></field>
-                        <field name="invoiceId"><default-field title="Existing Invoice">
-                            <drop-down><dynamic-options transition="getOpenClientInvoicesByProject" value-field="invoiceId" label-field="label">
-                                <depends-on field="workEffortId"/></dynamic-options></drop-down>
-                        </default-field></field>
-                        <field name="submitButton"><default-field title="Invoice Time and Expenses"><submit/></default-field></field>
-                    </form-single>
-                </container-dialog>
-                <container-dialog id="WorkerInvoiceDialog" button-text="Worker Invoice" width="700">
-                    <form-single name="WorkerInvoice" transition="createProjectInvoiceItems">
-                        <field name="ratePurposeEnumId"><default-field><hidden default-value="RaprVendor"/></default-field></field>
-                        <field name="workEffortId"><default-field title="Project">
-                            <drop-down allow-empty="false" combo-box="false">
-                                <entity-options key="${workEffortId}" text="${workEffortId} - ${workEffortName}">
-                                    <entity-find entity-name="mantle.work.effort.WorkEffort">
-                                        <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
-                                        <order-by field-name="workEffortId"/>
-                                    </entity-find>
-                                </entity-options>
-                            </drop-down>
-                        </default-field></field>
-                        <field name="workerPartyId"><default-field title="Worker">
-                            <drop-down><dynamic-options transition="getProjectParties" value-field="partyId" label-field="name">
-                                <depends-on field="workEffortId"/></dynamic-options></drop-down>
-                        </default-field></field>
+        <container-dialog id="CustomerStatementDialog" button-text="Customer Statement PDF">
+            <form-single name="CustomerStatementForm" transition="receivableStatement">
+                <field name="fromPartyId"><default-field title="Organization">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                                <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="toPartyId"><default-field title="Customer">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                </default-field></field>
+                <field name="asOfDate" from="ec.user.nowTimestamp"><default-field><date-time type="date"/></default-field></field>
 
-                        <field name="thruDate"><default-field><date-time type="date-time"/></default-field></field>
-                        <field name="invoiceId"><default-field title="Existing Invoice">
-                            <drop-down><dynamic-options transition="getOpenVendorInvoicesByFromParty" value-field="invoiceId" label-field="label">
-                                <depends-on field="workerPartyId"/></dynamic-options></drop-down>
-                        </default-field></field>
-                        <field name="submitButton"><default-field title="Invoice Time"><submit/></default-field></field>
-                    </form-single>
-                </container-dialog>
-            </widgets></section>
-        </container>
+                <field name="submitButton"><default-field title="Download PDF"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
 
         <form-list name="InvoiceList" list="invoiceList" skip-form="true" header-dialog="true" select-columns="true"
                    saved-finds="true" show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
-                <search-form-inputs default-order-by="-invoiceDate,+invoiceId">
+                <search-form-inputs default-order-by="-invoiceDate,invoiceId">
                     <default-parameters statusId="InvoiceInProcess,InvoiceFinalized,InvoiceSent,InvoiceIncoming,InvoiceReceived,InvoiceApproved"
                             statusId_op="in" invoiceDate_poffset="-1" invoiceDate_period="30d"/></search-form-inputs>
             </entity-find>
             <row-actions>
-                <service-call name="mantle.account.InvoiceServices.get#InvoiceTotal" in-map="[invoiceId:invoiceId]" out-map="context"/>
                 <script><![CDATA[
                 if (unpaidTotal) {
                     Integer invoiceDateDays = invoiceDate != null ? nowTimestamp - invoiceDate : null
@@ -167,8 +194,8 @@ along with this software (see the LICENSE.md file). If not, see
                     if (invoiceDateIdx != null && invoiceDateIdx > 4) invoiceDateIdx = 4
                     Integer dueDateDays = dueDate != null ? nowTimestamp - dueDate : null
                     Integer dueDateIdx = dueDateDays != null ? (dueDateDays < 0 ? 0 :
-                            ((dueDateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1 ) : null
-                    if (dueDateIdx != null && dueDateIdx > 4) dueDateIdx = 4
+                            ((dueDateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1) : null
+                    if (dueDateIdx != null && dueDateIdx > 5) dueDateIdx = 5
 
                     if (statusId in ['InvoiceInProcess','InvoiceFinalized','InvoiceSent']) {
                         if (invoiceDateIdx != null) receivableAgingList[invoiceDateIdx] = receivableAgingList[invoiceDateIdx] + unpaidTotal
@@ -182,9 +209,8 @@ along with this software (see the LICENSE.md file). If not, see
                 }
                 ]]></script>
             </row-actions>
-            <field name="invoiceId"><header-field show-order-by="true" title="Invoice"/><default-field>
-                <link url="editInvoice" text="${invoiceId}" link-type="anchor"/>
-            </default-field></field>
+            <field name="invoiceId"><header-field show-order-by="true" title="Invoice"/>
+                <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
             <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
             <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
@@ -194,24 +220,17 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="InvoiceType"/><set field="allowEmpty" value="true"/>
-                        <set field="style" value=" "/><set field="allowMultiple" value="true"/></widget-template-include>
+                        <set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
             <field name="fromPartyId">
                 <header-field title="From"><drop-down allow-empty="true">
-                    <entity-options key="${partyId}" text="PartyNameTemplate">
-                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                            <econdition field-name="roleTypeId" operator="in" value="Supplier,Vendor,VendorBillFrom,OrgInternal"/>
-                            <econdition field-name="disabled" value="N" or-null="true"/>
-                            <order-by field-name="organizationName,firstName"/>
-                        </entity-find>
-                    </entity-options>
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                            parameter-map="[roleTypeId:'Supplier,Vendor,VendorBillFrom,OrgInternal']"/>
                 </drop-down></header-field>
-                <default-field>
-                    <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
-                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/>
-                </default-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field>
             </field>
             <field name="toPartyId">
                 <header-field title="To"><drop-down allow-empty="true">
@@ -219,7 +238,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
                         link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
             </field>
-            <field name="referenceNumber"><header-field title="Ref Num (PO/etc)"><text-find size="10" hide-options="true"/></header-field>
+            <field name="referenceNumber"><header-field title="Ref or PO #"><text-find size="10" hide-options="true"/></header-field>
                 <default-field><display/></default-field></field>
 
             <field name="receivableStatuses"><header-field title="Receivable"><display text="In-Process, Finalized, Sent, Payment Received"/></header-field></field>
@@ -232,15 +251,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
 
-            <field name="invoiceTotal" align="right" show-total="true"><default-field title="Total">
-                <display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="unpaidTotal" align="right" show-total="true"><default-field title="Unpaid">
-                <display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="invoiceTotal" align="right" show-total="true"><header-field title="Total"><range-find/></header-field>
+                <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="unpaidTotal" align="right" show-total="true"><header-field title="Unpaid"><range-find/></header-field>
+                <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>
 
-        <!-- TODO: add find for Customer Statement -->
         <section name="AgingSummarySection" condition="hasReceivableAging.get() || hasPayableAging.get()"><actions>
             <script>
                 agingSummaryList = []
@@ -248,13 +266,15 @@ along with this software (see the LICENSE.md file). If not, see
                     agingSummaryList.add([description:'Receivable by Invoice Date', period0:receivableAgingList[0], period1:receivableAgingList[1],
                             period2:receivableAgingList[2], period3:receivableAgingList[3], periodRemaining:receivableAgingList[4], total:receivableAgingList.sum()])
                     agingSummaryList.add([description:'Receivable by Due Date', current:receivableDueAgingList[0], period0:receivableDueAgingList[1],
-                            period1:receivableDueAgingList[2], period2:receivableDueAgingList[3], period3:receivableDueAgingList[4], periodRemaining:receivableDueAgingList[5], total:receivableDueAgingList.sum()])
+                            period1:receivableDueAgingList[2], period2:receivableDueAgingList[3], period3:receivableDueAgingList[4],
+                            periodRemaining:receivableDueAgingList[5], total:receivableDueAgingList.sum()])
                 }
                 if (hasPayableAging.get()) {
                     agingSummaryList.add([description:'Payable by Invoice Date', period0:payableAgingList[0], period1:payableAgingList[1],
                             period2:payableAgingList[2], period3:payableAgingList[3], periodRemaining:payableAgingList[4], total:payableAgingList.sum()])
                     agingSummaryList.add([description:'Payable by Due Date', current:payableDueAgingList[0], period0:payableDueAgingList[1],
-                            period1:payableDueAgingList[2], period2:payableDueAgingList[3], period3:payableDueAgingList[4], periodRemaining:payableDueAgingList[5], total:payableDueAgingList.sum()])
+                            period1:payableDueAgingList[2], period2:payableDueAgingList[3], period3:payableDueAgingList[4],
+                            periodRemaining:payableDueAgingList[5], total:payableDueAgingList.sum()])
                 }
             </script>
         </actions><widgets>

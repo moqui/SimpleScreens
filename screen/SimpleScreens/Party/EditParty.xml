@@ -109,6 +109,13 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
+    <transition name="receivableStatement">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Accounting/Invoice/ReceivableStatement" url-type="plain">
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="toPartyId"/><parameter name="filename" value="Statement-${toPartyId}-${ec.l10n.format(ec.user.nowTimestamp, 'yyyy-MM-dd')}.pdf"/>
+        </default-response>
+    </transition>
+
     <actions>
         <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
         <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
@@ -173,6 +180,7 @@ along with this software (see the LICENSE.md file). If not, see
             <link url="findShipment" text="Shipments To (${toShipmentCount})" parameter-map="[toPartyId:partyId]" condition="toShipmentCount"/>
             <link url="findInvoice" text="Invoices From (${fromInvoiceCount})" parameter-map="[fromPartyId:partyId]" condition="fromInvoiceCount"/>
             <link url="findInvoice" text="Invoices To (${toInvoiceCount})" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount"/>
+            <link url="receivableStatement" text="Statement PDF" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount"/>
             <link url="findPayment" text="Payments From (${fromPaymentCount})" parameter-map="[fromPartyId:partyId]" condition="fromPaymentCount"/>
             <link url="findPayment" text="Payments To (${toPaymentCount})" parameter-map="[toPartyId:partyId]" condition="toPaymentCount"/>
 

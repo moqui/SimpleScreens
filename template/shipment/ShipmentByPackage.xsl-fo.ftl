@@ -138,8 +138,8 @@ along with this software (see the LICENSE.md file). If not, see
                     </#list>
                 </fo:table-body>
             </fo:table>
-
         </#list>
+
         <#if productInfoList?has_content>
             <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="10pt">
                 <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">

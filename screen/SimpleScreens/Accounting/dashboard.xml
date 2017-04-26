@@ -50,24 +50,22 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find entity-name="mantle.account.invoice.InvoiceSummary" list="recInvList">
                     <econdition field-name="fromPartyId" from="partyId"/>
                     <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent"/>
-                    <select-field field-name="invoiceCount"/><select-field field-name="grandTotal"/>
-                    <select-field field-name="currencyUomId"/>
+                    <select-field field-name="invoiceCount,unpaidTotal,currencyUomId"/>
                 </entity-find>
                 <set field="recDesc" value=""/>
                 <iterate list="recInvList" entry="recInv">
                     <if condition="recDesc"><set field="recDesc" from="recDesc + ', '"/></if>
-                    <set field="recDesc" from="recDesc + recInv.invoiceCount + ' Invoice' + (recInv.invoiceCount ? 's ' : ' ') + ec.l10n.formatCurrency(recInv.grandTotal, recInv.currencyUomId)"/>
+                    <set field="recDesc" from="recDesc + recInv.invoiceCount + ' Invoice' + (recInv.invoiceCount ? 's ' : ' ') + ec.l10n.formatCurrency(recInv.unpaidTotal, recInv.currencyUomId)"/>
                 </iterate>
                 <entity-find entity-name="mantle.account.invoice.InvoiceSummary" list="pblInvList">
                     <econdition field-name="toPartyId" from="partyId"/>
                     <econdition field-name="statusId" operator="in" value="InvoiceReceived,InvoiceApproved"/>
-                    <select-field field-name="invoiceCount"/><select-field field-name="grandTotal"/>
-                    <select-field field-name="currencyUomId"/>
+                    <select-field field-name="invoiceCount,unpaidTotal,currencyUomId"/>
                 </entity-find>
                 <set field="pblDesc" value=""/>
                 <iterate list="pblInvList" entry="pblInv">
                     <if condition="pblDesc"><set field="pblDesc" from="pblDesc + ', '"/></if>
-                    <set field="pblDesc" from="pblDesc + pblInv.invoiceCount + ' Invoice' + (pblInv.invoiceCount ? 's ' : ' ') + ec.l10n.formatCurrency(pblInv.grandTotal, pblInv.currencyUomId)"/>
+                    <set field="pblDesc" from="pblDesc + pblInv.invoiceCount + ' Invoice' + (pblInv.invoiceCount ? 's ' : ' ') + ec.l10n.formatCurrency(pblInv.unpaidTotal, pblInv.currencyUomId)"/>
                 </iterate>
             </row-actions>
             <field name="name"><default-field title="Internal Organization">
