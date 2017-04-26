@@ -25,6 +25,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
     <transition name="recordPayment"><service-call name="mantle.account.PaymentServices.create#InvoicePayment"/><default-response url="."/></transition>
     <transition name="sendPromisedPayment"><service-call name="mantle.account.PaymentServices.send#PromisedPayment"/><default-response url="."/></transition>
+    <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/><default-response url="."/></transition>
+
     <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
     <transition name="editTimePeriod"><default-response url="../../TimePeriod/EditTimePeriod"/></transition>
 
@@ -129,6 +131,33 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <container-box>
                     <box-header><label text="Payment Applications" type="h5"/></box-header>
+                    <box-toolbar>
+                        <container-dialog id="RecordPaymentContainer" button-text="New Payment" condition="unpaidTotal">
+                            <form-single name="RecordPaymentForm" transition="recordPayment">
+                                <field name="invoiceId"><default-field><display also-hidden="true"/></default-field></field>
+                                <field name="statusId" from="paymentStatusId"><default-field title="Status">
+                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                                        <set field="statusTypeId" value="Payment"/>
+                                        <set field="noCurrentSelectedKey" value="PmntDelivered"/></widget-template-include>
+                                </default-field></field>
+                                <field name="amountUomId" from="invoice.currencyUomId"><default-field title="Currency">
+                                    <display-entity entity-name="moqui.basic.Uom" key-field-name="uomId" text="${description}" also-hidden="true"/>
+                                </default-field></field>
+                                <field name="amount"><default-field>
+                                    <text-line size="10" default-value="${ec.l10n.format(unpaidTotal, '#0.00')}"/>
+                                </default-field></field>
+                                <field name="paymentInstrumentEnumId"><default-field title="Payment Instrument">
+                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                        <set field="enumTypeId" value="PaymentInstrument"/>
+                                        <set field="noCurrentSelectedKey" value="PiCompanyCheck"/></widget-template-include>
+                                </default-field></field>
+                                <field name="effectiveDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                                <field name="paymentRefNum"><default-field title="Reference Number"><text-line size="10"/></default-field></field>
+                                <field name="comments"><default-field><text-area cols="60" rows="4"/></default-field></field>
+                                <field name="submitButton"><default-field title="Record Payment"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar>
                     <box-body>
                         <label text="Applied Payments ${ec.l10n.formatCurrency(appliedPaymentsTotal, invoice.currencyUomId)}, Unpaid ${ec.l10n.formatCurrency(unpaidTotal, invoice.currencyUomId)}" type="strong"/>
                     </box-body>
@@ -140,7 +169,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </row-actions>
                             <field name="paymentId"><default-field title="Payment">
                                 <link url="editPayment" text="${paymentId?:''}" link-type="anchor"/></default-field></field>
-                            <field name="amountApplied"><default-field title="Amount"><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+                            <field name="amountApplied" align="right"><default-field title="Amount"><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
                             <field name="appliedDate"><default-field title="Applied"><display/></default-field></field>
                             <field name="statusId" from="payment?.statusId"><default-field title="Status">
                                 <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
@@ -152,41 +181,41 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="RecordPaymentSection" condition="canRecordPayments"><widgets>
                     <container-box>
                         <box-header><label text="Promised Order Payments" type="h5"/></box-header>
-                        <box-toolbar>
-                            <container-dialog id="RecordPaymentContainer" button-text="New Payment">
-                                <form-single name="RecordPaymentForm" transition="recordPayment">
-                                    <field name="invoiceId"><default-field><display also-hidden="true"/></default-field></field>
-                                    <field name="statusId" from="paymentStatusId"><default-field title="Status">
-                                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                                            <set field="statusTypeId" value="Payment"/>
-                                            <set field="noCurrentSelectedKey" value="PmntDelivered"/></widget-template-include>
-                                    </default-field></field>
-                                    <field name="amountUomId" from="invoice.currencyUomId"><default-field title="Currency">
-                                        <display-entity entity-name="moqui.basic.Uom" key-field-name="uomId" text="${description}" also-hidden="true"/>
-                                    </default-field></field>
-                                    <field name="amount"><default-field>
-                                        <text-line size="10" default-value="${ec.l10n.format(invoiceTotal, '#0.00')}"/>
-                                    </default-field></field>
-                                    <field name="paymentInstrumentEnumId"><default-field title="Payment Instrument">
-                                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                                            <set field="enumTypeId" value="PaymentInstrument"/>
-                                            <set field="noCurrentSelectedKey" value="PiCompanyCheck"/></widget-template-include>
-                                    </default-field></field>
-                                    <field name="effectiveDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
-                                    <field name="paymentRefNum"><default-field title="Reference Number"><text-line size="10"/></default-field></field>
-                                    <field name="comments"><default-field><text-area cols="60" rows="4"/></default-field></field>
-                                    <field name="submitButton"><default-field title="Record Payment"><submit/></default-field></field>
-                                </form-single>
-                            </container-dialog>
-                        </box-toolbar>
                         <box-body>
                             <form-list name="OrderPromisedPaymentList" list="orderPromisedPaymentList" transition="sendPromisedPayment">
                                 <field name="invoiceId"><default-field><hidden/></default-field></field>
                                 <field name="orderId"><default-field><link url="orderDetail" text="#${orderId?:''}" link-type="anchor"/></default-field></field>
                                 <field name="paymentId"><default-field><display text=""/><link url="editPayment" text="#${paymentId?:''}" link-type="anchor"/></default-field></field>
-                                <field name="amount"><default-field title="Amount"><text-line size="8" format="#.00"/></default-field></field>
+                                <field name="amount" align="right"><default-field title="Amount"><text-line size="8" format="#.00"/></default-field></field>
                                 <field name="paymentRefNum"><default-field title="Ref Num"><text-line size="8"/></default-field></field>
                                 <field name="submitButton"><default-field title="Send &amp; Apply"><submit/></default-field></field>
+                            </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets></section>
+                <section name="ApplyPaymentSection" condition="validStatusIds.contains(invoice?.statusId) &amp;&amp; unpaidTotal > 0.0"><widgets>
+                    <container-box>
+                        <box-header><label text="Applicable Payments" type="h5"/></box-header>
+                        <box-body>
+                            <form-list name="UnappliedPaymentList" list="unappliedPaymentInfoList" transition="applyInvoicePayment">
+                                <field name="invoiceId"><default-field><hidden/></default-field></field>
+                                <field name="paymentId" from="payment.paymentId"><default-field title="Payment">
+                                    <display text=""/><!-- so that it is rendered, and a hidden value is added -->
+                                    <link url="editPayment" text="#${payment.paymentId?:''}" link-type="anchor"
+                                          parameter-map="[paymentId:payment.paymentId]"/>
+                                </default-field></field>
+                                <field name="paymentTotal" align="right"><default-field title="Amount">
+                                    <display currency-unit-field="payment.amountUomId"/></default-field></field>
+                                <field name="unappliedTotal" align="right"><default-field title="Unapplied">
+                                    <display currency-unit-field="payment.amountUomId"/></default-field></field>
+                                <field name="amount" from="maxApplicableAmount" align="right">
+                                    <conditional-field condition="maxApplicableAmount"><text-line size="8" format="0.00"/></conditional-field>
+                                    <default-field title="Apply"><display text=""/></default-field>
+                                </field>
+                                <field name="submitButton">
+                                    <conditional-field condition="maxApplicableAmount" title="Apply"><submit/></conditional-field>
+                                    <default-field title=""><display text=""/></default-field>
+                                </field>
                             </form-list>
                         </box-body>
                     </container-box>
