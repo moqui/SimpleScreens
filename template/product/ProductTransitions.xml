@@ -84,11 +84,10 @@ along with this software (see the LICENSE.md file). If not, see
         <actions>
             <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
             <if condition="product">
-                <set field="uom" from="product?.amountUom"/>
-                <set field="pantMap" from="[:]"/>
                 <script>
-                    pantMap.putAll(product)
-                    pantMap.putAll(uom)
+                    uom = product.amountUom
+                    pantMap = product.getMap()
+                    if (uom != null) pantMap.putAll(uom)
                     ec.web.sendTextResponse(ec.resource.expand("ProductAmountNameTemplate", '', pantMap))
                 </script>
             </if>
