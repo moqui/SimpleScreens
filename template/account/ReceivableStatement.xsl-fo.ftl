@@ -28,13 +28,13 @@ along with this software (see the LICENSE.md file). If not, see
         </fo:simple-page-master>
     </fo:layout-master-set>
 
-<#list receivableInfoList as receivableInfo>
+<#if receivableInfoList?has_content><#list receivableInfoList as receivableInfo>
     <#assign fromPartyId = receivableInfo.fromPartyId>
     <#assign fromParty = receivableInfo.fromParty>
     <#assign fromContactInfo = receivableInfo.fromContactInfo>
     <#assign logoImageLocation = receivableInfo.logoImageLocation!>
     <#assign invoiceList = receivableInfo.invoiceList>
-    <#assign unpaidTotal = receivableInfo.unpaidTotal>
+    <#assign unappliedPaymentList = receivableInfo.unappliedPaymentList>
     <#assign agingSummaryList = receivableInfo.agingSummaryList>
 
     <fo:page-sequence master-reference="letter-portrait" id="mainSequence">
@@ -65,37 +65,39 @@ along with this software (see the LICENSE.md file). If not, see
         </fo:static-content>
 
         <fo:flow flow-name="xsl-region-body">
-            <fo:table table-layout="fixed" margin-bottom="0.3in" width="7.5in">
+            <fo:table table-layout="fixed" margin-bottom="0.3in" width="7.5in" font-size="10pt">
                 <fo:table-body><fo:table-row>
-                    <fo:table-cell padding="3pt" width="3.25in">
+                    <fo:table-cell padding="3pt" width="3.5in">
                         <#if toBillingRep?has_content><fo:block>Attention: ${(toBillingRep.organizationName)!""} ${(toBillingRep.firstName)!""} ${(toBillingRep.lastName)!""}</fo:block></#if>
-                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toParty.organizationName!"", true))!""} ${(toParty.firstName)!""} ${(toParty.lastName)!""}</fo:block>
+                        <fo:block font-weight="bold">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toParty.organizationName!"", true))!""} ${(toParty.firstName)!""} ${(toParty.lastName)!""}</fo:block>
                         <#if toContactInfo.postalAddress?has_content>
-                            <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
-                            <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>
-                            <fo:block font-size="8pt">${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
-                            <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
+                            <fo:block>${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
+                            <#if toContactInfo.postalAddress.address2?has_content><fo:block>${toContactInfo.postalAddress.address2}</fo:block></#if>
+                            <fo:block>${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                            <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block>${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
                         </#if>
                         <#if toContactInfo.telecomNumber?has_content>
-                            <fo:block font-size="8pt"><#if toContactInfo.telecomNumber.countryCode?has_content>${toContactInfo.telecomNumber.countryCode}-</#if><#if toContactInfo.telecomNumber.areaCode?has_content>${toContactInfo.telecomNumber.areaCode}-</#if>${toContactInfo.telecomNumber.contactNumber!""}</fo:block>
+                            <fo:block><#if toContactInfo.telecomNumber.countryCode?has_content>${toContactInfo.telecomNumber.countryCode}-</#if><#if toContactInfo.telecomNumber.areaCode?has_content>${toContactInfo.telecomNumber.areaCode}-</#if>${toContactInfo.telecomNumber.contactNumber!""}</fo:block>
                         </#if>
                         <#if toContactInfo.emailAddress?has_content>
-                            <fo:block font-size="8pt">${toContactInfo.emailAddress}</fo:block>
+                            <fo:block>${toContactInfo.emailAddress}</fo:block>
                         </#if>
                     </fo:table-cell>
-                    <fo:table-cell padding="3pt" width="1.5in">
+                    <fo:table-cell padding="3pt" width="2.25in">
                         <fo:block font-weight="bold">Total Unpaid</fo:block>
-                        <fo:block>${ec.l10n.formatCurrency(unpaidTotal, currencyUomId)}</fo:block>
+                        <fo:block>${ec.l10n.formatCurrency(receivableInfo.unpaidTotal, currencyUomId)}</fo:block>
+                        <fo:block font-weight="bold">Payments Unapplied</fo:block>
+                        <fo:block>${ec.l10n.formatCurrency(receivableInfo.unappliedTotal, currencyUomId)}</fo:block>
+                        <fo:block font-weight="bold">Balance Due</fo:block>
+                        <fo:block font-weight="bold">${ec.l10n.formatCurrency(receivableInfo.balanceDue, currencyUomId)}</fo:block>
                     </fo:table-cell>
-                    <fo:table-cell padding="3pt" width="1.5in">
+                    <fo:table-cell padding="3pt" width="1.75in">
                         <fo:block font-weight="bold">As of Date</fo:block>
                         <fo:block>${ec.l10n.format(asOfTimestamp, dateFormat)}</fo:block>
                     </fo:table-cell>
                 </fo:table-row></fo:table-body>
             </fo:table>
 
-            <#assign invoiceTotalTotal = 0.0>
-            <#assign unpaidTotalTotal = 0.0>
             <#if invoiceList?has_content>
             <fo:table table-layout="fixed" width="100%">
                 <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
@@ -108,8 +110,6 @@ along with this software (see the LICENSE.md file). If not, see
                 </fo:table-header>
                 <fo:table-body>
                     <#list invoiceList as invoice>
-                        <#assign invoiceTotalTotal += invoice.invoiceTotal>
-                        <#assign unpaidTotalTotal += invoice.unpaidTotal>
                         <fo:table-row font-size="${tableFontSize}" border-bottom="thin solid black">
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoice.invoiceId}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoice.referenceNumber!" "}</fo:block></fo:table-cell>
@@ -124,15 +124,42 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"> </fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"> </fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">Total</fo:block></fo:table-cell>
-                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace" font-weight="bold">${ec.l10n.formatCurrency(invoiceTotalTotal, currencyUomId)}</fo:block></fo:table-cell>
-                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace" font-weight="bold">${ec.l10n.formatCurrency(unpaidTotalTotal, currencyUomId)}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace" font-weight="bold">${ec.l10n.formatCurrency(receivableInfo.invoiceTotal, currencyUomId)}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace" font-weight="bold">${ec.l10n.formatCurrency(receivableInfo.unpaidTotal, currencyUomId)}</fo:block></fo:table-cell>
                     </fo:table-row>
                 </fo:table-body>
             </fo:table>
             </#if>
 
+            <#if unappliedPaymentList?has_content>
+                <fo:table table-layout="fixed" width="100%" margin-top="0.2in">
+                    <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
+                        <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="left">Payment #</fo:block></fo:table-cell>
+                        <fo:table-cell width="2.5in" padding="${cellPadding}"><fo:block text-align="left">Date</fo:block></fo:table-cell>
+                        <fo:table-cell width="2.0in" padding="${cellPadding}"><fo:block text-align="right">Amount</fo:block></fo:table-cell>
+                        <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">Unapplied</fo:block></fo:table-cell>
+                    </fo:table-header>
+                    <fo:table-body>
+                        <#list unappliedPaymentList as payment>
+                            <fo:table-row font-size="${tableFontSize}" border-bottom="thin solid black">
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${payment.paymentId}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.format(payment.effectiveDate, dateFormat)}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(payment.amount!0, payment.amountUomId)}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(payment.unappliedTotal!0, payment.amountUomId)}</fo:block></fo:table-cell>
+                            </fo:table-row>
+                        </#list>
+                        <fo:table-row font-size="${tableFontSize}" border-bottom="thin solid black">
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">Total</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace" font-weight="bold">${ec.l10n.formatCurrency(receivableInfo.paymentTotal, currencyUomId)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace" font-weight="bold">${ec.l10n.formatCurrency(receivableInfo.unappliedTotal, currencyUomId)}</fo:block></fo:table-cell>
+                        </fo:table-row>
+                    </fo:table-body>
+                </fo:table>
+            </#if>
+
             <#if agingSummaryList?has_content>
-            <fo:table table-layout="fixed" width="100%" margin-top="0.3in">
+            <fo:table table-layout="fixed" width="100%" margin-top="0.2in">
                 <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
                     <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left"> </fo:block></fo:table-cell>
                     <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">Current</fo:block></fo:table-cell>
@@ -157,5 +184,17 @@ along with this software (see the LICENSE.md file). If not, see
             </#if>
         </fo:flow>
     </fo:page-sequence>
-</#list>
+</#list><#else>
+<fo:page-sequence master-reference="letter-portrait" id="mainSequence">
+    <fo:flow flow-name="xsl-region-body" font-size="10pt">
+        <#if toBillingRep?has_content><fo:block>Attention: ${(toBillingRep.organizationName)!""} ${(toBillingRep.firstName)!""} ${(toBillingRep.lastName)!""}</fo:block></#if>
+        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toParty.organizationName!"", true))!""} ${(toParty.firstName)!""} ${(toParty.lastName)!""}</fo:block>
+        <#if toContactInfo.emailAddress?has_content>
+            <fo:block>${toContactInfo.emailAddress}</fo:block>
+        </#if>
+        <fo:block font-size="12pt" margin-top="0.5in">Account is current, no unpaid invoices or unapplied payments</fo:block>
+    </fo:flow>
+</fo:page-sequence>
+
+</#if>
 </fo:root>
