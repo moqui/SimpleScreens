@@ -361,11 +361,11 @@ along with this software (see the LICENSE.md file). If not, see
                     in-map="[productStoreId:orderHeader.productStoreId, orderId:orderId, orderPartSeqId:orderPartSeqId,
                             postalContactMechId:orderPart.postalContactMechId, getRates:false]"/>
 
-            <set field="shippingPostalAddressList" from="[]"/>
+            <set field="shippingPostalAddressList" from="new ArrayList()"/>
             <if condition="customerPartyId">
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="customerShippingInfo"
                         in-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
-                <set field="shippingPostalAddressList" from="customerShippingInfo.postalAddressList ?: []"/>
+                <script>shippingPostalAddressList.addAll(customerShippingInfo.postalAddressList ?: [])</script>
             </if>
             <if condition="customerShipToPartyId">
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="shipToShippingInfo"
@@ -377,6 +377,16 @@ along with this software (see the LICENSE.md file). If not, see
                         in-map="[partyId:customerPartyId, postalContactMechId:orderPart.postalContactMechId]"/>
                 <script>shippingPostalAddressList.add(0, curPaInfo)</script>
             </if>
+            <!-- trim duplicates from shippingPostalAddressList -->
+            <script><![CDATA[
+                Set shippingPostalIdSet = new HashSet()
+                for (int i=0; i < shippingPostalAddressList.size(); ) {
+                    Map curAddress = shippingPostalAddressList.get(i)
+                    ec.logger.warn("checking ${curAddress.postalContactMechId}")
+                    if (shippingPostalIdSet.contains(curAddress.postalContactMechId)) { shippingPostalAddressList.remove(i) }
+                    else { shippingPostalIdSet.add(curAddress.postalContactMechId); i++ }
+                }
+            ]]></script>
         </actions><widgets>
             <container style="row shaded-area">
                 <container style="col-lg-5">
