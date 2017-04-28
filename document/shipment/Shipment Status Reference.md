@@ -59,13 +59,17 @@ For outgoing shipments this triggers creating an outgoing (receivable/sales) inv
 
 #### Shipped
 
-The shipment has been picked up by the Carrier or loaded onto a delivery truck.
+The shipment has been scheduled for shipping (with label, tracking code, etc) and optionally picked up by the Carrier or loaded onto a delivery truck.
+
+If a Shipment Shipped email is configured on the store associated with an order on the Shipment then it will be sent when this status is reached.
 
 #### Delivered
 
 The shipment has been delivered to the To party. For incoming shipments this denotes the shipment has been fully received.
 
 For incoming shipments this triggers creating an incoming (payable/purchase) invoice for items not already billed.
+
+If a Shipment Delivered email is configured on the store associated with an order on the Shipment then it will be sent when this status is reached.
 
 #### Rejected
 
