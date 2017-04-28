@@ -23,15 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="viewPostedAmountSummary"><default-response url="../PostedAmountSummary"/></transition>
     <transition name="viewPostedBalanceSummary"><default-response url="../PostedBalanceSummary"/></transition>
 
-    <transition name="getOrganizationFiscalTimePeriods">
-        <parameter name="term"/>
-        <actions>
-            <service-call name="mantle.ledger.LedgerServices.get#OrganizationFiscalTimePeriods" out-map="context" in-map="context"/>
-            <order-map-list list="timePeriodList"><order-by field-name="-thruDate"/><order-by field-name="-timePeriodTypeId"/></order-map-list>
-            <script>ec.web.sendJsonResponse(timePeriodList)</script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
+    <transition-include name="getTimePeriodList" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
 
     <widgets>
         <container-row><row-col md="6">
@@ -47,10 +39,10 @@ along with this software (see the LICENSE.md file). If not, see
                             </entity-options></drop-down>
                         </default-field></field>
                         <field name="timePeriodIdList"><default-field title="Time Periods">
-                            <drop-down size="40" allow-multiple="true">
-                                <dynamic-options transition="getOrganizationFiscalTimePeriods" value-field="timePeriodId"
-                                        label-field="periodName" server-search="true" min-length="0">
-                                    <depends-on field="organizationPartyId"/></dynamic-options>
+                            <drop-down allow-multiple="true">
+                                <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0"
+                                        parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']">
+                                    <depends-on field="organizationPartyId" parameter="partyId"/></dynamic-options>
                             </drop-down>
                         </default-field></field>
                         <field name="detail"><default-field><check><option key="true" text=" "/></check></default-field></field>
@@ -106,10 +98,10 @@ along with this software (see the LICENSE.md file). If not, see
                             </drop-down>
                         </default-field></field>
                         <field name="timePeriodId"><default-field title="Time Period">
-                            <drop-down allow-empty="false">
-                                <dynamic-options transition="getOrganizationFiscalTimePeriods" value-field="timePeriodId"
-                                        label-field="periodName" server-search="true" min-length="0">
-                                    <depends-on field="organizationPartyId"/></dynamic-options>
+                            <drop-down>
+                                <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0"
+                                        parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']">
+                                    <depends-on field="organizationPartyId" parameter="partyId"/></dynamic-options>
                             </drop-down>
                         </default-field></field>
                         <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
