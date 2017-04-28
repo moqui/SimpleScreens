@@ -452,9 +452,11 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="EmailMessageSection"><widgets>
                 <container-box><box-header><label text="Email Messages" type="h5"/></box-header><box-toolbar>
                     <section name="SendPlacedEmailSection" condition="shipment.statusId in ['ShipPacked', 'ShipShipped', 'ShipDelivered']"><actions>
-                        <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="emailInfo"
-                                in-map="[partyId:shipment.toPartyId, emailContactMechPurposeId:'EmailOrder', defaultToPrimaryPurpose:true]"/>
-                        <set field="toAddresses" from="emailInfo.emailAddress"/>
+                        <if condition="shipment.toPartyId">
+                            <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="emailInfo"
+                                    in-map="[partyId:shipment.toPartyId, emailContactMechPurposeId:'EmailOrder', defaultToPrimaryPurpose:true]"/>
+                            <set field="toAddresses" from="emailInfo.emailAddress"/>
+                        </if>
                     </actions><widgets>
                         <container-dialog id="SendPlacedEmailDialog" button-text="Send Email">
                             <form-single name="SendPlacedEmailForm" transition="sendShipmentStoreEmail">
