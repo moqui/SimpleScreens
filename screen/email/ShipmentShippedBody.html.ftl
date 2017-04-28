@@ -36,7 +36,7 @@
     <h2>Package ${shipmentPackage.shipmentPackageSeqId}</h2>
 
     <#if shipmentPackage.weight?has_content>Weight ${ec.l10n.format(shipmentPackage.weight, "")} ${(weightUom.description)!""}<br/></#if>
-    <strong>Tracking ${(firstCarrierDetail.organizationName)!""} ${(packageRouteSeg.trackingCode)!"N/A"}</strong><br/>
+    <strong>Tracking ${(firstCarrierDetail.pseudoId)!""} ${(packageRouteSeg.trackingCode)!"N/A"}</strong><br/>
 
     <table border="0" cellpadding="8px" cellspacing="0" width="100%">
         <tr>
