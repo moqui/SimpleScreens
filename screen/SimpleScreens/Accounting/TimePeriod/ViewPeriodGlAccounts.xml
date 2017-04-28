@@ -22,7 +22,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="recalculateAmounts"><service-call name="mantle.ledger.LedgerServices.recalculate#GlAccountOrgSummaries"/>
         <default-response url="."/></transition>
-    <transition name="closePeriod"><service-call name="mantle.ledger.LedgerServices.close#FinancialTimePeriod"/>
+    <transition name="closePeriod" begin-transaction="false"><service-call name="mantle.ledger.LedgerServices.close#FinancialTimePeriod"/>
         <default-response url="."/></transition>
     <transition name="reopenPeriod"><service-call name="mantle.ledger.LedgerServices.reopen#FinancialTimePeriod"/>
         <default-response url="."/></transition>
@@ -49,6 +49,8 @@ along with this software (see the LICENSE.md file). If not, see
             <link url="postFaDepreciations" text="Post Depreciation for Fixed Assets"/>
             <link url="recalculateAmounts" text="Recalculate Amounts" parameter-map="[organizationPartyId:timePeriod.partyId]"/>
             <link url="closePeriod" text="Close Period" confirmation="Close period ${ec.resource.expand('TimePeriodNameTemplate','',timePeriod)}?"/>
+            <link url="closePeriod" text="Close Period + Depends" parameter-map="[closePrevious:'true', closeChildren:'true']"
+                    confirmation="Close period ${ec.resource.expand('TimePeriodNameTemplate','',timePeriod)} plus any previous or child periods that are not closed?"/>
         </fail-widgets></section>
 
         <form-list name="PeriodGlAccountList" list="gaotpList" skip-form="true">
