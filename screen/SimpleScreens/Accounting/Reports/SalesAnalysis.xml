@@ -21,20 +21,16 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
-    <actions>
-        <set field="issuedDate_poffset" from="issuedDateCompare_poffset ?: '-1'"/>
-        <set field="issuedDate_period" from="issuedDateCompare_period ?: '30d'"/>
-    </actions>
     <widgets>
-        <form-list name="OrderItemIssuanceSummary" list="summaryList" skip-form="true" header-dialog="true"
-                   select-columns="true" saved-finds="true" show-csv-button="true">
+        <form-list name="SalesAnalysis" list="summaryList" skip-form="true" header-dialog="true"
+                   select-columns="true" saved-finds="true" show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.order.OrderItemIssuanceSummary" list="summaryList">
-                <search-form-inputs default-order-by="pseudoId">
-                    <default-parameters issuedDate_poffset="-1" issuedDate_period="30d"/></search-form-inputs>
+                <search-form-inputs default-order-by="pseudoId,lotNumber">
+                    <default-parameters issuedDate_poffset="-1" issuedDate_period="month"/></search-form-inputs>
                 <select-field field-name="productId,totalSales,totalCost"/>
             </entity-find>
 
-            <field name="issuedDateCompare"><header-field title="Issued Date"><date-period/></header-field></field>
+            <field name="issuedDate"><header-field title="Issued Date"><date-period/></header-field></field>
             <field name="productId">
                 <header-field title="Product" show-order-by="true"><drop-down allow-empty="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
@@ -55,19 +51,21 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editParty" link-type="anchor" parameter-map="[partyId:mfgPartyId]"
                         entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="mfgPartyId"/></default-field>
             </field>
-            <field name="lotNumber"><header-field><text-find size="15" hide-options="ignore-case"/></header-field>
+            <field name="lotNumber"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
                 <default-field><display/></default-field></field>
 
             <field name="minUnitAmount" align="right"><default-field title="Min"><display format="#,##0.00"/></default-field></field>
             <field name="maxUnitAmount" align="right"><default-field title="Max"><display format="#,##0.00"/></default-field></field>
             <field name="averageAmount" from="totalSales/quantity" align="right"><default-field title="Avg"><display format="#,##0.00"/></default-field></field>
 
-            <field name="quantity" align="right"><header-field><range-find size="15"/></header-field>
+            <field name="quantity" align="right" show-total="true"><header-field show-order-by="true"><range-find size="15"/></header-field>
                 <default-field><display format="#,##0"/></default-field></field>
-            <field name="totalSales" align="right"><default-field><display format="#,##0.00"/></default-field></field>
-            <field name="totalCost" align="right"><default-field><display format="#,##0.00"/></default-field></field>
+            <field name="totalSales" align="right" show-total="true"><header-field show-order-by="true"><range-find size="15"/></header-field>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="totalCost" align="right" show-total="true"><header-field show-order-by="true"><range-find size="15"/></header-field>
+                <default-field><display format="#,##0.00"/></default-field></field>
 
-            <field name="marginAmount" from="(totalSales ?: 0.0) - (totalCost ?: 0.0)" align="right">
+            <field name="marginAmount" from="(totalSales ?: 0.0) - (totalCost ?: 0.0)" align="right" show-total="true">
                 <default-field title="Margin Amount"><display format="#,##0.00"/></default-field></field>
             <field name="marginPercent" from="totalSales ? (((totalSales - (totalCost ?: 0.0))/totalSales)*100.0) : 0.0" align="right">
                 <default-field title="Margin Percent"><display format="00.00"/></default-field></field>
