@@ -105,7 +105,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#if classInfoById.ASSET??><@showClass classInfoById.ASSET 1/></#if>
         <#if classInfoById.CONTRA_ASSET??><@showClass classInfoById.CONTRA_ASSET 1/></#if>
         <#if netAssetTotalMap??>
-            <tr class="text-success" style="border-bottom: solid black;">
+            <tr class="text-success" style="border-bottom: solid black;border-top:solid black;">
                 <td><strong>${ec.l10n.localize("Net Asset Total")}</strong></td>
                 <#if (timePeriodIdList?size > 1)>
                     <td class="text-right"><strong>${ec.l10n.formatCurrency(netAssetTotalMap.totalPosted['ALL']!0, currencyUomId)}</strong></td>
@@ -122,20 +122,36 @@ along with this software (see the LICENSE.md file). If not, see
 
         <#if classInfoById.LIABILITY??><@showClass classInfoById.LIABILITY 1/></#if>
         <#if classInfoById.EQUITY??><@showClass classInfoById.EQUITY 1/></#if>
-        <#if liabilityEquityTotalMap??>
-            <tr class="text-success" style="border-bottom: solid black;">
-                <td><strong>${ec.l10n.localize("Liability + Equity Total")}</strong></td>
+        <#if classInfoById.CONTRA_EQUITY??><@showClass classInfoById.CONTRA_EQUITY 1/></#if>
+        <#if equityTotalMap??>
+            <tr class="text-info">
+                <td><strong>${ec.l10n.localize("Equity + Contra Equity Total")}</strong></td>
                 <#if (timePeriodIdList?size > 1)>
-                    <td class="text-right"><strong>${ec.l10n.formatCurrency(liabilityEquityTotalMap.totalPosted['ALL']!0, currencyUomId)}</strong></td>
-                    <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalBalance['ALL']!0) - (liabilityEquityTotalMap.totalPosted['ALL']!0), currencyUomId)}</strong></td>
-                    <td class="text-right"><strong>${ec.l10n.formatCurrency(liabilityEquityTotalMap.totalBalance['ALL']!0, currencyUomId)}</strong></td>
+                    <td class="text-right"><strong>${ec.l10n.formatCurrency(equityTotalMap.totalPosted['ALL']!0, currencyUomId)}</strong></td>
+                    <td class="text-right"><strong>${ec.l10n.formatCurrency((equityTotalMap.totalBalance['ALL']!0) - (equityTotalMap.totalPosted['ALL']!0), currencyUomId)}</strong></td>
+                    <td class="text-right"><strong>${ec.l10n.formatCurrency(equityTotalMap.totalBalance['ALL']!0, currencyUomId)}</strong></td>
                 </#if>
                 <#list timePeriodIdList as timePeriodId>
-                    <td class="text-right"><strong>${ec.l10n.formatCurrency(liabilityEquityTotalMap.totalPosted[timePeriodId]!0, currencyUomId)}</strong></td>
-                    <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) - (liabilityEquityTotalMap.totalPosted[timePeriodId]!0), currencyUomId)}</strong></td>
-                    <td class="text-right"><strong>${ec.l10n.formatCurrency(liabilityEquityTotalMap.totalBalance[timePeriodId]!0, currencyUomId)}</strong></td>
+                    <td class="text-right"><strong>${ec.l10n.formatCurrency(equityTotalMap.totalPosted[timePeriodId]!0, currencyUomId)}</strong></td>
+                    <td class="text-right"><strong>${ec.l10n.formatCurrency((equityTotalMap.totalBalance[timePeriodId]!0) - (equityTotalMap.totalPosted[timePeriodId]!0), currencyUomId)}</strong></td>
+                    <td class="text-right"><strong>${ec.l10n.formatCurrency(equityTotalMap.totalBalance[timePeriodId]!0, currencyUomId)}</strong></td>
                 </#list>
             </tr>
+        </#if>
+        <#if liabilityEquityTotalMap??>
+        <tr class="text-success" style="border-bottom:solid black;border-top:solid black;">
+            <td><strong>${ec.l10n.localize("Liability + Equity Grand Total")}</strong></td>
+            <#if (timePeriodIdList?size > 1)>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(liabilityEquityTotalMap.totalPosted['ALL']!0, currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalBalance['ALL']!0) - (liabilityEquityTotalMap.totalPosted['ALL']!0), currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(liabilityEquityTotalMap.totalBalance['ALL']!0, currencyUomId)}</strong></td>
+            </#if>
+            <#list timePeriodIdList as timePeriodId>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(liabilityEquityTotalMap.totalPosted[timePeriodId]!0, currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) - (liabilityEquityTotalMap.totalPosted[timePeriodId]!0), currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(liabilityEquityTotalMap.totalBalance[timePeriodId]!0, currencyUomId)}</strong></td>
+            </#list>
+        </tr>
         </#if>
     </tbody>
 </table>

@@ -24,6 +24,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="viewPostedBalanceSummary"><default-response url="../PostedBalanceSummary"/></transition>
 
     <transition-include name="getTimePeriodList" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
+    <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
     <widgets>
         <container-row><row-col md="6">
@@ -75,6 +76,27 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body></container-box>
         </row-col><row-col md="6">
             <container-box><box-header><label text="Transaction Summaries" type="h5"/></box-header><box-body>
+                <container-dialog id="AccountLedgerDialog" button-text="Account Ledger">
+                    <form-single name="AccountLedgerForm" transition="../AccountLedger">
+                        <field name="organizationPartyId"><default-field title="Organization">
+                            <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                    <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                    <econdition field-name="disabled" value="N" or-null="true"/>
+                                    <order-by field-name="organizationName,firstName"/></entity-find>
+                            </entity-options></drop-down>
+                        </default-field></field>
+                        <field name="timePeriodId"><default-field title="Time Period"><drop-down>
+                            <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0"
+                                    parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']">
+                                <depends-on field="organizationPartyId" parameter="partyId"/></dynamic-options>
+                        </drop-down></default-field></field>
+                        <field name="glAccountId"><default-field title="GL Account"><drop-down allow-empty="true">
+                            <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/>
+                        </drop-down></default-field></field>
+                        <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
                 <container-dialog id="PostedAmountSummaryDialog" button-text="Posted Amount Summary">
                     <form-single name="PostedAmountSummaryForm" transition="viewPostedAmountSummary">
                         <field name="organizationPartyId"><default-field title="Organization">

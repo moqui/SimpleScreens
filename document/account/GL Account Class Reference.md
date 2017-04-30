@@ -12,6 +12,7 @@
             - Equipment
             - Other Asset
         - Other Asset
+    - **Contra Equity** (Balance Sheet)
     - **Cost of Sales** (Income Statement)
         - Cost of Goods Sold
             - Good and Material Cost
@@ -24,15 +25,15 @@
         - Customer Returns
     - **Operating Expense** (Income Statement)
         - Sales and Marketing Expense
-            - Sales Compensation
             - Advertising
             - Promotional Materials
+            - Sales Compensation
             - Sales Travel
-            - Sales Samples (custom)
-            - Internet Expenses / Consulting (custom)
         - General and Administrative Expense
+            - Employee Compensation
+            - Non-Employee Compensation
+            - Professional Services
             - Banking Service Charges
-            - Compensation
             - Data Processing
             - Dues and Subscriptions
             - Education Expense
@@ -41,12 +42,12 @@
             - Miscellaneous Expense
             - Office and Supplies
             - Product Research (custom)
-            - Professional Services
             - Tax Expense - Income
             - Tax Expense - Other
             - Utilities Expense
             - Vehicle Expense
             - Travel and Entertainment
+        - Contributions
         - Non-Cash Expense
             - Amortization
             - Bad Debt Expense
