@@ -75,7 +75,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="../InvoiceReconciliation" text="Invoice Reconciliation"/>
             </box-body></container-box>
         </row-col><row-col md="6">
-            <container-box><box-header><label text="Transaction Summaries" type="h5"/></box-header><box-body>
+            <container-box><box-header><label text="Transaction Reports" type="h5"/></box-header><box-body>
                 <container-dialog id="AccountLedgerDialog" button-text="Account Ledger">
                     <form-single name="AccountLedgerForm" transition="../AccountLedger">
                         <field name="organizationPartyId"><default-field title="Organization">
@@ -91,47 +91,69 @@ along with this software (see the LICENSE.md file). If not, see
                                     parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']">
                                 <depends-on field="organizationPartyId" parameter="partyId"/></dynamic-options>
                         </drop-down></default-field></field>
+                        <field name="glAccountId"><default-field title="GL Account"><drop-down>
+                            <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/>
+                        </drop-down></default-field></field>
+                        <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+                <container-dialog id="AccountBalanceDialog" button-text="Account Balance History">
+                    <form-single name="AccountBalanceForm" transition="../AccountBalance">
+                        <field name="organizationPartyId"><default-field title="Organization">
+                            <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                                <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                    <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                    <econdition field-name="disabled" value="N" or-null="true"/>
+                                    <order-by field-name="organizationName,firstName"/></entity-find>
+                            </entity-options></drop-down>
+                        </default-field></field>
+                        <field name="timePeriodTypeId"><default-field title="Type">
+                            <drop-down><option key="FiscalYear" text="Year"/>
+                                <option key="FiscalQuarter" text="Quarter"/><option key="FiscalMonth" text="Month"/></drop-down>
+                        </default-field></field>
                         <field name="glAccountId"><default-field title="GL Account"><drop-down allow-empty="true">
                             <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/>
                         </drop-down></default-field></field>
                         <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
-                <container-dialog id="PostedAmountSummaryDialog" button-text="Posted Amount Summary">
-                    <form-single name="PostedAmountSummaryForm" transition="viewPostedAmountSummary">
-                        <field name="organizationPartyId"><default-field title="Organization">
-                            <widget-template-include location="component://SimpleScreens/template/party/PartyWidgetTemplates.xml#partyDropDownByRole">
-                                <set field="roleTypeId" value="OrgInternal"/></widget-template-include>
-                        </default-field></field>
-                        <field name="dateRange"><default-field><date-period allow-empty="false"/></default-field></field>
-                        <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
-                    </form-single>
-                </container-dialog>
-                <container-dialog id="PostedBalanceSummaryDialog" button-text="Posted Balance Summary">
-                    <form-single name="PostedBalanceSummaryForm" transition="viewPostedBalanceSummary">
-                        <field name="organizationPartyId"><default-field title="Organization">
-                            <drop-down>
-                                <entity-options key="${partyId}" text="PartyNameTemplate">
-                                    <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                        <econdition field-name="roleTypeId" value="OrgInternal"/>
-                                        <econdition field-name="disabled" value="N" or-null="true"/>
-                                        <order-by field-name="organizationName,firstName"/></entity-find>
-                                </entity-options>
-                            </drop-down>
-                        </default-field></field>
-                        <field name="timePeriodId"><default-field title="Time Period">
-                            <drop-down>
-                                <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0"
-                                        parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']">
-                                    <depends-on field="organizationPartyId" parameter="partyId"/></dynamic-options>
-                            </drop-down>
-                        </default-field></field>
-                        <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
-                    </form-single>
-                </container-dialog>
-
                 <link url="../../Transaction" text="Transactions"/>
                 <link url="../../Transaction/FindTransactionEntry" text="Transaction Entries"/>
+
+                <container>
+                    <container-dialog id="PostedAmountSummaryDialog" button-text="Posted Amount Summary">
+                        <form-single name="PostedAmountSummaryForm" transition="viewPostedAmountSummary">
+                            <field name="organizationPartyId"><default-field title="Organization">
+                                <widget-template-include location="component://SimpleScreens/template/party/PartyWidgetTemplates.xml#partyDropDownByRole">
+                                    <set field="roleTypeId" value="OrgInternal"/></widget-template-include>
+                            </default-field></field>
+                            <field name="dateRange"><default-field><date-period allow-empty="false"/></default-field></field>
+                            <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                    <container-dialog id="PostedBalanceSummaryDialog" button-text="Posted Balance Summary">
+                        <form-single name="PostedBalanceSummaryForm" transition="viewPostedBalanceSummary">
+                            <field name="organizationPartyId"><default-field title="Organization">
+                                <drop-down>
+                                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                            <econdition field-name="disabled" value="N" or-null="true"/>
+                                            <order-by field-name="organizationName,firstName"/></entity-find>
+                                    </entity-options>
+                                </drop-down>
+                            </default-field></field>
+                            <field name="timePeriodId"><default-field title="Time Period">
+                                <drop-down>
+                                    <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0"
+                                            parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']">
+                                        <depends-on field="organizationPartyId" parameter="partyId"/></dynamic-options>
+                                </drop-down>
+                            </default-field></field>
+                            <field name="submitButton"><default-field title="Run"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </container>
             </box-body></container-box>
             <container-box><box-header><label text="Asset and Inventory Reports" type="h5"/></box-header><box-body>
                 <link url="../AssetReceiptTransaction" text="Asset Receipt Transactions"/>
