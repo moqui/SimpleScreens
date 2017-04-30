@@ -28,7 +28,7 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="AccountBalanceHistory" list="resultList" skip-form="true" header-dialog="true" select-columns="true"
                 saved-finds="true" show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.ledger.report.GlAccountOrgTimePeriodSummary" list="resultList">
-                <search-form-inputs default-order-by="accountCode,fromDate">
+                <search-form-inputs default-order-by="glAccountId,fromDate">
                     <default-parameters timePeriodTypeId="FiscalYear"/></search-form-inputs>
             </entity-find>
 
@@ -40,19 +40,16 @@ along with this software (see the LICENSE.md file). If not, see
                         <order-by field-name="organizationName,firstName"/></entity-find>
                 </entity-options></drop-down>
             </header-field></field>
-            <field name="glAccountId">
-                <header-field title="GL Account"><drop-down allow-empty="true">
-                    <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></header-field>
-            </field>
             <field name="timePeriodTypeId"><header-field title="Period Type">
                 <drop-down><option key="FiscalYear" text="Year"/>
                     <option key="FiscalQuarter" text="Quarter"/><option key="FiscalMonth" text="Month"/></drop-down>
             </header-field></field>
 
-            <field name="accountCode"><header-field show-order-by="true"><text-find size="10" hide-options="ignore-case"/></header-field>
-                <default-field title="Acct Code"><display text="${accountCode ? (accountCodeFormatter != null ? accountCodeFormatter.valueToString(accountCode) : accountCode) : ''}"/></default-field></field>
-            <field name="accountName"><header-field show-order-by="true"><text-find size="30"/></header-field>
-                <default-field><display/></default-field></field>
+            <field name="glAccountId">
+                <header-field title="GL Account" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><display-entity entity-name="mantle.ledger.account.GlAccount" text="GlAccountNameTemplate"/></default-field>
+            </field>
             <field name="glAccountClassEnumId">
                 <header-field title="Class" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -61,7 +58,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
 
-            <field name="periodName"><default-field><display/></default-field></field>
+            <field name="timePeriodId">
+                <header-field title="Period"><drop-down allow-empty="true">
+                    <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0"
+                            parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']">
+                        <depends-on field="organizationPartyId" parameter="partyId"/></dynamic-options>
+                </drop-down></header-field>
+                <default-field><display-entity entity-name="mantle.party.time.TimePeriod" text="${periodName}"/></default-field>
+            </field>
             <field name="fromDate"><header-field show-order-by="true"/><default-field><display/></default-field></field>
             <field name="thruDate"><header-field show-order-by="true"/><default-field><display/></default-field></field>
             <field name="isClosed"><default-field title="Closed"><display/></default-field></field>
@@ -71,6 +75,9 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="beginningBalance" show-total="first"><default-field><display format="#,##0.00"/></default-field></field>
             <field name="postedAmount" from="endingBalance - beginningBalance" show-total="sum"><default-field><display format="#,##0.00"/></default-field></field>
             <field name="endingBalance" show-total="last"><default-field><display format="#,##0.00"/></default-field></field>
+
+            <field name="ledgerLink"><default-field title="Ledger">
+                <link url="../AccountLedger" text="Ledger" link-type="anchor" condition="glAccountId &amp;&amp; timePeriodId"/></default-field></field>
 
             <field name="find"><header-field title="Find"><submit/></header-field></field>
         </form-list>
