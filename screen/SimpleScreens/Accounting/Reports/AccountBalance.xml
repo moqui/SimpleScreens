@@ -19,6 +19,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
     <actions>
+        <if condition="classAndDescendants">
+            <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="descOut"
+                    in-map="[parentEnumId:classAndDescendants, includeNested:true]"/>
+            <set field="glAccountClassEnumId" from="descOut.enumIdSet"/>
+            <set field="glAccountClassEnumId_op" value="in"/>
+        </if>
+
         <if condition="organizationPartyId"><service-call name="mantle.ledger.LedgerServices.find#PartyAcctgPreference" out-map="context"
                 in-map="[organizationPartyId:organizationPartyId]"/></if>
         <set field="glAccountCodeMask" from="partyAcctgPreference?.glAccountCodeMask ?: ec.user.getPreference('GlAccountCodeMask')"/>
@@ -44,6 +51,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <drop-down><option key="FiscalYear" text="Year"/>
                     <option key="FiscalQuarter" text="Quarter"/><option key="FiscalMonth" text="Month"/></drop-down>
             </header-field></field>
+            <field name="classAndDescendants">
+                <header-field title="Class + Subs" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="GlAccountClass"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </header-field>
+            </field>
 
             <field name="glAccountId">
                 <header-field title="GL Account" show-order-by="true"><drop-down allow-empty="true">
