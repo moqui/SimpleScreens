@@ -118,28 +118,6 @@ along with this software (see the LICENSE.md file). If not, see
             docIndex="100" docLocation="component://SimpleScreens/document/shipment/Shipment Status Reference.md"/>
 
     <!-- ========== Pre-configured form-list finds ========== -->
-    
-    <!-- Accounting/Transaction/FindTransactionEntry -->
-    <moqui.screen.form.FormConfig formConfigId="AT_FTE_AR_CUST_LEDG"
-            formLocation="component://SimpleScreens/screen/SimpleScreens/Accounting/Transaction/FindTransactionEntry.xml.form_list$TransactionEntryList">
-        <fields positionSequence="0" positionIndex="0" fieldName="otherPartyId"/>
-        <fields positionSequence="0" positionIndex="1" fieldName="acctgTransId"/>
-        <fields positionSequence="0" positionIndex="2" fieldName="transactionDate"/>
-        <fields positionSequence="0" positionIndex="3" fieldName="acctgTransTypeEnumId"/>
-        <fields positionSequence="0" positionIndex="4" fieldName="description"/>
-        <fields positionSequence="0" positionIndex="5" fieldName="invoiceId"/>
-        <fields positionSequence="0" positionIndex="6" fieldName="productId"/>
-        <fields positionSequence="0" positionIndex="7" fieldName="acctgTransEntrySeqId"/>
-        <fields positionSequence="0" positionIndex="8" fieldName="glAccountId"/>
-        <fields positionSequence="0" positionIndex="9" fieldName="debit"/>
-        <fields positionSequence="0" positionIndex="10" fieldName="credit"/>
-    </moqui.screen.form.FormConfig>
-    <moqui.screen.form.FormListFind formListFindId="AT_FTE_AR_CUST_LEDG" formConfigId="AT_FTE_AR_CUST_LEDG"
-            description="AR Customer Ledger" orderByField="-transactionDate,-acctgTransId,acctgTransEntrySeqId"
-            formLocation="component://SimpleScreens/screen/SimpleScreens/Accounting/Transaction/FindTransactionEntry.xml.form_list$TransactionEntryList">
-        <fields fieldName="transactionDate" fieldPeriod="year" fieldPerOffset="0"/>
-        <userGroups userGroupId="ALL_USERS"/>
-    </moqui.screen.form.FormListFind>
 
     <!-- Accounting/Invoice/FindInvoice -->
     <moqui.screen.form.FormConfig formConfigId="AI_FI_AR_CUST_STMT"
@@ -177,6 +155,74 @@ along with this software (see the LICENSE.md file). If not, see
             description="By Product Last Month" orderByField="pseudoId"
             formLocation="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesAnalysis.xml.form_list$SalesAnalysis">
         <fields fieldName="issuedDate" fieldPeriod="month" fieldPerOffset="-1"/>
+        <userGroups userGroupId="ALL_USERS"/>
+    </moqui.screen.form.FormListFind>
+
+    <!-- Accounting/Reports/InvoiceAgingDetail -->
+    <moqui.screen.form.FormConfig formConfigId="AC_REP_INVAGD_RECSUM"
+            formLocation="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/InvoiceAgingDetail.xml.form_list$InvoiceAgingList">
+        <fields positionSequence="0" positionIndex="0" fieldName="toPartyId"/>
+        <fields positionSequence="0" positionIndex="1" fieldName="statusId"/>
+        <fields positionSequence="0" positionIndex="2" fieldName="count"/>
+        <fields positionSequence="0" positionIndex="3" fieldName="currentDue"/>
+        <fields positionSequence="0" positionIndex="4" fieldName="period1"/>
+        <fields positionSequence="0" positionIndex="5" fieldName="period2"/>
+        <fields positionSequence="0" positionIndex="6" fieldName="period3"/>
+        <fields positionSequence="0" positionIndex="7" fieldName="period4"/>
+        <fields positionSequence="0" positionIndex="8" fieldName="periodRemaining"/>
+        <fields positionSequence="0" positionIndex="9" fieldName="unpaidTotal"/>
+    </moqui.screen.form.FormConfig>
+    <moqui.screen.form.FormListFind formListFindId="AC_REP_INVAGD_RECSUM" formConfigId="AC_REP_INVAGD_RECSUM"
+            description="Receivable Summary" orderByField="invoiceDate"
+            formLocation="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/InvoiceAgingDetail.xml.form_list$InvoiceAgingList">
+        <fields fieldName="pageNoLimit" fieldOperator="equals" fieldValue="true"/>
+        <fields fieldName="dateField" fieldOperator="equals" fieldValue="dueDate"/>
+        <fields fieldName="invoiceType" fieldOperator="equals" fieldValue="Receivable"/>
+        <fields fieldName="periodDays" fieldOperator="equals" fieldValue="30"/>
+        <userGroups userGroupId="ALL_USERS"/>
+    </moqui.screen.form.FormListFind>
+    <moqui.screen.form.FormConfig formConfigId="AC_REP_INVAGD_PAYSUM"
+            formLocation="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/InvoiceAgingDetail.xml.form_list$InvoiceAgingList">
+        <fields positionSequence="0" positionIndex="0" fieldName="fromPartyId"/>
+        <fields positionSequence="0" positionIndex="1" fieldName="statusId"/>
+        <fields positionSequence="0" positionIndex="2" fieldName="count"/>
+        <fields positionSequence="0" positionIndex="3" fieldName="currentDue"/>
+        <fields positionSequence="0" positionIndex="4" fieldName="period1"/>
+        <fields positionSequence="0" positionIndex="5" fieldName="period2"/>
+        <fields positionSequence="0" positionIndex="6" fieldName="period3"/>
+        <fields positionSequence="0" positionIndex="7" fieldName="period4"/>
+        <fields positionSequence="0" positionIndex="8" fieldName="periodRemaining"/>
+        <fields positionSequence="0" positionIndex="9" fieldName="unpaidTotal"/>
+    </moqui.screen.form.FormConfig>
+    <moqui.screen.form.FormListFind formListFindId="AC_REP_INVAGD_PAYSUM" formConfigId="AC_REP_INVAGD_PAYSUM"
+            description="Payable Summary" orderByField="invoiceDate"
+            formLocation="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/InvoiceAgingDetail.xml.form_list$InvoiceAgingList">
+        <fields fieldName="pageNoLimit" fieldOperator="equals" fieldValue="true"/>
+        <fields fieldName="dateField" fieldOperator="equals" fieldValue="dueDate"/>
+        <fields fieldName="invoiceType" fieldOperator="equals" fieldValue="Payable"/>
+        <fields fieldName="periodDays" fieldOperator="equals" fieldValue="30"/>
+        <userGroups userGroupId="ALL_USERS"/>
+    </moqui.screen.form.FormListFind>
+
+    <!-- Accounting/Transaction/FindTransactionEntry -->
+    <moqui.screen.form.FormConfig formConfigId="AT_FTE_AR_CUST_LEDG"
+            formLocation="component://SimpleScreens/screen/SimpleScreens/Accounting/Transaction/FindTransactionEntry.xml.form_list$TransactionEntryList">
+        <fields positionSequence="0" positionIndex="0" fieldName="otherPartyId"/>
+        <fields positionSequence="0" positionIndex="1" fieldName="acctgTransId"/>
+        <fields positionSequence="0" positionIndex="2" fieldName="transactionDate"/>
+        <fields positionSequence="0" positionIndex="3" fieldName="acctgTransTypeEnumId"/>
+        <fields positionSequence="0" positionIndex="4" fieldName="description"/>
+        <fields positionSequence="0" positionIndex="5" fieldName="invoiceId"/>
+        <fields positionSequence="0" positionIndex="6" fieldName="productId"/>
+        <fields positionSequence="0" positionIndex="7" fieldName="acctgTransEntrySeqId"/>
+        <fields positionSequence="0" positionIndex="8" fieldName="glAccountId"/>
+        <fields positionSequence="0" positionIndex="9" fieldName="debit"/>
+        <fields positionSequence="0" positionIndex="10" fieldName="credit"/>
+    </moqui.screen.form.FormConfig>
+    <moqui.screen.form.FormListFind formListFindId="AT_FTE_AR_CUST_LEDG" formConfigId="AT_FTE_AR_CUST_LEDG"
+            description="AR Customer Ledger" orderByField="-transactionDate,-acctgTransId,acctgTransEntrySeqId"
+            formLocation="component://SimpleScreens/screen/SimpleScreens/Accounting/Transaction/FindTransactionEntry.xml.form_list$TransactionEntryList">
+        <fields fieldName="transactionDate" fieldPeriod="year" fieldPerOffset="0"/>
         <userGroups userGroupId="ALL_USERS"/>
     </moqui.screen.form.FormListFind>
 </entity-facade-xml>

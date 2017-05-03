@@ -42,10 +42,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="dateField"/><field-ref name="asOfDate"/><field-ref name="submitButton"/></field-row-big></field-layout>
         </form-single>
 
-        <form-list name="InvoiceAgingList" list="invoiceAgingList" skip-form="true" header-dialog="true" saved-finds="true"
+        <form-list name="InvoiceAgingList" list="invoiceAgingList" skip-form="true" header-dialog="true" saved-finds="true" select-columns="true"
                 show-all-button="true" show-csv-button="true">
             <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceAgingList">
                 <search-form-inputs default-order-by="invoiceDate"/>
+                <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
+                <select-field field-name="invoiceDate,dueDate,unpaidTotal"/>
             </entity-find>
             <row-actions>
                 <script><![CDATA[
@@ -66,7 +68,24 @@ along with this software (see the LICENSE.md file). If not, see
                     <option key="invoiceDate" text="Invoice Date"/></drop-down></header-field></field>
             <field name="asOfDate"><header-field><date-time type="date"/></header-field></field>
 
-            <field name="invoiceId"><header-field show-order-by="true" title="Invoice"/><default-field>
+            <field name="fromPartyId" aggregate="group-by">
+                <header-field title="From">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                            parameter-map="[roleTypeId:'Supplier,Vendor,VendorBillFrom,OrgInternal']"/></drop-down>
+                </header-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field>
+            </field>
+            <field name="toPartyId" aggregate="group-by">
+                <header-field title="To">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"
+                            parameter-map="[roleTypeId:'Customer,CustomerBillTo,OrgInternal']"/></drop-down>
+                </header-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
+            </field>
+
+            <field name="invoiceId" aggregate="group-by"><header-field show-order-by="true" title="Invoice"/><default-field>
                 <link url="editInvoice" text="${invoiceId}" link-type="anchor"/>
             </default-field></field>
             <field name="referenceNumber"><header-field title="Ref Number"><text-find/></header-field>
@@ -76,7 +95,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
 
-            <field name="invoiceTypeEnumId">
+            <field name="invoiceTypeEnumId" aggregate="group-by">
                 <header-field title="Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="InvoiceType"/><set field="allowEmpty" value="true"/>
@@ -85,23 +104,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
 
-            <field name="fromPartyId">
-                <header-field title="From">
-                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="0"
-                            parameter-map="[roleTypeId:'Supplier,Vendor,VendorBillFrom,OrgInternal']"/></drop-down>
-                </header-field>
-                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
-                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field>
-            </field>
-            <field name="toPartyId">
-                <header-field title="To">
-                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"
-                            parameter-map="[roleTypeId:'Customer,CustomerBillTo,OrgInternal']"/></drop-down>
-                </header-field>
-                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
-                        link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
-            </field>
-            <field name="statusId">
+            <field name="statusId" aggregate="group-by">
                 <header-field title="Status" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
                         <set field="statusTypeId" value="Invoice"/><set field="allowMultiple" value="true"/></widget-template-include>
@@ -109,26 +112,28 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
 
-            <field name="currentDue" from="agingList[0]" align="right" show-total="true"><header-field title="Current"/>
+            <field name="count" from="invoiceDate" aggregate="count"><default-field><display/></default-field></field>
+
+            <field name="currentDue" from="agingList[0]" align="right" show-total="true" aggregate="sum"><header-field title="Current"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="period1" from="agingList[1]" align="right" show-total="true"><header-field title="0 - ${periodDays} days"/>
+            <field name="period1" from="agingList[1]" align="right" show-total="true" aggregate="sum"><header-field title="0 - ${periodDays} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="period2" from="agingList[2]" align="right" show-total="true"><header-field title="${periodDays+1} - ${periodDays*2} days"/>
+            <field name="period2" from="agingList[2]" align="right" show-total="true" aggregate="sum"><header-field title="${periodDays+1} - ${periodDays*2} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="period3" from="agingList[3]" align="right" show-total="true"><header-field title="${periodDays*2+1} - ${periodDays*3} days"/>
+            <field name="period3" from="agingList[3]" align="right" show-total="true" aggregate="sum"><header-field title="${periodDays*2+1} - ${periodDays*3} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="period4" from="agingList[4]" align="right" show-total="true"><header-field title="${periodDays*3+1} - ${periodDays*4} days"/>
+            <field name="period4" from="agingList[4]" align="right" show-total="true" aggregate="sum"><header-field title="${periodDays*3+1} - ${periodDays*4} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="periodRemaining" from="agingList[5]" align="right" show-total="true"><header-field title="&gt; ${periodDays*4} days"/>
+            <field name="periodRemaining" from="agingList[5]" align="right" show-total="true" aggregate="sum"><header-field title="&gt; ${periodDays*4} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="unpaidTotal" align="right" show-total="true"><header-field show-order-by="true"/>
+            <field name="unpaidTotal" align="right" show-total="true" aggregate="sum"><header-field show-order-by="true"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
 
+            <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
             <form-list-column><field-ref name="invoiceId"/><field-ref name="referenceNumber"/></form-list-column>
             <form-list-column><field-ref name="invoiceDate"/><field-ref name="dueDate"/></form-list-column>
-            <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/></form-list-column>
             <form-list-column><field-ref name="currentDue"/></form-list-column>
             <form-list-column><field-ref name="period1"/></form-list-column>
