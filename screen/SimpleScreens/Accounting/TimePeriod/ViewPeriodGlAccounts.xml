@@ -20,47 +20,86 @@ along with this software (see the LICENSE.md file). If not, see
     
     <transition name="postFaDepreciations"><service-call name="mantle.ledger.AssetAutoPostServices.calculateAndPost#AllFixedAssetDepreciations"/>
         <default-response url="."/></transition>
-    <transition name="recalculateAmounts"><service-call name="mantle.ledger.LedgerServices.recalculate#GlAccountOrgSummaries"/>
+    <transition name="recalculateAllAmounts"><service-call name="mantle.ledger.LedgerServices.recalculate#GlAccountOrgSummaries"/>
+        <default-response url="."/></transition>
+    <transition name="recalculateAmounts"><service-call name="mantle.ledger.LedgerServices.recalculate#GlAccountOrgTimePeriodAmounts"/>
         <default-response url="."/></transition>
     <transition name="closePeriod" begin-transaction="false"><service-call name="mantle.ledger.LedgerServices.close#FinancialTimePeriod"/>
         <default-response url="."/></transition>
     <transition name="reopenPeriod"><service-call name="mantle.ledger.LedgerServices.reopen#FinancialTimePeriod"/>
         <default-response url="."/></transition>
+    <transition name="createPeriodCloseAcctgTrans"><service-call name="mantle.ledger.LedgerServices.create#PeriodCloseAcctgTrans"/>
+        <default-response url="."/></transition>
 
     <actions>
         <entity-find-one entity-name="mantle.party.time.TimePeriod" value-field="timePeriod"/>
+        <set field="organizationPartyId" from="timePeriod.partyId"/>
         <service-call name="mantle.ledger.LedgerServices.find#PartyAcctgPreference"
                 in-map="[organizationPartyId:timePeriod.partyId]" out-map="context"/>
 
-        <entity-find entity-name="mantle.ledger.account.GlAccountOrgTimePeriod" list="gaotpList">
-            <econdition field-name="timePeriodId"/>
-            <!-- Not all sub-orgs will have accounting settings, may inherit: <econdition field-name="organizationPartyId" from="timePeriod.partyId"/> -->
-            <order-by field-name="glAccountId"/>
-        </entity-find>
+        <set field="glAccountCodeMask" from="partyAcctgPreference?.glAccountCodeMask ?: ec.user.getPreference('GlAccountCodeMask')"/>
+        <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
     </actions>
     <widgets>
         <label text="Accounts for ${timePeriod.periodName} [${timePeriod.timePeriodId}]" type="h3"/>
-        
+
+        <link url="recalculateAllAmounts" text="Recalc All" parameter-map="[organizationPartyId:timePeriod.partyId]"/>
         <section name="PeriodCloseSection" condition="timePeriod.isClosed == 'Y'"><widgets>
             <label text="Period Closed" type="h4"/>
             <link url="reopenPeriod" text="Reopen Period" confirmation="Reopen period ${ec.resource.expand('TimePeriodNameTemplate','',timePeriod)}?"
                 condition="ec.user.hasPermission('FISCAL_REOPEN')"/>
         </widgets><fail-widgets>
-            <link url="postFaDepreciations" text="Post Depreciation for Fixed Assets"/>
-            <link url="recalculateAmounts" text="Recalculate Amounts" parameter-map="[organizationPartyId:timePeriod.partyId]"/>
+            <link url="recalculateAmounts" text="Recalc Period" parameter-map="[timePeriodId:timePeriodId]"/>
+            <link url="postFaDepreciations" text="Post Depreciation"/>
             <link url="closePeriod" text="Close Period" confirmation="Close period ${ec.resource.expand('TimePeriodNameTemplate','',timePeriod)}?"/>
             <link url="closePeriod" text="Close Period + Depends" parameter-map="[closePrevious:'true', closeChildren:'true']"
                     confirmation="Close period ${ec.resource.expand('TimePeriodNameTemplate','',timePeriod)} plus any previous or child periods that are not closed?"/>
         </fail-widgets></section>
+        <container-dialog id="ClosingTransDialog" button-text="Net Income Closing Transactions">
+            <label text="Creates a transaction for each income statement account class (Revenue, Contra Revenue, Cost of Sales, Income, Expense, Non-Operating Expense)" type="p"/>
+            <label text="This can be run at any time, but best after a period is closed (Period Close type transactions may be posted after a period is closed)" type="p"/>
+            <form-single name="ClosingTransForm" transition="createPeriodCloseAcctgTrans">
+                <field name="timePeriodId"><default-field><hidden/></default-field></field>
+                <field name="postTransactions"><default-field><drop-down>
+                    <option key="true" text="Yes"/><option key="false" text="No"/></drop-down></default-field></field>
+                <field name="glJournalId"><default-field title="Journal"><drop-down allow-empty="true">
+                    <entity-options key="${glJournalId}" text="${glJournalName} [${glJournalId}]">
+                        <entity-find entity-name="mantle.ledger.transaction.GlJournal">
+                            <econdition field-name="organizationPartyId" or-null="true"/>
+                            <econdition field-name="isPosted" value="N" or-null="true"/>
+                            <econdition field-name="glJournalTypeEnumId" operator="not-equals" value="GLJRNL_ERROR"/>
+                            <order-by field-name="glJournalName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+                <field name="netIncomeGlAccountId"><default-field title="Net Income Account"><drop-down>
+                    <entity-options key="${glAccountId}" text="GlAccountNameTemplate">
+                        <entity-find entity-name="mantle.ledger.account.GlAccount">
+                            <econdition field-name="glAccountClassEnumId" operator="in" value="NET_INCOME,RETAINED_EARNINGS"/>
+                            <order-by field-name="glAccountClassEnumId,accountCode"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
 
-        <form-list name="PeriodGlAccountList" list="gaotpList" skip-form="true">
+        <form-list name="PeriodGlAccountList" list="gaotpList" skip-form="true" show-csv-button="true">
+            <entity-find entity-name="mantle.ledger.account.GlAccountOrgTimePeriod" list="gaotpList">
+                <econdition field-name="timePeriodId"/>
+                <order-by field-name="glAccountId"/>
+            </entity-find>
+
             <field name="glAccountId"><default-field title="GL Account">
-                <display-entity entity-name="mantle.ledger.account.GlAccount" text="${accountCode} - ${accountName}"/>
+                <display-entity entity-name="mantle.ledger.account.GlAccount" text="GlAccountNameTemplate"/>
             </default-field></field>
-            <field name="postedDebits"><default-field><display currency-unit-field="partyAcctgPreference.baseCurrencyUomId"/></default-field></field>
-            <field name="postedCredits"><default-field><display currency-unit-field="partyAcctgPreference.baseCurrencyUomId"/></default-field></field>
-            <field name="beginningBalance"><default-field><display currency-unit-field="partyAcctgPreference.baseCurrencyUomId"/></default-field></field>
-            <field name="endingBalance"><default-field><display currency-unit-field="partyAcctgPreference.baseCurrencyUomId"/></default-field></field>
+            <field name="postedDebits" align="right"><default-field title="Debits"><display format="#,##0.00"/></default-field></field>
+            <field name="postedCredits" align="right"><default-field title="Credits"><display format="#,##0.00"/></default-field></field>
+            <field name="postedDebitsNoClosing" align="right"><default-field title="Deb - Close"><display format="#,##0.00"/></default-field></field>
+            <field name="postedCreditsNoClosing" align="right"><default-field title="Cred - Close"><display format="#,##0.00"/></default-field></field>
+            <field name="beginningBalance" align="right"><default-field title="Beginning"><display format="#,##0.00"/></default-field></field>
+            <field name="endingBalance" align="right"><default-field title="Ending"><display format="#,##0.00"/></default-field></field>
+            <field name="balanceLastUpdated" align="right"><default-field title="Amounts Updated"><display/></default-field></field>
         </form-list>
     </widgets>
 </screen>
