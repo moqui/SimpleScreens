@@ -22,10 +22,10 @@ along with this software (see the LICENSE.md file). If not, see
     <tr>
         <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}</td>
         <#if (timePeriodIdList?size > 1)>
-            <td class="text-right">${ec.l10n.formatCurrency(classInfo.postedByTimePeriod['ALL']!0, currencyUomId)}</td>
+            <td class="text-right">${ec.l10n.formatCurrency(classInfo.postedNoClosingByTimePeriod['ALL']!0, currencyUomId)}</td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
-            <td class="text-right">${ec.l10n.formatCurrency(classInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId)}</td>
+            <td class="text-right">${ec.l10n.formatCurrency(classInfo.postedNoClosingByTimePeriod[timePeriodId]!0, currencyUomId)}</td>
         </#list>
     </tr>
     <#list classInfo.glAccountInfoList! as glAccountInfo>
@@ -33,21 +33,21 @@ along with this software (see the LICENSE.md file). If not, see
             <tr>
                 <td style="padding-left: ${(depth-1) * 2 + 3}.3em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
                 <#if (timePeriodIdList?size > 1)>
-                    <td class="text-right">${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod['ALL']!0, currencyUomId)}</td>
+                    <td class="text-right">${ec.l10n.formatCurrency(glAccountInfo.postedNoClosingByTimePeriod['ALL']!0, currencyUomId)}</td>
                 </#if>
                 <#list timePeriodIdList as timePeriodId>
                     <td class="text-right">
                         <#if findEntryUrl??>
                             <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                            <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId)}</a>
+                            <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.formatCurrency(glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0, currencyUomId)}</a>
                         <#else>
-                            ${ec.l10n.formatCurrency(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId)}
+                            ${ec.l10n.formatCurrency(glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0, currencyUomId)}
                         </#if>
                     </td>
                 </#list>
             </tr>
         <#else>
-            <!-- ${glAccountInfo.accountCode}: ${glAccountInfo.accountName} ${glAccountInfo.postedByTimePeriod} -->
+            <!-- ${glAccountInfo.accountCode}: ${glAccountInfo.accountName} ${glAccountInfo.postedNoClosingByTimePeriod} -->
         </#if>
     </#list>
     <#list classInfo.childClassInfoList as childClassInfo>
@@ -57,10 +57,10 @@ along with this software (see the LICENSE.md file). If not, see
         <tr<#if depth == 1> class="text-info"</#if>>
             <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize("Total " + classInfo.className)}</strong></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedByTimePeriod['ALL']!0, currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedNoClosingByTimePeriod['ALL']!0, currencyUomId)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedByTimePeriod[timePeriodId]!0, currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedNoClosingByTimePeriod[timePeriodId]!0, currencyUomId)}</strong></td>
             </#list>
         </tr>
     </#if>
@@ -85,10 +85,10 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-info">
             <td><strong>${ec.l10n.localize("Net Revenue")}</strong> (${ec.l10n.localize("Revenue")} + ${ec.l10n.localize("Contra Revenue")})</td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency((classInfoById.REVENUE.totalPostedByTimePeriod['ALL']!0) + (classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod['ALL']!0), currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod['ALL']!0) + (classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod['ALL']!0), currencyUomId)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency((classInfoById.REVENUE.totalPostedByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod[timePeriodId]!0), currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod[timePeriodId]!0), currencyUomId)}</strong></td>
             </#list>
         </tr>
 
