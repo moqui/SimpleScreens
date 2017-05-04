@@ -17,7 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
 
 <#macro showClass classInfo depth>
     <#-- skip classes with nothing posted -->
-    <#if (classInfo.totalPostedByTimePeriod['ALL']!0) == 0><#return></#if>
+    <#if (classInfo.totalPostedNoClosingByTimePeriod['ALL']!0) == 0><#return></#if>
 
     <tr>
         <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}</td>
@@ -85,10 +85,10 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-info">
             <td><strong>${ec.l10n.localize("Net Revenue")}</strong> (${ec.l10n.localize("Revenue")} + ${ec.l10n.localize("Contra Revenue")})</td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod['ALL']!0) + (classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod['ALL']!0), currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod['ALL']!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod['ALL']!0), currencyUomId)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedByTimePeriod[timePeriodId]!0), currencyUomId)}</strong></td>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0), currencyUomId)}</strong></td>
             </#list>
         </tr>
 
