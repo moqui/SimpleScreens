@@ -29,7 +29,23 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
         <service-call name="org.moqui.impl.BasicServices.find#Enumeration" in-map="[enumTypeId:'RejectionReason']" out-map="reasonOut"/>
         <set field="facilityId" from="shipmentRouteSegmentList ? shipmentRouteSegmentList[shipmentRouteSegmentList.size()-1].destinationFacilityId : null"/>
-        <set field="quantityAccepted" from="shipmentItem.quantity"/>
+
+        <!-- get quantityNotHandled total for quantityAccepted, try to get the default acquireCost -->
+        <set field="quantityAccepted" from="0.0"/>
+        <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="shipmentItemSourceList">
+            <econdition field-name="shipmentId"/><econdition field-name="productId"/>
+            <econdition field-name="quantityNotHandled" operator="greater" from="0.0"/>
+        </entity-find>
+        <iterate list="shipmentItemSourceList" entry="shipmentItemSource">
+            <set field="quantityAccepted" from="quantityAccepted + shipmentItemSource.quantityNotHandled"/>
+            <if condition="!acquireCost &amp;&amp; shipmentItemSource.orderId &amp;&amp; shipmentItemSource.orderItemSeqId">
+                <entity-find-one entity-name="mantle.order.OrderItem" value-field="orderItem">
+                    <field-map field-name="orderId" from="shipmentItemSource.orderId"/>
+                    <field-map field-name="orderItemSeqId" from="shipmentItemSource.orderItemSeqId"/>
+                </entity-find-one>
+                <set field="acquireCost" from="orderItem?.unitAmount"/>
+            </if>
+        </iterate>
     </actions>
     <widgets>
         <form-single name="ReceiveForm" transition="receive">
@@ -60,6 +76,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <text-line size="20"/></default-field></field>
             <field name="manufacturedDate"><default-field title="Manufactured"><date-time type="date"/></default-field></field>
             <field name="expectedEndOfLife"><default-field title="Expiration"><date-time type="date"/></default-field></field>
+            <field name="acquireCost"><default-field tooltip="Defaults to unit amount on related order item">
+                <text-line size="8"/></default-field></field>
 
             <field name="quantityAccepted"><default-field><text-line size="8"/></default-field></field>
             <field name="quantityRejected"><default-field><text-line size="8"/></default-field></field>
