@@ -45,7 +45,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="pseudoId">
                 <header-field title="Product ID" show-order-by="true"/>
-                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
+                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor" condition="productId"/></default-field>
             </field>
             <field name="productName">
                 <header-field title="Product Name" show-order-by="true"/>
@@ -55,6 +55,18 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="assetId">
                 <header-field title="Asset ID" show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
                 <default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="facilityId">
+                <header-field title="Facility">
+                    <drop-down allow-empty="true"><entity-options key="${facilityId}" text="FacilityNameTemplate">
+                        <entity-find entity-name="mantle.facility.Facility">
+                            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                            <order-by field-name="facilityName"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field>
             </field>
 
             <field name="mfgPartyId">
@@ -71,15 +83,16 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="averageCost" from="quantityOnHandDiff &amp;&amp; totalCost ? totalCost/quantityOnHandDiff : 0.0" align="right">
                 <default-field title="Avg"><display format="#,##0.00"/></default-field></field>
 
-            <field name="quantityOnHandDiff" align="right"><header-field title="Quantity"/>
+            <field name="quantityOnHandDiff" align="right" show-total="true"><header-field title="Quantity"/>
                 <default-field><display format="#,##0"/></default-field></field>
-            <field name="totalCost" align="right"><default-field><display format="#,##0.00"/></default-field></field>
+            <field name="totalCost" align="right" show-total="true"><default-field><display format="#,##0.00"/></default-field></field>
 
             <field name="find"><header-field title="Find"><submit/></header-field></field>
 
             <!-- basically don't group by (or display) assetId by default -->
             <form-list-column><field-ref name="pseudoId"/></form-list-column>
             <form-list-column><field-ref name="productName"/></form-list-column>
+            <form-list-column><field-ref name="facilityId"/></form-list-column>
             <form-list-column><field-ref name="mfgPartyId"/></form-list-column>
             <form-list-column><field-ref name="lotNumber"/></form-list-column>
             <form-list-column><field-ref name="minAcquireCost"/></form-list-column>
