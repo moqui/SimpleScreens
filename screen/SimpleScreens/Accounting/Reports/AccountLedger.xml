@@ -42,7 +42,7 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
     </actions>
     <widgets>
-        <container-box><box-header><label text="${timePeriod?.periodName ?: 'No Period Selected'} ${timePeriod?.fromDate ? 'From ' + timePeriod.fromDate : ''}${timePeriod?.thruDate ? ' Thru ' + timePeriod.thruDate: ''}" type="h5"/></box-header><box-body-nopad>
+        <container-box><box-header><label text="${timePeriod?.periodName ?: 'No Period Selected'} ${timePeriod?.fromDate ? '(from ' + timePeriod.fromDate : ''}${timePeriod?.thruDate ? ' thru ' + timePeriod.thruDate + ')': ''}" type="h5"/></box-header><box-body-nopad>
             <form-list name="AccountLedger" list="entryInfoList" skip-form="true" header-dialog="true"
                     select-columns="true" saved-finds="true" show-csv-button="true">
                 <field name="glAccountIdList">
@@ -65,24 +65,28 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down></header-field></field>
 
                 <field name="acctgTransId"><default-field title="TX ID">
-                    <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
+                    <link url="editTransaction" text="${acctgTransId}" link-type="anchor" condition="acctgTransId"/>
+                    <label text="${accountCode?:''}" style="text-strong" condition="!acctgTransId"/>
+                </default-field></field>
                 <field name="glJournalId"><default-field title="Jrnl">
                     <display-entity entity-name="mantle.ledger.transaction.GlJournal" text="${glJournalName?.take(3)}"/></default-field></field>
 
-                <field name="transactionDate"><default-field title="TX Date"><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="transactionDate"><default-field title="Trans Date" container-style="${acctgTransId ? '' : 'text-strong'}">
+                    <display format="yyyy-MM-dd"/></default-field></field>
 
                 <field name="acctgTransTypeEnumId"><default-field title="TX Type">
                     <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
                 <field name="description"><default-field container-style="${acctgTransId ? '' : 'text-strong'}">
                     <display text="${description ?: ec.entity.find('moqui.basic.Enumeration').condition('enumId', acctgTransTypeEnumId).one()?.description ?: ''}"/></default-field></field>
                 <field name="otherPartyId"><default-field title="Other Party">
-                    <link url="editParty" link-type="anchor" parameter-map="[partyId:otherPartyId]"
-                            entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="otherPartyId"/>
+                    <link url="editParty" link-type="anchor" parameter-map="[partyId:otherPartyId]" text="PartyNameTemplate" condition="otherPartyId"/>
                 </default-field></field>
 
                 <field name="invoiceId"><default-field title="Invoice">
                     <link url="editInvoice" text="${invoiceId}" link-type="anchor" condition="invoiceId"/></default-field></field>
                 <field name="referenceNumber"><default-field title="Inv Ref"><display/></default-field></field>
+                <field name="invoiceByRef"><default-field title="Invoice/Ref">
+                    <link url="editInvoice" text="${acctgTransTypeEnumId == 'AttPurchaseInvoice' ? (referenceNumber ?: invoiceId) : invoiceId}" link-type="anchor" condition="invoiceId"/></default-field></field>
                 <field name="paymentId"><default-field title="Payment">
                     <link url="editPayment" text="${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
                 <field name="paymentRefNum"><default-field title="Pmt Ref"><display/></default-field></field>
@@ -92,9 +96,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="editProduct" text="${productId}" link-type="anchor" condition="productId"/></default-field></field>
 
                 <field name="acctgTransEntrySeqId"><default-field title="Entry"><display/></default-field></field>
-                <field name="debit" align="right"><default-field><display format="#,##0.00"/></default-field></field>
-                <field name="credit" align="right"><default-field><display format="#,##0.00"/></default-field></field>
-                <field name="balance" align="right"><default-field><display format="#,##0.00"/></default-field></field>
+                <field name="debit" align="right"><default-field container-style="${acctgTransId ? '' : 'text-strong'}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="credit" align="right"><default-field container-style="${acctgTransId ? '' : 'text-strong'}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="balance" align="right"><default-field container-style="${acctgTransId ? '' : 'text-strong'}">
+                    <display format="#,##0.00"/></default-field></field>
 
                 <field name="find"><header-field title="Find"><submit/></header-field></field>
 
@@ -104,6 +111,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-list-column><field-ref name="description"/></form-list-column>
                 <form-list-column><field-ref name="otherPartyId"/></form-list-column>
                 <!-- <form-list-column><field-ref name="invoiceId"/><field-ref name="referenceNumber"/></form-list-column> -->
+                <form-list-column><field-ref name="invoiceByRef"/></form-list-column>
                 <form-list-column><field-ref name="paymentId"/></form-list-column>
                 <form-list-column><field-ref name="paymentRefNum"/></form-list-column>
                 <!-- <form-list-column><field-ref name="assetId"/></form-list-column><form-list-column><field-ref name="productId"/></form-list-column> -->
