@@ -57,6 +57,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
     <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
+    <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
 
     <transition name="createContent"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentContent"/>
@@ -260,6 +261,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="orderDetail" text="Order #${orderId}" link-type="anchor-button"/></widgets></section-iterate>
             <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
                 <link url="editInvoice" text="Invoice #${invoiceId}" link-type="anchor-button"/></widgets></section-iterate>
+            <section-iterate name="AcctgTransLinks" list="acctgTransIdSet" entry="acctgTransId"><widgets>
+                <link url="editTransaction" text="TX #${acctgTransId}" link-type="anchor-button"/>
+            </widgets></section-iterate>
 
             <label text="Shipping Gateway: ${shippingGatewayConfig.description}" type="p" condition="shippingGatewayConfig != null"/>
 
@@ -603,6 +607,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <form-list name="ItemAssetReceiptList" list="assetReceiptList" skip-form="true">
                             <row-actions>
                                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
+                                <filter-map-list list="acctgTransList" to-list="recAcctgTransList">
+                                    <field-map field-name="assetReceiptId"/></filter-map-list>
                             </row-actions>
 
                             <field name="statusId"><default-field title="Status">
@@ -618,6 +624,12 @@ along with this software (see the LICENSE.md file). If not, see
 
                             <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
                             <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="acctgTransList"><default-field title="TX">
+                                <section-iterate name="RecAcctgTransList" list="recAcctgTransList" entry="recAcctgTrans"><widgets>
+                                    <link url="editTransaction" text="${recAcctgTrans.acctgTransId}" link-type="anchor"
+                                            parameter-map="[acctgTransId:recAcctgTrans.acctgTransId]"/>
+                                </widgets></section-iterate>
+                            </default-field></field>
                             <field name="locationSeqId"><default-field title="Stored At">
                                 <display text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></default-field></field>
                             <field name="lotId"><default-field title="Lot">
@@ -693,6 +705,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <row-actions>
                                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
                                 <entity-find-one entity-name="mantle.product.issuance.AssetReservation" value-field="res"/>
+                                <filter-map-list list="acctgTransList" to-list="issAcctgTransList">
+                                    <field-map field-name="assetIssuanceId"/></filter-map-list>
                             </row-actions>
                             <field name="issuedDate"><default-field title="Issued Date"><display/></default-field></field>
                             <field name="quantity"><default-field title="Quantity"><display/></default-field></field>
@@ -707,6 +721,12 @@ along with this software (see the LICENSE.md file). If not, see
 
                             <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
                             <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="acctgTransList"><default-field title="TX">
+                                <section-iterate name="IssAcctgTransList" list="issAcctgTransList" entry="issAcctgTrans"><widgets>
+                                    <link url="editTransaction" text="${issAcctgTrans.acctgTransId}" link-type="anchor"
+                                            parameter-map="[acctgTransId:issAcctgTrans.acctgTransId]"/>
+                                </widgets></section-iterate>
+                            </default-field></field>
                             <field name="locationSeqId"><default-field title="Was Stored At">
                                 <display text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></default-field></field>
                             <field name="lotId"><default-field title="Lot">
