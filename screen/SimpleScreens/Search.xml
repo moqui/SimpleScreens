@@ -19,25 +19,25 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <if condition="queryString">
+            <!-- add wildcards to query string for partial words -->
+            <script>queryString = (queryString.split(' ') as List).collect({ it.matches(/\w*/) ? (it + '*') : it }).join(' ')</script>
+            <log message="queryString ${queryString}"/>
             <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
                     in-map="context + [indexName:searchIndexName]"/>
         </if>
     </actions>
     <widgets>
-        <form-single name="SearchOptions" transition=".">
-            <field name="documentType"><default-field title="">
-                <drop-down>
-                    <option key="" text="Any Type"/>
-                    <entity-options key="${dataDocumentId}" text="${documentName}">
-                        <entity-find entity-name="moqui.entity.document.DataDocument" cache="true">
-                            <econdition field-name="indexName" from="searchIndexName"/><order-by field-name="documentName"/>
-                        </entity-find>
-                    </entity-options>
-                </drop-down>
-            </default-field></field>
+        <form-single name="SearchOptions" transition="." focus-field="queryString">
+            <field name="documentType"><default-field title=""><drop-down>
+                <option key="" text="Any Type"/>
+                <entity-options key="${dataDocumentId}" text="${documentName}">
+                    <entity-find entity-name="moqui.entity.document.DataDocument" cache="true">
+                        <econdition field-name="indexName" from="searchIndexName"/><order-by field-name="documentName"/>
+                    </entity-find>
+                </entity-options>
+            </drop-down></default-field></field>
             <field name="queryString"><default-field title="" tooltip="Matches whole words, use the asterisk (*) wildcard to match partial words; use field:term to search a specific field">
-                <text-line size="60"/>
-            </default-field></field>
+                <text-line size="60"/></default-field></field>
             <field name="submitButton"><default-field title="Search"><submit/></default-field></field>
             <field-layout><field-row-big><field-ref name="documentType"/><field-ref name="queryString"/>
                 <field-ref name="submitButton"/></field-row-big></field-layout>
