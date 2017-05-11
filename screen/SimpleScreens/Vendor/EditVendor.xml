@@ -37,16 +37,14 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="setVendorRep">
         <actions>
             <entity-find entity-name="mantle.party.PartyRelationship" list="existingRepRelList">
-                <date-filter/>
-                <econdition-object field="[relationshipTypeEnumId:'PrtRepresentative', toPartyId:partyId, toRoleTypeId:'VendorBillFrom']"/>
-            </entity-find>
+                <date-filter/><econdition-object field="[relationshipTypeEnumId:'PrtRepresentative', toPartyId:partyId]"/></entity-find>
             <iterate list="existingRepRelList" entry="existingRepRel">
                 <set field="existingRepRel.thruDate" from="ec.user.nowTimestamp"/>
                 <entity-update value-field="existingRepRel"/>
             </iterate>
             <service-call name="create#mantle.party.PartyRelationship"
                     in-map="[relationshipTypeEnumId:'PrtRepresentative', fromPartyId:repPartyId, fromRoleTypeId:'Manager',
-                        toPartyId:partyId, toRoleTypeId:'VendorBillFrom', fromDate:ec.user.nowTimestamp]"/>
+                        toPartyId:partyId, toRoleTypeId:'Vendor', fromDate:ec.user.nowTimestamp]"/>
         </actions>
         <default-response url="."/>
     </transition>
@@ -86,25 +84,21 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="partyId"/><order-by field-name="roleTypeId"/>
         </entity-find>
         <entity-find-one entity-name="mantle.party.PartyRole" value-field="clientRoleType">
-            <field-map field-name="partyId"/><field-map field-name="roleTypeId" value="CustomerBillTo"/>
-        </entity-find-one>
+            <field-map field-name="partyId"/><field-map field-name="roleTypeId" value="Customer"/></entity-find-one>
         <entity-find-one entity-name="mantle.party.PartyRole" value-field="internalRoleType">
-            <field-map field-name="partyId"/><field-map field-name="roleTypeId" value="OrgInternal"/>
-        </entity-find-one>
+            <field-map field-name="partyId"/><field-map field-name="roleTypeId" value="OrgInternal"/></entity-find-one>
         <entity-find-one entity-name="mantle.ledger.config.PartyAcctgPreference" value-field="partyAcctgPreference">
-            <field-map field-name="organizationPartyId" from="partyId"/>
-        </entity-find-one>
+            <field-map field-name="organizationPartyId" from="partyId"/></entity-find-one>
 
         <entity-find entity-name="mantle.party.PartyRelationship" list="repRelationshipList">
-            <econdition-object field="[relationshipTypeEnumId:'PrtRepresentative', toPartyId:partyId, toRoleTypeId:'VendorBillFrom']"/>
+            <econdition-object field="[relationshipTypeEnumId:'PrtRepresentative', toPartyId:partyId]"/>
             <order-by field-name="-fromDate"/>
         </entity-find>
         <entity-find-one entity-name="mantle.party.Person" value-field="repPerson">
-            <field-map field-name="partyId" from="repRelationshipList?.getAt(0)?.fromPartyId"/>
-        </entity-find-one>
+            <field-map field-name="partyId" from="repRelationshipList?.getAt(0)?.fromPartyId"/></entity-find-one>
     </actions>
     <widgets>
-        <container-panel id="VendorInfoContainer" dynamic="true">
+        <container-panel id="VendorInfoContainer">
             <panel-left size="300">
                 <label text="Payment Information" type="h2"/>
                 <label text="Where payments are sent (Accounts Receivable)" type="p"/>
@@ -159,9 +153,9 @@ along with this software (see the LICENSE.md file). If not, see
                     </default-field></field>
                 </form-list>
                 <section name="ClientSection"><condition><expression>!clientRoleType</expression></condition><widgets>
-                    <link url="addPartyRole" url-type="transition" link-type="hidden-form" text="Make Client"
-                            confirmation="Are you sure you want to make this party a Client?">
-                        <parameter name="partyId"/><parameter name="roleTypeId" value="CustomerBillTo"/></link>
+                    <link url="addPartyRole" url-type="transition" link-type="hidden-form" text="Make Customer"
+                            confirmation="Are you sure you want to make this party a Customer?">
+                        <parameter name="partyId"/><parameter name="roleTypeId" value="Customer"/></link>
                 </widgets></section>
                 <section name="InternalSection"><condition><expression>!internalRoleType</expression></condition><widgets>
                     <link url="addPartyRole" url-type="transition" link-type="hidden-form" text="Make Internal Org"
