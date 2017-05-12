@@ -23,7 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
             <script>queryString = (queryString.split(' ') as List).collect({ it.matches(/\w*/) ? (it + '*') : it }).join(' ')</script>
             <log message="queryString ${queryString}"/>
             <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
-                    in-map="context + [indexName:searchIndexName]"/>
+                    in-map="context + [indexName:searchIndexName, flattenDocument:false]"/>
         </if>
     </actions>
     <widgets>
@@ -45,19 +45,23 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="SearchResults" list="documentList" paginate-always-show="true">
             <row-actions>
                 <entity-find-one entity-name="moqui.entity.document.DataDocument" value-field="dataDocument" cache="true">
-                    <field-map field-name="dataDocumentId" from="_type"/>
-                </entity-find-one>
-                <!-- this is a type=many relationship, but we just want one here: -->
-                <entity-find-related-one value-field="dataDocument" cache="true" to-value-field="dataDocumentLink"
-                                         relationship-name="moqui.entity.document.DataDocumentLink"/>
-                <set field="linkUrl" from="ec.resource.expand(dataDocumentLink?.linkUrl, '')"/>
+                    <field-map field-name="dataDocumentId" from="_type"/></entity-find-one>
                 <set field="documentTitle" from="ec.resource.expand(dataDocument?.documentTitle, '')"/>
+
+                <entity-find entity-name="moqui.entity.document.DataDocumentLink" list="ddLinkList" cache="true">
+                    <econdition field-name="dataDocumentId" from="_type"/></entity-find>
+                <set field="linksList" from="[]"/>
+                <iterate list="ddLinkList" entry="ddLink"><if condition="!ddLink.condition || ec.resource.condition(ddLink.condition, '')">
+                    <script>linksList.add(ddLink)</script></if></iterate>
             </row-actions>
             <field name="type"><default-field><display text="${dataDocument.documentName}"/></default-field></field>
             <field name="id"><default-field><display text="${_id}"/></default-field></field>
             <field name="documentTitle"><default-field title="Title"><display/></default-field></field>
             <field name="link"><default-field>
-                <link url="${linkUrl}" text="${dataDocumentLink.label}" link-type="anchor" url-type="${dataDocumentLink.urlType?:'plain'}"/>
+                <section-iterate name="LinksListSection" list="linksList" entry="ddLink"><widgets>
+                    <link url="${ec.resource.expand(ddLink.linkUrl, null)}" text="${ec.resource.expand(ddLink.label, null)}"
+                            link-type="anchor" url-type="${ddLink.urlType?:'plain'}"/>
+                </widgets></section-iterate>
             </default-field></field>
         </form-list>
     </widgets>
