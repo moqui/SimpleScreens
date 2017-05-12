@@ -31,6 +31,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getGeoStateCounties" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getGeoCountryStates" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
         <service-call name="mantle.facility.FacilityServices.get#Facility" in-map="context" out-map="facility"/>
@@ -39,7 +40,7 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-row><row-col lg="7">
             <link url="validateAddress" text="Validate Address" parameter-map="[facilityId:facilityId, contactMechId:contactInfo.postalContactMechId]"
-                    condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
+                    condition="contactInfo.postalContactMech &amp;&amp; (!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech?.trustLevelEnumId == 'CmtlNew')"/>
 
             <form-single name="EditFacilityForm" map="facility" transition="updateFacility">
                 <field name="facilityId"><default-field><hidden/></default-field></field>
@@ -49,16 +50,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="FacilityType"/><set field="noCurrentSelectedKey" value="FcTpWarehouse"/></widget-template-include>
                 </default-field></field>
-                <field name="ownerPartyId"><default-field title="Owner">
-                    <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/></default-field></field>
+                <field name="ownerPartyId"><default-field title="Owner"><drop-down>
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></default-field></field>
                 <field name="parentFacilityId"><default-field title="Parent Facility">
-                    <drop-down allow-empty="true"><entity-options key="${facilityId}" text="${facilityName} [${pseudoId}]">
-                        <entity-find entity-name="mantle.facility.Facility">
-                            <econdition field-name="ownerPartyId" from="facility.ownerPartyId"/>
-                            <order-by field-name="facilityName"/></entity-find>
-                    </entity-options></drop-down>
-                    <link url="editFacility" text="Edit" condition="facility.parentFacilityId"
-                            parameter-map="[facilityId:facility.parentFacilityId]"/>
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                            parameter-map="[parentFacilityId:null, facilityTypeEnumId:null, ownerPartyId:ownerPartyId]"/></drop-down>
+                    <link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"
+                            condition="parentFacilityId" parameter-map="[facilityId:parentFacilityId]"/>
                 </default-field></field>
 
                 <field name="openedDate"><default-field title="Opened"><date-time type="date"/></default-field></field>
@@ -92,7 +90,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </drop-down></default-field>
                 </field>
                 <field name="addressTrust"><default-field>
-                    <display text="${contactInfo.postalTrustLevelEnum?.description ?: 'New'} ${contactInfo.postalContactMech.validateMessage?:''}"/>
+                    <display text="${contactInfo.postalTrustLevelEnum?.description ?: 'New'} ${contactInfo.postalContactMech?.validateMessage?:''}"/>
                 </default-field></field>
 
                 <field name="latitude"><default-field title="" tooltip="Latitude"><text-line size="15"/></default-field></field>

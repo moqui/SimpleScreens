@@ -20,6 +20,12 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="parentFacilityId"/>
         <parameter name="ownerPartyId"/>
         <actions>
+            <entity-find-one entity-name="mantle.facility.Facility" value-field="facility">
+                <field-map field-name="facilityId" from="term"/></entity-find-one>
+            <if condition="facility != null">
+                <script>ec.web.sendJsonResponse([[value:facility.facilityId, label:"${ec.resource.expand('FacilityNameTemplate','',facility)}".toString()]])</script>
+                <return/>
+            </if>
             <entity-find entity-name="mantle.facility.Facility" list="facilityList" limit="20">
                 <econdition field-name="facilityTypeEnumId" ignore-if-empty="true"/>
                 <econdition field-name="parentFacilityId" ignore-if-empty="true"/>
