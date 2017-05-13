@@ -355,23 +355,34 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="orderPartSeqId" from="orderPart.orderPartSeqId"/>
             <set field="customerPartyId" from="orderPart.customerPartyId"/>
             <set field="customerShipToPartyId" from="orderPartInfo.customerShipToDetail?.partyId"/>
+            <set field="customerBillToPartyId" from="orderPartInfo.customerBillToDetail?.partyId"/>
 
             <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->
             <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
                     in-map="[productStoreId:orderHeader.productStoreId, orderId:orderId, orderPartSeqId:orderPartSeqId,
                             postalContactMechId:orderPart.postalContactMechId, getRates:false]"/>
 
+            <!-- get addresses for customer, ship-to customer -->
             <set field="shippingPostalAddressList" from="new ArrayList()"/>
-            <if condition="customerPartyId">
+            <set field="customerShipPartyIdSet" from="new TreeSet()"/>
+            <script>if (customerPartyId) customerShipPartyIdSet.add(customerPartyId)</script>
+            <script>if (customerShipToPartyId) customerShipPartyIdSet.add(customerShipToPartyId)</script>
+            <iterate list="customerShipPartyIdSet" entry="curPartyId">
+                <!-- addresses on profile -->
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="customerShippingInfo"
-                        in-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
+                        in-map="[partyId:curPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
                 <script>shippingPostalAddressList.addAll(customerShippingInfo.postalAddressList ?: [])</script>
-            </if>
-            <if condition="customerShipToPartyId">
-                <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="shipToShippingInfo"
-                        in-map="[partyId:customerShipToPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
-                <script>shippingPostalAddressList.addAll(shipToShippingInfo.postalAddressList ?: [])</script>
-            </if>
+                <!-- addresses on owned facilities -->
+                <entity-find entity-name="mantle.facility.Facility" list="curFacList">
+                    <econdition field-name="ownerPartyId" from="curPartyId"/></entity-find>
+                <iterate list="curFacList" entry="curFac">
+                    <service-call name="mantle.facility.ContactServices.get#FacilityContactInfo" out-map="facContactInfo" out-map-add-to-existing="false"
+                            in-map="[facilityId:curFac.facilityId, postalContactMechPurposeId:'PostalPrimary',
+                                telecomContactMechPurposeId:'PhonePrimary', emailContactMechPurposeId:'EmailPrimary']"/>
+                    <if condition="facContactInfo.postalContactMech"><script>shippingPostalAddressList.add(facContactInfo)</script></if>
+                </iterate>
+            </iterate>
+            <!-- if address set on OrderPart that isn't in list yet, add it (could be expired, etc) -->
             <if condition="orderPart.postalContactMechId &amp;&amp; !(orderPart.postalContactMechId in shippingPostalAddressList*.postalContactMechId)">
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curPaInfo"
                         in-map="[partyId:customerPartyId, postalContactMechId:orderPart.postalContactMechId]"/>
@@ -543,7 +554,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <entity-options key="${paymentMethodId}" text="${typeDescription} - ${description}">
                                         <entity-find entity-name="mantle.account.method.PaymentMethodAndType">
                                             <date-filter/>
-                                            <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/>
+                                            <econditions combine="or">
+                                                <econdition field-name="ownerPartyId" from="customerPartyId"/>
+                                                <econdition field-name="ownerPartyId" from="customerBillToPartyId" ignore-if-empty="true"/>
+                                            </econditions>
                                         </entity-find></entity-options>
                                 </drop-down></default-field></field>
                                 <field name="finAccountId"><default-field title="Customer Account">
@@ -607,12 +621,12 @@ along with this software (see the LICENSE.md file). If not, see
                                     <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo"
                                             width="800" condition="orderPartInfo.partEditable"
                                             parameter-map="[partyId:customerPartyId, postalContactMechId:contactInfo.postalContactMechId,
-                                                postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, orderId:orderId]"/>
-
+                                                postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, orderId:orderId,
+                                                facilityId:contactInfo.facilityId]"/>
                                     <container>
                                         <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
                                         <link url="validateAddress" text="Validate"
-                                                parameter-map="[orderId:orderId, partyId:customerPartyId, contactMechId:contactInfo.postalContactMechId]"
+                                                parameter-map="[orderId:orderId, partyId:customerPartyId, facilityId:contactInfo.facilityId, contactMechId:contactInfo.postalContactMechId]"
                                                 condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
                                     </container>
                                     <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
