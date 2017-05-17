@@ -24,17 +24,19 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="periodDaysBd" from="new BigDecimal(periodDays)"/>
         <set field="dateField" from="dateField ?: 'dueDate'"/>
         <set field="invoiceType" from="invoiceType ?: 'Receivable'"/>
-        <set field="statusId" from="statusId ?: (invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved' : 'InvoiceFinalized,InvoiceSent')"/>
+        <set field="statusId" from="statusId ?: (invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved,InvoicePmtSent' : 'InvoiceFinalized,InvoiceSent,InvoicePmtRecvd')"/>
         <set field="statusId_op" value="in"/>
         <set field="referenceNumber" from="refNum"/>
         <set field="asOfDate" from="asOfDate ? ec.l10n.parseTimestamp(asOfDate + ' 23:59:59.999', 'yyyy-MM-dd HH:mm:ss.SSS') : ec.user.nowTimestamp"/>
     </actions>
     <widgets>
         <form-single name="ReportOptions" transition=".">
+            <field name="formListFindId"><default-field><hidden/></default-field></field>
+            <field name="pageNoLimit"><default-field><hidden/></default-field></field>
             <field name="invoiceType"><default-field title="AR/AP"><drop-down><option key="Receivable" text="Receivable"/>
                     <option key="Payable" text="Payable"/></drop-down></default-field></field>
             <field name="periodDays"><default-field><text-line size="2"/></default-field></field>
-            <field name="dateField"><default-field title="Find By"><drop-down><option key="dueDate" text="Due Date"/>
+            <field name="dateField"><default-field title="Age By"><drop-down><option key="dueDate" text="Due Date"/>
                     <option key="invoiceDate" text="Invoice Date"/></drop-down></default-field></field>
             <field name="asOfDate"><default-field><date-time type="date"/></default-field></field>
             <field name="submitButton"><default-field><submit text="Run Report"/></default-field></field>
@@ -47,6 +49,7 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceAgingList">
                 <search-form-inputs default-order-by="invoiceDate"/>
                 <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
+                <econdition field-name="unpaidTotal" operator="greater" from="0.0"/>
                 <select-field field-name="invoiceDate,dueDate,unpaidTotal"/>
             </entity-find>
             <row-actions>
@@ -64,7 +67,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="invoiceType"><header-field title="AR/AP"><drop-down><option key="Receivable" text="Receivable"/>
                     <option key="Payable" text="Payable"/></drop-down></header-field></field>
             <field name="periodDays"><header-field><text-line size="6"/></header-field></field>
-            <field name="dateField"><header-field title="Find By"><drop-down><option key="dueDate" text="Due Date"/>
+            <field name="dateField"><header-field title="Age By"><drop-down><option key="dueDate" text="Due Date"/>
                     <option key="invoiceDate" text="Invoice Date"/></drop-down></header-field></field>
             <field name="asOfDate"><header-field><date-time type="date"/></header-field></field>
 
@@ -81,9 +84,8 @@ along with this software (see the LICENSE.md file). If not, see
                         link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
             </field>
 
-            <field name="invoiceId" aggregate="group-by"><header-field show-order-by="true" title="Invoice"/><default-field>
-                <link url="editInvoice" text="${invoiceId}" link-type="anchor"/>
-            </default-field></field>
+            <field name="invoiceId" aggregate="group-by"><header-field show-order-by="true" title="Invoice"/>
+                <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
             <field name="referenceNumber"><header-field title="Ref Number"><text-find/></header-field>
                 <default-field><display/></default-field></field>
             <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
