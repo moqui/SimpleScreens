@@ -65,7 +65,7 @@ along with this software (see the LICENSE.md file). If not, see
             </#list>
         </tr>
 
-        <#if classInfoById.DIVIDEND??><@showClassTotals classInfoById.DIVIDEND/></#if>
+        <#if classInfoById.DISTRIBUTION??><@showClassTotals classInfoById.DISTRIBUTION/></#if>
 
         <tr class="text-success">
             <td><strong>${ec.l10n.localize("Net Earnings")}</strong></td>
