@@ -46,21 +46,23 @@ along with this software (see the LICENSE.md file). If not, see
 
         <form-list name="InvoiceAgingList" list="invoiceAgingList" skip-form="true" header-dialog="true" saved-finds="true" select-columns="true"
                 show-all-button="true" show-csv-button="true">
-            <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceAgingList">
+            <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
                 <search-form-inputs default-order-by="invoiceDate"/>
                 <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
-                <econdition field-name="unpaidTotal" operator="greater" from="0.0"/>
-                <select-field field-name="invoiceDate,dueDate,unpaidTotal"/>
+                <econdition field-name="appliedDate" operator="less-equals" from="asOfDate" or-null="true"/>
+                <having-econditions><econdition field-name="invoiceTotal" operator="not-equals" to-field-name="amountApplied"/></having-econditions>
+                <select-field field-name="invoiceDate,dueDate,invoiceTotal,amountApplied"/>
             </entity-find>
             <row-actions>
                 <script><![CDATA[
+                    unpaidAmount = invoiceTotal - (amountApplied ?: 0.0)
                     agingList = new ArrayList([null, null, null, null, null, null])
                     Timestamp dateTs = context.get(dateField)
                     Integer dateDays = dateTs != null ? asOfDate - dateTs : null
                     Integer dateIdx = dateDays != null ? (dateDays < 0 ? 0 :
                             ((dateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1) : null
                     if (dateIdx != null && dateIdx > 5) dateIdx = 5
-                    if (dateIdx != null) agingList[dateIdx] = unpaidTotal
+                    if (dateIdx != null) agingList[dateIdx] = unpaidAmount
                 ]]></script>
             </row-actions>
 
@@ -110,7 +112,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
 
-            <field name="count" from="invoiceDate" aggregate="count"><default-field><display/></default-field></field>
+            <field name="count" from="invoiceId" aggregate="count"><default-field><display/></default-field></field>
 
             <field name="currentDue" from="agingList[0]" align="right" show-total="true" aggregate="sum"><header-field title="Current"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
@@ -124,7 +126,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
             <field name="periodRemaining" from="agingList[5]" align="right" show-total="true" aggregate="sum"><header-field title="&gt; ${periodDays*4} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-            <field name="unpaidTotal" align="right" show-total="true" aggregate="sum"><header-field show-order-by="true"/>
+            <field name="unpaidAmount" align="right" show-total="true" aggregate="sum">
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
@@ -139,7 +141,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="period3"/></form-list-column>
             <form-list-column><field-ref name="period4"/></form-list-column>
             <form-list-column><field-ref name="periodRemaining"/></form-list-column>
-            <form-list-column><field-ref name="unpaidTotal"/></form-list-column>
+            <form-list-column><field-ref name="unpaidAmount"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
