@@ -56,6 +56,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="amountApplied" operator="is-null"/>
                 </econditions>
                 <select-field field-name="fromPartyId,toPartyId,invoiceDate,dueDate,invoiceTotal,amountApplied"/>
+                <select-field field-name="fromOrganizationName,fromFirstName,fromLastName"/>
             </entity-find>
             <row-actions>
                 <script><![CDATA[
@@ -76,23 +77,23 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="dateField"><header-field title="Age By"><drop-down><option key="dueDate" text="Due Date"/>
                     <option key="invoiceDate" text="Invoice Date"/></drop-down></header-field></field>
             <field name="asOfDate"><header-field><date-time type="date"/></header-field></field>
+            <field name="fromPartyId"><header-field title="From"><drop-down allow-empty="true">
+                <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field></field>
+            <field name="toPartyId"><header-field title="To"><drop-down allow-empty="true">
+                <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field></field>
 
-            <field name="fromPseudoId"><header-field title="From ID" show-order-by="true"/>
+            <field name="fromPseudoId" aggregate="group-by"><header-field title="From ID" show-order-by="true"/>
                 <default-field><link url="editParty" text="${fromPseudoId}" link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field></field>
-            <field name="toPseudoId"><header-field title="To ID" show-order-by="true"/>
+            <field name="toPseudoId" aggregate="group-by"><header-field title="To ID" show-order-by="true"/>
                 <default-field><link url="editParty" text="${toPseudoId}" link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field></field>
 
-            <field name="fromPartyId" aggregate="group-by">
-                <header-field title="From"><drop-down allow-empty="true">
-                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
-                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameOnlyTemplate"
-                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field>
+            <field name="fromName">
+                <header-field title="From Name" show-order-by="true"/>
+                <default-field><link url="editParty" text="${fromName}" link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field>
             </field>
-            <field name="toPartyId" aggregate="group-by">
-                <header-field title="To"><drop-down allow-empty="true">
-                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
-                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameOnlyTemplate"
-                        link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
+            <field name="toName">
+                <header-field title="To Name" show-order-by="true"/>
+                <default-field><link url="editParty" text="${toName}" link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
             </field>
 
             <field name="invoiceId" aggregate="group-by"><header-field show-order-by="true" title="Invoice"/>
@@ -141,7 +142,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="fromPseudoId"/><field-ref name="toPseudoId"/></form-list-column>
-            <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
+            <form-list-column><field-ref name="fromName"/><field-ref name="toName"/></form-list-column>
             <form-list-column><field-ref name="invoiceId"/><field-ref name="referenceNumber"/></form-list-column>
             <form-list-column><field-ref name="invoiceDate"/><field-ref name="dueDate"/></form-list-column>
             <form-list-column><field-ref name="statusId"/></form-list-column>
