@@ -48,9 +48,13 @@ along with this software (see the LICENSE.md file). If not, see
                 show-all-button="true" show-csv-button="true">
             <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
                 <search-form-inputs default-order-by="invoiceDate"/>
+                <econdition field-name="invoiceTotal" operator="greater" from="0.0"/>
                 <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
-                <econdition field-name="appliedDate" operator="less-equals" from="asOfDate" or-null="true"/>
-                <having-econditions><econdition field-name="invoiceTotal" operator="not-equals" to-field-name="amountApplied"/></having-econditions>
+                <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+                <having-econditions combine="or">
+                    <econdition field-name="invoiceTotal" operator="not-equals" to-field-name="amountApplied"/>
+                    <econdition field-name="amountApplied" operator="is-null"/>
+                </having-econditions>
                 <select-field field-name="invoiceDate,dueDate,invoiceTotal,amountApplied"/>
             </entity-find>
             <row-actions>
