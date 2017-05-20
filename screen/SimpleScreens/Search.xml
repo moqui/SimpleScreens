@@ -21,7 +21,6 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="queryString">
             <!-- add wildcards to query string for partial words -->
             <script>queryString = (queryString.split(' ') as List).collect({ it.matches(/\w*/) ? (it + '*') : it }).join(' ')</script>
-            <log message="queryString ${queryString}"/>
             <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
                     in-map="context + [indexName:searchIndexName, flattenDocument:false]"/>
         </if>
@@ -51,7 +50,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find entity-name="moqui.entity.document.DataDocumentLink" list="ddLinkList" cache="true">
                     <econdition field-name="dataDocumentId" from="_type"/></entity-find>
                 <set field="linksList" from="[]"/>
-                <iterate list="ddLinkList" entry="ddLink"><if condition="!ddLink.condition || ec.resource.condition(ddLink.condition, '')">
+                <iterate list="ddLinkList" entry="ddLink"><if condition="!ddLink.linkCondition || ec.resource.condition(ddLink.linkCondition, '')">
                     <script>linksList.add(ddLink)</script></if></iterate>
             </row-actions>
             <field name="type"><default-field><display text="${dataDocument.documentName}"/></default-field></field>

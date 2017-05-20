@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="View" default-menu-index="3">
+
+    <parameter name="dataDocumentId" required="true"/>
+
+    <widgets>
+        <section name="ViewReportSection" condition="dataDocumentId"><actions>
+            <entity-find entity-name="moqui.entity.document.DataDocumentUserGroup" list="ddugList">
+                <econdition field-name="dataDocumentId"/>
+                <econdition field-name="userGroupId" operator="in" from="ec.user.getUserGroupIdSet()"/>
+            </entity-find>
+            <if condition="!ddugList"><return error="true" message=""/></if>
+
+            <set field="entityName" from="'DataDocument.' + dataDocumentId"/>
+            <set field="aenDef" from="ec.entity.getEntityDefinition(entityName)"/>
+            <if condition="aenDef == null"><message error="true">Could not find Report ${dataDocumentId}</message><return/></if>
+        </actions><widgets>
+            <section name="ReportCondView" condition="ddugList"><widgets>
+                <form-list name="DataViewList" list="entityValueList" skip-form="true" dynamic="true" header-dialog="true"
+                        show-csv-button="true" show-all-button="true">
+                    <entity-find entity-name="${entityName}" list="entityValueList" cache="false">
+                        <search-form-inputs/></entity-find>
+                    <field name="dataDocumentId"><header-field><hidden/></header-field></field>
+                    <auto-fields-entity entity-name="${entityName}" field-type="find-display"/>
+                    <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+                </form-list>
+            </widgets><fail-widgets>
+                <label text="You are not in a group allowed to see Report ${dataDocumentId}" type="h5"/>
+            </fail-widgets></section>
+        </widgets><fail-widgets>
+            <label text="Please select a report" type="h5"/>
+        </fail-widgets></section>
+    </widgets>
+</screen>

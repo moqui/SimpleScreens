@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="dataDocumentId" required="true" from="dataDocumentId ?: dataDocumentId_0"/>
+
+    <transition name="createDataDocumentCondition"><service-call name="create#moqui.entity.document.DataDocumentCondition"/>
+        <default-response url=".."/></transition>
+    <transition name="updateDataDocumentCondition"><service-call name="update#moqui.entity.document.DataDocumentCondition"/>
+        <default-response url=".."/></transition>
+    <transition name="deleteDataDocumentCondition"><service-call name="delete#moqui.entity.document.DataDocumentCondition"/>
+        <default-response url=".."/></transition>
+
+    <transition name="createFieldDynamic" read-only="true"><service-call name="org.moqui.impl.EntityServices.create#DataDocumentField"/>
+        <default-response url="."/></transition>
+    <transition name="createDataDocumentField"><service-call name="org.moqui.impl.EntityServices.create#DataDocumentField"/>
+        <default-response url=".."/></transition>
+    <transition name="updateDataDocumentField"><service-call name="org.moqui.impl.EntityServices.update#DataDocumentField"/>
+        <default-response url=".."/></transition>
+    <transition name="deleteDataDocumentField"><service-call name="delete#moqui.entity.document.DataDocumentField"/>
+        <default-response url=".."/></transition>
+
+    <actions>
+        <set field="opOptions" from="['equals', 'not-equals', 'less', 'greater', 'less-equals', 'greater-equals', 'in', 'not-in',
+            'between', 'not-between', 'like', 'not-like', 'is-null', 'is-not-null']"/>
+        <set field="funcOptions" from="['min', 'max', 'sum', 'avg', 'count', 'count-distinct', 'upper', 'lower']"/>
+        <set field="knownFields" from="new HashSet()"/>
+
+        <!-- here instead of under FieldList form-list because used for validation of condition fields -->
+        <entity-find entity-name="moqui.entity.document.DataDocumentField" list="ddFieldList">
+            <econdition field-name="dataDocumentId"/><order-by field-name="sequenceNum,fieldPath"/></entity-find>
+        <set field="fieldAliasSet" from="new LinkedHashSet()"/>
+        <iterate list="ddFieldList" entry="ddf">
+            <script>fieldAliasSet.add(ddf.fieldNameAlias ?: (ddf.fieldPath.contains(':') ? ddf.fieldPath.substring(ddf.fieldPath.lastIndexOf(':')+1) : ddf.fieldPath))</script>
+        </iterate>
+    </actions>
+    <widgets>
+        <container-box><box-header><label text="Conditions" type="h5"/></box-header><box-toolbar>
+            <container-dialog id="AddConditionDialog" button-text="Add Condition">
+                <form-single name="AddCondition" transition="createDataDocumentCondition"
+                        extends="component://tools/screen/System/DataDocument/Edit/DataDocFields/FieldList.xml#AddCondition">
+                    <field name="postQuery"><default-field><ignored/></default-field></field>
+                </form-single>
+            </container-dialog>
+        </box-toolbar><box-body-nopad>
+            <form-list name="ConditionList" list="conditionList" transition="updateDataDocumentCondition"
+                    extends="component://tools/screen/System/DataDocument/Edit/DataDocFields/FieldList.xml#ConditionList">
+                <field name="postQuery"><default-field><ignored/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+
+        <container-box><box-header><label text="Fields" type="h5"/></box-header><box-body>
+            <label text="Each field must have a unique name, duplicates shown in red. Set an alias to resolve duplicates." type="p"/>
+        </box-body><box-body-nopad>
+            <form-list name="FieldList" list="ddFieldList" transition="updateDataDocumentField" multi="true"
+                    extends="component://tools/screen/System/DataDocument/Edit/DataDocFields/FieldList.xml#FieldList">
+                <field name="sortable"><default-field><ignored/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+    </widgets>
+</screen>
