@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" default-menu-title="AR Aging Summary">
+
+    <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <actions>
+        <set field="pageNoLimit" value="true"/>
+        <set field="periodDays" from="(periodDays ?: '30') as int"/>
+        <set field="periodDaysBd" from="new BigDecimal(periodDays)"/>
+        <set field="dateField" from="dateField ?: 'dueDate'"/>
+        <set field="asOfDate" from="asOfDate ? ec.l10n.parseTimestamp(asOfDate + ' 23:59:59.999', 'yyyy-MM-dd HH:mm:ss.SSS') : ec.user.nowTimestamp"/>
+
+        <set field="orderBySave" from="orderByField ?: 'toName'"/>
+        <set field="orderByField" from="null"/>
+        <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
+            <search-form-inputs/>
+            <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent,InvoicePmtRecvd"/>
+            <econdition field-name="invoiceTotal" operator="greater" from="0.0"/>
+            <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
+            <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+            <econditions combine="or">
+                <econdition field-name="invoiceTotal" operator="not-equals" to-field-name="amountApplied"/>
+                <econdition field-name="amountApplied" operator="is-null"/>
+            </econditions>
+            <select-field field-name="fromPartyId,toPartyId,toPseudoId,toName,invoiceId,invoiceDate,dueDate,invoiceTotal,amountApplied"/>
+        </entity-find>
+        <entity-find entity-name="mantle.account.payment.PaymentAndApplicationSummary" list="paymentAndAppList">
+            <econdition field-name="fromPartyId" from="toPartyId" ignore-if-empty="true"/>
+            <econdition field-name="toPartyId" from="fromPartyId" ignore-if-empty="true"/>
+            <econdition field-name="statusId" operator="in" value="PmntDelivered,PmntConfirmed"/>
+            <econdition field-name="amount" operator="greater" from="0.0"/>
+            <econdition field-name="effectiveDate" operator="less-equals" from="asOfDate"/>
+            <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+            <econditions combine="or">
+                <econdition field-name="amount" operator="not-equals" to-field-name="amountApplied"/>
+                <econdition field-name="amountApplied" operator="is-null"/>
+            </econditions>
+            <select-field field-name="fromPartyId,toPartyId,paymentId,amount,amountApplied"/>
+        </entity-find>
+        <set field="orderByField" from="orderBySave"/>
+
+        <set field="agingInfoByToPartyId" from="[:]"/>
+        <set field="totalsRow" from="[toName:'Totals']"/>
+        <iterate list="invoiceAgingList" entry="invoice"><script><![CDATA[
+            String toPartyId = invoice.toPartyId
+            Map toPartyInfo = agingInfoByToPartyId.get(toPartyId)
+            if (toPartyInfo == null) {
+                toPartyInfo = invoice.getMap()
+                agingInfoByToPartyId.put(toPartyId, toPartyInfo)
+                toPartyInfo.count = 1
+            } else {
+                toPartyInfo.count++
+            }
+
+            BigDecimal unpaidAmount = invoice.invoiceTotal - (invoice.amountApplied ?: 0.0)
+            Timestamp dateTs = invoice.get(dateField)
+            Integer dateDays = dateTs != null ? asOfDate - dateTs : null
+            Integer dateIdx = dateDays != null ? (dateDays < 0 ? 0 :
+                    ((dateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1) : null
+            if (dateIdx != null && dateIdx > 4) dateIdx = 4
+            if (dateIdx != null) {
+                addToBigDecimalInMap("period" + dateIdx, unpaidAmount, toPartyInfo)
+                addToBigDecimalInMap("period" + dateIdx, unpaidAmount, totalsRow)
+            }
+            addToBigDecimalInMap("unpaidAmount", unpaidAmount, toPartyInfo)
+            addToBigDecimalInMap("unpaidAmount", unpaidAmount, totalsRow)
+        ]]></script></iterate>
+
+        <iterate list="paymentAndAppList" entry="payment"><script><![CDATA[
+            String toPartyId = payment.fromPartyId // yes, fromPartyId; invoice.toPartyId = payment.fromPartyId
+            Map toPartyInfo = agingInfoByToPartyId.get(toPartyId)
+            if (toPartyInfo == null) {
+                Map party = ec.entity.find("mantle.party.PartyDetail").condition("partyId", toPartyId).one()
+                toPartyInfo = [toPartyId:toPartyId, toPseudoId:party.pseudoId,
+                        toName:"${party.firstName ? party.firstName + ' ' : ''}${party.lastName?:''}${party.organizationName?:''}".toString()]
+                agingInfoByToPartyId.put(toPartyId, toPartyInfo)
+            }
+
+            BigDecimal unappliedAmount = payment.amount - (payment.amountApplied ?: 0.0)
+            addToBigDecimalInMap("unappliedTotal", unappliedAmount, toPartyInfo)
+            addToBigDecimalInMap("unappliedTotal", unappliedAmount, totalsRow)
+        ]]></script></iterate>
+
+        <!-- make and sort the list -->
+        <set field="agingInfoList" from="new ArrayList(agingInfoByToPartyId.values())"/>
+        <script>orderMapList(agingInfoList, orderByField.split(',') as List)</script>
+
+        <!-- add summary total and percent rows -->
+        <script>
+            agingInfoList.add(totalsRow)
+            BigDecimal unpaidAmount = totalsRow.unpaidAmount
+            agingInfoList.add([toName:'Percent', period0:(totalsRow.period0/unpaidAmount)*100.0, period1:(totalsRow.period1/unpaidAmount)*100.0,
+                    period2:(totalsRow.period2/unpaidAmount)*100.0, period3:(totalsRow.period3/unpaidAmount)*100.0,
+                    period4:(totalsRow.period4/unpaidAmount)*100.0])
+        </script>
+    </actions>
+    <widgets>
+        <form-single name="ReportOptions" transition=".">
+            <field name="formListFindId"><default-field><hidden/></default-field></field>
+            <field name="orderByField"><default-field><hidden/></default-field></field>
+            <field name="periodDays"><default-field><text-line size="2"/></default-field></field>
+            <field name="dateField"><default-field title="Age By"><drop-down><option key="dueDate" text="Due Date"/>
+                    <option key="invoiceDate" text="Invoice Date"/></drop-down></default-field></field>
+            <field name="asOfDate"><default-field><date-time type="date"/></default-field></field>
+            <field name="submitButton"><default-field><submit text="Run Report"/></default-field></field>
+            <field-layout><field-row-big><field-ref name="periodDays"/><field-ref name="dateField"/><field-ref name="asOfDate"/>
+                <field-ref name="submitButton"/></field-row-big></field-layout>
+        </form-single>
+
+        <form-list name="InvoiceAgingList" list="agingInfoList" skip-form="true" header-dialog="true" show-csv-button="true">
+
+            <field name="periodDays"><header-field><text-line size="6"/></header-field></field>
+            <field name="dateField"><header-field title="Age By"><drop-down><option key="dueDate" text="Due Date"/>
+                    <option key="invoiceDate" text="Invoice Date"/></drop-down></header-field></field>
+            <field name="asOfDate"><header-field><date-time type="date"/></header-field></field>
+            <field name="toPartyId"><header-field title="To"><drop-down allow-empty="true">
+                <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field></field>
+
+            <field name="toPseudoId"><header-field title="To ID" show-order-by="true"/>
+                <default-field><link url="editParty" text="${toPseudoId}" link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field></field>
+            <field name="toName">
+                <header-field title="To Name" show-order-by="true"/>
+                <default-field><link url="editParty" text="${toName}" link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
+            </field>
+            <field name="count"><header-field show-order-by="true"/><default-field><display/></default-field></field>
+
+            <field name="period0" align="right"><header-field title="Current" show-order-by="true"/>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="period1" align="right"><header-field title="0 - ${periodDays} days" show-order-by="true"/>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="period2" align="right"><header-field title="${periodDays+1} - ${periodDays*2} days" show-order-by="true"/>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="period3" align="right"><header-field title="${periodDays*2+1} - ${periodDays*3} days" show-order-by="true"/>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="period4" align="right"><header-field title="&gt; ${periodDays*3} days" show-order-by="true"/>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="unpaidAmount" align="right"><header-field show-order-by="true"/>
+                <default-field><display format="#,##0.00"/></default-field></field>
+
+            <field name="unappliedTotal" align="right"><header-field show-order-by="true"/>
+                <default-field><display format="#,##0.00"/></default-field></field>
+
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+    </widgets>
+</screen>
