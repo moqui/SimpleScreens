@@ -31,14 +31,17 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
             <search-form-inputs/>
             <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent,InvoicePmtRecvd"/>
-            <econdition field-name="invoiceTotal" operator="greater" from="0.0"/>
             <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
+            <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
             <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
             <econditions combine="or">
-                <econdition field-name="invoiceTotal" operator="not-equals" to-field-name="amountApplied"/>
+                <econdition field-name="itemsTotal" operator="not-equals" to-field-name="amountApplied"/>
                 <econdition field-name="amountApplied" operator="is-null"/>
             </econditions>
-            <select-field field-name="fromPartyId,toPartyId,toPseudoId,toName,invoiceId,invoiceDate,dueDate,invoiceTotal,amountApplied"/>
+            <having-econditions>
+                <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
+            </having-econditions>
+            <select-field field-name="fromPartyId,toPartyId,toPseudoId,toName,invoiceId,invoiceDate,dueDate,itemsTotal,amountApplied"/>
         </entity-find>
         <entity-find entity-name="mantle.account.payment.PaymentAndApplicationSummary" list="paymentAndAppList">
             <econdition field-name="fromPartyId" from="toPartyId" ignore-if-empty="true"/>
@@ -68,7 +71,7 @@ along with this software (see the LICENSE.md file). If not, see
                 toPartyInfo.count++
             }
 
-            BigDecimal unpaidAmount = invoice.invoiceTotal - (invoice.amountApplied ?: 0.0)
+            BigDecimal unpaidAmount = invoice.itemsTotal - (invoice.amountApplied ?: 0.0)
             Timestamp dateTs = invoice.get(dateField)
             Integer dateDays = dateTs != null ? asOfDate - dateTs : null
             Integer dateIdx = dateDays != null ? (dateDays < 0 ? 0 :
@@ -80,6 +83,8 @@ along with this software (see the LICENSE.md file). If not, see
             }
             addToBigDecimalInMap("unpaidAmount", unpaidAmount, toPartyInfo)
             addToBigDecimalInMap("unpaidAmount", unpaidAmount, totalsRow)
+            addToBigDecimalInMap("balanceDue", unpaidAmount, toPartyInfo)
+            addToBigDecimalInMap("balanceDue", unpaidAmount, totalsRow)
         ]]></script></iterate>
 
         <iterate list="paymentAndAppList" entry="payment"><script><![CDATA[
@@ -95,6 +100,8 @@ along with this software (see the LICENSE.md file). If not, see
             BigDecimal unappliedAmount = payment.amount - (payment.amountApplied ?: 0.0)
             addToBigDecimalInMap("unappliedTotal", unappliedAmount, toPartyInfo)
             addToBigDecimalInMap("unappliedTotal", unappliedAmount, totalsRow)
+            addToBigDecimalInMap("balanceDue", -unappliedAmount, toPartyInfo)
+            addToBigDecimalInMap("balanceDue", -unappliedAmount, totalsRow)
         ]]></script></iterate>
 
         <!-- make and sort the list -->
@@ -154,6 +161,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display format="#,##0.00"/></default-field></field>
 
             <field name="unappliedTotal" align="right"><header-field show-order-by="true"/>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="balanceDue" align="right"><header-field show-order-by="true"/>
                 <default-field><display format="#,##0.00"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
