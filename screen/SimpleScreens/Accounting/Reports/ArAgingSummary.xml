@@ -15,7 +15,8 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-include="false" default-menu-title="AR Aging Summary">
 
-    <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
+    <transition name="findInvoice"><default-response url="../../Invoice/FindInvoice"/></transition>
+    <transition name="findPayment"><default-response url="../../Payment/FindPayment"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
@@ -46,6 +47,7 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.account.payment.PaymentAndApplicationSummary" list="paymentAndAppList">
             <econdition field-name="fromPartyId" from="toPartyId" ignore-if-empty="true"/>
             <econdition field-name="toPartyId" from="fromPartyId" ignore-if-empty="true"/>
+            <econdition field-name="paymentTypeEnumId" operator="in" value="PtInvoicePayment,PtPrePayment"/>
             <econdition field-name="statusId" operator="in" value="PmntDelivered,PmntConfirmed"/>
             <econdition field-name="amount" operator="greater" from="0.0"/>
             <econdition field-name="effectiveDate" operator="less-equals" from="asOfDate"/>
@@ -85,6 +87,7 @@ along with this software (see the LICENSE.md file). If not, see
             addToBigDecimalInMap("unpaidAmount", unpaidAmount, totalsRow)
             addToBigDecimalInMap("balanceDue", unpaidAmount, toPartyInfo)
             addToBigDecimalInMap("balanceDue", unpaidAmount, totalsRow)
+            addToListInMap("invoiceIds", invoice.invoiceId, toPartyInfo)
         ]]></script></iterate>
 
         <iterate list="paymentAndAppList" entry="payment"><script><![CDATA[
@@ -102,6 +105,7 @@ along with this software (see the LICENSE.md file). If not, see
             addToBigDecimalInMap("unappliedTotal", unappliedAmount, totalsRow)
             addToBigDecimalInMap("balanceDue", -unappliedAmount, toPartyInfo)
             addToBigDecimalInMap("balanceDue", -unappliedAmount, totalsRow)
+            addToListInMap("paymentIds", payment.paymentId, toPartyInfo)
         ]]></script></iterate>
 
         <!-- make and sort the list -->
@@ -157,11 +161,17 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display format="#,##0.00"/></default-field></field>
             <field name="period4" align="right"><header-field title="&gt; ${periodDays*3} days" show-order-by="true"/>
                 <default-field><display format="#,##0.00"/></default-field></field>
-            <field name="unpaidAmount" align="right"><header-field show-order-by="true"/>
-                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="unpaidAmount" align="right"><header-field title="Unpaid" show-order-by="true"/><default-field>
+                <link url="findInvoice" text="${ec.l10n.format(unpaidAmount, '#,##0.00')}" link-type="anchor"
+                        parameter-map="[invoiceId:(invoiceIds.join(',')), invoiceId_op:'in']" condition="unpaidAmount &amp;&amp; invoiceIds"/>
+                <label text="${ec.l10n.format(unpaidAmount, '#,##0.00')}" condition="unpaidAmount &amp;&amp; !invoiceIds"/>
+            </default-field></field>
 
-            <field name="unappliedTotal" align="right"><header-field show-order-by="true"/>
-                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="unappliedTotal" align="right"><header-field title="Overpaid" show-order-by="true"/><default-field>
+                <link url="findPayment" text="${ec.l10n.format(unappliedTotal, '#,##0.00')}" link-type="anchor"
+                        parameter-map="[paymentId:(paymentIds.join(',')), paymentId_op:'in']" condition="unappliedTotal &amp;&amp; paymentIds"/>
+                <label text="${ec.l10n.format(unappliedTotal, '#,##0.00')}" condition="unappliedTotal &amp;&amp; !paymentIds"/>
+            </default-field></field>
             <field name="balanceDue" align="right"><header-field show-order-by="true"/>
                 <default-field><display format="#,##0.00"/></default-field></field>
 
