@@ -75,17 +75,19 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="mantle.account.PaymentServices.get#PaymentDisplayInfo" in-map="[paymentId:paymentId]" out-map="context"/>
         <set field="statusId" from="payment?.statusId"/>
         <set field="paymentEditable" from="statusId in ['PmntProposed', 'PmntPromised', 'PmntAuthorized']"/>
-        <set field="paymentVoid" from="statusId in ['PmntCancelled', 'PmntVoid', 'PmntRefunded']"/>
+        <!-- <set field="paymentVoid" from="statusId in ['PmntCancelled', 'PmntVoid', 'PmntRefunded']"/> -->
+        <set field="paymentDelivered" from="statusId in ['PmntDelivered', 'PmntConfirmed']"/>
+        <set field="isInvoicePayment" from="payment?.paymentTypeEnumId in ['PtInvoicePayment', 'PtPrePayment']"/>
         <set field="isCheck" from="payment.paymentInstrumentEnumId in ['PiPersonalCheck', 'PiCompanyCheck']"/>
     </actions>
     <widgets>
         <container-row><row-col lg="6">
             <container>
                 <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
-                    <link url="editInvoice" text="Invoice #${invoiceId}"/>
+                    <link url="editInvoice" text="Invoice ${invoiceId}"/>
                 </widgets></section-iterate>
                 <section-iterate name="AcctgTransLinks" list="acctgTransIdSet" entry="acctgTransId"><widgets>
-                    <link url="editTransaction" text="TX #${acctgTransId}" link-type="anchor-button"/>
+                    <link url="editTransaction" text="TX ${acctgTransId}" link-type="anchor-button"/>
                 </widgets></section-iterate>
 
                 <link url="PaymentCheck.pdf" text="Check PDF" condition="isCheck"/>
@@ -221,7 +223,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
                 <field name="finAccountTransId">
                     <conditional-field condition="finAccountTransId" title="Financial Account TX">
-                        <link url="financialAccountTrans" text="#${finAccountTransId}" link-type="anchor"
+                        <link url="financialAccountTrans" text="${finAccountTransId}" link-type="anchor"
                                 parameter-map="[finAccountId:finAccountId, finAccountTransId:finAccountTransId]"/>
                     </conditional-field>
                     <default-field><ignored/></default-field>
@@ -274,7 +276,7 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body><box-body-nopad>
                 <form-list name="PaymentApplicationList" list="paymentApplicationList">
                     <field name="invoiceId"><default-field title="Invoice">
-                        <link url="editInvoice" text="#${invoiceId?:''}${invoiceItemSeqId ? (':' + invoiceItemSeqId) : ''}" link-type="anchor"/>
+                        <link url="editInvoice" text="${invoiceId?:''}${invoiceItemSeqId ? (':' + invoiceItemSeqId) : ''}" link-type="anchor"/>
                     </default-field></field>
                     <field name="toPaymentId"><default-field title="To Pmnt">
                         <link url="editPayment" text="${toPaymentId?:''}" link-type="anchor"/>
@@ -284,13 +286,13 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-list>
             </box-body-nopad></container-box>
 
-            <section name="ApplyToInvoiceSection" condition="!paymentVoid &amp;&amp; unappliedTotal > 0"><widgets>
+            <section name="ApplyToInvoiceSection" condition="paymentDelivered &amp;&amp; isInvoicePayment &amp;&amp; unappliedTotal > 0"><widgets>
                 <container-box><box-header><label text="Applicable Unpaid Invoices" type="h5"/></box-header><box-body-nopad>
                     <form-list name="UnpaidInvoiceList" list="unpaidInvoiceInfoList" transition="applyInvoicePayment">
                         <field name="paymentId"><default-field><hidden/></default-field></field>
                         <field name="invoiceId" from="invoice.invoiceId"><default-field title="Invoice">
                             <display text=""/><!-- so that it is rendered, and a hidden value is added -->
-                            <link url="editInvoice" text="#${invoice.invoiceId?:''}" link-type="anchor"
+                            <link url="editInvoice" text="${invoice.invoiceId?:''}" link-type="anchor"
                                     parameter-map="[invoiceId:invoice.invoiceId]"/>
                         </default-field></field>
                         <field name="invoiceTotal"><default-field title="Total">
