@@ -130,6 +130,23 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
+    <transition name="getItemTypeGlAccount">
+        <!-- Return base amount and uom for a product -->
+        <parameter name="itemTypeEnumId" required="true"/>
+        <parameter name="organizationPartyId" required="true"/>
+        <parameter name="direction" required="true"/>
+        <actions>
+            <service-call name="mantle.ledger.InvoiceAutoPostServices.get#InvoiceItemGlAccount" out-map="glAccountOut"
+                    in-map="[organizationPartyId:organizationPartyId, itemTypeEnumId:itemTypeEnumId, direction:'O']"/>
+            <if condition="glAccountOut.glAccount"><then>
+                <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
+                <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
+                <script>ec.web.sendTextResponse(ec.resource.expand("GlAccountNameTemplate", '', glAccountOut.glAccount.getMap()))</script>
+            </then><else>ec.web.sendTextResponse("No GL Account mapping found")</else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
     <widgets>
     </widgets>
 </screen>
