@@ -192,11 +192,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="ShipInputInOutSection" condition="isIncoming"><widgets>
                     <link url="scheduleShipment" text="Set Scheduled"><parameter name="shipmentId"/></link>
                     <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"><parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="scheduleShipment" text="Set Scheduled"><parameter name="shipmentId"/></link>
                     <link url="pickShipment" text="Set Picked"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"><parameter name="shipmentId"/></link>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipScheduledSection" condition="shipment.statusId == 'ShipScheduled'"><widgets>
@@ -204,11 +204,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
                     <link url="deliverShipment" text="Set Delivered" condition="anyReceived"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
+                        <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="pickShipment" text="Set Picked"><parameter name="shipmentId"/></link>
                     <link url="packShipment" text="Set Packed" condition="allItemsPacked"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"><parameter name="shipmentId"/></link>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
@@ -217,10 +218,11 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
                 <section name="ShipPickedInOuSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
+                        <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="packShipment" text="Set Packed" condition="allItemsPacked"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"><parameter name="shipmentId"/></link>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                 </fail-widgets></section>
                 <link url="ShipmentByPackage.pdf" text="Package PDF"/>
@@ -231,7 +233,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
                     <link url="deliverShipment" text="Set Delivered" condition="anyReceived"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
+                        <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
@@ -246,7 +249,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="ShipShippedInOutSection" condition="isIncoming"><widgets>
                     <link url="deliverShipment" text="Set Delivered" condition="anyReceived"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment" ><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
+                        <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
@@ -270,8 +274,8 @@ along with this software (see the LICENSE.md file). If not, see
             <!-- Header -->
             <section name="ShipmentHeaderSection" condition="allowUpdate || shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="DestPostalAddressSection" condition="!isIncoming"><widgets>
-                    <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
-                            parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/>
+                    <container><dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
+                            parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
                     <label text="No shipping address selected" style="text-danger" type="p" condition="!firstRouteSegment.destPostalContactMechId"/>
                     <container style="float-box" type="ul">
                         <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="contactInfo"><actions>
