@@ -18,8 +18,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createShipment"><service-call name="mantle.shipment.ShipmentServices.create#Shipment"/>
         <default-response url="../ShipmentDetail"/></transition>
     <transition name="shipmentDetail"><default-response url="../ShipmentDetail"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
         <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="incomingTypeOut"
@@ -28,21 +30,6 @@ along with this software (see the LICENSE.md file). If not, see
                 in-map="[parentEnumId:'ShpTpOutgoing']"/>
         <if condition="parentShipmentType == 'ShpTpIncoming'"><set field="shipmentTypeSet" from="incomingTypeOut.enumIdSet"/></if>
         <if condition="parentShipmentType == 'ShpTpOutgoing'"><set field="shipmentTypeSet" from="outgoingTypeOut.enumIdSet"/></if>
-
-        <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList">
-            <search-form-inputs default-order-by="-estimatedReadyDate,-estimatedShipDate,-shipmentId">
-                <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"
-                        entryDate_poffset="-1" entryDate_period="30d"/></search-form-inputs>
-            <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
-            <select-field field-name="shipmentId,shipmentTypeEnumId,shipWorkEffortId"/>
-            <select-field field-name="originFacilityName,destinationFacilityName"/>
-            <select-field field-name="fromPartyId,toPartyId,statusId,entryDate,estimatedReadyDate"/>
-        </entity-find>
-
-        <entity-find entity-name="mantle.facility.Facility" list="facilityList">
-            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
-            <order-by field-name="facilityName"/>
-        </entity-find>
 
         <set field="defaultFacilityId" from="ec.user.getPreference('FacilityGeneralDefault')"/>
     </actions>
@@ -53,7 +40,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <drop-down><list-options list="outgoingTypeOut.enumerationList" key="${enumId}" text="${description}"/></drop-down>
                 </default-field></field>
                 <field name="originFacilityId" from="originFacilityId ?: defaultFacilityId"><default-field title="Origin Facility">
-                    <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
                 <field name="toPartyId"><default-field title="To Party">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
@@ -71,7 +58,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
                 <field name="destinationFacilityId" from="destinationFacilityId ?: defaultFacilityId"><default-field title="Destination Facility">
-                    <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
                 <field name="estimatedReadyDate"><default-field title="Ready Date"><date-time/></default-field></field>
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
@@ -79,7 +66,15 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
 
-        <form-list name="ShipmentList" list="shipmentList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true" show-csv-button="true">
+        <form-list name="ShipmentList" list="shipmentList" skip-form="true" header-dialog="true" select-columns="true"
+                saved-finds="true" show-csv-button="true">
+            <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList" distinct="true">
+                <search-form-inputs default-order-by="-entryDate,-shipmentId">
+                    <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"
+                            entryDate_poffset="-1" entryDate_period="30d"/></search-form-inputs>
+                <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
+            </entity-find>
+
             <field name="shipmentId">
                 <header-field title="Shipment" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
                 <default-field><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></default-field>
@@ -100,13 +95,17 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
-            <field name="originFacilityName">
-                <header-field title="Origin Facility" show-order-by="case-insensitive"><text-find size="20" hide-options="true"/></header-field>
-                <default-field><display/></default-field>
+            <field name="originFacilityId">
+                <header-field title="Origin Facility">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field>
             </field>
-            <field name="destinationFacilityName">
-                <header-field title="Dest. Facility" show-order-by="case-insensitive"><text-find size="20" hide-options="true"/></header-field>
-                <default-field><display/></default-field>
+            <field name="destinationFacilityId">
+                <header-field title="Dest. Facility">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field>
             </field>
             <field name="fromPartyId">
                 <header-field title="From Party" show-order-by="true">
@@ -120,21 +119,28 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
+
+            <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="orderId"><header-field><text-find default-operator="begins"/></header-field>
+                <default-field><link url="orderDetail" text="${orderId}" link-type="anchor" condition="orderId"/></default-field></field>
+
             <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
             <field name="estimatedArrivalDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
             <field name="estimatedReadyDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
-            <field name="findButton"><header-field title="Find"><submit/></header-field>
-                <default-field><link url="shipmentDetail" text="View"/></default-field></field>
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="shipmentId"/></form-list-column>
             <form-list-column><field-ref name="shipmentTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/></form-list-column>
-            <form-list-column><field-ref name="originFacilityName"/><field-ref name="destinationFacilityName"/></form-list-column>
+            <form-list-column><field-ref name="originFacilityId"/><field-ref name="destinationFacilityId"/></form-list-column>
             <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
-            <form-list-column><field-ref name="entryDate"/><field-ref name="estimatedArrivalDate"/><field-ref name="estimatedReadyDate"/></form-list-column>
+            <form-list-column><field-ref name="trackingCode"/><field-ref name="orderId"/></form-list-column>
+            <form-list-column><field-ref name="entryDate"/></form-list-column>
+            <form-list-column><field-ref name="estimatedArrivalDate"/><field-ref name="estimatedReadyDate"/></form-list-column>
             <form-list-column><field-ref name="findButton"/></form-list-column>
         </form-list>
     </widgets>

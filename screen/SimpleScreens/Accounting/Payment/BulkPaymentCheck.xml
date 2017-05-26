@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Bulk Checks" default-menu-include="false">
+
+    <parameter name="paymentMethodId" from="paymentMethodId ?: paymentMethodIdSave_0"/>
+
+    <transition name="editPayment"><default-response url="../EditPayment"/></transition>
+    <transition name="editPaymentMethod"><default-response url="//apps/${appRoot}/Party/PaymentMethod/EditPaymentMethod"/></transition>
+    <transition name="editParty"><default-response url="//apps/${appRoot}/Party/EditParty"/></transition>
+
+    <transition name="createPayment"><service-call name="mantle.account.PaymentServices.create#Payment"/>
+        <default-response url="../EditPayment"/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <transition name="handleSubmit">
+        <actions>
+            <if condition="setDelivered"><then>
+                <service-call name="update#mantle.account.payment.Payment" in-map="context + [statusId:'PmntDelivered']" multi="true"/>
+            </then>
+            <else-if condition="setAuthorized">
+                <service-call name="update#mantle.account.payment.Payment" in-map="context + [statusId:'PmntAuthorized']" multi="true"/>
+            </else-if><else-if condition="setRefNums">
+                <service-call name="mantle.account.PaymentServices.assign#BankAccountCheckNumber" in-map="context" multi="true"/>
+            </else-if><else>
+                <script><![CDATA[
+                    paymentIds = new StringBuilder()
+                    for (int i = 0; ; i++) {
+                        if ((context.get("_useRowSubmit") == "true" || context.get("_useRowSubmit_" + i) == "true")
+                                && context.get("_rowSubmit_" + i) != "true") continue
+                        String curKey = "paymentId_" + i
+                        if (context.containsKey(curKey)) {
+                            if (paymentIds.length() > 0) paymentIds.append(",")
+                            paymentIds.append(context.get(curKey))
+                        } else { break }
+                    }
+                ]]></script>
+            </else></if>
+        </actions>
+        <conditional-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Accounting/Payment/PaymentCheck" url-type="plain">
+            <condition><expression>checksPdf</expression></condition>
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="paymentIds" from="paymentIds"/><parameter name="filename" value="PaymentChecks.pdf"/>
+        </conditional-response>
+        <conditional-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Accounting/Payment/PaymentDetail" url-type="plain">
+            <condition><expression>detailsPdf</expression></condition>
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="paymentIds" from="paymentIds"/><parameter name="filename" value="PaymentDetails.pdf"/>
+        </conditional-response>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <set field="paymentInstrumentEnumId" from="paymentInstrumentEnumId ?: 'PiCompanyCheck'"/>
+
+        <entity-find entity-name="mantle.party.PartyRole" list="orgPrList">
+            <econdition field-name="roleTypeId" value="OrgInternal"/>
+            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+        </entity-find>
+        <set field="orgPartyIdList" from="orgPrList.partyId"/>
+
+        <entity-find entity-name="mantle.account.payment.Payment" list="paymentList">
+            <search-form-inputs default-order-by="paymentRefNum,effectiveDate" paginate="false"/>
+            <econdition field-name="fromPartyId" ignore-if-empty="true"/>
+            <econdition field-name="fromPartyId" operator="in" from="orgPartyIdList" ignore="fromPartyId"/>
+            <econdition field-name="statusId" operator="in" value="PmntPromised,PmntAuthorized"/>
+        </entity-find>
+
+        <if condition="paymentMethodId">
+            <entity-find-one entity-name="mantle.account.method.PaymentMethodAndType" value-field="paymentMethod"/>
+            <entity-find-one entity-name="mantle.account.method.BankAccount" value-field="bankAccount"/>
+            <set field="lastCheckNumber" from="bankAccount?.lastCheckNumber"/>
+            <!-- set a placeholder Map to be used in the loop (since row-actions are in a sub-context) -->
+            <set field="phMap" from="[lastCheckNumber:lastCheckNumber]"/>
+        </if>
+    </actions>
+    <widgets>
+        <section name="PaymentMethodInfoSection" condition="bankAccount != null"><widgets>
+            <container-row><row-col md="2"><label text="Selected Method" type="strong"/></row-col><row-col md="10">
+                <link url="editPaymentMethod" link-type="anchor" text="PaymentMethodAndTypeTemplate" text-map="paymentMethod"/>
+            </row-col></container-row>
+            <container-row><row-col md="2"><label text="Last Check Number" type="strong"/></row-col><row-col md="10">
+                <label text="${lastCheckNumber} (update with link above)"/></row-col></container-row>
+        </widgets><fail-widgets>
+            <label text="To assign check numbers select a bank account in From Payment Method."/>
+        </fail-widgets></section>
+
+        <form-list name="PaymentList" list="paymentList" multi="true" transition="handleSubmit"
+                header-dialog="true" saved-finds="true" select-columns="true">
+            <row-actions>
+                <if condition="lastCheckNumber">
+                    <set field="phMap.lastCheckNumber" from="phMap.lastCheckNumber + 1"/>
+                    <set field="setRefNum" from="phMap.lastCheckNumber as String"/>
+                </if>
+            </row-actions>
+
+            <field name="_useRowSubmit"><default-field><hidden default-value="true"/></default-field></field>
+            <field name="paymentId"><default-field><hidden/></default-field></field>
+            <field name="paymentMethodIdSave" from="paymentMethodId"><default-field><hidden/></default-field></field>
+
+            <field name="_rowSubmit"><default-field title="Select">
+                <check no-current-selected-key="true"><option key="true" text=" "/></check></default-field></field>
+            <field name="paymentLink"><default-field title="Payment">
+                <link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+            <field name="paymentRefNum" from="paymentRefNum">
+                <header-field title="Check Num" show-order-by="true"><text-line size="8"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="effectiveDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display also-hidden="false"/></default-field></field>
+            <field name="status" from="statusId"><default-field title="Status">
+                <display-entity entity-name="moqui.basic.StatusItem" key-field-name="statusId" also-hidden="false"/></default-field></field>
+
+            <field name="fromPartyId">
+                <header-field title="From"><drop-down allow-empty="true">
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName,firstName"/></entity-find>
+                    </entity-options>
+                </drop-down></header-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/>
+                </default-field>
+            </field>
+            <field name="toPartyId">
+                <header-field title="To"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
+            </field>
+
+            <field name="paymentTypeEnumId">
+                <header-field title="Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="PaymentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
+            </field>
+            <field name="paymentInstrumentEnumId">
+                <header-field title="Instrument">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="PaymentInstrument"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
+            </field>
+            <field name="paymentMethodId">
+                <header-field title="From Payment Method">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${paymentMethodId}" text="PaymentMethodAndTypeTemplate">
+                            <entity-find entity-name="mantle.account.method.PaymentMethodAndType">
+                                <econdition field-name="ownerPartyId" from="fromPartyId" ignore="!fromPartyId"/>
+                                <econdition field-name="ownerPartyId" operator="in" from="orgPartyIdList" ignore="fromPartyId"/>
+                                <order-by field-name="typeDescription,description"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.account.method.PaymentMethodAndType"
+                        text="PaymentMethodAndTypeTemplate" also-hidden="false"/></default-field>
+            </field>
+
+            <field name="amount" align="right"><header-field show-order-by="true"/><default-field title="Amount">
+                <display currency-unit-field="amountUomId" also-hidden="false"/></default-field></field>
+
+            <field name="setRefNums"><conditional-field condition="bankAccount != null" title="Assign Ref (Check) Numbers"><submit/></conditional-field>
+                <default-field title=""><ignored/></default-field></field>
+            <field name="checksPdf"><default-field title="Checks PDF"><submit/></default-field></field>
+            <field name="detailsPdf"><default-field title="Details PDF"><submit/></default-field></field>
+            <field name="setAuthorized"><default-field title="Set Authorized"><submit/></default-field></field>
+            <field name="setDelivered"><default-field title="Set Delivered"><submit/></default-field></field>
+            <field name="findButton"><header-field title="Find"><submit/></header-field>
+                <default-field><display text=" "/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>
