@@ -65,7 +65,6 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-
         <form-list name="ShipmentList" list="shipmentList" skip-form="true" header-dialog="true" select-columns="true"
                 saved-finds="true" show-csv-button="true">
             <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList" distinct="true">
@@ -73,7 +72,14 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"
                             entryDate_poffset="-1" entryDate_period="30d"/></search-form-inputs>
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
+                <select-field field-name="shipmentId"/>
             </entity-find>
+            <row-actions>
+                <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList" distinct="true">
+                    <econdition field-name="shipmentId"/><select-field field-name="orderId"/></entity-find>
+                <entity-find entity-name="mantle.shipment.ShipmentPackageRouteSeg" list="sprsList" distinct="true">
+                    <econdition field-name="shipmentId"/><select-field field-name="trackingCode"/></entity-find>
+            </row-actions>
 
             <field name="shipmentId">
                 <header-field title="Shipment" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
@@ -120,10 +126,18 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
 
-            <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field>
-                <default-field><display/></default-field></field>
-            <field name="orderId"><header-field><text-find default-operator="begins"/></header-field>
-                <default-field><link url="orderDetail" text="${orderId}" link-type="anchor" condition="orderId"/></default-field></field>
+            <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field></field>
+            <field name="orderId"><header-field><text-find default-operator="begins"/></header-field></field>
+
+            <field name="trackingCodes"><default-field>
+                <section-iterate name="TrackingSprsList" list="sprsList" entry="sprs"><widgets>
+                    <label text="${sprs.trackingCode?:''}"/></widgets></section-iterate>
+            </default-field></field>
+            <field name="orderIds"><default-field>
+                <section-iterate name="OrderSisList" list="sisList" entry="sis"><widgets>
+                    <link url="orderDetail" text="${sis.orderId}" link-type="anchor" condition="sis.orderId"
+                            parameter-map="[orderId:sis.orderId]"/></widgets></section-iterate>
+            </default-field></field>
 
             <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
@@ -138,7 +152,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="statusId"/></form-list-column>
             <form-list-column><field-ref name="originFacilityId"/><field-ref name="destinationFacilityId"/></form-list-column>
             <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
-            <form-list-column><field-ref name="trackingCode"/><field-ref name="orderId"/></form-list-column>
+            <form-list-column><field-ref name="trackingCodes"/><field-ref name="orderIds"/></form-list-column>
             <form-list-column><field-ref name="entryDate"/></form-list-column>
             <form-list-column><field-ref name="estimatedArrivalDate"/><field-ref name="estimatedReadyDate"/></form-list-column>
             <form-list-column><field-ref name="findButton"/></form-list-column>
