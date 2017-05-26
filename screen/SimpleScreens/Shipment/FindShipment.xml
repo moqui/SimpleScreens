@@ -18,6 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createShipment"><service-call name="mantle.shipment.ShipmentServices.create#Shipment"/>
         <default-response url="../ShipmentDetail"/></transition>
     <transition name="shipmentDetail"><default-response url="../ShipmentDetail"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
@@ -74,9 +75,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
             </entity-find>
 
-            <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field></field>
-            <field name="orderId"><header-field><text-find default-operator="begins"/></header-field></field>
-
             <field name="shipmentId">
                 <header-field title="Shipment" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
                 <default-field><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></default-field>
@@ -121,6 +119,12 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
+
+            <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="orderId"><header-field><text-find default-operator="begins"/></header-field>
+                <default-field><link url="orderDetail" text="${orderId}" link-type="anchor" condition="orderId"/></default-field></field>
+
             <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
             <field name="estimatedArrivalDate"><header-field show-order-by="true"><date-period/></header-field>
