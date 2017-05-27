@@ -19,6 +19,11 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createOrder"><service-call name="mantle.order.OrderServices.create#Order"/>
         <default-response url="../OrderDetail"/></transition>
 
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
@@ -170,7 +175,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </entity-options>
                 </drop-down>
             </header-field><default-field>
-                <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/>
+                <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/>
             </default-field></field>
             <field name="productStoreId">
                 <header-field title="Store" show-order-by="true">
@@ -185,25 +190,19 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="vendorPartyId">
                 <header-field title="Vendor" show-order-by="true">
-                    <drop-down allow-empty="true">
-                        <entity-options key="${partyId}" text="PartyNameTemplate">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="roleTypeId" operator="in" from="vendorRole"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName"/><order-by field-name="firstName"/>
-                            </entity-find>
-                        </entity-options>
-                    </drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                            parameter-map="[roleTypeId:'Supplier,Vendor,OrgInternal']"/></drop-down>
                 </header-field>
-                <!-- TODO: if has Supplier role link to EditSupplier, if has Vendor role link to EditVendor; or link to EditParty... -->
-                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
+                <default-field><link url="editSupplier" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:vendorPartyId]"/></default-field>
             </field>
             <field name="customerPartyId">
                 <header-field title="Customer" show-order-by="true">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"
-                            parameter-map="[roleTypeId:'Customer']"/></drop-down>
+                            parameter-map="[roleTypeId:'Customer,OrgInternal']"/></drop-down>
                 </header-field>
-                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
+                <default-field><link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:customerPartyId]"/></default-field>
             </field>
             <field name="customerClassificationId"><header-field title="Customer Class">
                 <drop-down allow-empty="true">

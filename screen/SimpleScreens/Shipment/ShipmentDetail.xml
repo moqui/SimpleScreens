@@ -60,6 +60,11 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
 
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+
     <transition name="createContent"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentContent"/>
         <default-response url="."/></transition>
     <transition name="updateContent"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentContent"/>
@@ -324,16 +329,22 @@ along with this software (see the LICENSE.md file). If not, see
                     <!-- Incoming Shipment Fields -->
                     <field name="fromPartyId"><conditional-field title="From Party" condition="isIncoming">
                         <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                        <link url="editSupplier" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                                condition="fromPartyId" parameter-map="[partyId:fromPartyId]"/>
                     </conditional-field></field>
                     <field name="destinationFacilityId" from="lastRouteSegment.destinationFacilityId">
                         <conditional-field title="Destination Facility" condition="isIncoming">
                             <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                            <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" link-type="anchor"
+                                    parameter-map="[facilityId:destinationFacilityId]"/>
                         </conditional-field>
                     </field>
 
                     <!-- Outgoing Shipment Fields -->
                     <field name="toPartyId"><conditional-field title="To Party" condition="!isIncoming &amp;&amp; allowUpdate">
                         <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                        <link url="editSupplier" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                                condition="toPartyId" parameter-map="[partyId:toPartyId]"/>
                     </conditional-field><conditional-field condition="!isIncoming" title="To Party">
                         <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/>
                     </conditional-field></field>
@@ -342,7 +353,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
                         </conditional-field>
                         <conditional-field title="Origin Facility" condition="!isIncoming">
-                            <label text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}"/>
+                            <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" link-type="anchor"
+                                    parameter-map="[facilityId:originFacilityId]"/>
                         </conditional-field>
                     </field>
                     <field name="estimatedReadyDate"><conditional-field condition="!isIncoming"><date-time/></conditional-field></field>
