@@ -176,6 +176,20 @@ along with this software (see the LICENSE.md file). If not, see
                     <script>shippingPostalAddressList.add(0, curPaInfo)</script></if>
             </if>
         </if>
+        <!-- trim duplicates and replaced/valid from shippingPostalAddressList -->
+        <script><![CDATA[
+            Set replacedPostalIdSet = new HashSet()
+            for (int i=0; i < shippingPostalAddressList.size(); i++) {
+                String replAddressId = shippingPostalAddressList.get(i).postalContactMech?.replacesContactMechId
+                if (replAddressId) replacedPostalIdSet.add(replAddressId)
+            }
+            Set shippingPostalIdSet = new HashSet()
+            for (int i=0; i < shippingPostalAddressList.size(); ) {
+                String curAddressId = shippingPostalAddressList.get(i).postalContactMechId
+                if (shippingPostalIdSet.contains(curAddressId) || replacedPostalIdSet.contains(curAddressId)) { shippingPostalAddressList.remove(i) }
+                else { shippingPostalIdSet.add(curAddressId); i++ }
+            }
+        ]]></script>
 
         <if condition="!isIncoming">
             <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->
@@ -343,7 +357,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <!-- Outgoing Shipment Fields -->
                     <field name="toPartyId"><conditional-field title="To Party" condition="!isIncoming &amp;&amp; allowUpdate">
                         <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
-                        <link url="editSupplier" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                        <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
                                 condition="toPartyId" parameter-map="[partyId:toPartyId]"/>
                     </conditional-field><conditional-field condition="!isIncoming" title="To Party">
                         <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/>
