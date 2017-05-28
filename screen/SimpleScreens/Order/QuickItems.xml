@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Quick Items" default-menu-include="false">
+
+    <parameter name="orderId" from="orderId ?: orderId_0" required="true"/>
+    <parameter name="orderPartSeqId" from="orderPartSeqId ?: orderPartSeqId_0 ?: '01'"/>
+    <parameter name="productCategoryId" from="productCategoryId ?: productCategoryId_0"/>
+    <parameter name="orderByField" from="orderByField ?: 'pseudoId,orderItemSeqId'"/>
+
+    <transition name="editProduct"><default-response url="//${appRoot}/Product/EditProduct"/></transition>
+
+    <transition name="setItemQuantities">
+        <service-call name="mantle.order.OrderServices.add#OrderProductQuantity" multi="true"
+                in-map="context + [addToQuantity:false, quantity:0]"/>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.order.OrderHeader" value-field="orderHeader"/>
+        <entity-find-one entity-name="mantle.order.OrderPart" value-field="orderPart"/>
+        <set field="productStoreId" from="orderHeader.productStoreId"/>
+
+        <if condition="!productCategoryId &amp;&amp; productStoreId">
+            <!-- use the Quick Add category if there is one, otherwise try Search category -->
+            <entity-find entity-name="mantle.product.store.ProductStoreCategory" list="psCatList" cache="true">
+                <date-filter/><econdition field-name="productStoreId"/>
+                <econdition field-name="storeCategoryTypeEnumId" value="PsctQuickAdd"/>
+            </entity-find>
+            <if condition="!psCatList">
+                <entity-find entity-name="mantle.product.store.ProductStoreCategory" list="psCatList" cache="true">
+                    <date-filter/><econdition field-name="productStoreId"/>
+                    <econdition field-name="storeCategoryTypeEnumId" value="PsctSearch"/>
+                </entity-find>
+            </if>
+            <set field="productCategoryId" from="psCatList ? psCatList[0].productCategoryId : null"/>
+        </if>
+
+        <set field="productInfoList" from="[]"/>
+        <if condition="productCategoryId">
+            <entity-find entity-name="ProductCategoryMemberProduct" list="productList" cache="true">
+                <date-filter/><econdition field-name="productCategoryId"/></entity-find>
+        </if>
+        <iterate list="productList" entry="product">
+            <set field="prodItemList" from="orderItemList.findAll({ it.productId == product.productId })"/>
+            <if condition="prodItemList"><then>
+                <iterate list="prodItemList" entry="prodItem">
+                    <script>productInfoList.add(product.getMap() + prodItem.getMap())</script></iterate>
+                <script>orderItemList.removeByAnd([productId:product.productId])</script>
+            </then><else>
+                <service-call name="mantle.product.PriceServices.get#ProductPrice" out-map="priceOut" out-map-add-to-existing="false"
+                        in-map="[productId:product.productId, priceUomId:orderHeader.currencyUomId,
+                            productStoreId:productStoreId, customerPartyId:orderPart.customerPartyId]"/>
+                <script>productInfoList.add(product.getMap() + [unitAmount:(priceOut.price ?: 0.0)])</script>
+            </else></if>
+        </iterate>
+
+        <entity-find entity-name="mantle.order.OrderItem" list="orderItemList" cache="false">
+            <econdition field-name="orderId"/><econdition field-name="productId" operator="is-not-null"/></entity-find>
+        <iterate list="orderItemList" entry="orderItem">
+            <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="true">
+                <field-map field-name="productId" from="orderItem.productId"/></entity-find-one>
+            <script>productInfoList.add(product.getMap() + orderItem.getMap())</script>
+        </iterate>
+
+        <script>orderMapList(productInfoList, (orderByField.split(',') as List))</script>
+    </actions>
+
+    <widgets>
+        <link url="../OrderDetail" text="Back to Order ${orderId}"/>
+        <form-single name="QuickItemOptions" transition=".">
+            <field name="orderId"><default-field><hidden/></default-field></field>
+            <field name="orderByField"><default-field><hidden/></default-field></field>
+            <field name="orderPartSeqId"><default-field title="Order Part"><drop-down>
+                <entity-options key="${orderPartSeqId}" text="${orderPartSeqId} ${ec.l10n.formatCurrency(partTotal, orderHeader.currencyUomId)}">
+                    <entity-find entity-name="mantle.order.OrderPart"><econdition field-name="orderId"/>
+                        <select-field field-name="orderPartSeqId,partTotal"/><order-by field-name="orderPartSeqId"/></entity-find>
+                </entity-options>
+            </drop-down></default-field></field>
+            <field name="productCategoryId"><default-field title="Category"><drop-down>
+                <!-- NOTE: to support large numbers of categories this should be changed to dynamic-options with server-search -->
+                <entity-options key="${productCategoryId}" text="${categoryName}">
+                    <entity-find entity-name="mantle.product.category.ProductCategory">
+                        <econdition field-name="productCategoryTypeEnumId" operator="in" value="PctQuickAdd,PctSearch,PctCatalog"/>
+                        <order-by field-name="categoryName"/></entity-find></entity-options>
+            </drop-down></default-field></field>
+            <field name="submitButton"><default-field title="Select"><submit/></default-field></field>
+            <field-layout><field-row-big><field-ref name="orderPartSeqId"/><field-ref name="productCategoryId"/>
+                <field-ref name="submitButton"/></field-row-big></field-layout>
+        </form-single>
+
+        <section name="QuickItemSection" condition="productInfoList"><widgets>
+            <form-list name="QuickItemList" list="productInfoList" multi="true" transition="setItemQuantities">
+                <field name="orderId"><default-field><hidden/></default-field></field>
+                <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
+                <field name="productCategoryId"><default-field><hidden/></default-field></field>
+                <field name="productId"><default-field><hidden/></default-field></field>
+
+                <field name="pseudoId"><header-field show-order-by="true"/>
+                    <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field></field>
+                <field name="productName"><header-field show-order-by="true"/>
+                    <default-field><link url="editProduct" text="${productName}" link-type="anchor"/></default-field></field>
+                <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                <field name="itemQuantity" from="quantity" align="right">
+                    <default-field title="Item Qty"><display/></default-field></field>
+                <field name="itemTotal" from="(quantity?:0.0)*(unitAmount?:0.0)" align="right">
+                    <default-field title="Item Total"><display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+                <field name="unitAmount" align="right">
+                    <conditional-field title="Price" condition="productId">
+                        <text-line size="8" format="#,##0.00"/></conditional-field>
+                    <default-field title="Price"><display/></default-field>
+                </field>
+                <field name="quantity" align="right"><conditional-field condition="productId"><text-line size="4"/></conditional-field>
+                    <default-field><display/></default-field></field>
+
+                <field name="submitButton"><default-field title="Set Quantities"><submit/></default-field></field>
+            </form-list>
+        </widgets></section>
+    </widgets>
+</screen>
