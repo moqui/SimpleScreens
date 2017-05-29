@@ -388,13 +388,18 @@ along with this software (see the LICENSE.md file). If not, see
                         in-map="[partyId:customerPartyId, postalContactMechId:orderPart.postalContactMechId]"/>
                 <script>shippingPostalAddressList.add(0, curPaInfo)</script>
             </if>
-            <!-- trim duplicates from shippingPostalAddressList -->
+            <!-- trim duplicates and replaced/valid from shippingPostalAddressList -->
             <script><![CDATA[
+                Set replacedPostalIdSet = new HashSet()
+                for (int i=0; i < shippingPostalAddressList.size(); i++) {
+                    String replAddressId = shippingPostalAddressList.get(i).postalContactMech?.replacesContactMechId
+                    if (replAddressId) replacedPostalIdSet.add(replAddressId)
+                }
                 Set shippingPostalIdSet = new HashSet()
                 for (int i=0; i < shippingPostalAddressList.size(); ) {
-                    Map curAddress = shippingPostalAddressList.get(i)
-                    if (shippingPostalIdSet.contains(curAddress.postalContactMechId)) { shippingPostalAddressList.remove(i) }
-                    else { shippingPostalIdSet.add(curAddress.postalContactMechId); i++ }
+                    String curAddressId = shippingPostalAddressList.get(i).postalContactMechId
+                    if (shippingPostalIdSet.contains(curAddressId) || replacedPostalIdSet.contains(curAddressId)) { shippingPostalAddressList.remove(i) }
+                    else { shippingPostalIdSet.add(curAddressId); i++ }
                 }
             ]]></script>
         </actions><widgets>
@@ -728,6 +733,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
+                <link url="../QuickItems" text="Quick Add Items"/>
             </widgets></section>
 
             <form-list name="OrderItems" list="orderPartInfo.partOrderItemList" list-entry="orderItem" transition="updateItem">

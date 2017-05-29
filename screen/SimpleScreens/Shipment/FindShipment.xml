@@ -20,6 +20,11 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="shipmentDetail"><default-response url="../ShipmentDetail"/></transition>
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
@@ -105,25 +110,30 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="Origin Facility">
                     <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
                 </header-field>
-                <default-field><display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate"
+                        link-type="anchor" parameter-map="[facilityId:originFacilityId]"/></default-field>
             </field>
             <field name="destinationFacilityId">
                 <header-field title="Dest. Facility">
                     <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
                 </header-field>
-                <default-field><display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate"
+                        link-type="anchor" parameter-map="[facilityId:destinationFacilityId]"/></default-field>
             </field>
             <field name="fromPartyId">
                 <header-field title="From Party" show-order-by="true">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </header-field>
-                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
+                <!-- TODO: this could also be from a Customer, add different link if has the Customer role -->
+                <default-field><link url="editSupplier" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field>
             </field>
             <field name="toPartyId">
                 <header-field title="To Party" show-order-by="true">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </header-field>
-                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
+                <default-field><link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
             </field>
 
             <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field></field>
