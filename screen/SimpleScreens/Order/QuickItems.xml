@@ -53,6 +53,9 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="ProductCategoryMemberProduct" list="productList" cache="true">
                 <date-filter/><econdition field-name="productCategoryId"/></entity-find>
         </if>
+        <entity-find entity-name="mantle.order.OrderItem" list="orderItemList" cache="false">
+            <econdition field-name="orderId"/><econdition field-name="productId" operator="is-not-null"/></entity-find>
+
         <iterate list="productList" entry="product">
             <set field="prodItemList" from="orderItemList.findAll({ it.productId == product.productId })"/>
             <if condition="prodItemList"><then>
@@ -60,15 +63,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <script>productInfoList.add(product.getMap() + prodItem.getMap())</script></iterate>
                 <script>orderItemList.removeByAnd([productId:product.productId])</script>
             </then><else>
-                <service-call name="mantle.product.PriceServices.get#ProductPrice" out-map="priceOut" out-map-add-to-existing="false"
-                        in-map="[productId:product.productId, priceUomId:orderHeader.currencyUomId,
-                            productStoreId:productStoreId, customerPartyId:orderPart.customerPartyId]"/>
-                <script>productInfoList.add(product.getMap() + [unitAmount:(priceOut.price ?: 0.0)])</script>
+                <script>productInfoList.add(product.getMap())</script>
             </else></if>
         </iterate>
 
-        <entity-find entity-name="mantle.order.OrderItem" list="orderItemList" cache="false">
-            <econdition field-name="orderId"/><econdition field-name="productId" operator="is-not-null"/></entity-find>
         <iterate list="orderItemList" entry="orderItem">
             <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="true">
                 <field-map field-name="productId" from="orderItem.productId"/></entity-find-one>
@@ -103,6 +101,12 @@ along with this software (see the LICENSE.md file). If not, see
 
         <section name="QuickItemSection" condition="productInfoList"><widgets>
             <form-list name="QuickItemList" list="productInfoList" multi="true" transition="setItemQuantities">
+                <row-actions>
+                    <service-call name="mantle.product.PriceServices.get#ProductPrice" out-map="priceOut"
+                            in-map="[productId:productId, priceUomId:orderHeader.currencyUomId,
+                                productStoreId:productStoreId, customerPartyId:orderPart.customerPartyId]"/>
+                </row-actions>
+
                 <field name="orderId"><default-field><hidden/></default-field></field>
                 <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
                 <field name="productCategoryId"><default-field><hidden/></default-field></field>
@@ -113,10 +117,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="productName"><header-field show-order-by="true"/>
                     <default-field><link url="editProduct" text="${productName}" link-type="anchor"/></default-field></field>
                 <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
-                <field name="itemQuantity" from="quantity" align="right">
-                    <default-field title="Item Qty"><display/></default-field></field>
-                <field name="itemTotal" from="(quantity?:0.0)*(unitAmount?:0.0)" align="right">
-                    <default-field title="Item Total"><display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+                <field name="calcPrice" from="priceOut.price" align="right"><default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
                 <field name="unitAmount" align="right">
                     <conditional-field title="Price" condition="productId">
                         <text-line size="8" format="#,##0.00"/></conditional-field>
@@ -124,6 +125,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
                 <field name="quantity" align="right"><conditional-field condition="productId"><text-line size="4"/></conditional-field>
                     <default-field><display/></default-field></field>
+                <field name="itemQuantity" from="quantity" align="right">
+                    <default-field title="Cur Qty"><display/></default-field></field>
+                <field name="itemTotal" from="(quantity?:0.0)*(unitAmount?:0.0)" align="right">
+                    <default-field title="Cur Total"><display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
 
                 <field name="submitButton"><default-field title="Set Quantities"><submit/></default-field></field>
             </form-list>
