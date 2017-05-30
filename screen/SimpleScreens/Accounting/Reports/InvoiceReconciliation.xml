@@ -25,57 +25,70 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
+        <set field="invoiceType" from="invoiceType ?: 'Receivable'"/>
+        <set field="statusId" from="statusId ?: (invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved,InvoicePmtSent' : 'InvoiceFinalized,InvoiceSent,InvoicePmtRecvd')"/>
+        <set field="statusId_op" value="in"/>
+
+        <if condition="!masterDate_period">
+            <set field="masterDate_period" value="month"/>
+            <set field="masterDate_poffset" value="0"/>
+            <set field="masterDate_pdate" from="ec.l10n.format(ec.user.nowTimestamp, 'yyyy-MM-dd')"/>
+        </if>
+        <set field="rangeList" from="ec.user.getPeriodRange(masterDate_period, masterDate_poffset, masterDate_pdate)"/>
+        <set field="fromDate" from="rangeList[0]"/>
+        <set field="thruDate" from="rangeList[1]"/>
+
+        <set field="itemDate_period" from="masterDate_period"/><set field="itemDate_poffset" from="masterDate_poffset"/>
+        <set field="itemDate_pdate" from="masterDate_pdate"/>
+        <set field="appliedDate_period" from="masterDate_period"/><set field="appliedDate_poffset" from="masterDate_poffset"/>
+        <set field="appliedDate_pdate" from="masterDate_pdate"/>
+
         <entity-find entity-name="moqui.basic.EnumGroupMember" list="txTypeMemberList">
             <econdition field-name="enumGroupEnumId" value="EngAccTxTypesInvoice"/></entity-find>
         <set field="txTypeEnumIdList" from="txTypeMemberList*.enumId"/>
-
-        <if condition="!invoiceDate_period &amp;&amp; !dueDate_period &amp;&amp; !appliedDate_period">
-            <set field="invoiceDate_period" value="30d"/><set field="invoiceDate_poffset" value="-1"/></if>
-        <if condition="invoiceDate_period"><then>
-            <set field="rangeList" from="ec.user.getPeriodRange(invoiceDate_period, invoiceDate_poffset, invoiceDate_pdate)"/>
-            <set field="fromDate" from="rangeList[0]"/>
-            <set field="thruDate" from="rangeList[1]"/>
-        </then><else-if condition="dueDate_period">
-            <set field="rangeList" from="ec.user.getPeriodRange(dueDate_period, dueDate_poffset, dueDate_pdate)"/>
-            <set field="fromDate" from="rangeList[0]"/>
-            <set field="thruDate" from="rangeList[1]"/>
-        </else-if><else-if condition="appliedDate_period">
-            <set field="rangeList" from="ec.user.getPeriodRange(appliedDate_period, appliedDate_poffset, appliedDate_pdate)"/>
-            <set field="fromDate" from="rangeList[0]"/>
-            <set field="thruDate" from="rangeList[1]"/>
-        </else-if></if>
     </actions>
     <widgets>
         <container-box><box-header><label text="Invoice Payment Reconciliation" type="h5"/></box-header><box-body-nopad>
             <form-list name="InvoiceAndPaymentApplicationList" list="invoiceList" skip-form="true" header-dialog="true" select-columns="true"
                     saved-finds="true" show-csv-button="true" show-all-button="true">
-                <entity-find entity-name="mantle.account.invoice.InvoiceAndPaymentApplication" list="invoiceList">
-                    <search-form-inputs default-order-by="-invoiceDate,invoiceId,paymentId">
-                        <default-parameters invoiceDate_poffset="-1" invoiceDate_period="30d"/></search-form-inputs>
-                    <econdition field-name="unpaidTotal" operator="not-equals" from="0.0" or-null="true"/>
+                <!-- NOTE: depends on itemDate defaulting to invoiceDate, or rather itemDate on all InvoiceItem so that diff for date range is correct -->
+                <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
+                    <search-form-inputs default-order-by="invoiceDate,appliedDate,invoiceId,paymentId"/>
+                    <econditions combine="or">
+                        <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
+                        <econdition field-name="amountApplied" operator="not-equals" from="0.0"/>
+                    </econditions>
+                    <econditions combine="or">
+                        <econdition field-name="itemsTotal" operator="not-equals" to-field-name="amountApplied"/>
+                        <econdition field-name="itemsTotal" operator="is-null"/>
+                        <econdition field-name="amountApplied" operator="is-null"/>
+                    </econditions>
+                    <select-field field-name="invoiceId,invoiceDate,itemsTotal,amountApplied"/>
                 </entity-find>
+
+                <field name="invoiceType"><header-field title="AR/AP"><drop-down><option key="Receivable" text="Receivable"/>
+                    <option key="Payable" text="Payable"/></drop-down></header-field></field>
+                <field name="masterDate"><header-field title="Date Range"><date-period/></header-field></field>
 
                 <field name="invoiceId" aggregate="group-by"><header-field show-order-by="true" title="Invoice"/>
                     <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
-                <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
-                    <default-field><display format="yyyy-MM-dd"/></default-field></field>
-                <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
+                <field name="invoiceDate"><header-field show-order-by="true"/>
                     <default-field><display format="yyyy-MM-dd"/></default-field></field>
 
                 <field name="fromPartyId">
                     <header-field title="From"><drop-down allow-empty="true">
                         <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
-                    <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                    <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="${pseudoId}"
                             link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field>
                 </field>
                 <field name="toPartyId">
                     <header-field title="To"><drop-down allow-empty="true">
                         <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
-                    <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                    <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="${pseudoId}"
                             link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
                 </field>
-                <field name="referenceNumber"><header-field title="Ref Num (PO/etc)"><text-find size="10" hide-options="true"/></header-field>
-                    <default-field><display/></default-field></field>
+                <!-- <field name="referenceNumber"><header-field title="Ref Num (PO/etc)"><text-find size="10" hide-options="true"/></header-field>
+                    <default-field><display/></default-field></field> -->
 
                 <field name="statusId">
                     <header-field title="Status" show-order-by="true">
@@ -85,18 +98,22 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
                 </field>
 
-                <field name="invoiceTotal" align="right" show-total="true"><header-field title="Total"><range-find/></header-field>
-                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
-                <field name="unpaidTotal" align="right" show-total="true"><header-field title="Unpaid"><range-find/></header-field>
+                <field name="itemsTotal" align="right" show-total="sum"><header-field title="Items"><range-find/></header-field>
                     <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
 
                 <!-- PaymentApplication fields -->
-                <field name="paymentId" aggregate="sub-list"><header-field title="Payment" show-order-by="true"/>
+                <field name="paymentId"><header-field title="Payment" show-order-by="true"/>
                     <default-field><link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
-                <field name="appliedDate" aggregate="sub-list"><header-field show-order-by="true"><date-period/></header-field>
+                <field name="appliedDate"><header-field show-order-by="true"/>
                     <default-field><display/></default-field></field>
-                <field name="amountApplied" aggregate="sub-list"><header-field show-order-by="true"><range-find/></header-field>
-                    <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="amountApplied" align="right" show-total="sum">
+                    <header-field title="Applied" show-order-by="true"><range-find/></header-field>
+                    <default-field><display currency-unit-field="currencyUomId"/></default-field>
+                </field>
+
+                <field name="amountDiff" from="(itemsTotal?:0.0) - (amountApplied?:0.0)" align="right" show-total="sum">
+                    <default-field title="Difference"><display currency-unit-field="currencyUomId"/></default-field>
+                </field>
 
                 <field name="findButton"><header-field title="Find"><submit/></header-field></field>
             </form-list>
