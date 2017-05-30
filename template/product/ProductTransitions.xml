@@ -72,9 +72,15 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="productStoreId"/><parameter name="vendorPartyId"/><parameter name="customerPartyId"/>
         <!-- use these to get store, vendor, customer, uom from OrderHeader/Part -->
         <parameter name="orderId"/><parameter name="orderPartSeqId"/>
+        <parameter name="priceFormat"/>
         <actions>
-            <service-call name="mantle.product.PriceServices.get#OrderProductPrice" in-map="context" out-map="priceOut"/>
-            <script>ec.web.sendTextResponse(ec.l10n.format(priceOut.price, '#,##0.000'))</script>
+            <if condition="productId"><then>
+                <if condition="!priceFormat"><set field="priceFormat" value="#,##0.000"/></if>
+                <service-call name="mantle.product.PriceServices.get#OrderProductPrice" in-map="context" out-map="priceOut"/>
+                <script>ec.web.sendTextResponse(ec.l10n.format(priceOut.price, priceFormat))</script>
+            </then><else>
+                <script>ec.web.sendTextResponse('')</script>
+            </else></if>
         </actions>
         <default-response type="none"/>
     </transition>
