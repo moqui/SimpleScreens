@@ -14,6 +14,17 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd">
 
+    <transition name="getPartySettingList"><parameter name="partySettingTypeId"/><actions>
+        <entity-find-one entity-name="mantle.party.PartySettingType" value-field="settingType"/>
+        <if condition="settingType == null || !settingType.enumTypeId"><then>
+            <script>ec.web.sendJsonResponse([])</script>
+        </then><else>
+            <entity-find entity-name="moqui.basic.Enumeration" list="settingOptionList">
+                <econdition field-name="enumTypeId" from="settingType.enumTypeId"/><order-by field-name="description"/></entity-find>
+            <script>ec.web.sendJsonResponse(settingOptionList)</script>
+        </else></if>
+    </actions><default-response type="none"/></transition>
+
     <transition name="getTimePeriodList">
         <parameter name="term"/>
         <parameter name="partyId"/>

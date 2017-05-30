@@ -40,20 +40,11 @@ along with this software (see the LICENSE.md file). If not, see
         <script>ec.web.sendJsonResponse(classList)</script>
     </actions><default-response type="none"/></transition>
 
-    <transition name="createPartySetting"><service-call name="create#mantle.party.PartySetting"/>
+    <transition name="createPartySetting"><service-call name="mantle.party.PartyServices.create#PartySetting"/>
         <default-response url="."/></transition>
     <transition name="deletePartySetting"><service-call name="delete#mantle.party.PartySetting"/>
         <default-response url="."/></transition>
-    <transition name="getPartySettingList"><parameter name="partySettingTypeId"/><actions>
-        <entity-find-one entity-name="mantle.party.PartySettingType" value-field="settingType"/>
-        <if condition="settingType == null || !settingType.enumTypeId"><then>
-            <script>ec.web.sendJsonResponse([])</script>
-        </then><else>
-            <entity-find entity-name="moqui.basic.Enumeration" list="settingOptionList">
-                <econdition field-name="enumTypeId" from="settingType.enumTypeId"/><order-by field-name="description"/></entity-find>
-            <script>ec.web.sendJsonResponse(settingOptionList)</script>
-        </else></if>
-    </actions><default-response type="none"/></transition>
+    <transition-include name="getPartySettingList" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
 
     <transition name="createPartyIdentification"><service-call name="create#mantle.party.PartyIdentification"/>
         <default-response url="."/></transition>
@@ -146,9 +137,8 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-count entity-name="mantle.account.payment.Payment" count-field="toPaymentCount">
             <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
 
-        <entity-find entity-name="mantle.party.PartyRole" list="partyRoleList">
-            <econdition field-name="partyId"/></entity-find>
-        <set field="roleTypeIdList" from="partyRoleList.roleTypeId"/>
+        <entity-find entity-name="mantle.party.PartyRole" list="partyRoleList"><econdition field-name="partyId"/></entity-find>
+        <set field="roleTypeIdList" from="partyRoleList*.roleTypeId"/>
 
         <if condition="roleTypeIdList.contains('Account') || roleTypeIdList.contains('Supplier')">
             <entity-find entity-name="mantle.party.PartyToAndRelationship" list="parentAccountRelList">
@@ -402,15 +392,18 @@ along with this software (see the LICENSE.md file). If not, see
 
             <section name="PartySettingSection"><actions>
                 <entity-find entity-name="mantle.party.PartySetting" list="settingList">
-                    <econdition field-name="partyId"/></entity-find>
+                    <econdition field-name="partyId"/><order-by field-name="partySettingTypeId"/></entity-find>
             </actions><widgets>
                 <container-box><box-header><label text="Settings" type="h5"/></box-header><box-toolbar>
-                    <container-dialog id="SetSettingDialog" button-text="Add Setting">
-                        <form-single name="SetSettingForm" transition="createPartySetting">
+                    <container-dialog id="AddSettingDialog" button-text="Add Setting - Select">
+                        <form-single name="AddSettingForm" transition="createPartySetting">
                             <field name="partyId"><default-field><hidden/></default-field></field>
                             <field name="partySettingTypeId"><default-field title="Type">
                                 <drop-down><entity-options key="${partySettingTypeId}" text="${description}">
-                                    <entity-find entity-name="mantle.party.PartySettingType">
+                                    <entity-find entity-name="mantle.party.PartySettingTypeAndRole" cache="false">
+                                        <econdition field-name="roleTypeId" operator="in" from="roleTypeIdList" or-null="true"/>
+                                        <econdition field-name="partySettingTypeId" operator="not-in" from="settingList*.partySettingTypeId" ignore-if-empty="true"/>
+                                        <econdition field-name="enumTypeId" operator="is-not-null"/>
                                         <order-by field-name="description"/></entity-find></entity-options>
                                 </drop-down>
                             </default-field></field>
@@ -419,6 +412,23 @@ along with this software (see the LICENSE.md file). If not, see
                                         value-field="enumId" label-field="description">
                                     <depends-on field="partySettingTypeId"/></dynamic-options></drop-down>
                             </default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                    <container-dialog id="AddSettingTextDialog" button-text="Add Setting - Text">
+                        <form-single name="AddSettingTextForm" transition="createPartySetting">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="partySettingTypeId"><default-field title="Type">
+                                <drop-down><entity-options key="${partySettingTypeId}" text="${description}">
+                                    <entity-find entity-name="mantle.party.PartySettingTypeAndRole" cache="false">
+                                        <econdition field-name="roleTypeId" operator="in" from="roleTypeIdList" or-null="true"/>
+                                        <econdition field-name="partySettingTypeId" operator="not-in" from="settingList*.partySettingTypeId" ignore-if-empty="true"/>
+                                        <econdition field-name="enumTypeId" operator="is-null"/>
+                                        <order-by field-name="description"/></entity-find></entity-options>
+                                </drop-down>
+                            </default-field></field>
+                            <field name="settingValue"><default-field title="Value">
+                                <text-line size="40"/></default-field></field>
                             <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>
@@ -431,8 +441,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="partyId"><default-field><hidden/></default-field></field>
                         <field name="partySettingTypeId"><default-field title="Type">
                             <display-entity entity-name="mantle.party.PartySettingType"/></default-field></field>
-                        <field name="settingValue"><default-field title="Value"><display text="${valueEnum ? valueEnum.description : settingValue}"/></default-field></field>
-                        <field name="submitButton"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
+                        <field name="settingValue"><default-field title="Value">
+                            <display text="${valueEnum ? valueEnum.description : settingValue}"/></default-field></field>
+                        <field name="submitButton"><default-field title="">
+                            <submit icon="glyphicon glyphicon-trash" confirmation="Really delete setting?"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
@@ -679,7 +691,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
                                 </form-single>
                             </container-dialog>
-                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
+                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash" confirmation="Remove email address?"
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.emailContactMechId,
                                         contactMechPurposeId:contactInfo.emailContactMechPurposeId]"/>
                         </row-col><row-col lg="6">
@@ -715,7 +727,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
                                 </form-single>
                             </container-dialog>
-                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
+                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash" confirmation="Remove phone number?"
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.telecomContactMechId,
                                         contactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
                         </row-col><row-col lg="6">
@@ -755,7 +767,7 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
                                 </form-single>
                             </container-dialog>
-                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash"
+                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash" confirmation="Remove address?"
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.postalContactMechId,
                                         contactMechPurposeId:contactInfo.postalContactMechPurposeId]"/>
                             <container>
