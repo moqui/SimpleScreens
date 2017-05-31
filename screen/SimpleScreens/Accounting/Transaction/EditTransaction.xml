@@ -132,7 +132,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </container-dialog>
             </widgets>
             <fail-widgets>
-                <link url="postReverseAcctgTrans" text="Post Reverse Transaction"/>
+                <link url="postReverseAcctgTrans" text="Post Reverse Transaction" confirmation="Post a new transaction that reverses this?"/>
             </fail-widgets>
         </section>
 
@@ -208,7 +208,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <set field="enumTypeId" value="GlAccountType"/><set field="allowEmpty" value="true"/></widget-template-include>
                     </default-field></field>
                     <field name="glAccountId"><default-field title="GL Account"><drop-down allow-empty="true">
-                    <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></default-field></field>
+                        <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"
+                                parameter-map="[onlyPostingAllowed:'true', organizationPartyId:organizationPartyId]"/>
+                    </drop-down></default-field></field>
 
                     <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                 </form-single>
@@ -242,7 +244,9 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="glAccountId">
                 <conditional-field condition="acctgTrans.isPosted != 'Y'"><drop-down allow-empty="true">
-                    <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></conditional-field>
+                    <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"
+                            parameter-map="[onlyPostingAllowed:'true', organizationPartyId:organizationPartyId]"/>
+                </drop-down></conditional-field>
                 <default-field title="GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
                         text="${accountCodeFormatter != null ? accountCodeFormatter.valueToString(accountCode) : accountCode}: ${accountName}"/>
                 </default-field>
