@@ -48,6 +48,37 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="txTypeEnumIdList" from="txTypeMemberList*.enumId"/>
     </actions>
     <widgets>
+        <!--
+        NOTE: this section would be more useful if it operated very differently to reconcile Invoice and PaymentApplication against AcctgTrans/Entry
+
+        Business goals, comments:
+        - Explain differences between invoice aging reports and Balance Sheet
+        - View negative transaction entries for invoices
+          - There is a valid case for these transactions in Mantle, ie invoice adjustments such early payment and other discounts applied
+            at the time of payment so not in the original transaction for the invoice
+          - Not sure why this needs to be checked, should result in valid totals in the Balance Sheet and Income Statement, ie at the
+            time of payment the AR/AP accounts would be fully adjusted for the settled invoice
+          - The code for the reconcile report flags these as 'suspicious' but I don't see that displayed anywhere, so maybe this is ignored anyway
+        - View payment application transactions for invoices that are not posted within the period
+          - This shouldn't ever happen, ie a payment applied to an invoice before the invoice is posted
+          - Mantle does not allow this, just like it doesn't allow applying a Payment that is not yet received or sent
+          - Would result in an incorrect value in AR/AP accounts (reducing payable/receivable total for other invoices posted)
+          - Payment should remain unapplied so it shows in Unearned Revenue for receivable or Prepaid Expense for payable
+            instead of mucking up the AR/AP amount
+            (ie for receivable moving the amount from Liability (Unearned Revenue) to negative amount in Asset (Accounts Receivable)
+        - View invoice transaction total and/or payment application transaction total for invoices where they are not equal with the time period
+          - The approach in Mantle is to handle receivable unapplied payments to Unearned Revenue (Liability) and payable unapplied payments to Prepaid Expense (Asset)
+          - The concept of an unapplied payment is still important as this is how these accounts (Unearned Revenue, Prepaid Expense) are maintained
+        - View unposted transactions
+          - Automatic unposted transactions are added to the error journal
+          - The period close finalize checks to make sure all transactions in the period are posted
+        - View transactions posted to a payable or receivable account with no invoiceId
+          - There seem to be valid reasons for these such as manual adjustments
+          - Does this really need to be checked? What scenario would result in an invalid transaction or balance sheet issue?
+        - View payment application transactions where invoice date on related invoice is after the period
+          - See notes about about payment application transactions for invoices not yet posted
+
+        -->
         <container-box><box-header><label text="Invoice Payment Reconciliation" type="h5"/></box-header><box-body-nopad>
             <form-list name="InvoiceAndPaymentApplicationList" list="invoiceList" skip-form="true" header-dialog="true" select-columns="true"
                     saved-finds="true" show-csv-button="true" show-all-button="true">
