@@ -14,8 +14,6 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign showDetail = (detail! == "true")>
 <#assign numberFormat = numberFormat!"#,##0.00">
 <#macro csvValue textValue>
-<#-- this default escaping looks for commas or double-quotes and if found surrounds with quotes, always changes
-double-quotes within the string to 2 double-quotes -->
     <#if textValue?contains(",") || textValue?contains("\"")><#assign useQuotes = true><#else><#assign useQuotes = false></#if>
     <#t><#if useQuotes>"</#if>${textValue?replace("\"", "\"\"")}<#if useQuotes>"</#if>
 </#macro>
@@ -47,7 +45,7 @@ double-quotes within the string to 2 double-quotes -->
     </#list>
     <#t><#if hasChildren>
         <#list classInfo.childClassInfoList as childClassInfo><@showClass childClassInfo depth + 1/></#list>
-        <#t>${ec.l10n.localize(classInfo.className + " Total")},
+        <#t><#list 1..depth as idx>-</#list> <@csvValue ec.l10n.localize(classInfo.className + " Total")/>,
         <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(classInfo.totalPostedByTimePeriod['ALL']!0, numberFormat)/>,</#if>
         <#list timePeriodIdList as timePeriodId>
             <#assign beginningTotalBalance = (classInfo.totalBalanceByTimePeriod[timePeriodId]!0) - (classInfo.totalPostedByTimePeriod[timePeriodId]!0)>

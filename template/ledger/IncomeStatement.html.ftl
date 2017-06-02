@@ -55,7 +55,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#list>
     <#if classInfo.childClassInfoList?has_content>
         <tr<#if depth == 1> class="text-info"</#if>>
-            <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize("Total " + classInfo.className)}</strong></td>
+            <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize(classInfo.className + " Total")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
                 <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedNoClosingByTimePeriod['ALL']!0, currencyUomId)}</strong></td>
             </#if>
