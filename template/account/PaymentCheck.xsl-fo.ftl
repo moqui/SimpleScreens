@@ -23,15 +23,16 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 
 <#assign checkPosition = checkPosition!"top">
-<#assign topHeight = topHeight!"3.5in">
-<#assign middleHeight = middleHeight!"3.5in">
-<#assign bottomHeight = bottomHeight!"4in">
+<#assign topHeight = topHeight!3.5>
+<#assign middleHeight = middleHeight!3.5>
+<#assign bottomHeight = bottomHeight!4>
+
 
 <#assign separatePayToLine = separatePayToLine!true>
 <#assign checkNumber = checkNumber!false>
 <#assign secondarySignature = secondarySignature!false>
 
-<#assign stubLines = true>
+<#assign stubLines = stubLines!false>
 
 <#assign fontSize = "10pt">
 <#assign amountCharacters = 15><#-- enought for up to 999 million: 999,999,999.99 -->
@@ -51,19 +52,19 @@ along with this software (see the LICENSE.md file). If not, see
     </#if>
 
     <#-- Date -->
-    <fo:block-container absolute-position="absolute" top="0.8in" right="0.6in" width="1in">
+    <fo:block-container absolute-position="absolute" top="0.9in" right="0.6in" width="1in">
         <fo:block text-align="right">${ec.l10n.format(paymentInfo.payment.effectiveDate, dateFormat)}</fo:block>
     </fo:block-container>
 
     <#-- Pay to line -->
     <#if separatePayToLine>
-    <fo:block-container absolute-position="absolute" top="1.3in" left="1.1in">
+    <fo:block-container absolute-position="absolute" top="1.4in" left="1.1in">
         <fo:block text-align="left">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.toPartyDetail.organizationName!"", false)}${paymentInfo.toPartyDetail.firstName!} ${paymentInfo.toPartyDetail.lastName!}</fo:block>
     </fo:block-container>
     </#if>
 
     <#-- Amount - numeric -->
-    <fo:block-container absolute-position="absolute" top="1.3in" right="0.35in" width="1.3in">
+    <fo:block-container absolute-position="absolute" top="1.4in" right="0.35in" width="1.3in">
     <#-- 1.2in seems to fit 14 Courier characters at 10pt just right -->
         <#assign amountString = ec.l10n.format(paymentInfo.payment.amount, "#,##0.00")>
         <#assign asterisks = amountCharacters - amountString?length>
@@ -71,7 +72,7 @@ along with this software (see the LICENSE.md file). If not, see
     </fo:block-container>
 
     <#-- Amount - text -->
-    <fo:block-container absolute-position="absolute" top="1.65in" left="0.3in">
+    <fo:block-container absolute-position="absolute" top="1.75in" left="0.3in">
         <#assign asterisks = amountWordsCharacters - paymentInfo.amountWords?length>
         <fo:block text-align="left" font-family="Courier, monospace">${paymentInfo.amountWords}<#list 1..asterisks as i>*</#list></fo:block>
     </fo:block-container>
@@ -115,7 +116,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#if>
 </#macro>
 <#macro stubBody paymentInfo>
-<fo:block margin="0.3in" overflow="hidden">
+<fo:block margin="0.3in" padding-top="0.1in" overflow="hidden">
     <fo:block text-align="left" margin-bottom="0.1in">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.fromPartyDetail.organizationName!"", false)}${paymentInfo.fromPartyDetail.firstName!} ${paymentInfo.fromPartyDetail.lastName!} - Payment #${paymentInfo.payment.paymentId}<#if paymentInfo.payment.paymentRefNum?has_content> - Check #${paymentInfo.payment.paymentRefNum}</#if><#if paymentInfo.distGroupEnum?has_content> - ${paymentInfo.distGroupEnum.description}</#if></fo:block>
 
     <#if paymentInfo.invoiceList?has_content>
@@ -203,17 +204,17 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:flow flow-name="xsl-region-body">
 
                 <#-- Top Area -->
-                <fo:block-container absolute-position="absolute" top="0" left="0" width="8.5in" height="${topHeight}">
+                <fo:block-container absolute-position="absolute" top="0" left="0" width="8.5in" height="${topHeight}in">
                     <#if checkPosition == "top"><@checkBody paymentInfo/><#else><@stubBody paymentInfo/></#if>
                 </fo:block-container>
 
                 <#-- Middle Area -->
-                <fo:block-container absolute-position="absolute" top="3.5in" left="0" width="8.5in" height="${middleHeight}"<#if stubLines> border="thin solid black"</#if>>
+                <fo:block-container absolute-position="absolute" top="${topHeight}in" left="0" width="8.5in" height="${middleHeight}in"<#if stubLines> border="thin solid black"</#if>>
                     <#if checkPosition == "middle"><@checkBody paymentInfo/><#else><@stubBody paymentInfo/></#if>
                 </fo:block-container>
 
                 <#-- Bottom Area -->
-                <fo:block-container absolute-position="absolute" top="7in" left="0" width="8.5in" height="${bottomHeight}">
+                <fo:block-container absolute-position="absolute" top="${topHeight+middleHeight}in" left="0" width="8.5in" height="${bottomHeight}in">
                     <#if checkPosition == "bottom"><@checkBody paymentInfo/><#else><@stubBody paymentInfo/></#if>
                 </fo:block-container>
             </fo:flow>

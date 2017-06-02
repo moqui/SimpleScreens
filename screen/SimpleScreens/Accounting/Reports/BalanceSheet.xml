@@ -22,9 +22,14 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <service-call name="mantle.ledger.LedgerReportServices.run#BalanceSheet" out-map="context" in-map="context"/>
         <set field="findEntryUrl" from="sri.buildUrlInfo('accountLedger')"/>
+        <set field="csvUrl" from="sri.getScreenUrlInstance().cloneUrlInstance().addParameter('renderMode', 'csv').addParameter('saveFilename', 'BalanceSheet.csv')"/>
     </actions>
     <widgets>
-        <render-mode><text type="html,vuet" location="component://SimpleScreens/template/ledger/BalanceSheet.html.ftl"
-                template="true" encode="false" no-boundary-comment="true"/></render-mode>
+        <link url="${csvUrl.pathWithParams}" url-type="plain" text="Get CSV"/>
+        <render-mode>
+            <text type="html,vuet" location="component://SimpleScreens/template/ledger/BalanceSheet.html.ftl"
+                    template="true" encode="false" no-boundary-comment="true"/>
+            <text type="csv" location="component://SimpleScreens/template/ledger/BalanceSheet.csv.ftl" template="true"/>
+        </render-mode>
     </widgets>
 </screen>
