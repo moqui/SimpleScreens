@@ -1,29 +1,18 @@
+
+## Income Statement Classes
+
 - Debit
-    - **Asset** (Balance Sheet)
-        - Current Asset
-            - Cash and Equivalent
-            - Inventory Asset
-            - Accounts Receivable
-            - Loans Receivable
-            - Prepaid Expense (paid, not yet incurred)
-            - Accrued Revenue (earned, not yet received)
-        - Long Term Asset
-            - Land and Building
-            - Equipment
-            - Other Asset
-        - Other Asset
-    - **Contra Equity** (Balance Sheet)
-    - **Cost of Sales** (Income Statement)
+    - **Cost of Sales**
         - Cost of Goods Sold
             - Good and Material Cost
             - Good Freight Cost
             - Good Royalties Cost
             - Inventory Shrinkage
         - Cost of Services Sold
-    - **Contra Revenue** (Income Statement)
+    - **Contra Revenue**
         - Discounts and Write-downs
         - Customer Returns
-    - **Operating Expense** (Income Statement)
+    - **Operating Expense**
         - Sales and Marketing Expense
             - Advertising
             - Promotional Materials
@@ -52,32 +41,51 @@
             - Amortization
             - Bad Debt Expense
             - Depreciation
-    - **Non-operating Expense** (Income Statement)
+    - **Non-operating Expense**
         - Interest Expense
         - Company Owned Life Insurance
         - Royalties Expense - Non-COGS
+- Credit
+    - **Revenue**
+        - Goods Revenue
+        - Services Revenue
+    - **Income**
+        - Cash Income
+        - Interest Income
+        - Non-Cash Income
+
+## Balance Sheet Classes
+
+- Debit
+    - **Asset**
+        - Current Asset
+            - Cash and Equivalent
+            - Inventory Asset
+            - Accounts Receivable
+            - Loans Receivable
+            - Prepaid Expense (paid, not yet incurred)
+            - Accrued Revenue (earned, not yet received)
+        - Long Term Asset
+            - Land and Building
+            - Equipment
+            - Other Asset
+        - Other Asset
+    - **Contra Equity**
     - **Equity Distribution**
         - Return of Capital
         - Dividends
 - Credit
-    - **Liability** (Balance Sheet)
+    - **Liability**
         - Current Liability
             - Accounts Payable
             - Accrued Expenses (incurred, not yet paid)
             - Unearned Revenue (received, not yet earned)
             - Third-Party Holdings
         - Long Term Liability
-    - **Contra Asset** (Balance Sheet)
+    - **Contra Asset**
         - Accumulated Depreciation
         - Accumulated Amortization
         - Allowance For Bad Debts
-    - **Equity** (Balance Sheet)
+    - **Equity**
         - Owners Equity
         - Retained Earnings
-    - **Revenue** (Income Statement)
-        - Goods Revenue
-        - Services Revenue
-    - **Income** (Income Statement)
-        - Cash Income
-        - Interest Income
-        - Non-Cash Income
