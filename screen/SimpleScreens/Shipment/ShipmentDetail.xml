@@ -650,7 +650,6 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="quantityRejected" align="right"><default-field title="Rejected"><display/></default-field></field>
 
                             <field name="assetId"><default-field title="Asset"><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
-                            <!-- TODO: add lotId with link to lot detail -->
 
                             <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
                             <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
@@ -705,10 +704,16 @@ along with this software (see the LICENSE.md file). If not, see
 
                             <field name="assetReservations">
                                 <conditional-field condition="existingResList">
-                                    <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes"><widgets><container>
-                                        <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
-                                        <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
-                                    </container></widgets></section-iterate>
+                                    <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes"><actions>
+                                        <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
+                                            <field-map field-name="assetId" from="existingRes.assetId"/></entity-find-one>
+                                    </actions><widgets>
+                                        <container>
+                                            <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
+                                            <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
+                                        </container>
+                                        <label text="LotNameTemplate" text-map="assetLot" condition="assetLot?.lotId"/>
+                                    </widgets></section-iterate>
                                 </conditional-field>
                                 <default-field><display text=" "/></default-field>
                             </field>
