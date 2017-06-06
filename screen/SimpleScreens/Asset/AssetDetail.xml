@@ -105,77 +105,69 @@ along with this software (see the LICENSE.md file). If not, see
                 <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
                 <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
-                <section name="DetailSection">
-                    <widgets>
-                        <container-box>
-                            <box-header><label text="Detail" type="h5"/></box-header>
-                            <box-body>
-                                <form-list name="AssetDetailList" list="assetDetailList" skip-form="true">
-                                    <row-actions>
-                                        <entity-find-one entity-name="mantle.product.receipt.AssetReceipt" value-field="assetReceipt"/>
-                                        <entity-find-one entity-name="mantle.product.issuance.AssetIssuance" value-field="assetIssuance"/>
-                                        <entity-find-one entity-name="mantle.product.issuance.AssetReservation" value-field="assetReservation"/>
-                                        <entity-find-one entity-name="mantle.product.asset.PhysicalInventory" value-field="physicalInventory"/>
-                                        <entity-find-one entity-name="moqui.basic.Enumeration" value-field="varianceReasonEnum">
-                                            <field-map field-name="enumId" from="varianceReasonEnumId"/></entity-find-one>
-                                    </row-actions>
-                                    <field name="effectiveDate"><default-field title="Date"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
-                                    <field name="quantityOnHandDiff"><default-field title="QOH Diff"><display/></default-field></field>
-                                    <field name="availableToPromiseDiff"><default-field title="ATP Diff"><display/></default-field></field>
-                                    <field name="source">
-                                        <conditional-field condition="assetReceipt">
-                                            <label text="Receipt #${assetReceiptId}"/>
-                                            <link url="shipmentDetail" text="Shipment #${assetReceipt.shipmentId}"
-                                                    parameter-map="[shipmentId:assetReceipt.shipmentId]" link-type="anchor"
-                                                    condition="assetReceipt.shipmentId"/>
-                                            <link url="orderDetail" text="PO #${assetReceipt.orderId}"
-                                                    parameter-map="[orderId:assetReceipt.orderId]" link-type="anchor"
-                                                    condition="assetReceipt.orderId"/>
-                                        </conditional-field>
-                                        <conditional-field condition="assetIssuance">
-                                            <label text="Issuance #${assetIssuanceId}"/>
-                                            <link url="shipmentDetail" text="Shipment #${assetIssuance.shipmentId}"
-                                                    parameter-map="[shipmentId:assetIssuance.shipmentId]" link-type="anchor"
-                                                    condition="assetIssuance.shipmentId"/>
-                                            <link url="orderDetail" text="SO #${assetIssuance.orderId}"
-                                                    parameter-map="[orderId:assetIssuance.orderId]" link-type="anchor"
-                                                    condition="assetIssuance.orderId"/>
-                                        </conditional-field>
-                                        <conditional-field condition="assetReservationId">
-                                            <label text="Reservation #${assetReservationId}"/>
-                                            <label text="(reservation removed)" condition="!assetReservation"/>
-                                            <link url="orderDetail" text="Order #${assetReservation.orderId}" link-type="anchor"
-                                                    parameter-map="[orderId:assetReservation.orderId]" condition="assetReservation?.orderId"/>
-                                        </conditional-field>
-                                        <conditional-field condition="otherAssetId">
-                                            <link url="." text="Move, other asset: ${otherAssetId}" link-type="anchor" parameter-map="[assetId:otherAssetId]"/>
-                                        </conditional-field>
-                                        <conditional-field condition="physicalInventory">
-                                            <label text="Physical Inventory #${physicalInventoryId} (${varianceReasonEnum?.description})"/>
-                                        </conditional-field>
-                                        <default-field><display text=" "/></default-field>
-                                    </field>
-                                </form-list>
-                            </box-body>
-                        </container-box>
-                    </widgets>
-                </section>
+                <container-box><box-header><label text="Reservations" type="h5"/></box-header><box-body-nopad>
+                    <form-list name="ReservationsListForm" list="assetReservationList" skip-form="true">
+                        <field name="assetReservationId"><default-field title="ID"><display/></default-field></field>
+                        <field name="reservedDate"><default-field title="Date"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
+                        <field name="quantity"><default-field><display/></default-field></field>
+                        <field name="quantityNotAvailable"><default-field title="Not Avail"><display/></default-field></field>
+                        <field name="quantityNotIssued"><default-field title="Not Issued"><display/></default-field></field>
+                        <field name="orderId"><default-field title="Order">
+                            <link url="orderDetail" text="${orderId?:'N/A'}" link-type="anchor"/>
+                        </default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
 
-                <container-box>
-                    <box-header><label text="Reservations" type="h5"/></box-header>
-                    <box-body>
-                        <form-list name="ReservationsListForm" list="assetReservationList" skip-form="true">
-                            <field name="assetReservationId"><default-field title="ID"><display/></default-field></field>
-                            <field name="reservedDate"><default-field title="Date"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
-                            <field name="quantity"><default-field><display/></default-field></field>
-                            <field name="quantityNotAvailable"><default-field title="Not Avail"><display/></default-field></field>
-                            <field name="quantityNotIssued"><default-field title="Not Issued"><display/></default-field></field>
-                            <field name="orderId"><default-field title="Order">
-                                <link url="orderDetail" text="${orderId?:'N/A'}" link-type="anchor"/>
-                            </default-field></field>
+                <section name="DetailSection"><widgets>
+                    <container-box><box-header><label text="Recent Detail History" type="h5"/></box-header><box-body-nopad>
+                        <form-list name="AssetDetailList" list="assetDetailList" skip-form="true">
+                            <row-actions>
+                                <entity-find-one entity-name="mantle.product.receipt.AssetReceipt" value-field="assetReceipt"/>
+                                <entity-find-one entity-name="mantle.product.issuance.AssetIssuance" value-field="assetIssuance"/>
+                                <entity-find-one entity-name="mantle.product.issuance.AssetReservation" value-field="assetReservation"/>
+                                <entity-find-one entity-name="mantle.product.asset.PhysicalInventory" value-field="physicalInventory"/>
+                                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="varianceReasonEnum">
+                                    <field-map field-name="enumId" from="varianceReasonEnumId"/></entity-find-one>
+                            </row-actions>
+                            <field name="effectiveDate"><default-field title="Date"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
+                            <field name="quantityOnHandDiff"><default-field title="QOH Diff"><display/></default-field></field>
+                            <field name="availableToPromiseDiff"><default-field title="ATP Diff"><display/></default-field></field>
+                            <field name="source">
+                                <conditional-field condition="assetReceipt">
+                                    <label text="Receipt #${assetReceiptId}"/>
+                                    <link url="shipmentDetail" text="Shipment #${assetReceipt.shipmentId}"
+                                            parameter-map="[shipmentId:assetReceipt.shipmentId]" link-type="anchor"
+                                            condition="assetReceipt.shipmentId"/>
+                                    <link url="orderDetail" text="PO #${assetReceipt.orderId}"
+                                            parameter-map="[orderId:assetReceipt.orderId]" link-type="anchor"
+                                            condition="assetReceipt.orderId"/>
+                                </conditional-field>
+                                <conditional-field condition="assetIssuance">
+                                    <label text="Issuance #${assetIssuanceId}"/>
+                                    <link url="shipmentDetail" text="Shipment #${assetIssuance.shipmentId}"
+                                            parameter-map="[shipmentId:assetIssuance.shipmentId]" link-type="anchor"
+                                            condition="assetIssuance.shipmentId"/>
+                                    <link url="orderDetail" text="SO #${assetIssuance.orderId}"
+                                            parameter-map="[orderId:assetIssuance.orderId]" link-type="anchor"
+                                            condition="assetIssuance.orderId"/>
+                                </conditional-field>
+                                <conditional-field condition="assetReservationId">
+                                    <label text="Reservation #${assetReservationId}"/>
+                                    <label text="(reservation removed)" condition="!assetReservation"/>
+                                    <link url="orderDetail" text="Order #${assetReservation.orderId}" link-type="anchor"
+                                            parameter-map="[orderId:assetReservation.orderId]" condition="assetReservation?.orderId"/>
+                                </conditional-field>
+                                <conditional-field condition="otherAssetId">
+                                    <link url="." text="Move, other asset: ${otherAssetId}" link-type="anchor" parameter-map="[assetId:otherAssetId]"/>
+                                </conditional-field>
+                                <conditional-field condition="physicalInventory">
+                                    <label text="Physical Inventory #${physicalInventoryId} (${varianceReasonEnum?.description})"/>
+                                </conditional-field>
+                                <default-field><display text=" "/></default-field>
+                            </field>
                         </form-list>
-                    </box-body>
-                </container-box>
+                    </box-body-nopad></container-box>
+                </widgets></section>
 
                 <section name="AssetDepreciation" condition="asset.depreciationTypeEnumId">
                     <actions>
