@@ -30,12 +30,16 @@ along with this software (see the LICENSE.md file). If not, see
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                     in-map="[organizationPartyId:'QFP', timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
-            <!--
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
-            <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate>
-            -->
+            <set field="revenueExpenseCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
+            <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
         </actions><widgets>
-            <render-mode><text type="html,vuet"><![CDATA[
+            <container-box><box-header><label text="Operating Revenue and Expense" type="h5"/></box-header><box-toolbar>
+                <render-mode><text type="html,vuet"><![CDATA[
+                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${revenueExpenseCsv?js_string}', 'OperatingRevenueExpense.csv', 'text/csv')">Get CSV</button>
+                ]]></text></render-mode>
+            </box-toolbar><box-body>
+                <render-mode><text type="html,vuet"><![CDATA[
                 <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="RevenueExpenseChart"></canvas></div>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js" type="text/javascript"></script>
                 <script>
@@ -45,13 +49,11 @@ along with this software (see the LICENSE.md file). If not, see
                         labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels)},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets)}
                     },
-                    options: {
-                        scales:{ yAxes: [{ ticks: { beginAtZero:true } }] },
-                        maintainAspectRatio:false
-                    }
+                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
                 });
                 </script>
                 ]]></text></render-mode>
+            </box-body></container-box>
         </widgets></section>
 
         <section name="AssetLiabilityChart"><actions>
@@ -70,12 +72,16 @@ along with this software (see the LICENSE.md file). If not, see
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                     in-map="[organizationPartyId:'QFP', timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
-            <!--
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
-            <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate>
-            -->
+            <set field="assetLiabilityCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
+            <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
         </actions><widgets>
-            <render-mode><text type="html,vuet"><![CDATA[
+            <container-box><box-header><label text="Current Assets and Liabilities" type="h5"/></box-header><box-toolbar>
+                <render-mode><text type="html,vuet"><![CDATA[
+                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${assetLiabilityCsv?js_string}', 'CurrentAssetLiability.csv', 'text/csv')">Get CSV</button>
+                ]]></text></render-mode>
+            </box-toolbar><box-body>
+                <render-mode><text type="html,vuet"><![CDATA[
                 <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="AssetLiabilityChart"></canvas></div>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js" type="text/javascript"></script>
                 <script>
@@ -85,13 +91,11 @@ along with this software (see the LICENSE.md file). If not, see
                         labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels)},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets)}
                     },
-                    options: {
-                        scales:{ yAxes: [{ ticks: { beginAtZero:true } }] },
-                        maintainAspectRatio:false
-                    }
+                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
                 });
                 </script>
                 ]]></text></render-mode>
+            </box-body></container-box>
         </widgets></section>
     </widgets>
 </screen>
