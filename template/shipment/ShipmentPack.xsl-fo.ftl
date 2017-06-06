@@ -148,7 +148,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </fo:table-row></fo:table-body>
             </fo:table>
 
-            <#list packageInfoList as packageInfo>
+            <#list packageInfoList as packageInfo><#if packageInfo.contentInfoList?has_content>
                 <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="0.3in">
                     <fo:table-header font-size="10pt" font-weight="bold" border-bottom="solid black">
                         <fo:table-cell width="3.9in" padding="2pt"><fo:block text-align="left">Package ${packageInfo_index + 1} of ${packageInfoList?size}</fo:block></fo:table-cell>
@@ -167,7 +167,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </#list>
                     </fo:table-body>
                 </fo:table>
-            </#list>
+            </#if></#list>
         </fo:flow>
     </fo:page-sequence>
 </#macro>
