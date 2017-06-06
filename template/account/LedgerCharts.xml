@@ -28,8 +28,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="organizationPartyId"><default-field title="">
                     <drop-down><list-options list="orgList" key="${partyId}" text="PartyNameTemplate"/></drop-down>
                 </default-field></field>
+                <field name="timePeriodTypeId"><default-field title=""><drop-down><option key="FiscalMonth" text="Month"/>
+                    <option key="FiscalQuarter" text="Quarter"/></drop-down></default-field></field>
                 <field name="setOrg"><default-field title="View Organization Charts"><submit/></default-field></field>
-                <field-layout><field-row-big><field-ref name="organizationPartyId"/><field-ref name="setOrg"/></field-row-big></field-layout>
+                <field-layout><field-row-big><field-ref name="organizationPartyId"/><field-ref name="timePeriodTypeId"/>
+                    <field-ref name="setOrg"/></field-row-big></field-layout>
             </form-single>
         </widgets></section>
 
@@ -44,7 +47,8 @@ along with this software (see the LICENSE.md file). If not, see
                         [classGroupEnumId:'EngGlcNetOpIncome', type:'line']
                 ]
             </script>
-            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut" in-map="[partyId:organizationPartyId]"/>
+            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId]"/>
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                     in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
@@ -86,7 +90,8 @@ along with this software (see the LICENSE.md file). If not, see
                         [classGroupEnumId:'EngGlcNetIncome', type:'line']
                 ]
             </script>
-            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut" in-map="[partyId:organizationPartyId]"/>
+            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId]"/>
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                     in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
