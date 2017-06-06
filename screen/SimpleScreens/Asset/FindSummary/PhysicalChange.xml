@@ -23,10 +23,20 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="recordChange"><service-call name="mantle.product.AssetServices.record#PhysicalInventoryChange"/>
         <default-response url=".."/></transition>
 
-    <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <!-- <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/> -->
 
     <actions>
         <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
+        <entity-find entity-name="mantle.product.asset.AssetLotSummary" list="assetLotList">
+            <econdition field-name="productId"/>
+            <econdition field-name="lotId" operator="is-not-null"/>
+            <having-econditions>
+                <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/>
+            </having-econditions>
+            <select-field field-name="lotId,quantityOnHandTotal"/>
+        </entity-find>
+        <set field="qohByLotId" from="[:]"/>
+        <iterate list="assetLotList" entry="assetLot"><script>qohByLotId.put(assetLot.lotId, assetLot.quantityOnHandTotal)</script></iterate>
     </actions>
     <widgets>
         <form-single name="RecordChange" transition="recordChange"
