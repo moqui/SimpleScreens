@@ -15,7 +15,25 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd">
 
     <widgets>
-        <section name="RevenueExpenseChart"><actions>
+        <section name="SelectOrganization"><actions>
+            <entity-find entity-name="mantle.party.PartyDetailAndRole" list="orgList">
+                <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                <econdition field-name="disabled" value="N" or-null="true"/>
+                <order-by field-name="organizationName,firstName"/>
+            </entity-find>
+            <if condition="!organizationPartyId &amp;&amp; orgList"><set field="organizationPartyId" from="orgList[0].partyId"/></if>
+        </actions><widgets>
+            <form-single name="SelectOrganizationForm" transition=".">
+                <field name="organizationPartyId"><default-field title="">
+                    <drop-down><list-options list="orgList" key="${partyId}" text="PartyNameTemplate"/></drop-down>
+                </default-field></field>
+                <field name="setOrg"><default-field title="View Organization Charts"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="organizationPartyId"/><field-ref name="setOrg"/></field-row-big></field-layout>
+            </form-single>
+        </widgets></section>
+
+        <section name="RevenueExpenseChart" condition="organizationPartyId"><actions>
             <script>
                 datasets = [
                         [classGroupEnumId:'EngGlcNetRevenue'],
@@ -26,9 +44,9 @@ along with this software (see the LICENSE.md file). If not, see
                         [classGroupEnumId:'EngGlcNetOpIncome', type:'line']
                 ]
             </script>
-            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut" in-map="[partyId:'QFP']"/>
+            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut" in-map="[partyId:organizationPartyId]"/>
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
-                    in-map="[organizationPartyId:'QFP', timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
+                    in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
             <set field="revenueExpenseCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
@@ -56,7 +74,7 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body></container-box>
         </widgets></section>
 
-        <section name="AssetLiabilityChart"><actions>
+        <section name="AssetLiabilityChart" condition="organizationPartyId"><actions>
             <script>
                 datasets = [
                         [label:'Cash', classes:['CASH_EQUIVALENT'], totalBasis:'Ending', stack:'Asset'],
@@ -68,9 +86,9 @@ along with this software (see the LICENSE.md file). If not, see
                         [classGroupEnumId:'EngGlcNetIncome', type:'line']
                 ]
             </script>
-            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut" in-map="[partyId:'QFP']"/>
+            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut" in-map="[partyId:organizationPartyId]"/>
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
-                    in-map="[organizationPartyId:'QFP', timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
+                    in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
             <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
             <set field="assetLiabilityCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
