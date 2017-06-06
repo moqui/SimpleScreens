@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd">
+
+    <widgets>
+        <section name="RevenueExpenseChart"><actions>
+            <script>
+                datasets = [
+                        [classGroupEnumId:'EngGlcNetRevenue'],
+                        [label:'Cost of Sales', classes:['COST_OF_SALES'], stack:'Expense'],
+                        [label:'Sales Expense', classes:['SALES_EXPENSE'], stack:'Expense'],
+                        [label:'Gen/Admin Expense', classes:['GEN_ADMIN_EXPENSE'], stack:'Expense'],
+                        [label:'Other Expense', classes:['CONTRIBUTIONS', 'NON_CASH_EXPENSE'], stack:'Expense'],
+                        [classGroupEnumId:'EngGlcNetOpIncome', type:'line']
+                ]
+            </script>
+            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut" in-map="[partyId:'QFP']"/>
+            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
+                    in-map="[organizationPartyId:'QFP', timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
+
+            <!--
+            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
+            <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate>
+            -->
+        </actions><widgets>
+            <render-mode><text type="html,vuet"><![CDATA[
+                <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="RevenueExpenseChart"></canvas></div>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js" type="text/javascript"></script>
+                <script>
+                var revenueExpenseChart = new Chart(document.getElementById("RevenueExpenseChart"), {
+                    type: 'bar',
+                    data: {
+                        labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels)},
+                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets)}
+                    },
+                    options: {
+                        scales:{ yAxes: [{ ticks: { beginAtZero:true } }] },
+                        maintainAspectRatio:false
+                    }
+                });
+                </script>
+                ]]></text></render-mode>
+        </widgets></section>
+
+        <section name="AssetLiabilityChart"><actions>
+            <script>
+                datasets = [
+                        [label:'Cash', classes:['CASH_EQUIVALENT'], totalBasis:'Ending', stack:'Asset'],
+                        [label:'Inventory', classes:['INVENTORY_ASSET'], totalBasis:'Ending', stack:'Asset'],
+                        [label:'Receivable', classes:['ACCOUNTS_RECEIVABLE'], totalBasis:'Ending', stack:'Asset'],
+                        [label:'Other Cur Asset', classes:['LOANS_RECEIVABLE', 'PREPAID_EXPENSE', 'ACCRUED_REVENUE'], totalBasis:'Ending', stack:'Asset'],
+                        [label:'Payable', classes:['ACCOUNTS_PAYABLE'], totalBasis:'Ending', stack:'Liability'],
+                        [label:'Other Cur Liability', classes:['ACCRUED_EXPENSES', 'UNEARNED_REVENUE', 'THIRD_PARTY_HOLDINGS'], totalBasis:'Ending', stack:'Liability'],
+                        [classGroupEnumId:'EngGlcNetIncome', type:'line']
+                ]
+            </script>
+            <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut" in-map="[partyId:'QFP']"/>
+            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
+                    in-map="[organizationPartyId:'QFP', timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
+
+            <!--
+            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
+            <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate>
+            -->
+        </actions><widgets>
+            <render-mode><text type="html,vuet"><![CDATA[
+                <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="AssetLiabilityChart"></canvas></div>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js" type="text/javascript"></script>
+                <script>
+                var assetLiabilityChart = new Chart(document.getElementById("AssetLiabilityChart"), {
+                    type: 'bar',
+                    data: {
+                        labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels)},
+                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets)}
+                    },
+                    options: {
+                        scales:{ yAxes: [{ ticks: { beginAtZero:true } }] },
+                        maintainAspectRatio:false
+                    }
+                });
+                </script>
+                ]]></text></render-mode>
+        </widgets></section>
+    </widgets>
+</screen>
