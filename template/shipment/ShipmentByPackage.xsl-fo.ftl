@@ -119,6 +119,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:inline font-weight="bold">Weight</fo:inline> ${ec.l10n.format((packageInfo.shipmentPackage.weight)!, '')} ${(packageInfo.weightUom.description)!''}
                 </fo:block></fo:table-cell>
             </fo:table-row></fo:table-body></fo:table>
+            <#if packageInfo.contentInfoList?has_content>
             <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black">
                 <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
                     <fo:table-cell width="0.75in" padding="2pt"><fo:block text-align="right">Quantity</fo:block></fo:table-cell>
@@ -138,6 +139,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </#list>
                 </fo:table-body>
             </fo:table>
+            </#if>
         </#list>
 
         <#if productInfoList?has_content>

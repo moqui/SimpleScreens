@@ -23,10 +23,20 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="recordQuantity"><service-call name="mantle.product.AssetServices.record#PhysicalInventoryQuantity"/>
         <default-response url=".."/></transition>
 
-    <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <!-- <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/> -->
 
     <actions>
         <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
+        <entity-find entity-name="mantle.product.asset.AssetLotSummary" list="assetLotList">
+            <econdition field-name="productId"/>
+            <econdition field-name="lotId" operator="is-not-null"/>
+            <having-econditions>
+                <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/>
+            </having-econditions>
+            <select-field field-name="lotId,quantityOnHandTotal"/>
+        </entity-find>
+        <set field="qohByLotId" from="[:]"/>
+        <iterate list="assetLotList" entry="assetLot"><script>qohByLotId.put(assetLot.lotId, assetLot.quantityOnHandTotal)</script></iterate>
     </actions>
     <widgets>
         <form-single name="RecordQuantity" transition="recordQuantity">
@@ -37,7 +47,12 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="locationSeqId"><default-field title="Location">
                 <display text="FacilityLocationNameTemplate" text-map="facLoc?:[locationSeqId:'Any']"/></default-field></field>
             <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
-                <dynamic-options transition="getLotList" server-search="true" min-length="2"/></drop-down></default-field></field>
+                <entity-options key="${lotId}" text="${lotId}: ${pseudoId?:mfgParty?.pseudoId?:''} ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')?:'N/A'} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')} QOH ${ec.l10n.format(qohByLotId.get(lotId), null)}">
+                    <entity-find entity-name="mantle.product.asset.LotAndMfgParty">
+                        <econdition field-name="lotId" operator="in" from="qohByLotId.keySet()"/>
+                        <order-by field-name="lotNumber"/>
+                    </entity-find></entity-options>
+            </drop-down></default-field></field>
 
             <field name="quantity"><default-field title="Physical Quantity"><text-line size="6"/></default-field></field>
             <field name="quantityChange"><default-field><ignored/></default-field></field>
