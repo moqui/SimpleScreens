@@ -149,9 +149,10 @@ along with this software (see the LICENSE.md file). If not, see
             </fo:table>
 
             <#list packageInfoList as packageInfo><#if packageInfo.contentInfoList?has_content>
+                <#assign routeSegments = packageInfo.shipmentPackage.routeSegments!>
                 <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="0.3in">
                     <fo:table-header font-size="10pt" font-weight="bold" border-bottom="solid black">
-                        <fo:table-cell width="3.9in" padding="2pt"><fo:block text-align="left">Package ${packageInfo_index + 1} of ${packageInfoList?size}</fo:block></fo:table-cell>
+                        <fo:table-cell width="3.9in" padding="2pt"><fo:block text-align="left">Package ${packageInfo_index + 1} of ${packageInfoList?size}<#if routeSegments?has_content && routeSegments[0].trackingCode?has_content> (${routeSegments[0].trackingCode})</#if></fo:block></fo:table-cell>
                         <fo:table-cell width="1.2in" padding="2pt"><fo:block text-align="center">Qty Ordered</fo:block></fo:table-cell>
                         <fo:table-cell width="1.2in" padding="2pt"><fo:block text-align="center">Qty in Package</fo:block></fo:table-cell>
                         <fo:table-cell width="1.2in" padding="2pt"><fo:block text-align="center">Total Shipped</fo:block></fo:table-cell>
