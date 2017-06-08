@@ -133,43 +133,37 @@ along with this software (see the LICENSE.md file). If not, see
 </table>
 
 <#if showCharts>
-    <#assign genAdminChildren = (classInfoById.GEN_ADMIN_EXPENSE.childClassInfoList)!>
-    <#assign salesChildren = (classInfoById.SALES_EXPENSE.childClassInfoList)!>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js" type="text/javascript"></script>
     <ul class="float-plain" style="margin-top:12px;">
-    <#if (timePeriodIdList?size > 1)>
+    <#if (timePeriodIdList?size > 1) && topExpenseByTimePeriod['ALL']?has_content>
+        <#assign topExpenseList = topExpenseByTimePeriod['ALL']>
         <li>
             <div class="text-center"><strong>Expenses All Periods</strong></div>
             <canvas id="ExpenseChartAll" style="width:360px;"></canvas>
             <script>
                 var expenseChartAll = new Chart(document.getElementById("ExpenseChartAll"), { type: 'pie',
-                    data: { labels:[<#list genAdminChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod['ALL']?has_content>'${childInfo.className}',</#if></#list>
-                            <#list salesChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod['ALL']?has_content>'${childInfo.className}',</#if></#list>],
-                        datasets:[{ data:[<#list genAdminChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod['ALL']?has_content>${(-childInfo.totalPostedNoClosingByTimePeriod['ALL'])?c},</#if></#list>
-                            <#list salesChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod['ALL']?has_content>${(-childInfo.totalPostedNoClosingByTimePeriod['ALL'])?c},</#if></#list>],
-                            backgroundColor:[<#list backgroundColors as color>'${color}'<#sep>,</#list>]
-                        }]
+                    data: { labels:[<#list topExpenseList! as topExpense>'${topExpense.className}'<#sep>,</#list>],
+                        datasets:[{ data:[<#list topExpenseList! as topExpense>${topExpense.amount?c}<#sep>,</#list>],
+                        backgroundColor:[<#list backgroundColors as color>'${color}'<#sep>,</#list>] }]
                     }
                 });
             </script>
         </li>
     </#if>
-    <#list timePeriodIdList as timePeriodId>
+    <#list timePeriodIdList as timePeriodId><#if topExpenseByTimePeriod[timePeriodId]?has_content>
+        <#assign topExpenseList = topExpenseByTimePeriod[timePeriodId]>
         <li>
             <div class="text-center"><strong>Expenses ${timePeriodIdMap[timePeriodId].periodName}</strong></div>
             <canvas id="ExpenseChart${timePeriodId_index}" style="width:360px;"></canvas>
             <script>
-                var expenseChart${timePeriodId_index} = new Chart(document.getElementById("ExpenseChart${timePeriodId_index}"), { type: 'pie',
-                    data: { labels:[<#list genAdminChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod[timePeriodId]?has_content>'${childInfo.className}',</#if></#list>
-                            <#list salesChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod[timePeriodId]?has_content>'${childInfo.className}',</#if></#list>],
-                        datasets:[{ data:[<#list genAdminChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod[timePeriodId]?has_content>${(-childInfo.totalPostedNoClosingByTimePeriod[timePeriodId])?c},</#if></#list>
-                            <#list salesChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod[timePeriodId]?has_content>${(-childInfo.totalPostedNoClosingByTimePeriod[timePeriodId])?c},</#if></#list>],
-                            backgroundColor:[<#list backgroundColors as color>'${color}'<#sep>,</#list>]
-                        }]
+                var expenseChartAll = new Chart(document.getElementById("ExpenseChart${timePeriodId_index}"), { type: 'pie',
+                    data: { labels:[<#list topExpenseList! as topExpense>'${topExpense.className}'<#sep>,</#list>],
+                        datasets:[{ data:[<#list topExpenseList! as topExpense>${topExpense.amount?c}<#sep>,</#list>],
+                            backgroundColor:[<#list backgroundColors as color>'${color}'<#sep>,</#list>] }]
                     }
                 });
             </script>
         </li>
-    </#list>
+    </#if></#list>
     </ul>
 </#if>
