@@ -14,6 +14,10 @@ along with this software (see the LICENSE.md file). If not, see
 <#-- See the mantle.ledger.LedgerReportServices.run#BalanceSheet service for data preparation -->
 
 <#assign showDetail = (detail! == "true")>
+<#assign showCharts = (charts! == "true")>
+<#assign backgroundColors = ['rgba(92, 184, 92, 0.5)','rgba(91, 192, 222, 0.5)','rgba(240, 173, 78, 0.5)','rgba(217, 83, 79, 0.5)',
+'rgba(60, 118, 61, 0.5)','rgba(49, 112, 143, 0.5)','rgba(138, 109, 59, 0.5)','rgba(169, 68, 66, 0.5)',
+'rgba(223, 240, 216, 0.6)','rgba(217, 237, 247, 0.6)','rgba(252, 248, 227, 0.6)','rgba(242, 222, 222, 0.6)']>
 
 <#macro showClass classInfo depth>
     <#-- skip classes with nothing posted -->
@@ -127,3 +131,45 @@ along with this software (see the LICENSE.md file). If not, see
         </tr>
     </tbody>
 </table>
+
+<#if showCharts>
+    <#assign genAdminChildren = (classInfoById.GEN_ADMIN_EXPENSE.childClassInfoList)!>
+    <#assign salesChildren = (classInfoById.SALES_EXPENSE.childClassInfoList)!>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js" type="text/javascript"></script>
+    <ul class="float-plain" style="margin-top:12px;">
+    <#if (timePeriodIdList?size > 1)>
+        <li>
+            <div class="text-center"><strong>Expenses All Periods</strong></div>
+            <canvas id="ExpenseChartAll" style="width:360px;"></canvas>
+            <script>
+                var expenseChartAll = new Chart(document.getElementById("ExpenseChartAll"), { type: 'pie',
+                    data: { labels:[<#list genAdminChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod['ALL']?has_content>'${childInfo.className}',</#if></#list>
+                            <#list salesChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod['ALL']?has_content>'${childInfo.className}',</#if></#list>],
+                        datasets:[{ data:[<#list genAdminChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod['ALL']?has_content>${(-childInfo.totalPostedNoClosingByTimePeriod['ALL'])?c},</#if></#list>
+                            <#list salesChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod['ALL']?has_content>${(-childInfo.totalPostedNoClosingByTimePeriod['ALL'])?c},</#if></#list>],
+                            backgroundColor:[<#list backgroundColors as color>'${color}'<#sep>,</#list>]
+                        }]
+                    }
+                });
+            </script>
+        </li>
+    </#if>
+    <#list timePeriodIdList as timePeriodId>
+        <li>
+            <div class="text-center"><strong>Expenses ${timePeriodIdMap[timePeriodId].periodName}</strong></div>
+            <canvas id="ExpenseChart${timePeriodId_index}" style="width:360px;"></canvas>
+            <script>
+                var expenseChart${timePeriodId_index} = new Chart(document.getElementById("ExpenseChart${timePeriodId_index}"), { type: 'pie',
+                    data: { labels:[<#list genAdminChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod[timePeriodId]?has_content>'${childInfo.className}',</#if></#list>
+                            <#list salesChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod[timePeriodId]?has_content>'${childInfo.className}',</#if></#list>],
+                        datasets:[{ data:[<#list genAdminChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod[timePeriodId]?has_content>${(-childInfo.totalPostedNoClosingByTimePeriod[timePeriodId])?c},</#if></#list>
+                            <#list salesChildren! as childInfo><#if childInfo.totalPostedNoClosingByTimePeriod[timePeriodId]?has_content>${(-childInfo.totalPostedNoClosingByTimePeriod[timePeriodId])?c},</#if></#list>],
+                            backgroundColor:[<#list backgroundColors as color>'${color}'<#sep>,</#list>]
+                        }]
+                    }
+                });
+            </script>
+        </li>
+    </#list>
+    </ul>
+</#if>

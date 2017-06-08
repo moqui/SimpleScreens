@@ -20,7 +20,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="adjustFinancialAccount"><service-call name="mantle.account.FinancialAccountServices.adjust#FinancialAccount"/>
         <default-response url="."/></transition>
-    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <pre-actions>
         <if condition="!finAccountId &amp;&amp; finAccountTransId">
@@ -70,12 +70,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display/></default-field>
             </field>
             <field name="fromPartyId">
-                <header-field title="From"><text-line size="20" ac-transition="getPartyList"/></header-field>
+                <header-field title="From"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail"
                         text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]"/></default-field>
             </field>
             <field name="toPartyId">
-                <header-field title="To"><text-line size="20" ac-transition="getPartyList"/></header-field>
+                <header-field title="To"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail"
                         text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]"/></default-field>
             </field>

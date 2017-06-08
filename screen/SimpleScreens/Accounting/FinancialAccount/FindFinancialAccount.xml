@@ -20,7 +20,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createFinancialAccount"><service-call name="mantle.account.FinancialAccountServices.create#FinancialAccount"/>
         <default-response url="../EditFinancialAccount"/></transition>
 
-    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
         <entity-find entity-name="mantle.account.financial.FinancialAccount" list="financialAccountList">
@@ -47,8 +47,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </entity-options>
                     </drop-down>
                 </default-field></field>
-                <field name="ownerPartyId"><default-field title="Account Owner">
-                    <text-line size="50" ac-transition="getPartyList"/>
+                <field name="ownerPartyId"><default-field title="Account Owner"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
 
                 <field name="finAccountName"><default-field title="Account Name"><text-line size="50"/></default-field></field>
@@ -89,7 +89,9 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field>
             </field>
             <field name="ownerPartyId">
-                <header-field title="Account Owner"><text-line size="30" ac-transition="getPartyList"/></header-field>
+                <header-field title="Account Owner"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/>
+                </drop-down></header-field>
                 <default-field>
                     <display-entity entity-name="mantle.party.PartyDetail" also-hidden="false" key-field-name="partyId"
                             text="${organizationName?:''}${firstName?:''} ${lastName?:''} [${pseudoId}]"/>

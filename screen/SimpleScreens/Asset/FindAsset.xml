@@ -19,7 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
 
-    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
@@ -54,7 +54,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="assetDetail" text="${assetId}" link-type="anchor" condition="assetId"/></default-field>
             </field>
             <field name="ownerPartyId">
-                <header-field title="Owner Party"><text-line ac-transition="getPartyList" ac-min-length="2" size="15"/></header-field>
+                <header-field title="Owner Party"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
 
@@ -84,8 +85,8 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <field name="productId">
-                <header-field title="Product" show-order-by="case-insensitive">
-                    <text-line ac-transition="getProductList" ac-min-length="2" size="50"/>
+                <header-field title="Product" show-order-by="case-insensitive"><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="2"/></drop-down>
                 </header-field>
                 <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
             </field>
