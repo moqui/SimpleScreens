@@ -143,22 +143,24 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-info">
             <td><strong>${ec.l10n.localize("Unbooked Net Income")}</strong></td>
         <#if (timePeriodIdList?size > 1)>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeWithClosingMap['ALL']!0, currencyUomId)}</strong></td>
+            <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeOut.totalPosted['ALL']!0, currencyUomId)}</strong></td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeWithClosingMap[timePeriodId]!0, currencyUomId)}</strong></td>
-            <td class="text-right"> </td><td class="text-right"> </td>
+            <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeOut.totalPosted[timePeriodId]!0, currencyUomId)}</strong></td>
+            <td class="text-right"><strong>${ec.l10n.formatCurrency((netIncomeOut.totalBalance[timePeriodId]!0) - (netIncomeOut.totalPosted[timePeriodId]!0), currencyUomId)}</strong></td>
+            <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeOut.totalBalance[timePeriodId]!0, currencyUomId)}</strong></td>
         </#list>
         </tr>
 
         <tr class="text-success" style="border-bottom:solid black;border-top:solid black;">
-            <td><strong>${ec.l10n.localize("Liability + Equity + Unbooked Net Income - Distribution")}</strong></td>
+            <td><strong>${ec.l10n.localize("Liability + Equity + Unbooked Net Income")}</strong></td>
         <#if (timePeriodIdList?size > 1)>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalPosted['ALL']!0) + (netIncomeWithClosingMap['ALL']!0), currencyUomId)}</strong></td>
+            <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalPosted['ALL']!0) + (netIncomeOut.totalPosted['ALL']!0), currencyUomId)}</strong></td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeWithClosingMap[timePeriodId]!0), currencyUomId)}</strong></td>
-            <td class="text-right"> </td><td class="text-right"> </td>
+            <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalPosted[timePeriodId]!0), currencyUomId)}</strong></td>
+            <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) - (liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0) - (netIncomeOut.totalPosted[timePeriodId]!0), currencyUomId)}</strong></td>
+            <td class="text-right"><strong>${ec.l10n.formatCurrency((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0), currencyUomId)}</strong></td>
         </#list>
         </tr>
     </tbody>

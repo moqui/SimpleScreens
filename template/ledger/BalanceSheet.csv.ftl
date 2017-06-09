@@ -78,8 +78,9 @@ along with this software (see the LICENSE.md file). If not, see
 <#t><#if classInfoById.LIABILITY??><@showClass classInfoById.LIABILITY 1/></#if>
 <#t><#if classInfoById.EQUITY??><@showClass classInfoById.EQUITY 1/></#if>
 <#t><#if classInfoById.CONTRA_EQUITY??><@showClass classInfoById.CONTRA_EQUITY 1/></#if>
+<#t><#if classInfoById.DISTRIBUTION??><@showClass classInfoById.DISTRIBUTION 1/></#if>
 <#t><#if equityTotalMap??>
-    <#t>${ec.l10n.localize("Equity + Contra Equity Total")},
+    <#t>${ec.l10n.localize("Equity + Contra Equity + Distribution Total")},
     <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(equityTotalMap.totalPosted['ALL']!0, numberFormat)/>,</#if>
     <#list timePeriodIdList as timePeriodId>
         <#t><@csvValue ec.l10n.format(equityTotalMap.totalPosted[timePeriodId]!0, numberFormat)/>,
@@ -99,12 +100,19 @@ along with this software (see the LICENSE.md file). If not, see
     <#t>${"\n"}
 </#if>
 <#t>${ec.l10n.localize("Unbooked Net Income")},
-<#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(netIncomeWithClosingMap['ALL']!0, numberFormat)/>,</#if>
-<#t><#list timePeriodIdList as timePeriodId><@csvValue ec.l10n.format(netIncomeWithClosingMap[timePeriodId]!0, numberFormat)/>, ,<#if timePeriodId_has_next> ,</#if></#list>
-<#t>${"\n"}
-<#t><#if classInfoById.DISTRIBUTION??><@showClass classInfoById.DISTRIBUTION 1/></#if>
-<#t>${ec.l10n.localize("Liability + Equity + Unbooked Net Income - Distribution")},
-<#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalPosted['ALL']!0) + (netIncomeWithClosingMap['ALL']!0) - (classInfoById.DISTRIBUTION.totalPostedByTimePeriod['ALL']!0), numberFormat)/>,</#if>
+<#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(netIncomeOut.totalPosted['ALL']!0, numberFormat)/>,</#if>
 <#list timePeriodIdList as timePeriodId>
-    <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeWithClosingMap[timePeriodId]!0) - (classInfoById.DISTRIBUTION.totalPostedByTimePeriod[timePeriodId]!0), numberFormat)/>, ,<#if timePeriodId_has_next> ,</#if>
+    <#t><@csvValue ec.l10n.format(netIncomeOut.totalPosted[timePeriodId]!0, numberFormat)/>,
+    <#t><@csvValue ec.l10n.format((netIncomeOut.totalBalance[timePeriodId]!0) - (netIncomeOut.totalPosted[timePeriodId]!0), numberFormat)/>,
+    <#t><@csvValue ec.l10n.format(netIncomeOut.totalBalance[timePeriodId]!0, numberFormat)/><#if timePeriodId_has_next>,</#if>
+</#list>
+<#t>${"\n"}
+<#t>${ec.l10n.localize("Liability + Equity + Unbooked Net Income")},
+<#t><#if (timePeriodIdList?size > 1)>
+    <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalPosted['ALL']!0) + (netIncomeOut.totalPosted['ALL']!0), numberFormat)/>,
+</#if>
+<#list timePeriodIdList as timePeriodId>
+    <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalPosted[timePeriodId]!0), numberFormat)/>,
+    <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) - (liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0) - (netIncomeOut.totalPosted[timePeriodId]!0), numberFormat)/>,
+    <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0), numberFormat)/><#if timePeriodId_has_next>,</#if>
 </#list>
