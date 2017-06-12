@@ -31,7 +31,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#list>
     <#t>${"\n"}
     <#list classInfo.glAccountInfoList! as glAccountInfo>
-        <#t><#if showDetail && (glAccountInfo.balanceByTimePeriod['ALL']!0) != 0 || (glAccountInfo.postedByTimePeriod['ALL']!0) != 0>
+        <#t><#if showDetail && ((glAccountInfo.balanceByTimePeriod['ALL']!0) != 0 || (glAccountInfo.postedByTimePeriod['ALL']!0) != 0)>
             <#t>--<#list 1..depth as idx>-</#list> <#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: <@csvValue glAccountInfo.accountName/>,
             <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(glAccountInfo.postedByTimePeriod['ALL']!0, numberFormat)/>,</#if>
             <#list timePeriodIdList as timePeriodId>

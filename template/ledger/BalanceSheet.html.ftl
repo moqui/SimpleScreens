@@ -33,7 +33,7 @@ along with this software (see the LICENSE.md file). If not, see
         </#list>
     </tr>
     <#list classInfo.glAccountInfoList! as glAccountInfo>
-        <#if showDetail && (glAccountInfo.balanceByTimePeriod['ALL']!0) != 0 || (glAccountInfo.postedByTimePeriod['ALL']!0) != 0>
+        <#if showDetail && ((glAccountInfo.balanceByTimePeriod['ALL']!0) != 0 || (glAccountInfo.postedByTimePeriod['ALL']!0) != 0)>
             <tr>
                 <td style="padding-left: ${(depth-1) * 2 + 3}.3em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
                 <#if (timePeriodIdList?size > 1)>
