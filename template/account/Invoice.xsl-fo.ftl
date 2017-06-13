@@ -141,6 +141,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <fo:table-cell padding="${cellPadding}"><fo:block>${(lot.lotNumber)!(asset.lotId)!""}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}">
                                     <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute((invoiceItem.description)!(itemTypeEnum.description)!"", false)}</fo:block>
+                                    <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product #: ${invoiceItem.otherPartyProductId}</fo:block></#if>
                                 </fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceItem.amount!0, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
@@ -188,6 +189,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <#if (timeEntry.workEffortId)?has_content><fo:block>Task: ${timeEntry.workEffortId} - ${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(workEffort.workEffortName!"", false)}</fo:block></#if>
                                 <#if rateTypeEnum?has_content><fo:block>Rate: ${rateTypeEnum.description}</fo:block></#if>
                                 <#if timeEntry?has_content><fo:block>${ec.l10n.format(timeEntry.fromDate, "dd MMM yyyy hh:mm")} to ${ec.l10n.format(timeEntry.thruDate, "dd MMM yyyy hh:mm")}, Break ${timeEntry.breakHours!"0"}h</fo:block></#if>
+                                <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product #: ${invoiceItem.otherPartyProductId}</fo:block></#if>
                             </fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceItem.amount!0, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
