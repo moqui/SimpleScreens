@@ -40,7 +40,7 @@ along with this software (see the LICENSE.md file). If not, see
         <script>ec.web.sendJsonResponse(classList)</script>
     </actions><default-response type="none"/></transition>
 
-    <transition name="createPartySetting"><service-call name="mantle.party.PartyServices.create#PartySetting"/>
+    <transition name="storePartySetting"><service-call name="mantle.party.PartyServices.store#PartySetting"/>
         <default-response url="."/></transition>
     <transition name="deletePartySetting"><service-call name="delete#mantle.party.PartySetting"/>
         <default-response url="."/></transition>
@@ -395,14 +395,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="partyId"/><order-by field-name="partySettingTypeId"/></entity-find>
             </actions><widgets>
                 <container-box><box-header><label text="Settings" type="h5"/></box-header><box-toolbar>
-                    <container-dialog id="AddSettingDialog" button-text="Add Setting - Select">
-                        <form-single name="AddSettingForm" transition="createPartySetting">
+                    <container-dialog id="AddSettingDialog" button-text="Select Setting">
+                        <form-single name="AddSettingForm" transition="storePartySetting">
                             <field name="partyId"><default-field><hidden/></default-field></field>
                             <field name="partySettingTypeId"><default-field title="Type">
                                 <drop-down><entity-options key="${partySettingTypeId}" text="${description}">
                                     <entity-find entity-name="mantle.party.PartySettingTypeAndRole" cache="false">
                                         <econdition field-name="roleTypeId" operator="in" from="roleTypeIdList" or-null="true"/>
-                                        <econdition field-name="partySettingTypeId" operator="not-in" from="settingList*.partySettingTypeId" ignore-if-empty="true"/>
                                         <econdition field-name="enumTypeId" operator="is-not-null"/>
                                         <order-by field-name="description"/></entity-find></entity-options>
                                 </drop-down>
@@ -412,24 +411,23 @@ along with this software (see the LICENSE.md file). If not, see
                                         value-field="enumId" label-field="description">
                                     <depends-on field="partySettingTypeId"/></dynamic-options></drop-down>
                             </default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                            <field name="submitButton"><default-field title="Set"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>
-                    <container-dialog id="AddSettingTextDialog" button-text="Add Setting - Text">
-                        <form-single name="AddSettingTextForm" transition="createPartySetting">
+                    <container-dialog id="AddSettingTextDialog" button-text="Enter Setting">
+                        <form-single name="AddSettingTextForm" transition="storePartySetting">
                             <field name="partyId"><default-field><hidden/></default-field></field>
                             <field name="partySettingTypeId"><default-field title="Type">
                                 <drop-down><entity-options key="${partySettingTypeId}" text="${description}">
                                     <entity-find entity-name="mantle.party.PartySettingTypeAndRole" cache="false">
                                         <econdition field-name="roleTypeId" operator="in" from="roleTypeIdList" or-null="true"/>
-                                        <econdition field-name="partySettingTypeId" operator="not-in" from="settingList*.partySettingTypeId" ignore-if-empty="true"/>
                                         <econdition field-name="enumTypeId" operator="is-null"/>
                                         <order-by field-name="description"/></entity-find></entity-options>
                                 </drop-down>
                             </default-field></field>
                             <field name="settingValue"><default-field title="Value">
                                 <text-line size="40"/></default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                            <field name="submitButton"><default-field title="Set"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>
                 </box-toolbar><box-body-nopad>
