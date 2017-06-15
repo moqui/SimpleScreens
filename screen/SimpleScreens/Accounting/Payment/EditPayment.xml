@@ -207,6 +207,12 @@ along with this software (see the LICENSE.md file). If not, see
                     </conditional-field>
                     <default-field><ignored/></default-field>
                 </field>
+                <field name="forInvoiceId">
+                    <conditional-field condition="forInvoiceId" title="For Invoice">
+                        <link url="editInvoice" text="${forInvoiceId}" link-type="anchor" parameter-map="[invoiceId:forInvoiceId]"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
+                </field>
                 <field name="finAccountId">
                     <conditional-field condition="paymentEditable" title="Financial Account">
                         <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
@@ -286,7 +292,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-list>
             </box-body-nopad></container-box>
 
-            <section name="ApplyToInvoiceSection" condition="paymentDelivered &amp;&amp; isInvoicePayment &amp;&amp; unappliedTotal > 0"><widgets>
+            <section name="ApplyToInvoiceSection" condition="isInvoicePayment &amp;&amp; unappliedTotal > 0"><widgets>
                 <container-box><box-header><label text="Applicable Unpaid Invoices" type="h5"/></box-header><box-body-nopad>
                     <form-list name="UnpaidInvoiceList" list="unpaidInvoiceInfoList" transition="applyInvoicePayment">
                         <field name="paymentId"><default-field><hidden/></default-field></field>
@@ -295,18 +301,20 @@ along with this software (see the LICENSE.md file). If not, see
                             <link url="editInvoice" text="${invoice.invoiceId?:''}" link-type="anchor"
                                     parameter-map="[invoiceId:invoice.invoiceId]"/>
                         </default-field></field>
-                        <field name="invoiceTotal"><default-field title="Total">
+                        <field name="statusId" from="invoice.statusId"><default-field title="Status">
+                            <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                        <field name="forThis"><default-field title="For">
+                            <display text="${payment.forInvoiceId == invoice.invoiceId ? 'Y' : 'N'}"/></default-field></field>
+                        <field name="invoiceTotal" align="right"><default-field title="Total">
                             <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
-                        <field name="unpaidTotal"><default-field title="Unpaid">
+                        <field name="unpaidTotal" align="right"><default-field title="Unpaid">
                             <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
-                        <field name="amount" from="maxApplicableAmount">
-                            <conditional-field condition="maxApplicableAmount"><text-line size="8" format="0.00"/></conditional-field>
-                            <default-field title="Amount"><display text=""/></default-field>
+                        <field name="amount" from="maxApplicableAmount" align="right">
+                            <conditional-field condition="paymentDelivered &amp;&amp; allowApply"><text-line size="8" format="0.00"/></conditional-field>
+                            <default-field title="Amount"><display currency-unit-field="payment.amountUomId"/></default-field>
                         </field>
-                        <field name="submitButton">
-                            <conditional-field condition="maxApplicableAmount" title="Apply"><submit/></conditional-field>
-                            <default-field title=""><display text=""/></default-field>
-                        </field>
+                        <field name="submitButton"><conditional-field title="Apply" condition="paymentDelivered &amp;&amp; allowApply"><submit/></conditional-field>
+                            <default-field title=""><display text=""/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
