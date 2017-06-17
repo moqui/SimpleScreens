@@ -38,6 +38,20 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
         <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
             <econdition field-name="invoiceId"/><order-by field-name="invoiceItemSeqId"/></entity-find>
+        <set field="topItemList" from="invoiceItemList.findAll({ it.parentItemSeqId == null })"/>
+
+        <!-- put items with parentItemSeqId in the list after their parent -->
+        <script><![CDATA[
+            itemWithChildrenSet = new HashSet()
+            List reverseList = invoiceItemList.cloneList().orderByFields(["-invoiceItemSeqId"])
+            for (invoiceItem in reverseList) {
+                if (invoiceItem.parentItemSeqId) {
+                    itemWithChildrenSet.add(invoiceItem.parentItemSeqId)
+                    invoiceItemList.move(invoiceItemList.indexMatching([invoiceItemSeqId:invoiceItem.invoiceItemSeqId]),
+                            invoiceItemList.indexMatching([invoiceItemSeqId:invoiceItem.parentItemSeqId])+1)
+                }
+            }
+        ]]></script>
 
         <set field="editableStatusIds" from="new HashSet(['InvoiceInProcess', 'InvoiceIncoming', 'InvoiceReceived'])"/>
         <set field="invoiceEditable" from="invoice.statusId in editableStatusIds"/>
@@ -92,6 +106,14 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="EditInvoiceItems" list="invoiceItemList" transition="updateInvoiceItem" multi="true">
             <field name="invoiceId"><default-field><hidden/></default-field></field>
             <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
+            <field name="parentItemSeqId">
+                <conditional-field condition="productId || itemWithChildrenSet.contains(invoiceItemSeqId)">
+                    <display text="N/A"/></conditional-field>
+                <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
+                    <list-options list="topItemList" key="${invoiceItemSeqId}" text="${invoiceItemSeqId}"/>
+                </drop-down></conditional-field>
+                <default-field title="Parent"><display/></default-field>
+            </field>
             <field name="itemTypeEnumId">
                 <conditional-field condition="invoiceEditable">
                     <drop-down><list-options list="itemTypeEnumList" key="${enumId}" text="${description}"/></drop-down></conditional-field>
@@ -144,7 +166,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="submitButton"><conditional-field condition="invoiceEditable" title="Update"><submit/></conditional-field>
                 <default-field title=""><ignored/></default-field></field>
 
-            <form-list-column><field-ref name="invoiceItemSeqId"/></form-list-column>
+            <form-list-column><field-ref name="invoiceItemSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
             <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="typeGlAccount"/><field-ref name="overrideGlAccountId"/></form-list-column>
             <form-list-column><field-ref name="description"/><field-ref name="productId"/><field-ref name="otherPartyProductId"/>
                 <field-ref name="assetId"/></form-list-column>
