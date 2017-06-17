@@ -746,7 +746,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <row-actions>
                     <service-call name="mantle.order.OrderServices.get#OrderItemTotal"
                             in-map="[orderItem:orderItem, getChildrenTotals:true]" out-map="orderItemTotalOut"/>
-                    <set field="applicableParentItems" from="orderPartInfo.partNoParentOrderItemList.cloneList().removeByAnd([orderItemSeqId:orderItem.orderItemSeqId])"/>
+                    <set field="applicableParentItems" from="orderPartInfo.partNoParentOrderItemList"/>
 
                     <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
                         <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
@@ -812,14 +812,14 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
                 <field name="orderPartSeqId">
-                    <conditional-field condition="orderPartInfo.partEditable">
+                    <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'">
                         <drop-down current="selected"><list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/></drop-down></conditional-field>
                     <default-field title="Part"><display/></default-field>
                 </field>
                 <field name="parentItemSeqId">
                     <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes || orderItemWithChildrenSet.contains(orderItem.orderItemSeqId)">
                         <display text="N/A"/></conditional-field>
-                    <conditional-field condition="orderPartInfo.partEditable" title="Parent"><drop-down allow-empty="true">
+                    <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'" title="Parent"><drop-down allow-empty="true">
                             <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId}"/>
                         </drop-down></conditional-field>
                     <default-field title="Parent Item"><display/></default-field>
