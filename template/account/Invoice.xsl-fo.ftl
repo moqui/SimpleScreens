@@ -15,6 +15,58 @@ along with this software (see the LICENSE.md file). If not, see
 
 <#assign cellPadding = "1pt">
 <#assign dateFormat = dateFormat!"dd MMM yyyy">
+<#assign negOne = -1>
+
+<#macro productItemRow invoiceItem invoiceItemList itemIndex>
+    <#assign childItemList = invoiceItemList.cloneList().filterByAnd("parentItemSeqId", invoiceItem.invoiceItemSeqId)>
+    <#assign itemTypeEnum = invoiceItem.type!>
+    <#assign product = invoiceItem.product!>
+    <#assign asset = invoiceItem.asset!>
+    <#assign lot = asset.lot!>
+    <fo:table-row font-size="8pt" border-bottom="thin solid black">
+        <fo:table-cell padding="${cellPadding}"><fo:block text-align="center"><#if (itemIndex > 0)>${itemIndex}<#else> </#if></fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block>${(product.pseudoId)!(invoiceItem.productId)!""}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block>${(lot.lotNumber)!(asset.lotId)!""}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}">
+            <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute((invoiceItem.description)!(itemTypeEnum.description)!"", false)}</fo:block>
+            <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
+        </fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceItem.amount!0, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
+    </fo:table-row>
+    <#if childItemList?has_content><#list childItemList as childItem>
+        <@productItemRow childItem invoiceItemList negOne/>
+    </#list></#if>
+</#macro>
+<#macro otherItemRow invoiceItem invoiceItemList itemIndex>
+    <#assign childItemList = invoiceItemList.cloneList().filterByAnd("parentItemSeqId", invoiceItem.invoiceItemSeqId)>
+    <#assign itemTypeEnum = invoiceItem.type!>
+    <#assign timeEntry = invoiceItem.findRelatedOne("mantle.work.time.TimeEntry", false, false)!>
+    <#assign rateTypeEnum = ""><#assign workEffort = "">
+    <#if timeEntry?has_content>
+        <#assign rateTypeEnum = timeEntry.findRelatedOne("RateType#moqui.basic.Enumeration", true, false)!>
+        <#assign workEffort = timeEntry.findRelatedOne("mantle.work.effort.WorkEffort", false, false)!>
+    </#if>
+    <fo:table-row font-size="8pt" border-bottom="thin solid black">
+        <fo:table-cell padding="${cellPadding}"><fo:block text-align="center"><#if (itemIndex > 0)>${itemIndex}<#else> </#if></fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block>${(itemTypeEnum.description)!""}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block>${ec.l10n.format(invoiceItem.itemDate, dateFormat)}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}">
+            <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(invoiceItem.description!"", false)}</fo:block>
+            <#if (timeEntry.workEffortId)?has_content><fo:block>Task: ${timeEntry.workEffortId} - ${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(workEffort.workEffortName!"", false)}</fo:block></#if>
+            <#if rateTypeEnum?has_content><fo:block>Rate: ${rateTypeEnum.description}</fo:block></#if>
+            <#if timeEntry?has_content><fo:block>${ec.l10n.format(timeEntry.fromDate, "dd MMM yyyy hh:mm")} to ${ec.l10n.format(timeEntry.thruDate, "dd MMM yyyy hh:mm")}, Break ${timeEntry.breakHours!"0"}h</fo:block></#if>
+            <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
+        </fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceItem.amount!0, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
+    </fo:table-row>
+    <#if childItemList?has_content><#list childItemList as childItem>
+        <@otherItemRow childItem invoiceItemList negOne/>
+    </#list></#if>
+</#macro>
 
 <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format" font-family="Helvetica, sans-serif" font-size="10pt">
     <fo:layout-master-set>
@@ -130,23 +182,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
                     </fo:table-header>
                     <fo:table-body>
-                        <#list invoiceItemList as invoiceItem>
-                            <#assign itemTypeEnum = invoiceItem.type!>
-                            <#assign product = invoiceItem.product!>
-                            <#assign asset = invoiceItem.asset!>
-                            <#assign lot = asset.lot!>
-                            <fo:table-row font-size="8pt" border-bottom="thin solid black">
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.invoiceItemSeqId}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block>${(product.pseudoId)!(invoiceItem.productId)!""}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block>${(lot.lotNumber)!(asset.lotId)!""}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}">
-                                    <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute((invoiceItem.description)!(itemTypeEnum.description)!"", false)}</fo:block>
-                                    <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
-                                </fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceItem.amount!0, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
-                            </fo:table-row>
+                        <#list topItemList as invoiceItem>
+                            <#if !(invoiceItem.parentItemSeqId?has_content)><@productItemRow invoiceItem invoiceItemList invoiceItem_index+1/></#if>
                         </#list>
                         <fo:table-row font-size="9pt" border-top="solid black">
                             <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
@@ -171,30 +208,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
                     </fo:table-header>
                     <fo:table-body>
-                    <#list invoiceItemList as invoiceItem>
-                        <#assign itemTypeEnum = invoiceItem.type!>
-                        <#assign timeEntry = invoiceItem.findRelatedOne("mantle.work.time.TimeEntry", false, false)!>
-                        <#assign rateTypeEnum = "">
-                        <#assign workEffort = "">
-                        <#if timeEntry?has_content>
-                            <#assign rateTypeEnum = timeEntry.findRelatedOne("RateType#moqui.basic.Enumeration", true, false)!>
-                            <#assign workEffort = timeEntry.findRelatedOne("mantle.work.effort.WorkEffort", false, false)!>
-                        </#if>
-                        <fo:table-row font-size="8pt" border-bottom="thin solid black">
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.invoiceItemSeqId}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block>${(itemTypeEnum.description)!""}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block>${ec.l10n.format(invoiceItem.itemDate, dateFormat)}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}">
-                                <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(invoiceItem.description!"", false)}</fo:block>
-                                <#if (timeEntry.workEffortId)?has_content><fo:block>Task: ${timeEntry.workEffortId} - ${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(workEffort.workEffortName!"", false)}</fo:block></#if>
-                                <#if rateTypeEnum?has_content><fo:block>Rate: ${rateTypeEnum.description}</fo:block></#if>
-                                <#if timeEntry?has_content><fo:block>${ec.l10n.format(timeEntry.fromDate, "dd MMM yyyy hh:mm")} to ${ec.l10n.format(timeEntry.thruDate, "dd MMM yyyy hh:mm")}, Break ${timeEntry.breakHours!"0"}h</fo:block></#if>
-                                <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
-                            </fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceItem.amount!0, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
-                        </fo:table-row>
+                    <#list topItemList as invoiceItem>
+                        <#if !(invoiceItem.parentItemSeqId?has_content)><@otherItemRow invoiceItem invoiceItemList invoiceItem_index+1/></#if>
                     </#list>
                         <fo:table-row font-size="9pt" border-top="solid black">
                             <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
