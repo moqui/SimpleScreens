@@ -80,16 +80,37 @@ along with this software (see the LICENSE.md file). If not, see
 
     <fo:page-sequence master-reference="letter-portrait" id="mainSequence">
         <fo:static-content flow-name="xsl-region-before">
-            <fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", true))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
-            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Invoice</fo:block>
-            <#if logoImageLocation?has_content>
-                <fo:block-container absolute-position="absolute" top="0in" left="0.1in" width="2in">
+            <fo:block-container absolute-position="absolute" top="0in" left="0in" width="3in">
+                <#if logoImageLocation?has_content>
                     <fo:block text-align="left">
                         <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" width="2in" scaling="uniform"/>
                     </fo:block>
-                </fo:block-container>
-            </#if>
-            <fo:block-container absolute-position="absolute" top="0.3in" right="0.1in" width="3in">
+                <#else>
+                    <fo:block font-size="13pt" text-align="center" font-weight="bold">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", true))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
+                    <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Invoice</fo:block>
+                </#if>
+            </fo:block-container>
+            <fo:block-container absolute-position="absolute" top="0in" right="2.0in" width="2.5in">
+                <fo:block text-align="left" font-size="9pt">
+                <#if fromContactInfo.postalAddress?has_content>
+                    <fo:block>${(fromContactInfo.postalAddress.address1)!""}<#if fromContactInfo.postalAddress.unitNumber?has_content> #${fromContactInfo.postalAddress.unitNumber}</#if></fo:block>
+                    <#if fromContactInfo.postalAddress.address2?has_content><fo:block>${fromContactInfo.postalAddress.address2}</fo:block></#if>
+                    <fo:block>${fromContactInfo.postalAddress.city!""}, ${(fromContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${fromContactInfo.postalAddress.postalCode!""}<#if fromContactInfo.postalAddress.postalCodeExt?has_content>-${fromContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                    <#if fromContactInfo.postalAddress.countryGeoId?has_content><fo:block>${fromContactInfo.postalAddress.countryGeoId}</fo:block></#if>
+                </#if>
+                </fo:block>
+            </fo:block-container>
+            <fo:block-container absolute-position="absolute" top="0in" right="0in" width="2.0in">
+                <fo:block text-align="left" font-size="9pt">
+                <#if fromContactInfo.telecomNumber?has_content>
+                    <fo:block>T: <#if fromContactInfo.telecomNumber.countryCode?has_content>${fromContactInfo.telecomNumber.countryCode}-</#if><#if fromContactInfo.telecomNumber.areaCode?has_content>${fromContactInfo.telecomNumber.areaCode}-</#if>${fromContactInfo.telecomNumber.contactNumber!""}</fo:block>
+                </#if>
+                <#if fromContactInfo.faxTelecomNumber?has_content>
+                    <fo:block>F: <#if fromContactInfo.faxTelecomNumber.countryCode?has_content>${fromContactInfo.faxTelecomNumber.countryCode}-</#if><#if fromContactInfo.faxTelecomNumber.areaCode?has_content>${fromContactInfo.faxTelecomNumber.areaCode}-</#if>${fromContactInfo.faxTelecomNumber.contactNumber!""}</fo:block>
+                </#if>
+                <#if fromContactInfo.emailAddress?has_content><fo:block>E: ${fromContactInfo.emailAddress}</fo:block></#if>
+                </fo:block>
+                <#--
                 <fo:block text-align="right">
                     <fo:instream-foreign-object>
                         <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${invoiceId}">
@@ -107,6 +128,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </barcode:barcode>
                     </fo:instream-foreign-object>
                 </fo:block>
+                -->
             </fo:block-container>
         </fo:static-content>
         <fo:static-content flow-name="xsl-region-after" font-size="8pt">
@@ -120,7 +142,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </#if>
                 <#if fromContactInfo.emailAddress?has_content> -- ${fromContactInfo.emailAddress}</#if>
                 </fo:block>
-                <fo:block text-align="center">Invoice #${invoiceId} -- ${ec.l10n.format(invoice.invoiceDate, dateFormat)} -- Page <fo:page-number/> of <fo:page-number-citation-last ref-id="mainSequence"/></fo:block>
+                <fo:block text-align="center">Invoice #${invoiceId} -- ${ec.l10n.format(invoice.invoiceDate, dateFormat)} -- Page <fo:page-number/><#-- of <fo:page-number-citation-last ref-id="mainSequence"/>--></fo:block>
             </fo:block>
         </fo:static-content>
 
@@ -146,13 +168,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-cell padding="3pt" width="1.5in">
                         <fo:block font-weight="bold">Invoice #</fo:block>
                         <fo:block>${invoiceId}</fo:block>
-                        <#if invoice.referenceNumber?has_content>
-                            <fo:block font-weight="bold">PO or Ref #</fo:block>
-                            <fo:block>${invoice.referenceNumber}</fo:block>
-                        </#if>
                         <#if orderIdSet?has_content>
                             <fo:block font-weight="bold">Order #</fo:block>
                             <fo:block><#list orderIdSet as orderId>${orderId}<#sep>, </#list></fo:block>
+                        </#if>
+                        <#if invoice.referenceNumber?has_content>
+                            <fo:block font-weight="bold">PO or Ref #</fo:block>
+                            <fo:block font-weight="bold">${invoice.referenceNumber}</fo:block>
                         </#if>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="1.75in">
@@ -241,7 +263,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(itemTypeSummaryMap.total, invoice.currencyUomId)}</fo:block></fo:table-cell>
                     </fo:table-row>
                 </#list>
-                <fo:table-row font-size="9pt" border-bottom="thin solid black">
+                <fo:table-row font-size="9pt">
                     <fo:table-cell padding="${cellPadding}" font-weight="bold"><fo:block>Total</fo:block></fo:table-cell>
                     <fo:table-cell padding="${cellPadding}"><fo:block text-align="center"> </fo:block></fo:table-cell>
                     <#if hasTimeEntryItems><fo:table-cell padding="${cellPadding}"><fo:block text-align="right"> </fo:block></fo:table-cell></#if>
