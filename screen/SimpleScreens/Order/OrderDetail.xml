@@ -430,6 +430,12 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
                                 <field name="estimatedDeliveryDate"><default-field title="Delivery Date"><date-time/></default-field></field>
                                 <field name="otherPartyOrderId"><default-field><text-line size="30"/></default-field></field>
+                                <field name="disablePromotions"><default-field>
+                                    <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+                                <field name="disableShippingCalc"><default-field>
+                                    <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+                                <field name="disableTaxCalc"><default-field>
+                                    <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
                                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                             </form-single>
                         </container-dialog>
@@ -748,22 +754,25 @@ along with this software (see the LICENSE.md file). If not, see
                             in-map="[orderItem:orderItem, getChildrenTotals:true]" out-map="orderItemTotalOut"/>
                     <set field="applicableParentItems" from="orderPartInfo.partNoParentOrderItemList"/>
 
-                    <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
-                        <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
-                    <set field="resInfoList" from="[]"/>
-                    <set field="lotIdSet" from="new LinkedHashSet()"/>
-                    <set field="oldestLotExpire" from="null"/>
-                    <iterate list="existingResList" entry="existingRes">
-                        <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
-                            <field-map field-name="assetId" from="existingRes.assetId"/>
-                            <select-field field-name="lotId,pseudoId,lotNumber,manufacturedDate,expirationDate"/>
-                        </entity-find-one>
-                        <script><![CDATA[
+                    <set field="product" from="orderItem.product"/>
+                    <if condition="product != null">
+                        <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
+                            <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
+                        <set field="resInfoList" from="[]"/>
+                        <set field="lotIdSet" from="new LinkedHashSet()"/>
+                        <set field="oldestLotExpire" from="null"/>
+                        <iterate list="existingResList" entry="existingRes">
+                            <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
+                                <field-map field-name="assetId" from="existingRes.assetId"/>
+                                <select-field field-name="lotId,pseudoId,lotNumber,manufacturedDate,expirationDate"/>
+                            </entity-find-one>
+                            <script><![CDATA[
                             if (assetLot?.lotId) lotIdSet.add(assetLot.lotId)
                             if (assetLot?.expirationDate != null && (oldestLotExpire == null || assetLot.expirationDate < oldestLotExpire)) oldestLotExpire = assetLot.expirationDate
                             resInfoList.add([existingRes:existingRes, assetLot:assetLot])
-                        ]]></script>
-                    </iterate>
+                            ]]></script>
+                        </iterate>
+                    </if>
 
                     <!-- returnable quantities and ReturnItems -->
                     <service-call name="mantle.order.ReturnServices.calculate#OrderItemReturnable" out-map="returnableOut"
@@ -791,9 +800,11 @@ along with this software (see the LICENSE.md file). If not, see
                         </else></if>
                     </iterate>
 
+                    <set field="isShippable" from="product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0"/>
                     <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0"/>
-                    <set field="itemCanDelete" from="itemQuantityNotShipped == quantity &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnQuantity == 0"/>
+                    <set field="itemCanDelete" from="(!isShippable || itemQuantityNotShipped == quantity) &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnQuantity == 0"/>
+                    <!-- <log level="warn" message="itemCanDelete ${itemCanDelete} quantity ${quantity} itemQuantityNotShipped ${itemQuantityNotShipped} itemQuantityNotBilled ${itemQuantityNotBilled} returnableOut.returnQuantity ${returnableOut.returnQuantity}"/> -->
 
                     <set field="newerThanExpireDate" from="null"/>
                     <if condition="orderPartInfo.newerInventory &amp;&amp; orderPartInfo.orderPart.customerPartyId">
@@ -953,6 +964,8 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="submitButton"><conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'">
                     <submit text="Update"/><link url="deleteItem" text="Delete" condition="itemCanDelete"/>
+                </conditional-field><conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo == 'Y'">
+                    <link url="deleteItem" text="Delete" condition="itemCanDelete"/>
                 </conditional-field><default-field title=""/></field>
 
                 <form-list-column><field-ref name="orderItemSeqId"/><field-ref name="orderPartSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
