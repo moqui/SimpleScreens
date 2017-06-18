@@ -20,8 +20,11 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
-        <set field="periodDays" from="(periodDays ?: '30') as int"/>
         <set field="invoiceType" from="invoiceType ?: 'Receivable'"/>
+        <if condition="'payable'.equalsIgnoreCase(invoiceType)"><then><set field="toRoleTypeId" value="OrgInternal"/></then>
+            <else-if condition="'receivable'.equalsIgnoreCase(invoiceType)"><set field="fromRoleTypeId" value="OrgInternal"/></else-if></if>
+
+        <set field="periodDays" from="(periodDays ?: '30') as int"/>
         <set field="statusId" from="statusId ?: (invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved' : 'InvoiceFinalized,InvoiceSent')"/>
         <set field="statusId_op" value="in"/>
         <set field="referenceNumber" from="refNum"/>
@@ -33,8 +36,8 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <form-single name="ReportOptions" transition=".">
-            <field name="invoiceType"><default-field title="AR/AP"><drop-down><option key="Receivable" text="Receivable"/>
-                    <option key="Payable" text="Payable"/></drop-down></default-field></field>
+            <field name="invoiceType"><default-field title=""><radio>
+                <option key="Receivable"/><option key="Payable"/></radio></default-field></field>
             <field name="periodDays"><default-field><text-line size="2"/></default-field></field>
             <field name="dateField"><default-field title="Age By"><drop-down><option key="DUE_DATE" text="Due Date"/>
                     <option key="INVOICE_DATE" text="Invoice Date"/></drop-down></default-field></field>
@@ -47,11 +50,12 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="InvoiceAgingList" list="invoiceAgingList" skip-form="true" header-dialog="true" saved-finds="true"
                 show-all-button="true" show-csv-button="true">
             <entity-find entity-name="mantle.account.invoice.InvoiceAgingSummary" list="invoiceAgingList">
-                <search-form-inputs default-order-by="-totalDue"/>
+                <search-form-inputs default-order-by="-totalDue" skip-fields="fromRoleTypeId,toRoleTypeId"/>
+                <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
+                <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
             </entity-find>
 
-            <field name="invoiceType"><header-field title="AR/AP"><drop-down><option key="Receivable" text="Receivable"/>
-                    <option key="Payable" text="Payable"/></drop-down></header-field></field>
+            <field name="invoiceType"><header-field><radio><option key="Receivable"/><option key="Payable"/></radio></header-field></field>
             <field name="periodDays"><header-field><text-line size="6"/></header-field></field>
             <field name="dateField"><header-field title="Find By"><drop-down><option key="DUE_DATE" text="Due Date"/>
                     <option key="INVOICE_DATE" text="Invoice Date"/></drop-down></header-field></field>

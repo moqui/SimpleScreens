@@ -20,10 +20,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
+        <set field="invoiceType" from="invoiceType ?: 'Receivable'"/>
+        <if condition="'payable'.equalsIgnoreCase(invoiceType)"><then><set field="toRoleTypeId" value="OrgInternal"/></then>
+            <else-if condition="'receivable'.equalsIgnoreCase(invoiceType)"><set field="fromRoleTypeId" value="OrgInternal"/></else-if></if>
+
         <set field="periodDays" from="(periodDays ?: '30') as int"/>
         <set field="periodDaysBd" from="new BigDecimal(periodDays)"/>
         <set field="dateField" from="dateField ?: 'dueDate'"/>
-        <set field="invoiceType" from="invoiceType ?: 'Receivable'"/>
         <set field="statusId" from="statusId ?: (invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved,InvoicePmtSent' : 'InvoiceFinalized,InvoiceSent,InvoicePmtRecvd')"/>
         <set field="statusId_op" value="in"/>
         <set field="referenceNumber" from="refNum"/>
@@ -34,8 +37,8 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="formListFindId"><default-field><hidden/></default-field></field>
             <field name="pageNoLimit"><default-field><hidden/></default-field></field>
             <field name="orderByField"><default-field><hidden/></default-field></field>
-            <field name="invoiceType"><default-field title="AR/AP"><drop-down><option key="Receivable" text="Receivable"/>
-                    <option key="Payable" text="Payable"/></drop-down></default-field></field>
+            <field name="invoiceType"><default-field title=""><radio>
+                <option key="Receivable"/><option key="Payable"/></radio></default-field></field>
             <field name="periodDays"><default-field><text-line size="2"/></default-field></field>
             <field name="dateField"><default-field title="Age By"><drop-down><option key="dueDate" text="Due Date"/>
                     <option key="invoiceDate" text="Invoice Date"/></drop-down></default-field></field>
@@ -48,7 +51,9 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="InvoiceAgingList" list="invoiceAgingList" skip-form="true" header-dialog="true" saved-finds="true" select-columns="true"
                 show-all-button="true" show-csv-button="true">
             <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
-                <search-form-inputs default-order-by="fromPseudoId,toPseudoId,invoiceId"/>
+                <search-form-inputs default-order-by="fromPseudoId,toPseudoId,invoiceId" skip-fields="fromRoleTypeId,toRoleTypeId"/>
+                <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
+                <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
                 <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
                 <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
                 <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
@@ -72,8 +77,8 @@ along with this software (see the LICENSE.md file). If not, see
                 ]]></script>
             </row-actions>
 
-            <field name="invoiceType"><header-field title="AR/AP"><drop-down><option key="Receivable" text="Receivable"/>
-                    <option key="Payable" text="Payable"/></drop-down></header-field></field>
+            <field name="invoiceType"><header-field><radio><option key="Receivable"/><option key="Payable"/></radio></header-field></field>
+
             <field name="periodDays"><header-field><text-line size="6"/></header-field></field>
             <field name="dateField"><header-field title="Age By"><drop-down><option key="dueDate" text="Due Date"/>
                     <option key="invoiceDate" text="Invoice Date"/></drop-down></header-field></field>
