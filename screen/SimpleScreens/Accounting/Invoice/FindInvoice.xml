@@ -37,6 +37,9 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
+        <if condition="'payable'.equalsIgnoreCase(invoiceType)"><then><set field="toRoleTypeId" value="OrgInternal"/></then>
+            <else-if condition="'receivable'.equalsIgnoreCase(invoiceType)"><set field="fromRoleTypeId" value="OrgInternal"/></else-if></if>
+
         <!-- NOTE: the way the aging summary is calculated is ugly (would be nice in a separate service) but minimizes runtime
             overhead and maintains compatibility with column selection, etc -->
         <set field="periodDays" from="periodDays ? periodDays as Integer : 30"/>
@@ -57,14 +60,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
                 <field name="toPartyId"><default-field title="Organization">
-                    <drop-down>
-                        <entity-options key="${partyId}" text="PartyNameTemplate">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
-                                <econdition field-name="roleTypeId" value="OrgInternal"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
-                    </drop-down>
+                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName,firstName"/></entity-find>
+                    </entity-options></drop-down>
                 </default-field></field>
                 <field name="invoiceTypeEnumId"><default-field title="Type">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -90,14 +92,13 @@ along with this software (see the LICENSE.md file). If not, see
         <container-dialog id="NewReceivableDialog" button-text="New Receivable">
             <form-single name="NewReceivableForm" transition="createInvoice" extends="NewPayableForm">
                 <field name="fromPartyId"><default-field title="Organization">
-                    <drop-down>
-                        <entity-options key="${partyId}" text="PartyNameTemplate">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
-                                <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName,firstName"/></entity-find></entity-options>
-                    </drop-down>
+                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                            <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName,firstName"/></entity-find>
+                    </entity-options></drop-down>
                 </default-field></field>
                 <field name="toPartyId"><default-field title="Customer">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
@@ -181,10 +182,12 @@ along with this software (see the LICENSE.md file). If not, see
 
         <form-list name="InvoiceList" list="invoiceList" skip-form="true" header-dialog="true" select-columns="true"
                    saved-finds="true" show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
-                <search-form-inputs default-order-by="-invoiceDate,invoiceId">
+            <entity-find entity-name="mantle.account.invoice.InvoiceFindView" list="invoiceList">
+                <search-form-inputs default-order-by="-invoiceDate,invoiceId" skip-fields="fromRoleTypeId,toRoleTypeId">
                     <default-parameters statusId="InvoiceInProcess,InvoiceFinalized,InvoiceSent,InvoiceIncoming,InvoiceReceived,InvoiceApproved"
                             statusId_op="in" invoiceDate_poffset="-1" invoiceDate_period="30d"/></search-form-inputs>
+                <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
+                <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
             </entity-find>
             <row-actions>
                 <script><![CDATA[
@@ -209,6 +212,10 @@ along with this software (see the LICENSE.md file). If not, see
                 }
                 ]]></script>
             </row-actions>
+
+            <field name="invoiceType"><header-field><radio no-current-selected-key="Any">
+                <option key="Any"/><option key="Receivable"/><option key="Payable"/></radio></header-field></field>
+
             <field name="invoiceId"><header-field show-order-by="true" title="Invoice"><text-find hide-options="ignore-case" default-operator="begins"/></header-field>
                 <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
             <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
