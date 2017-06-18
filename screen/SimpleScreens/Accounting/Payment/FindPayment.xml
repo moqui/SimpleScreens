@@ -24,11 +24,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
-        <entity-find entity-name="mantle.account.payment.Payment" list="paymentList">
-            <search-form-inputs default-order-by="-effectiveDate">
-                <default-parameters statusId="PmntProposed,PmntPromised,PmntAuthorized" statusId_op="in"
-                        effectiveDate_poffset="-1" effectiveDate_period="30d"/></search-form-inputs>
-        </entity-find>
+        <if condition="'incoming'.equalsIgnoreCase(paymentType)"><then><set field="toRoleTypeId" value="OrgInternal"/></then>
+            <else-if condition="'outgoing'.equalsIgnoreCase(paymentType)"><set field="fromRoleTypeId" value="OrgInternal"/></else-if></if>
     </actions>
     <widgets>
         <container-dialog id="NewInPaymentDialog" button-text="New Incoming Payment">
@@ -79,7 +76,18 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="../BulkPaymentCheck" text="Bulk Check PDF"/>
 
         <form-list name="PaymentList" list="paymentList" skip-form="true" header-dialog="true" select-columns="true"
-                   saved-finds="true" show-csv-button="true">
+               saved-finds="true" show-csv-button="true">
+            <entity-find entity-name="mantle.account.payment.PaymentFindView" list="paymentList">
+                <search-form-inputs default-order-by="-effectiveDate" skip-fields="fromRoleTypeId,toRoleTypeId">
+                    <default-parameters statusId="PmntProposed,PmntPromised,PmntAuthorized" statusId_op="in"
+                            effectiveDate_poffset="-1" effectiveDate_period="30d"/></search-form-inputs>
+                <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
+                <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
+            </entity-find>
+
+            <field name="paymentType"><header-field><radio no-current-selected-key="Any">
+                <option key="Any"/><option key="Incoming"/><option key="Outgoing"/></radio></header-field></field>
+
             <field name="paymentId"><header-field show-order-by="true" title="Payment"><text-find default-operator="begins"/></header-field>
                 <default-field><link url="editPayment" text="${paymentId}" link-type="anchor"/>
             </default-field></field>
