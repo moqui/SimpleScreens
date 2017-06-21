@@ -13,7 +13,7 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
-        default-menu-title="Customer Info" default-menu-index="11">
+        default-menu-title="Financial Info" default-menu-index="11">
 
     <parameter name="partyId" required="true"/>
 
@@ -35,22 +35,32 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
+        <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail"/>
+
         <entity-find-count entity-name="mantle.request.RequestAndParty" count-field="requestCount">
             <date-filter/><econdition field-name="partyId"/></entity-find-count>
 
         <entity-find-count entity-name="mantle.order.OrderPart" count-field="customerOrderPartCount">
             <econdition field-name="customerPartyId" from="partyId"/></entity-find-count>
+        <entity-find-count entity-name="mantle.order.OrderPart" count-field="vendorOrderPartCount">
+            <econdition field-name="vendorPartyId" from="partyId"/></entity-find-count>
+
         <entity-find-count entity-name="mantle.shipment.Shipment" count-field="fromShipmentCount">
             <econdition field-name="fromPartyId" from="partyId"/></entity-find-count>
         <entity-find-count entity-name="mantle.shipment.Shipment" count-field="toShipmentCount">
             <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
+
+        <entity-find-count entity-name="mantle.account.invoice.Invoice" count-field="fromInvoiceCount">
+            <econdition field-name="fromPartyId" from="partyId"/></entity-find-count>
         <entity-find-count entity-name="mantle.account.invoice.Invoice" count-field="toInvoiceCount">
             <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
+
         <entity-find-count entity-name="mantle.account.payment.Payment" count-field="fromPaymentCount">
             <econdition field-name="fromPartyId" from="partyId"/></entity-find-count>
         <entity-find-count entity-name="mantle.account.payment.Payment" count-field="toPaymentCount">
             <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
 
+        <!-- sales/receivable/incoming -->
         <entity-find entity-name="mantle.order.OrderHeaderAndPartSummary" list="ordersTotalList">
             <econdition field-name="customerPartyId" from="partyId"/>
             <econdition field-name="partStatusId" operator="in" value="OrderPlaced,OrderProcessing,OrderApproved,OrderSent,OrderCompleted"/>
@@ -82,17 +92,54 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="statusId" operator="in" value="PmntDelivered,PmntConfirmed"/>
             <select-field field-name="amountUomId,paymentCount,amountTotal,unappliedTotal"/>
         </entity-find>
+
+
+        <!-- purchase/payable/outgoing -->
+        <entity-find entity-name="mantle.order.OrderHeaderAndPartSummary" list="supOrdersTotalList">
+            <econdition field-name="vendorPartyId" from="partyId"/>
+            <econdition field-name="partStatusId" operator="in" value="OrderPlaced,OrderProcessing,OrderApproved,OrderSent,OrderCompleted"/>
+            <select-field field-name="currencyUomId,orderCount,partTotal"/>
+        </entity-find>
+        <entity-find entity-name="mantle.account.invoice.InvoiceSummary" list="supInvoicesTotalList">
+            <econdition field-name="fromPartyId" from="partyId"/>
+            <econdition field-name="statusId" operator="in" value="InvoiceIncoming,InvoiceReceived,InvoiceApproved,InvoicePmtSent"/>
+            <select-field field-name="currencyUomId,invoiceCount,grandTotal,unpaidTotal"/>
+        </entity-find>
+        <entity-find entity-name="mantle.account.payment.PaymentSummary" list="supPaymentsTotalList">
+            <econdition field-name="toPartyId" from="partyId"/>
+            <econdition field-name="statusId" operator="in" value="PmntProposed,PmntPromised,PmntAuthorized,PmntDelivered,PmntConfirmed"/>
+            <select-field field-name="amountUomId,paymentCount,amountTotal,unappliedTotal"/>
+        </entity-find>
+
+        <entity-find entity-name="mantle.order.OrderHeaderAndPartSummary" list="supOrdersCompletedList">
+            <econdition field-name="vendorPartyId" from="partyId"/>
+            <econdition field-name="partStatusId" value="OrderCompleted"/>
+            <select-field field-name="currencyUomId,orderCount,partTotal"/>
+        </entity-find>
+        <entity-find entity-name="mantle.account.invoice.InvoiceSummary" list="supInvoicesBookedList">
+            <econdition field-name="fromPartyId" from="partyId"/>
+            <econdition field-name="statusId" operator="in" value="InvoiceApproved,InvoicePmtSent"/>
+            <select-field field-name="currencyUomId,invoiceCount,grandTotal,unpaidTotal"/>
+        </entity-find>
+        <entity-find entity-name="mantle.account.payment.PaymentSummary" list="supPaymentsPaidList">
+            <econdition field-name="toPartyId" from="partyId"/>
+            <econdition field-name="statusId" operator="in" value="PmntDelivered,PmntConfirmed"/>
+            <select-field field-name="amountUomId,paymentCount,amountTotal,unappliedTotal"/>
+        </entity-find>
     </actions>
     <widgets>
-        <container-box><box-header><label text="Customer Summary" type="h5"/></box-header><box-toolbar>
+        <container-box><box-header><label text="Financial Summary for ${ec.resource.expand('PartyNameTemplate', null, partyDetail)}" type="h5"/></box-header><box-toolbar>
             <link url="findRequest" text="Requests (${requestCount})" parameter-map="[partyId:partyId]" condition="requestCount"/>
             <link url="findOrder" text="Sales Orders (${customerOrderPartCount})" parameter-map="[customerPartyId:partyId]" condition="customerOrderPartCount"/>
             <link url="findShipment" text="Shipments To (${toShipmentCount})" parameter-map="[toPartyId:partyId]" condition="toShipmentCount"/>
-            <link url="findShipment" text="Shipments From (${fromShipmentCount})" parameter-map="[fromPartyId:partyId]" condition="fromShipmentCount"/>
             <link url="findInvoice" text="Invoices To (${toInvoiceCount})" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount"/>
-            <link url="findPayment" text="Payments To (${toPaymentCount})" parameter-map="[toPartyId:partyId]" condition="toPaymentCount"/>
             <link url="findPayment" text="Payments From (${fromPaymentCount})" parameter-map="[fromPartyId:partyId]" condition="fromPaymentCount"/>
-            <link url="receivableStatement" text="Statement PDF" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount || fromPaymentCount"/>
+
+            <link url="findOrder" text="Purchase Orders (${vendorOrderPartCount})" parameter-map="[vendorPartyId:partyId]" condition="vendorOrderPartCount"/>
+            <link url="findShipment" text="Shipments From (${fromShipmentCount})" parameter-map="[fromPartyId:partyId]" condition="fromShipmentCount"/>
+            <link url="findInvoice" text="Invoices From (${fromInvoiceCount})" parameter-map="[fromPartyId:partyId]" condition="fromInvoiceCount"/>
+            <link url="findPayment" text="Payments To (${toPaymentCount})" parameter-map="[toPartyId:partyId]" condition="toPaymentCount"/>
+            <link url="receivableStatement" text="Customer Statement PDF" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount || fromPaymentCount"/>
         </box-toolbar><box-body>
             <container-row>
                 <row-col sm="4"><label text="Completed Sales Orders" type="strong"/></row-col>
@@ -132,9 +179,48 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="${ec.l10n.format(paymentsTotal.paymentCount, '#,##0')} payments ${ec.l10n.formatCurrency(paymentsTotal.amountTotal, paymentsTotal.amountUomId)} (unapplied ${ec.l10n.formatCurrency(paymentsTotal.unappliedTotal, paymentsTotal.amountUomId)})" type="div"/></widgets></section-iterate>
                 </row-col>
             </container-row>
+
+            <container-row>
+                <row-col sm="4"><label text="Completed Purchase Orders" type="strong"/></row-col>
+                <row-col sm="4"><label text="Booked Payable Invoices" type="strong"/></row-col>
+                <row-col sm="4"><label text="Received Outgoing Payments" type="strong"/></row-col>
+            </container-row>
+            <container-row>
+                <row-col sm="4">
+                    <section-iterate name="SupOrdersCompletedListSection" list="supOrdersCompletedList" entry="ordersTotal"><widgets>
+                        <label text="${ec.l10n.format(ordersTotal.orderCount, '#,##0')} orders ${ec.l10n.formatCurrency(ordersTotal.partTotal, ordersTotal.currencyUomId)}" type="div"/></widgets></section-iterate>
+                </row-col>
+                <row-col sm="4">
+                    <section-iterate name="SupInvoicesBookedListSection" list="supInvoicesBookedList" entry="invoicesTotal"><widgets>
+                        <label text="${ec.l10n.format(invoicesTotal.invoiceCount, '#,##0')} invoices ${ec.l10n.formatCurrency(invoicesTotal.grandTotal, invoicesTotal.currencyUomId)} (unpaid ${ec.l10n.formatCurrency(invoicesTotal.unpaidTotal, invoicesTotal.currencyUomId)})" type="div"/></widgets></section-iterate>
+                </row-col>
+                <row-col sm="4">
+                    <section-iterate name="SupPaymentsPaidListSection" list="supPaymentsPaidList" entry="paymentsTotal"><widgets>
+                        <label text="${ec.l10n.format(paymentsTotal.paymentCount, '#,##0')} payments ${ec.l10n.formatCurrency(paymentsTotal.amountTotal, paymentsTotal.amountUomId)} (unapplied ${ec.l10n.formatCurrency(paymentsTotal.unappliedTotal, paymentsTotal.amountUomId)})" type="div"/></widgets></section-iterate>
+                </row-col>
+            </container-row>
+            <container-row>
+                <row-col sm="4"><label text="All Purchase Orders" type="strong"/></row-col>
+                <row-col sm="4"><label text="All Payable Invoices" type="strong"/></row-col>
+                <row-col sm="4"><label text="All Outgoing Payments" type="strong"/></row-col>
+            </container-row>
+            <container-row>
+                <row-col sm="4">
+                    <section-iterate name="SupOrdersTotalListSection" list="supOrdersTotalList" entry="ordersTotal"><widgets>
+                        <label text="${ec.l10n.format(ordersTotal.orderCount, '#,##0')} orders ${ec.l10n.formatCurrency(ordersTotal.partTotal, ordersTotal.currencyUomId)}" type="div"/></widgets></section-iterate>
+                </row-col>
+                <row-col sm="4">
+                    <section-iterate name="SupInvoicesTotalListSection" list="supInvoicesTotalList" entry="invoicesTotal"><widgets>
+                        <label text="${ec.l10n.format(invoicesTotal.invoiceCount, '#,##0')} invoices ${ec.l10n.formatCurrency(invoicesTotal.grandTotal, invoicesTotal.currencyUomId)} (unpaid ${ec.l10n.formatCurrency(invoicesTotal.unpaidTotal, invoicesTotal.currencyUomId)})" type="div"/></widgets></section-iterate>
+                </row-col>
+                <row-col sm="4">
+                    <section-iterate name="SupPaymentsTotalListSection" list="supPaymentsTotalList" entry="paymentsTotal"><widgets>
+                        <label text="${ec.l10n.format(paymentsTotal.paymentCount, '#,##0')} payments ${ec.l10n.formatCurrency(paymentsTotal.amountTotal, paymentsTotal.amountUomId)} (unapplied ${ec.l10n.formatCurrency(paymentsTotal.unappliedTotal, paymentsTotal.amountUomId)})" type="div"/></widgets></section-iterate>
+                </row-col>
+            </container-row>
         </box-body></container-box>
 
-        <container-box><box-header><label text="Unpaid Receivables" type="h5"/></box-header><box-body-nopad>
+        <container-box type="success"><box-header><label text="Unpaid Receivables" type="h5"/></box-header><box-body-nopad>
             <form-list name="UnpaidInvoiceList" list="invoiceList" skip-form="true" show-csv-button="true">
                 <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
                     <econdition field-name="toPartyId" from="partyId"/>
@@ -159,8 +245,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field title="Unpaid"><display currency-unit-field="currencyUomId"/></default-field></field>
             </form-list>
         </box-body-nopad></container-box>
-
-        <container-box><box-header><label text="Unapplied Incoming Payments" type="h5"/></box-header><box-body-nopad>
+        <container-box type="success"><box-header><label text="Unapplied Incoming Payments" type="h5"/></box-header><box-body-nopad>
             <form-list name="PaymentList" list="paymentList" skip-form="true">
                 <entity-find entity-name="mantle.account.payment.Payment" list="paymentList">
                     <econdition field-name="fromPartyId" from="partyId"/>
@@ -194,8 +279,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <display currency-unit-field="amountUomId"/></default-field></field>
             </form-list>
         </box-body-nopad></container-box>
-
-        <container-box><box-header><label text="Current Sales Orders" type="h5"/></box-header><box-body-nopad>
+        <container-box type="success"><box-header><label text="Current Sales Orders" type="h5"/></box-header><box-body-nopad>
             <form-list name="OrderList" list="orderList" skip-form="true">
                 <entity-find entity-name="mantle.order.OrderHeaderAndPart" list="orderList">
                     <econdition field-name="customerPartyId" from="partyId"/>
@@ -217,6 +301,94 @@ along with this software (see the LICENSE.md file). If not, see
                         text="${productStoreId}: ${storeName}"/></default-field></field>
 
                 <field name="vendorPartyId"><default-field title="Vendor">
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+
+                <field name="partTotal" align="right" show-total="sum"><default-field title="Total">
+                    <display currency-unit-field="currencyUomId"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+
+        <container-box type="info"><box-header><label text="Unpaid Payables" type="h5"/></box-header><box-body-nopad>
+            <form-list name="UnpaidPayablesList" list="invoiceList" skip-form="true" show-csv-button="true">
+                <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
+                    <econdition field-name="fromPartyId" from="partyId"/>
+                    <econdition field-name="statusId" operator="in" value="InvoiceIncoming,InvoiceReceived,InvoiceApproved,InvoicePmtSent"/>
+                    <econdition field-name="unpaidTotal" operator="not-equals" from="0.0"/>
+                    <order-by field-name="invoiceDate,invoiceId"/>
+                </entity-find>
+
+                <field name="invoiceId"><default-field title="Invoice"><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+                <field name="referenceNumber"><default-field title="Ref or SO #"><display/></default-field></field>
+                <field name="invoiceDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="dueDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="statusId"><default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+
+                <field name="toPartyId"><default-field title="Organization">
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+
+                <field name="invoiceTypeEnumId"><default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="invoiceTotal" align="right" show-total="true">
+                    <default-field title="Total"><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="unpaidTotal" align="right" show-total="true">
+                    <default-field title="Unpaid"><display currency-unit-field="currencyUomId"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+        <container-box type="info"><box-header><label text="Unapplied Outgoing Payments" type="h5"/></box-header><box-body-nopad>
+            <form-list name="OutgoingPaymentList" list="paymentList" skip-form="true">
+                <entity-find entity-name="mantle.account.payment.Payment" list="paymentList">
+                    <econdition field-name="toPartyId" from="partyId"/>
+                    <econdition field-name="statusId" operator="in" value="PmntProposed,PmntPromised,PmntAuthorized,PmntDelivered,PmntConfirmed"/>
+                    <econdition field-name="unappliedTotal" operator="not-equals" from="0.0"/>
+                    <order-by field-name="effectiveDate"/>
+                </entity-find>
+
+                <field name="paymentId"><default-field title="Payment"><link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+                <field name="paymentRefNum"><default-field title="Ref Num"><display/></default-field></field>
+                <field name="effectiveDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="statusId"><default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+
+                <field name="fromPartyId"><default-field title="Organization">
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+                <!--
+                <field name="paymentMethodId"><default-field title="From Payment Method">
+                    <display-entity entity-name="mantle.account.method.PaymentMethodAndType" text="PaymentMethodAndTypeTemplate"/>
+                </default-field></field>
+                <field name="toPaymentMethodId"><default-field title="To Payment Method">
+                    <display-entity entity-name="mantle.account.method.PaymentMethodAndType" text="PaymentMethodAndTypeTemplate"/>
+                </default-field></field>
+                -->
+
+                <field name="paymentTypeEnumId"><default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="paymentInstrumentEnumId"><default-field title="Instrument"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+                <field name="amount" align="right" show-total="sum"><default-field title="Amount">
+                    <display currency-unit-field="amountUomId"/></default-field></field>
+                <field name="unappliedTotal" align="right" show-total="sum"><default-field title="Unapplied">
+                    <display currency-unit-field="amountUomId"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+        <container-box type="info"><box-header><label text="Current Purchase Orders" type="h5"/></box-header><box-body-nopad>
+            <form-list name="PurchaseOrderList" list="orderList" skip-form="true">
+                <entity-find entity-name="mantle.order.OrderHeaderAndPart" list="orderList">
+                    <econdition field-name="vendorPartyId" from="partyId"/>
+                    <econdition field-name="statusId" operator="in" value="OrderPlaced,OrderProcessing,OrderApproved,OrderSent"/>
+                    <select-field field-name="orderPartSeqId"/>
+                    <order-by field-name="placedDate"/>
+                </entity-find>
+
+                <field name="orderId"><default-field title="Order">
+                    <link text="${orderId}:${orderPartSeqId}" url="orderDetail" link-type="anchor" condition="orderId"/></default-field></field>
+                <field name="otherPartyOrderId"><default-field title="SO #"><display/></default-field></field>
+                <field name="placedDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="shipBeforeDate"><default-field title="Ship Before"><display format="yyyy-MM-dd"/></default-field></field>
+
+                <field name="statusId"><default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                <field name="facilityId"><default-field title="Facility">
+                    <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field></field>
+                <field name="productStoreId"><default-field title="Store"><display-entity entity-name="mantle.product.store.ProductStore"
+                        text="${productStoreId}: ${storeName}"/></default-field></field>
+
+                <field name="customerPartyId"><default-field title="Customer">
                     <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
 
                 <field name="partTotal" align="right" show-total="sum"><default-field title="Total">
