@@ -232,19 +232,23 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="invoiceId"><header-field show-order-by="true" title="Invoice"><text-find hide-options="ignore-case" default-operator="begins"/></header-field>
                 <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+            <field name="referenceNumber"><header-field title="Ref or PO #"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
             <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
             <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
 
-            <field name="invoiceTypeEnumId">
-                <header-field title="Type" show-order-by="true">
-                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                        <set field="enumTypeId" value="InvoiceType"/><set field="allowEmpty" value="true"/>
-                        <set field="allowMultiple" value="true"/></widget-template-include>
+            <field name="receivableStatuses"><header-field title="Receivable"><display text="In-Process, Finalized, Sent, Payment Received"/></header-field></field>
+            <field name="payableStatuses"><header-field title="Payable"><display text="Incoming, Received, Approved, Payment Sent"/></header-field></field>
+            <field name="statusId">
+                <header-field title="Status" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="Invoice"/><set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
+
             <field name="fromPartyId">
                 <header-field title="From"><drop-down allow-empty="true">
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
@@ -257,17 +261,13 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
                         link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
             </field>
-            <field name="referenceNumber"><header-field title="Ref or PO #"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><display/></default-field></field>
-
-            <field name="receivableStatuses"><header-field title="Receivable"><display text="In-Process, Finalized, Sent, Payment Received"/></header-field></field>
-            <field name="payableStatuses"><header-field title="Payable"><display text="Incoming, Received, Approved, Payment Sent"/></header-field></field>
-            <field name="statusId">
-                <header-field title="Status" show-order-by="true">
-                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                        <set field="statusTypeId" value="Invoice"/><set field="allowMultiple" value="true"/></widget-template-include>
+            <field name="invoiceTypeEnumId">
+                <header-field title="Type" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="InvoiceType"/><set field="allowEmpty" value="true"/>
+                        <set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
 
             <field name="invoiceTotal" align="right" show-total="true"><header-field title="Total" show-order-by="true"><range-find/></header-field>

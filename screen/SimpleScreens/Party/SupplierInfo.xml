@@ -51,12 +51,12 @@ along with this software (see the LICENSE.md file). If not, see
         </entity-find>
         <entity-find entity-name="mantle.account.invoice.InvoiceSummary" list="invoicesTotalList">
             <econdition field-name="fromPartyId" from="partyId"/>
-            <econdition field-name="statusId" operator="in" value="InvoiceApproved,InvoicePmtSent"/>
+            <econdition field-name="statusId" operator="in" value="InvoiceIncoming,InvoiceReceived,InvoiceApproved,InvoicePmtSent"/>
             <select-field field-name="currencyUomId,invoiceCount,grandTotal,unpaidTotal"/>
         </entity-find>
         <entity-find entity-name="mantle.account.payment.PaymentSummary" list="paymentsTotalList">
             <econdition field-name="toPartyId" from="partyId"/>
-            <econdition field-name="statusId" operator="in" value="PmntDelivered,PmntConfirmed"/>
+            <econdition field-name="statusId" operator="in" value="PmntProposed,PmntPromised,PmntAuthorized,PmntDelivered,PmntConfirmed"/>
             <select-field field-name="amountUomId,paymentCount,amountTotal,unappliedTotal"/>
         </entity-find>
     </actions>
@@ -76,12 +76,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <section-iterate name="OrdersTotalListSection" list="ordersTotalList" entry="ordersTotal"><widgets>
                         <label text="${ec.l10n.format(ordersTotal.orderCount, '#,##0')} orders ${ec.l10n.formatCurrency(ordersTotal.partTotal, ordersTotal.currencyUomId)}"/></widgets></section-iterate>
                 </row-col>
-                <row-col sm="1"><label text="Invoices" type="strong"/></row-col>
+                <row-col sm="1"><label text="Payables" type="strong"/></row-col>
                 <row-col sm="3">
                     <section-iterate name="InvoicesTotalListSection" list="invoicesTotalList" entry="invoicesTotal"><widgets>
                         <label text="${ec.l10n.format(invoicesTotal.invoiceCount, '#,##0')} invoices ${ec.l10n.formatCurrency(invoicesTotal.grandTotal, invoicesTotal.currencyUomId)} (unpaid ${ec.l10n.formatCurrency(invoicesTotal.unpaidTotal, invoicesTotal.currencyUomId)})"/></widgets></section-iterate>
                 </row-col>
-                <row-col sm="1"><label text="Payments" type="strong"/></row-col>
+                <row-col sm="1"><label text="Outgoing" type="strong"/></row-col>
                 <row-col sm="3">
                     <section-iterate name="PaymentsTotalListSection" list="paymentsTotalList" entry="paymentsTotal"><widgets>
                         <label text="${ec.l10n.format(paymentsTotal.paymentCount, '#,##0')} payments ${ec.l10n.formatCurrency(paymentsTotal.amountTotal, paymentsTotal.amountUomId)} (unapplied ${ec.l10n.formatCurrency(paymentsTotal.unappliedTotal, paymentsTotal.amountUomId)})"/></widgets></section-iterate>
@@ -99,15 +99,15 @@ along with this software (see the LICENSE.md file). If not, see
                 </entity-find>
 
                 <field name="invoiceId"><default-field title="Invoice"><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+                <field name="referenceNumber"><default-field title="Ref or PO #"><display/></default-field></field>
                 <field name="invoiceDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
                 <field name="dueDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="statusId"><default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
 
-                <field name="invoiceTypeEnumId"><default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
                 <field name="toPartyId"><default-field title="Organization">
                     <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
-                <field name="referenceNumber"><default-field title="Ref or PO #"><display/></default-field></field>
 
-                <field name="statusId"><default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                <field name="invoiceTypeEnumId"><default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
                 <field name="invoiceTotal" align="right" show-total="true">
                     <default-field title="Total"><display currency-unit-field="currencyUomId"/></default-field></field>
                 <field name="unpaidTotal" align="right" show-total="true">
@@ -115,7 +115,42 @@ along with this software (see the LICENSE.md file). If not, see
             </form-list>
         </box-body-nopad></container-box>
 
-        <container-box><box-header><label text="Unapplied Payments" type="h5"/></box-header><box-body-nopad>
+        <container-box><box-header><label text="Unapplied Outgoing Payments" type="h5"/></box-header><box-body-nopad>
+            <form-list name="PaymentList" list="paymentList" skip-form="true">
+                <entity-find entity-name="mantle.account.payment.Payment" list="paymentList">
+                    <econdition field-name="toPartyId" from="partyId"/>
+                    <econdition field-name="statusId" operator="in" value="PmntProposed,PmntPromised,PmntAuthorized,PmntDelivered,PmntConfirmed"/>
+                    <econdition field-name="unappliedTotal" operator="not-equals" from="0.0"/>
+                    <order-by field-name="effectiveDate"/>
+                </entity-find>
+
+                <field name="paymentId"><default-field title="Payment"><link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+                <field name="paymentRefNum"><default-field title="Ref Num"><display/></default-field></field>
+                <field name="effectiveDate"><default-field><display also-hidden="false"/></default-field></field>
+                <field name="statusId"><default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+
+                <field name="fromPartyId"><default-field title="Organization">
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+                <!--
+                <field name="paymentMethodId"><default-field title="From Payment Method">
+                    <display-entity entity-name="mantle.account.method.PaymentMethodAndType" text="PaymentMethodAndTypeTemplate"/>
+                </default-field></field>
+                <field name="toPaymentMethodId"><default-field title="To Payment Method">
+                    <display-entity entity-name="mantle.account.method.PaymentMethodAndType" text="PaymentMethodAndTypeTemplate"/>
+                </default-field></field>
+                -->
+
+                <field name="paymentTypeEnumId"><default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="paymentInstrumentEnumId"><default-field title="Instrument"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+                <field name="amount" align="right" show-total="sum"><default-field title="Amount">
+                    <display currency-unit-field="amountUomId"/></default-field></field>
+                <field name="unappliedTotal" align="right" show-total="sum"><default-field title="Unapplied">
+                    <display currency-unit-field="amountUomId"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+
+        <container-box><box-header><label text="Current Purchase Orders" type="h5"/></box-header><box-body-nopad>
         </box-body-nopad></container-box>
     </widgets>
 </screen>
