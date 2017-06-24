@@ -13,6 +13,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#-- See the mantle.ledger.LedgerReportServices.run#BalanceSheet service for data preparation -->
 <#assign showDetail = (detail! == "true")>
 <#assign numberFormat = numberFormat!"#,##0.00">
+<#assign indentChar = indentChar!' '>
 <#macro csvValue textValue>
     <#if textValue?contains(",") || textValue?contains("\"")><#assign useQuotes = true><#else><#assign useQuotes = false></#if>
     <#t><#if useQuotes>"</#if>${textValue?replace("\"", "\"\"")}<#if useQuotes>"</#if>
@@ -20,14 +21,14 @@ along with this software (see the LICENSE.md file). If not, see
 <#macro showClass classInfo depth>
     <#-- skip classes with nothing posted -->
     <#if (classInfo.totalPostedNoClosingByTimePeriod['ALL']!0) == 0><#return></#if>
-    <#t><#list 1..depth as idx>-</#list> <@csvValue ec.l10n.localize(classInfo.className)/>,
+    <#t><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize(classInfo.className)/>,
     <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(classInfo.postedNoClosingByTimePeriod['ALL']!0, numberFormat)/>,</#if>
     <#list timePeriodIdList as timePeriodId>
         <#t><@csvValue ec.l10n.format(classInfo.postedNoClosingByTimePeriod[timePeriodId]!0, numberFormat)/><#if timePeriodId_has_next>,</#if>
     </#list>
     <#t>${"\n"}
     <#list classInfo.glAccountInfoList! as glAccountInfo><#if showDetail>
-        <#t>--<#list 1..depth as idx>-</#list> <#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: <@csvValue glAccountInfo.accountName/>,
+        <#t>${indentChar}${indentChar}<#list 1..depth as idx>${indentChar}</#list> <#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: <@csvValue glAccountInfo.accountName/>,
         <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(glAccountInfo.postedNoClosingByTimePeriod['ALL']!0, numberFormat)/>,</#if>
         <#list timePeriodIdList as timePeriodId>
             <#t><@csvValue ec.l10n.format(glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0, numberFormat)/><#if timePeriodId_has_next>,</#if>
@@ -36,7 +37,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#if></#list>
     <#list classInfo.childClassInfoList as childClassInfo><@showClass childClassInfo depth + 1/></#list>
     <#if classInfo.childClassInfoList?has_content>
-        <#t><#list 1..depth as idx>-</#list> <@csvValue ec.l10n.localize(classInfo.className + " Total")/>,
+        <#t><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize(classInfo.className + " Total")/>,
         <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(classInfo.totalPostedNoClosingByTimePeriod['ALL']!0, numberFormat)/>,</#if>
         <#list timePeriodIdList as timePeriodId>
             <#t><@csvValue ec.l10n.format(classInfo.totalPostedNoClosingByTimePeriod[timePeriodId]!0, numberFormat)/><#if timePeriodId_has_next>,</#if>

@@ -13,6 +13,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#-- See the mantle.ledger.LedgerReportServices.run#BalanceSheet service for data preparation -->
 <#assign showDetail = (detail! == "true")>
 <#assign numberFormat = numberFormat!"#,##0.00">
+<#assign indentChar = indentChar!' '>
 <#macro csvValue textValue>
     <#if textValue?contains(",") || textValue?contains("\"")><#assign useQuotes = true><#else><#assign useQuotes = false></#if>
     <#t><#if useQuotes>"</#if>${textValue?replace("\"", "\"\"")}<#if useQuotes>"</#if>
@@ -21,7 +22,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#-- skip classes with no balance -->
     <#t><#if (classInfo.totalBalanceByTimePeriod['ALL']!0) == 0 && (classInfo.totalPostedByTimePeriod['ALL']!0) == 0><#return></#if>
     <#assign hasChildren = classInfo.childClassInfoList?has_content>
-    <#t><#list 1..depth as idx>-</#list> <@csvValue ec.l10n.localize(classInfo.className)/>,
+    <#t><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize(classInfo.className)/>,
     <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(classInfo.postedByTimePeriod['ALL']!0, numberFormat)/>,</#if>
     <#list timePeriodIdList as timePeriodId>
         <#assign beginningClassBalance = (classInfo.balanceByTimePeriod[timePeriodId]!0) - (classInfo.postedByTimePeriod[timePeriodId]!0)>
@@ -32,7 +33,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#t>${"\n"}
     <#list classInfo.glAccountInfoList! as glAccountInfo>
         <#t><#if showDetail && ((glAccountInfo.balanceByTimePeriod['ALL']!0) != 0 || (glAccountInfo.postedByTimePeriod['ALL']!0) != 0)>
-            <#t>--<#list 1..depth as idx>-</#list> <#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: <@csvValue glAccountInfo.accountName/>,
+            <#t>${indentChar}${indentChar}<#list 1..depth as idx>${indentChar}</#list> <#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: <@csvValue glAccountInfo.accountName/>,
             <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(glAccountInfo.postedByTimePeriod['ALL']!0, numberFormat)/>,</#if>
             <#list timePeriodIdList as timePeriodId>
                 <#assign beginningGlAccountBalance = (glAccountInfo.balanceByTimePeriod[timePeriodId]!0) - (glAccountInfo.postedByTimePeriod[timePeriodId]!0)>
@@ -45,7 +46,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#list>
     <#t><#if hasChildren>
         <#list classInfo.childClassInfoList as childClassInfo><@showClass childClassInfo depth + 1/></#list>
-        <#t><#list 1..depth as idx>-</#list> <@csvValue ec.l10n.localize(classInfo.className + " Total")/>,
+        <#t><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize(classInfo.className + " Total")/>,
         <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(classInfo.totalPostedByTimePeriod['ALL']!0, numberFormat)/>,</#if>
         <#list timePeriodIdList as timePeriodId>
             <#assign beginningTotalBalance = (classInfo.totalBalanceByTimePeriod[timePeriodId]!0) - (classInfo.totalPostedByTimePeriod[timePeriodId]!0)>
