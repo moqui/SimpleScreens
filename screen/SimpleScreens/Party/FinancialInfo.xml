@@ -395,5 +395,56 @@ along with this software (see the LICENSE.md file). If not, see
                     <display currency-unit-field="currencyUomId"/></default-field></field>
             </form-list>
         </box-body-nopad></container-box>
+
+        <container-box type="success"><box-header><label text="Recent Paid Receivables" type="h5"/></box-header><box-body-nopad>
+            <form-list name="PaidInvoiceList" list="invoiceList" skip-form="true">
+                <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList" limit="20">
+                    <econdition field-name="toPartyId" from="partyId"/>
+                    <econdition field-name="statusId" operator="in" value="InvoiceInProcess,InvoiceFinalized,InvoiceSent,InvoicePmtRecvd"/>
+                    <econdition field-name="unpaidTotal" from="0.0"/>
+                    <order-by field-name="-invoiceDate,invoiceId"/>
+                </entity-find>
+
+                <field name="invoiceId"><default-field title="Invoice"><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+                <field name="referenceNumber"><default-field title="Ref or PO #"><display/></default-field></field>
+                <field name="invoiceDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="dueDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="statusId"><default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+
+                <field name="fromPartyId"><default-field title="Organization">
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+
+                <field name="invoiceTypeEnumId"><default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="invoiceTotal" align="right" show-total="true">
+                    <default-field title="Total"><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="unpaidTotal" align="right" show-total="true">
+                    <default-field title="Unpaid"><display currency-unit-field="currencyUomId"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+        <container-box type="info"><box-header><label text="Recent Paid Payables" type="h5"/></box-header><box-body-nopad>
+            <form-list name="PaidPayablesList" list="invoiceList" skip-form="true">
+                <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList" limit="20">
+                    <econdition field-name="fromPartyId" from="partyId"/>
+                    <econdition field-name="statusId" operator="in" value="InvoiceIncoming,InvoiceReceived,InvoiceApproved,InvoicePmtSent"/>
+                    <econdition field-name="unpaidTotal" from="0.0"/>
+                    <order-by field-name="-invoiceDate,invoiceId"/>
+                </entity-find>
+
+                <field name="invoiceId"><default-field title="Invoice"><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+                <field name="referenceNumber"><default-field title="Ref or SO #"><display/></default-field></field>
+                <field name="invoiceDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="dueDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="statusId"><default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+
+                <field name="toPartyId"><default-field title="Organization">
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+
+                <field name="invoiceTypeEnumId"><default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="invoiceTotal" align="right" show-total="true">
+                    <default-field title="Total"><display currency-unit-field="currencyUomId"/></default-field></field>
+                <field name="unpaidTotal" align="right" show-total="true">
+                    <default-field title="Unpaid"><display currency-unit-field="currencyUomId"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
     </widgets>
 </screen>
