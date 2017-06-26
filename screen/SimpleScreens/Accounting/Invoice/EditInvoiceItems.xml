@@ -88,10 +88,12 @@ along with this software (see the LICENSE.md file). If not, see
                     </default-field></field>
                     <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
                         <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></default-field></field>
+
                     <field name="description"><default-field><text-line size="50"/></default-field></field>
-                    <field name="itemDate"><default-field><date-time/></default-field></field>
-                    <field name="quantity"><default-field><text-line size="4"/></default-field></field>
+                    <field name="quantity"><default-field><text-line size="4" default-value="1"/></default-field></field>
                     <field name="amount"><default-field><text-line size="8"/></default-field></field>
+                    <field name="itemDate"><default-field><date-time/></default-field></field>
+
                     <field name="productId"><default-field title="Product"><drop-down allow-empty="true">
                         <dynamic-options transition="getProductList" server-search="true" min-length="0"/>
                     </drop-down></default-field></field>
@@ -130,20 +132,16 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title="Override GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
                         text="GlAccountNameTemplate"/></default-field>
             </field>
-            <field name="itemDate"><conditional-field condition="invoiceEditable" title="Date"><date-time/></conditional-field>
-                <default-field title="Item Date"><display/></default-field></field>
             <field name="description"><conditional-field condition="invoiceEditable"><text-line size="60"/></conditional-field>
                 <default-field><display/></default-field></field>
-            <field name="quantity"><conditional-field condition="invoiceEditable"><text-line size="4"/></conditional-field>
-                <default-field><display/></default-field></field>
-
             <field name="productId">
                 <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></conditional-field>
                 <default-field title="Product"><link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
                         link-type="anchor" condition="productId"/></default-field>
             </field>
-            <field name="otherPartyProductId"><default-field><text-line size="25"/></default-field></field>
+            <field name="otherPartyProductId"><conditional-field condition="invoiceEditable"><text-line size="25"/></conditional-field>
+                <default-field><display/></default-field></field>
             <field name="assetId">
                 <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
                     <dynamic-options transition="getAssetList" server-search="true" min-length="0">
@@ -153,8 +151,13 @@ along with this software (see the LICENSE.md file). If not, see
                         link-type="anchor" condition="assetId"/></default-field>
             </field>
 
+            <field name="quantity"><conditional-field condition="invoiceEditable"><text-line size="4"/></conditional-field>
+                <default-field><display/></default-field></field>
             <field name="amount"><conditional-field condition="invoiceEditable"><text-line size="8"/></conditional-field>
                 <default-field><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+            <field name="itemDate"><conditional-field condition="invoiceEditable" title="Date"><date-time/></conditional-field>
+                <default-field title="Item Date"><display/></default-field></field>
+
             <field name="total" from="((quantity != null ? quantity : 1) * (amount ?: 0))">
                 <default-field><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
 
