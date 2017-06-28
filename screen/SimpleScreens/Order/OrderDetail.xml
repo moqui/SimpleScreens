@@ -803,6 +803,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </else></if>
                     </iterate>
 
+                    <set field="isProductItemType" from="orderItem.itemTypeEnumId in productItemTypes"/>
                     <set field="isShippable" from="product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0"/>
                     <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0"/>
@@ -831,7 +832,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field title="Part"><display/></default-field>
                 </field>
                 <field name="parentItemSeqId">
-                    <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes || orderItemWithChildrenSet.contains(orderItem.orderItemSeqId)">
+                    <conditional-field condition="isProductItemType || orderItemWithChildrenSet.contains(orderItem.orderItemSeqId)">
                         <display text="N/A"/></conditional-field>
                     <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'" title="Parent"><drop-down allow-empty="true">
                             <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId}"/>
@@ -851,7 +852,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </default-field>
                 </field>
                 <field name="productId">
-                    <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes &amp;&amp; orderPartInfo.partEditable">
+                    <conditional-field condition="isProductItemType &amp;&amp; orderPartInfo.partEditable">
                         <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
                     </conditional-field>
                 </field>
@@ -859,7 +860,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor" condition="productId"/>
                 </default-field></field>
                 <field name="otherPartyProductId">
-                    <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes &amp;&amp; orderPartInfo.partEditable">
+                    <conditional-field condition="isProductItemType &amp;&amp; orderPartInfo.partEditable">
                         <text-line size="25"/></conditional-field>
                     <default-field><display/></default-field></field>
                 <field name="itemDescription">
@@ -870,7 +871,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <text-line size="30"/></conditional-field>
                     <default-field><display/></default-field></field>
                 <field name="requiredByDate">
-                    <conditional-field condition="orderItem.itemTypeEnumId in productItemTypes &amp;&amp; orderPartInfo.partEditable">
+                    <conditional-field condition="isProductItemType &amp;&amp; orderPartInfo.partEditable">
                         <date-time/></conditional-field>
                     <default-field><display/></default-field>
                 </field>
@@ -943,9 +944,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field><display text=" "/></default-field>
                 </field>
 
-                <field name="itemTotal" from="orderItemTotalOut.itemTotal"><default-field>
+                <field name="itemTotal" from="orderItemTotalOut.itemTotal" align="right"><default-field>
                     <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
-                <field name="itemPlusChildrenTotal" from="orderItemTotalOut.itemPlusChildrenTotal">
+                <field name="itemPlusChildrenTotal" from="orderItemTotalOut.itemPlusChildrenTotal" align="right">
                     <conditional-field condition="productId"><display currency-unit-field="orderHeader.currencyUomId"/></conditional-field>
                     <default-field title="With Children"><display text=""/></default-field>
                 </field>
