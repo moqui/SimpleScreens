@@ -147,6 +147,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-cell>
                 </fo:table-row></fo:table-body>
             </fo:table>
+            <#if shipment.handlingInstructions?has_content>
+                <fo:block font-weight="bold" margin-top="0.1in">Shipping Instructions</fo:block>
+                <fo:block>${shipment.handlingInstructions}</fo:block>
+            </#if>
 
             <#list packageInfoList as packageInfo><#if packageInfo.contentInfoList?has_content>
                 <#assign routeSegments = packageInfo.shipmentPackage.routeSegments!>

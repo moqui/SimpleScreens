@@ -84,6 +84,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:block font-weight="bold">Est. Arrival</fo:block>
                     <fo:block>${ec.l10n.format(shipment.estimatedArrivalDate, dateTimeFormat)}</fo:block>
                 </#if>
+                    <fo:block font-size="6pt"> </fo:block>
                 </fo:table-cell>
                 <fo:table-cell padding="3pt" width="3in">
                 <#if toContactInfo.postalAddress?has_content>
@@ -106,9 +107,13 @@ along with this software (see the LICENSE.md file). If not, see
                 </#if>
                 </fo:table-cell>
             </fo:table-row></fo:table-body></fo:table>
+            <#if shipment.handlingInstructions?has_content>
+                <fo:block font-weight="bold" margin-top="0.1in">Shipping Instructions</fo:block>
+                <fo:block>${shipment.handlingInstructions}</fo:block>
+            </#if>
 
         <#list packageInfoList as packageInfo>
-            <fo:table table-layout="fixed" margin-top="0.1in" width="7.5in"><fo:table-body><fo:table-row>
+            <fo:table table-layout="fixed" margin-top="0.3in" width="7.5in"><fo:table-body><fo:table-row>
                 <fo:table-cell padding="3pt" width="1.5in"><fo:block>
                     <fo:inline font-weight="bold">Package</fo:inline> ${packageInfo.shipmentPackage.shipmentPackageSeqId}
                 </fo:block></fo:table-cell>
@@ -221,6 +226,24 @@ along with this software (see the LICENSE.md file). If not, see
                                     <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${locationInfo.quantityByBin.get(binLocationNumber!)}</fo:block></fo:table-cell>
                                 </fo:table-row>
                             </#list>
+                        </#list></#if>
+                        <#if productInfo.productIssuedLocationInfoList?has_content><#list productInfo.productIssuedLocationInfoList as locationInfo>
+                            <fo:table-row font-size="9pt" border-top="thin solid black">
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left" font-weight="bold">Iss</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${locationInfo.description!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.levelId!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.positionId!" "}</fo:block></fo:table-cell>
+
+                                <fo:table-cell padding="${cellPadding}" number-columns-spanned="3">
+                                    <fo:block><#if locationInfo.lot?has_content>${ec.resource.expand('LotNameTemplate', '', locationInfo.lot)}</#if> </fo:block></fo:table-cell>
+                            </fo:table-row>
+                            <fo:table-row font-size="9pt">
+                                <fo:table-cell padding="${cellPadding}" number-columns-spanned="9"><fo:block> </fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${locationInfo.quantity!}</fo:block></fo:table-cell>
+                            </fo:table-row>
                         </#list></#if>
                     </#list>
                 </fo:table-body>
