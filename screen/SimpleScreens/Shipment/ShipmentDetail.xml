@@ -144,9 +144,9 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
 
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
-            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
-            <order-by field-name="facilityName"/>
-        </entity-find>
+            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/><order-by field-name="facilityName"/></entity-find>
+        <entity-find entity-name="mantle.order.OrderNote" list="orderNoteList">
+            <econdition field-name="orderId" operator="in" from="orderIdSet"/><order-by field-name="-noteDate"/></entity-find>
 
         <if condition="isIncoming"><then>
             <set field="anyReceived" from="false"/>
@@ -378,6 +378,8 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="estimatedReadyDate"><conditional-field condition="!isIncoming"><date-time/></conditional-field></field>
                     <field name="estimatedArrivalDate"><default-field><date-time/></default-field></field>
+                    <field name="handlingInstructions"><default-field title="Shipping Instructions">
+                        <text-area rows="3" cols="60"/></default-field></field>
 
                     <field name="submitButton"><default-field title="Update Shipment"><submit/></default-field></field>
 
@@ -407,6 +409,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text="Status ${statusItem.description}" type="p"/>
                     <label text="Estimated ready: ${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="p"/>
                     <label text="Ship by ${curCarrierDetail ? ec.resource.expand('PartyNameTemplate','',curCarrierDetail) : 'N/A'} - ${shipmentMethodEnum?.description ?: 'None'}" type="p"/>
+                    <label text="Shipping Instructions: ${shipment.handlingInstructions}" type="p" condition="shipment.handlingInstructions"/>
                     <section name="ShippedShippingInfo" condition="curPaInfo"><actions><set field="contactInfo" from="curPaInfo"/></actions><widgets>
                         <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                         <container><label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/></container>
@@ -416,6 +419,18 @@ along with this software (see the LICENSE.md file). If not, see
             </fail-widgets></section>
         </row-col><row-col md="6">
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+            <section name="OrderNotesSection"><widgets>
+                <container-box><box-header><label text="Order Notes" type="h5"/></box-header><box-body>
+                    <section-iterate name="NoteIterateSection" list="orderNoteList" entry="note"><actions>
+                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                            <field-map field-name="userId" from="note.userId"/></entity-find-one>
+                    </actions><widgets>
+                        <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: note.userId}) at ${ec.l10n.format(note.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
+                        <label text="${note.noteText}" type="p"/>
+                    </widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
 
             <container-box><box-header><label text="Payments" type="h5"/></box-header><box-body-nopad>
                 <form-list name="ShipmentOrderPaymentList" list="shipmentPaymentList">

@@ -4,6 +4,9 @@
         <#if detailLinkPath?has_content><#list orderIdSet as orderId>
             <h2><a href="<#if detailLinkPath?starts_with("http")>${detailLinkPath}<#else>http://${storeDomain}/${detailLinkPath}</#if>?orderId=${orderId}">Order ${orderId}</a></h2><br/>
         </#list></#if>
+        <#if invoiceList?has_content>
+            <h3>Invoice <#list invoiceList as invoice>${invoice.invoiceId}<#if invoice.referenceNumber?has_content> - PO ${invoice.referenceNumber}</#if><#sep>, </#list></h3>
+        </#if>
         <#if originFacility?has_content><h4>Shipping from ${originFacility.facilityName}</h4></#if>
     </td>
     <td width="50%">

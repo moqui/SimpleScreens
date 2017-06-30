@@ -4,6 +4,7 @@ Order ${orderId} Part ${orderPart.orderPartSeqId}
 Total ${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId)}
 Placed on ${ec.l10n.format(orderHeader.placedDate, "dd MMM yyyy")}
 Placed by ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}
+<#if orderPart.otherPartyOrderId?has_content>PO ${orderPart.otherPartyOrderId}</#if>
 
 <#if orderPartInfo.shipmentMethodEnum?has_content>
 Ship By ${orderPartInfo.shipmentMethodEnum.description}

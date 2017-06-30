@@ -12,6 +12,7 @@
             <h3>Total ${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId)}</h3>
             <h3>Placed on ${ec.l10n.format(orderHeader.placedDate, "dd MMM yyyy")}</h3>
             <h3>Placed by ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</h3>
+            <#if orderPart.otherPartyOrderId?has_content><h3>PO ${orderPart.otherPartyOrderId}</h3></#if>
         </td>
         <td width="50%">
             <#if orderPartInfo.shipmentMethodEnum?has_content><strong>Ship By</strong> ${orderPartInfo.shipmentMethodEnum.description}<br/></#if>

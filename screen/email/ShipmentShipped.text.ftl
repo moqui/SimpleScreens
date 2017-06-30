@@ -3,6 +3,9 @@ Shipment ${shipmentId}
 <#list orderIdSet as orderId>
 Order ${orderId}
 </#list>
+<#if invoiceList?has_content>
+Invoice <#list invoiceList as invoice>${invoice.invoiceId}<#if invoice.referenceNumber?has_content> - PO ${invoice.referenceNumber}</#if><#sep>, </#list>
+</#if>
 <#if originFacility?has_content>Shipping from ${originFacility.facilityName}</#if>
 
 <#if firstShipmentMethodEnum?has_content>Ship By ${firstShipmentMethodEnum.description}</#if>
