@@ -707,6 +707,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <row-actions>
                                 <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
                                     <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
+                                <set field="resPackForm" from="allowPack &amp;&amp; quantityNotHandled &gt; 0.0 &amp;&amp; existingResList"/>
                             </row-actions>
                             <field name="shipmentId"><default-field><hidden/></default-field></field>
                             <field name="shipmentItemSourceId"><default-field><hidden/></default-field></field>
@@ -739,20 +740,18 @@ along with this software (see the LICENSE.md file). If not, see
                             </field>
 
                             <field name="shipmentPackageSeqId" from="shipmentPackageList ? shipmentPackageList[0].shipmentPackageSeqId : null">
-                                <conditional-field condition="allowPack &amp;&amp; quantityNotHandled &gt; 0" title="Package"><drop-down>
+                                <conditional-field condition="resPackForm" title="Package"><drop-down>
                                     <option key="" text="New Package"/>
                                     <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
                                 </drop-down></conditional-field>
                                 <default-field title="Package"><display text=" "/></default-field>
                             </field>
                             <field name="quantity" from="quantityNotHandled">
-                                <conditional-field condition="allowPack &amp;&amp; quantityNotHandled &gt; 0" title="Pack Quantity">
-                                    <text-line size="6"/></conditional-field>
+                                <conditional-field condition="resPackForm" title="Pack Quantity"><text-line size="6"/></conditional-field>
                                 <default-field title="Pack Quantity"><display text=" "/></default-field>
                             </field>
                             <field name="packButton">
-                                <conditional-field condition="allowPack &amp;&amp; quantityNotHandled &gt; 0" title="Pack">
-                                    <submit/></conditional-field>
+                                <conditional-field condition="resPackForm" title="Pack"><submit/></conditional-field>
                                 <default-field title=""><display text=" "/></default-field>
                             </field>
                         </form-list>
