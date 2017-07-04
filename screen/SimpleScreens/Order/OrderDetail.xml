@@ -33,6 +33,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="sendOrderStoreEmail"><service-call name="mantle.order.OrderInfoServices.send#OrderStoreEmail"/>
         <default-response url="."/></transition>
+    <transition name="sendEmailMessage"><service-call name="org.moqui.impl.EmailServices.send#EmailMessage"/>
+        <default-response url="."/></transition>
 
     <transition name="invoiceOrderPart"><service-call name="mantle.account.InvoiceServices.create#EntireOrderPartInvoice"/>
         <default-response url="."/></transition>
@@ -347,6 +349,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="receivedDate"><default-field><display/></default-field></field>
                             <field name="emailTypeEnumId"><default-field title="Email Type">
                                 <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                            <field name="sendLink"><default-field title=""><link url="sendEmailMessage" text="Send"
+                                    parameter-map="[emailMessageId:emailMessageId]" condition="!(statusId in ['ES_DRAFT', 'ES_CANCELLED'])"
+                                    confirmation="Send this email message?"/>
+                            </default-field></field>
                         </form-list>
                     </box-body></container-box>
                 </widgets></section>
