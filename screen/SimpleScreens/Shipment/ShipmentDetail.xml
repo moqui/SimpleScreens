@@ -54,6 +54,9 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="sendShipmentStoreEmail"><service-call name="mantle.shipment.ShipmentServices.send#ShipmentStoreEmail"/>
         <default-response url="."/></transition>
+    <transition name="sendEmailMessage"><service-call name="org.moqui.impl.EmailServices.send#EmailMessage"/>
+        <default-response url="."/></transition>
+
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
     <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
@@ -535,6 +538,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="receivedDate"><default-field><display/></default-field></field>
                         <field name="emailTypeEnumId"><default-field title="Email Type">
                             <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                        <field name="sendLink"><default-field title=""><link url="sendEmailMessage" text="Send"
+                                parameter-map="[emailMessageId:emailMessageId]" condition="!(statusId in ['ES_DRAFT', 'ES_CANCELLED'])"
+                                confirmation="Send this email message?"/>
+                        </default-field></field>
                     </form-list>
                 </box-body></container-box>
             </widgets></section>
