@@ -51,6 +51,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="removeShipmentLabelInfo"><service-call name="mantle.shipment.CarrierServices.remove#ShipmentLabelInfo"/>
         <default-response url="."/></transition>
+    <transition name="printShipmentLabels"><service-call name="mantle.shipment.ShipmentServices.print#ShipmentLabels"/>
+        <default-response url="."/></transition>
 
     <transition name="sendShipmentStoreEmail"><service-call name="mantle.shipment.ShipmentServices.send#ShipmentStoreEmail"/>
         <default-response url="."/></transition>
@@ -163,7 +165,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <set field="hasAllLabels" from="true"/><set field="hasAnyLabels" from="false"/>
             <iterate list="packageRouteSegList" entry="packageRouteSeg">
-                <if condition="packageRouteSeg.trackingCode"><then><set field="hasAnyLabels" from="true"/></then>
+                <if condition="packageRouteSeg.labelImage != null || packageRouteSeg.labelUrl"><then><set field="hasAnyLabels" from="true"/></then>
                     <else><set field="hasAllLabels" from="false"/></else></if>
             </iterate>
 
@@ -255,6 +257,18 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="ShipmentByPackage.pdf" text="Package PDF"/>
                 <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
             </widgets></section>
+
+            <container-dialog id="PrintLabelsDialog" button-text="Print Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels">
+                <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
+                    <field name="shipmentId"><default-field><hidden/></default-field></field>
+                    <field name="networkPrinterId"><default-field title="Printer"><drop-down>
+                        <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
+                            <entity-find entity-name="moqui.basic.print.NetworkPrinter">
+                                <order-by field-name="description,printerName"/></entity-find></entity-options>
+                    </drop-down></default-field></field>
+                    <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="ShipPackedInOutSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
@@ -848,11 +862,6 @@ along with this software (see the LICENSE.md file). If not, see
                             </form-single>
                         </container-dialog>
 
-                        <link url="trackShipmentLabels" text="Track" condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId"
-                                parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
-                                    shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
-                        <link url="${packageRouteSeg.trackingUrl}" text="Carrier Track" url-type="plain" target-window="_blank" condition="packageRouteSeg?.trackingUrl"/>
-                        <link url="${packageRouteSeg.labelUrl}" text="Download/Print Label" url-type="plain" target-window="_blank" condition="packageRouteSeg?.labelUrl"/>
                         <link url="refundShipmentLabels" text="Refund Label"
                                 confirmation="Request refund? If package has not yet shipped a refund will be processed and label will not be valid for shipping."
                                 condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId &amp;&amp; !packageRouteSeg?.gatewayRefundId"
@@ -866,6 +875,25 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="deletePackage" text="Delete Package" condition="!shipmentPackageContentList"
                                 confirmation="Delete package ${shipmentPackage.shipmentPackageSeqId}?"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId]"/>
+
+                        <link url="trackShipmentLabels" text="Track" condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId"
+                                parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
+                                    shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
+                        <link url="${packageRouteSeg.trackingUrl}" text="Carrier Track" url-type="plain" target-window="_blank" condition="packageRouteSeg?.trackingUrl"/>
+                        <link url="${packageRouteSeg.labelUrl}" text="Download Label" url-type="plain" target-window="_blank" condition="packageRouteSeg?.labelUrl"/>
+                        <container-dialog id="PrintLabelDialog" button-text="Print Label" condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null">
+                            <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
+                                <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
+                                <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
+                                <field name="networkPrinterId"><default-field title="Printer"><drop-down>
+                                    <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
+                                        <entity-find entity-name="moqui.basic.print.NetworkPrinter">
+                                            <order-by field-name="description,printerName"/></entity-find></entity-options>
+                                </drop-down></default-field></field>
+                                <field name="submitButton"><default-field title="Print"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
                     </box-toolbar><box-body>
                         <container-row>
                             <row-col sm="1"><label text="Status" type="strong"/></row-col>
