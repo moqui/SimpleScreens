@@ -52,27 +52,27 @@ along with this software (see the LICENSE.md file). If not, see
     </#if>
 
     <#-- Date -->
-    <fo:block-container absolute-position="absolute" top="0.9in" right="0.6in" width="1in">
+    <fo:block-container absolute-position="absolute" top="0.85in" right="0.6in" width="1in">
         <fo:block text-align="right">${ec.l10n.format(paymentInfo.payment.effectiveDate, dateFormat)}</fo:block>
     </fo:block-container>
 
     <#-- Pay to line -->
     <#if separatePayToLine>
-    <fo:block-container absolute-position="absolute" top="1.4in" left="1.1in">
+    <fo:block-container absolute-position="absolute" top="1.35in" left="1.1in">
         <fo:block text-align="left">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.toPartyDetail.organizationName!"", false)}${paymentInfo.toPartyDetail.firstName!} ${paymentInfo.toPartyDetail.lastName!}</fo:block>
     </fo:block-container>
     </#if>
 
     <#-- Amount - numeric -->
-    <fo:block-container absolute-position="absolute" top="1.4in" right="0.35in" width="1.3in">
-    <#-- 1.2in seems to fit 14 Courier characters at 10pt just right -->
+    <fo:block-container absolute-position="absolute" top="1.35in" right="0.35in" width="1.3in">
+        <#-- 1.2in seems to fit 14 Courier characters at 10pt just right -->
         <#assign amountString = ec.l10n.format(paymentInfo.payment.amount, "#,##0.00")>
         <#assign asterisks = amountCharacters - amountString?length>
         <fo:block text-align="right" font-family="Courier, monospace"><#list 1..asterisks as i>*</#list>${amountString}</fo:block>
     </fo:block-container>
 
     <#-- Amount - text -->
-    <fo:block-container absolute-position="absolute" top="1.75in" left="0.3in">
+    <fo:block-container absolute-position="absolute" top="1.65in" left="0.3in">
         <#assign asterisks = amountWordsCharacters - paymentInfo.amountWords?length>
         <fo:block text-align="left" font-family="Courier, monospace">${paymentInfo.amountWords}<#list 1..asterisks as i>*</#list></fo:block>
     </fo:block-container>
@@ -167,7 +167,6 @@ along with this software (see the LICENSE.md file). If not, see
             </fo:table>
         </#if>
     </#if>
-
     <#if paymentInfo.financialAccountTrans??>
         <fo:table table-layout="fixed" width="7in">
             <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
@@ -186,7 +185,6 @@ along with this software (see the LICENSE.md file). If not, see
             </fo:table-body>
         </fo:table>
     </#if>
-
 </fo:block>
 </#macro>
 
@@ -202,7 +200,6 @@ along with this software (see the LICENSE.md file). If not, see
     <#list paymentInfoList as paymentInfo>
         <fo:page-sequence master-reference="letter-portrait">
             <fo:flow flow-name="xsl-region-body">
-
                 <#-- Top Area -->
                 <fo:block-container absolute-position="absolute" top="0" left="0" width="8.5in" height="${topHeight}in">
                     <#if checkPosition == "top"><@checkBody paymentInfo/><#else><@stubBody paymentInfo/></#if>
