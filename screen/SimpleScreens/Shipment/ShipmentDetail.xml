@@ -211,6 +211,8 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find-one entity-name="moqui.basic.Enumeration" value-field="curShipmentMethodEnum">
                 <field-map field-name="enumId" from="firstRouteSegment.shipmentMethodEnumId"/></entity-find-one>
         </if>
+
+        <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
     </actions>
     <widgets>
         <container-row><row-col md="6">
@@ -261,11 +263,12 @@ along with this software (see the LICENSE.md file). If not, see
             <container-dialog id="PrintLabelsDialog" button-text="Print Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels">
                 <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
                     <field name="shipmentId"><default-field><hidden/></default-field></field>
-                    <field name="networkPrinterId"><default-field title="Printer"><drop-down>
+                    <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
                         <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
                             <entity-find entity-name="moqui.basic.print.NetworkPrinter">
                                 <order-by field-name="description,printerName"/></entity-find></entity-options>
                     </drop-down></default-field></field>
+                    <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
                     <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
@@ -886,11 +889,12 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
                                 <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
                                 <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
-                                <field name="networkPrinterId"><default-field title="Printer"><drop-down>
+                                <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
                                     <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
                                         <entity-find entity-name="moqui.basic.print.NetworkPrinter">
                                             <order-by field-name="description,printerName"/></entity-find></entity-options>
                                 </drop-down></default-field></field>
+                                <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
                                 <field name="submitButton"><default-field title="Print"><submit/></default-field></field>
                             </form-single>
                         </container-dialog>
