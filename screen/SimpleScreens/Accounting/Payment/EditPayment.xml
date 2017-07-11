@@ -19,7 +19,9 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="paymentId" required="true"/>
 
     <transition name="editPayment"><default-response url="."/></transition>
-    <transition name="updatePayment"><service-call name="update#mantle.account.payment.Payment"/>
+    <transition name="editPaymentMethod"><default-response url="//${appRoot}/Party/PaymentMethod/EditPaymentMethod"/></transition>
+
+    <transition name="updatePayment"><service-call name="mantle.account.PaymentServices.update#Payment"/>
         <default-response url="."/></transition>
     <transition name="updateStatus"><service-call name="update#mantle.account.payment.Payment"/>
         <default-response url="."/></transition>
@@ -96,6 +98,8 @@ along with this software (see the LICENSE.md file). If not, see
 
             <form-single name="EditPayment" transition="updatePayment" map="payment">
                 <field name="paymentId"><default-field><display/></default-field></field>
+                <field name="effectiveDate"><default-field><display also-hidden="false"/></default-field></field>
+
                 <field name="fromPartyId"><default-field title="From">
                     <link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
                             parameter-map="[partyId:fromPartyId]"/>
@@ -107,7 +111,19 @@ along with this software (see the LICENSE.md file). If not, see
                     <display text=""/>
                 </default-field></field>
 
-                <field name="effectiveDate"><default-field><display also-hidden="false"/></default-field></field>
+                <field name="orderId">
+                    <conditional-field condition="orderId" title="Order">
+                        <link url="orderDetail" text="OrderPartNameTemplate" text-map="payment" link-type="anchor"
+                                parameter-map="[orderId:orderId]"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
+                </field>
+                <field name="forInvoiceId">
+                    <conditional-field condition="forInvoiceId" title="For Invoice">
+                        <link url="editInvoice" text="${forInvoiceId}" link-type="anchor" parameter-map="[invoiceId:forInvoiceId]"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
+                </field>
 
                 <field name="amount">
                     <conditional-field condition="paymentEditable"><text-line size="12" format="0.00"/></conditional-field>
@@ -125,15 +141,17 @@ along with this software (see the LICENSE.md file). If not, see
                     -->
                 </default-field></field>
 
-                <field name="originalCurrencyAmount"><default-field><text-line size="12" format="0.00"/></default-field></field>
-                <field name="originalCurrencyUomId"><default-field title="Original Currency">
-                    <drop-down allow-empty="true"><entity-options key="${uomId}" text="${description} [${uomId}]">
-                        <entity-find entity-name="moqui.basic.Uom">
-                            <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
-                            <order-by field-name="description"/>
-                        </entity-find>
-                    </entity-options></drop-down>
-                </default-field></field>
+                <field name="paymentAuthCode"><default-field title="Auth Code"><text-line size="15"/></default-field></field>
+                <field name="paymentRefNum"><default-field title="Ref/Check Number"><text-line size="15"/></default-field></field>
+                <field name="dupWarning">
+                    <conditional-field title="" condition="dupPaymentList">
+                        <label text="Found payment(s) with same Ref Number: ${dupPaymentList.paymentId}" style="text-danger"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
+                </field>
+
+                <field name="memo"><default-field><text-line size="30"/></default-field></field>
+                <field name="comments"><default-field><text-area cols="60" rows="4"/></default-field></field>
 
                 <field name="paymentTypeEnumId">
                     <conditional-field title="Type" condition="paymentEditable">
@@ -142,6 +160,13 @@ along with this software (see the LICENSE.md file). If not, see
                     </conditional-field>
                     <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
                 </field>
+                <field name="overrideGlAccountId">
+                    <conditional-field title="Override (Cash) GL Account" condition="paymentEditable"><drop-down allow-empty="true">
+                        <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></conditional-field>
+                    <default-field title="Override (Cash) GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
+                            text="GlAccountNameTemplate"/></default-field>
+                </field>
+
                 <field name="paymentInstrumentEnumId">
                     <conditional-field title="Instrument" condition="paymentEditable">
                         <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -158,11 +183,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     <order-by field-name="typeDescription,description"/>
                                 </entity-find>
                             </entity-options></drop-down>
+                        <link url="editPaymentMethod" text="${typeDescription} - ${description}"
+                                link-type="anchor" entity-name="mantle.account.method.PaymentMethodAndType"
+                                parameter-map="[paymentMethodId:paymentMethodId]" condition="paymentMethodId"/>
                     </conditional-field>
-                    <default-field title="From Payment Method"><display-entity entity-name="mantle.account.method.PaymentMethodAndType"
-                            text="${typeDescription} - ${description}"/></default-field>
+                    <default-field title="From Payment Method"><link url="editPaymentMethod" text="${typeDescription} - ${description}"
+                            link-type="anchor" entity-name="mantle.account.method.PaymentMethodAndType"
+                            parameter-map="[paymentMethodId:paymentMethodId]" condition="paymentMethodId"/></default-field>
                 </field>
-
                 <field name="toPaymentMethodId">
                     <conditional-field title="To Payment Method" condition="paymentEditable">
                         <drop-down allow-empty="true">
@@ -173,12 +201,37 @@ along with this software (see the LICENSE.md file). If not, see
                                 </entity-find>
                             </entity-options>
                         </drop-down>
+                        <link url="editPaymentMethod" text="${typeDescription} - ${description}"
+                                link-type="anchor" entity-name="mantle.account.method.PaymentMethodAndType"
+                                parameter-map="[paymentMethodId:toPaymentMethodId]" condition="toPaymentMethodId"/>
                     </conditional-field>
-                    <default-field title="To Payment Method">
-                        <display-entity entity-name="mantle.account.method.PaymentMethodAndType"
-                                text="${typeDescription} - ${description}"/>
-                    </default-field>
+                    <default-field title="To Payment Method"><link url="editPaymentMethod" text="${typeDescription} - ${description}"
+                            link-type="anchor" entity-name="mantle.account.method.PaymentMethodAndType"
+                            parameter-map="[paymentMethodId:toPaymentMethodId]" condition="toPaymentMethodId"/></default-field>
                 </field>
+                <field name="finAccountId">
+                    <conditional-field condition="paymentEditable" title="Financial Account">
+                        <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
+                            <entity-find entity-name="mantle.account.financial.FinancialAccount">
+                                <econdition field-name="ownerPartyId" from="fromPartyId"/></entity-find>
+                        </entity-options></drop-down>
+                        <link url="editFinancialAccount" text="FinancialAccountNameTemplate" link-type="anchor" condition="finAccountId"
+                                entity-name="mantle.account.financial.FinancialAccount" parameter-map="[finAccountId:finAccountId]"/>
+                    </conditional-field>
+                    <conditional-field condition="finAccountId" title="Financial Account">
+                        <link url="editFinancialAccount" text="FinancialAccountNameTemplate" link-type="anchor" condition="finAccountId"
+                              entity-name="mantle.account.financial.FinancialAccount" parameter-map="[finAccountId:finAccountId]"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
+                </field>
+                <field name="finAccountTransId">
+                    <conditional-field condition="finAccountTransId" title="Financial Account TX">
+                        <link url="financialAccountTrans" text="${finAccountTransId}" link-type="anchor"
+                                parameter-map="[finAccountId:finAccountId, finAccountTransId:finAccountTransId]"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
+                </field>
+
                 <field name="paymentGatewayConfigId"><default-field title="Payment Gateway">
                     <drop-down allow-empty="true">
                         <entity-options key="${paymentGatewayConfigId}" text="${description}">
@@ -194,60 +247,26 @@ along with this software (see the LICENSE.md file). If not, see
                         <set field="enumTypeId" value="PayDistributionGroup"/><set field="allowEmpty" value="true"/></widget-template-include>
                 </default-field></field>
                 -->
-                <field name="overrideGlAccountId">
-                    <conditional-field title="Override (Cash) GL Account" condition="paymentEditable"><drop-down allow-empty="true">
-                        <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></conditional-field>
-                    <default-field title="Override (Cash) GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
-                            text="GlAccountNameTemplate"/></default-field>
-                </field>
-                <field name="orderId">
-                    <conditional-field condition="orderId" title="Order">
-                        <link url="orderDetail" text="OrderPartNameTemplate" text-map="payment" link-type="anchor"
-                                parameter-map="[orderId:orderId]"/>
-                    </conditional-field>
-                    <default-field><ignored/></default-field>
-                </field>
-                <field name="forInvoiceId">
-                    <conditional-field condition="forInvoiceId" title="For Invoice">
-                        <link url="editInvoice" text="${forInvoiceId}" link-type="anchor" parameter-map="[invoiceId:forInvoiceId]"/>
-                    </conditional-field>
-                    <default-field><ignored/></default-field>
-                </field>
-                <field name="finAccountId">
-                    <conditional-field condition="paymentEditable" title="Financial Account">
-                        <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
-                            <entity-find entity-name="mantle.account.financial.FinancialAccount">
-                                <econdition field-name="ownerPartyId" from="fromPartyId"/></entity-find>
-                        </entity-options></drop-down>
-                    </conditional-field>
-                    <conditional-field condition="finAccountId" title="Financial Account">
-                        <link url="editFinancialAccount" text="FinancialAccountNameTemplate"
-                              entity-name="mantle.account.financial.FinancialAccount" link-type="anchor"
-                              parameter-map="[finAccountId:finAccountId]"/>
-                    </conditional-field>
-                    <default-field><ignored/></default-field>
-                </field>
-                <field name="finAccountTransId">
-                    <conditional-field condition="finAccountTransId" title="Financial Account TX">
-                        <link url="financialAccountTrans" text="${finAccountTransId}" link-type="anchor"
-                                parameter-map="[finAccountId:finAccountId, finAccountTransId:finAccountTransId]"/>
-                    </conditional-field>
-                    <default-field><ignored/></default-field>
-                </field>
-
-                <field name="paymentAuthCode"><default-field title="Auth Code"><text-line size="15"/></default-field></field>
-                <field name="paymentRefNum"><default-field title="Ref/Check Number"><text-line size="15"/></default-field></field>
-                <field name="dupWarning">
-                    <conditional-field title="" condition="dupPaymentList">
-                        <label text="Found payment(s) with same Ref Number: ${dupPaymentList.paymentId}" style="text-danger"/>
-                    </conditional-field>
-                    <default-field><ignored/></default-field>
-                </field>
-
-                <field name="memo"><default-field><text-line size="30"/></default-field></field>
-                <field name="comments"><default-field><text-area cols="60" rows="4"/></default-field></field>
+                <field name="originalCurrencyAmount"><default-field><text-line size="12" format="0.00"/></default-field></field>
+                <field name="originalCurrencyUomId"><default-field title="Original Currency">
+                    <drop-down allow-empty="true"><entity-options key="${uomId}" text="${description} [${uomId}]">
+                        <entity-find entity-name="moqui.basic.Uom">
+                            <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
 
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+
+                <field-layout>
+                    <field-row><field-ref name="paymentId"/><field-ref name="effectiveDate"/></field-row>
+                    <field-row><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></field-row>
+                    <field-row><field-ref name="orderId"/><field-ref name="forInvoiceId"/></field-row>
+                    <field-row><field-ref name="amount"/><field-ref name="amountUomId"/></field-row>
+                    <field-row><field-ref name="paymentAuthCode"/><field-ref name="paymentRefNum"/></field-row>
+                    <fields-not-referenced/>
+                </field-layout>
             </form-single>
         </row-col><row-col lg="6">
             <section name="PaymentGatewayActionsSection" condition="payment.paymentGatewayConfigId || payment.paymentInstrumentEnumId == 'PiFinancialAccount'"><widgets>
