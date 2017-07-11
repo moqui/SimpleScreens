@@ -16,6 +16,7 @@ along with this software (see the LICENSE.md file). If not, see
         default-menu-title="Payment Method" default-menu-index="1">
 
     <parameter name="paymentMethodId" required="true"/>
+    <parameter name="partyId"/>
 
     <transition name="editParty"><default-response url="../../EditParty"/></transition>
     <transition name="findPayment"><default-response url="//${appRoot}/Accounting/Payment/FindPayment"/></transition>
@@ -43,6 +44,12 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
+    <pre-actions>
+        <if condition="!partyId &amp;&amp; paymentMethodId">
+            <entity-find-one entity-name="mantle.account.method.PaymentMethod" value-field="paymentMethod"/>
+            <set field="partyId" from="paymentMethod.ownerPartyId"/>
+        </if>
+    </pre-actions>
     <actions>
         <service-call name="mantle.account.PaymentMethodServices.get#PartyPaymentMethodInfo" in-map="context" out-map="methodInfo"/>
         <set field="methodInfoFlat" from="flattenNestedMap(methodInfo)"/>
