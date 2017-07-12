@@ -20,6 +20,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="editTransaction"><default-response url="."/></transition>
     <transition name="updateAcctgTrans"><service-call name="mantle.ledger.LedgerServices.update#AcctgTrans"/><default-response url="."/></transition>
+    <transition name="deleteAcctgTrans"><service-call name="mantle.ledger.LedgerServices.delete#AcctgTrans"/>
+        <default-response url=".."/></transition>
     <transition name="postAcctgTrans"><service-call name="mantle.ledger.LedgerServices.post#AcctgTrans"/><default-response url="."/></transition>
     <transition name="postReverseAcctgTrans"><service-call name="mantle.ledger.LedgerServices.post#ReverseAcctgTrans"/><default-response url="."/></transition>
 
@@ -61,80 +63,78 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
     </actions>
     <widgets>
-        <section name="NotPostedSection"><condition><expression>acctgTrans.isPosted != "Y"</expression></condition>
-            <widgets>
-                <link url="postAcctgTrans" text="Post Transaction"/>
+        <section name="NotPostedSection"><condition><expression>acctgTrans.isPosted != "Y"</expression></condition><widgets>
+            <link url="postAcctgTrans" text="Post Transaction" confirmation="Post transaction?"/>
+            <link url="deleteAcctgTrans" text="Delete Transaction" confirmation="Really delete this transaction?"/>
 
-                <container-dialog id="UpdateTxDialog" button-text="Update Transaction" width="900">
-                    <form-single name="UpdateAcctgTrans" map="acctgTrans" transition="updateAcctgTrans">
-                        <field name="acctgTransId"><default-field><hidden/></default-field></field>
-                        <field name="acctgTransTypeEnumId"><default-field title="TX Type">
-                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                                <set field="enumTypeId" value="AcctgTransType"/></widget-template-include>
-                        </default-field></field>
-                        <field name="organizationPartyId"><default-field title="Organization">
-                            <display text="${orgDetail.organizationName?:''} [${orgDetail.pseudoId}]"/>
-                        </default-field></field>
+            <container-dialog id="UpdateTxDialog" button-text="Update Transaction" width="900">
+                <form-single name="UpdateAcctgTrans" map="acctgTrans" transition="updateAcctgTrans">
+                    <field name="acctgTransId"><default-field><hidden/></default-field></field>
+                    <field name="acctgTransTypeEnumId"><default-field title="TX Type">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="AcctgTransType"/></widget-template-include>
+                    </default-field></field>
+                    <field name="organizationPartyId"><default-field title="Organization">
+                        <display text="${orgDetail.organizationName?:''} [${orgDetail.pseudoId}]"/>
+                    </default-field></field>
 
-                        <field name="transactionDate"><default-field><date-time/></default-field></field>
-                        <field name="amountUomId"><default-field title="Currency">
-                            <drop-down><entity-options key="${uomId}" text="${description} [${uomId}]">
-                                <entity-find entity-name="moqui.basic.Uom">
-                                    <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
-                                    <order-by field-name="description"/>
-                                </entity-find>
-                            </entity-options></drop-down>
-                        </default-field></field>
-                        <field name="originalCurrencyUomId"><default-field title="Orig. Currency">
-                            <drop-down allow-empty="true"><entity-options key="${uomId}" text="${description} [${uomId}]">
-                                <entity-find entity-name="moqui.basic.Uom">
-                                    <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
-                                    <order-by field-name="description"/>
-                                </entity-find>
-                            </entity-options></drop-down>
-                        </default-field></field>
-                        <field name="glJournalId"><default-field title="Journal">
-                            <drop-down allow-empty="true">
-                                <entity-options key="${glJournalId}" text="${glJournalName}">
-                                    <entity-find entity-name="mantle.ledger.transaction.GlJournal">
-                                        <econdition field-name="isPosted" operator="not-equals" value="Y" or-null="true"/>
-                                        <order-by field-name="glJournalName"/></entity-find>
-                                </entity-options>
-                            </drop-down>
-                        </default-field></field>
+                    <field name="transactionDate"><default-field><date-time/></default-field></field>
+                    <field name="amountUomId"><default-field title="Currency">
+                        <drop-down><entity-options key="${uomId}" text="${description} [${uomId}]">
+                            <entity-find entity-name="moqui.basic.Uom">
+                                <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
+                                <order-by field-name="description"/>
+                            </entity-find>
+                        </entity-options></drop-down>
+                    </default-field></field>
+                    <field name="originalCurrencyUomId"><default-field title="Orig. Currency">
+                        <drop-down allow-empty="true"><entity-options key="${uomId}" text="${description} [${uomId}]">
+                            <entity-find entity-name="moqui.basic.Uom">
+                                <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
+                                <order-by field-name="description"/>
+                            </entity-find>
+                        </entity-options></drop-down>
+                    </default-field></field>
+                    <field name="glJournalId"><default-field title="Journal">
+                        <drop-down allow-empty="true">
+                            <entity-options key="${glJournalId}" text="${glJournalName}">
+                                <entity-find entity-name="mantle.ledger.transaction.GlJournal">
+                                    <econdition field-name="isPosted" operator="not-equals" value="Y" or-null="true"/>
+                                    <order-by field-name="glJournalName"/></entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field></field>
 
-                        <field name="description"><default-field><text-area cols="80" rows="5"/></default-field></field>
+                    <field name="description"><default-field><text-area cols="80" rows="5"/></default-field></field>
 
-                        <field name="invoiceId"><default-field title="Invoice ID">
-                            <text-line size="20"/>
-                            <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/>
-                        </default-field></field>
-                        <field name="paymentId"><default-field title="Payment ID">
-                            <text-line size="20"/>
-                            <link url="editPayment" text="${paymentId?:''}" link-type="anchor"/>
-                        </default-field></field>
-                        <field name="paymentApplicationId"><default-field><text-line size="20"/></default-field></field>
+                    <field name="invoiceId"><default-field title="Invoice ID">
+                        <text-line size="20"/>
+                        <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/>
+                    </default-field></field>
+                    <field name="paymentId"><default-field title="Payment ID">
+                        <text-line size="20"/>
+                        <link url="editPayment" text="${paymentId?:''}" link-type="anchor"/>
+                    </default-field></field>
+                    <field name="paymentApplicationId"><default-field><text-line size="20"/></default-field></field>
 
-                        <field name="finAccountTransId"><default-field><text-line size="20"/></default-field></field>
-                        <field name="otherPartyId"><default-field title="Other Party ID">
-                            <text-line/></default-field></field>
+                    <field name="finAccountTransId"><default-field><text-line size="20"/></default-field></field>
+                    <field name="otherPartyId"><default-field title="Other Party ID">
+                        <text-line/></default-field></field>
 
-                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
 
-                        <field-layout>
-                            <fields-not-referenced/>
-                            <field-row><field-ref name="invoiceId"/><field-ref name="paymentApplicationId"/></field-row>
-                            <field-row><field-ref name="paymentId"/><field-ref name="finAccountTransId"/></field-row>
-                            <field-row><field-ref name="otherPartyId"/></field-row>
-                            <field-row><field-ref name="submitButton"/></field-row>
-                        </field-layout>
-                    </form-single>
-                </container-dialog>
-            </widgets>
-            <fail-widgets>
-                <link url="postReverseAcctgTrans" text="Post Reverse Transaction" confirmation="Post a new transaction that reverses this?"/>
-            </fail-widgets>
-        </section>
+                    <field-layout>
+                        <fields-not-referenced/>
+                        <field-row><field-ref name="invoiceId"/><field-ref name="paymentApplicationId"/></field-row>
+                        <field-row><field-ref name="paymentId"/><field-ref name="finAccountTransId"/></field-row>
+                        <field-row><field-ref name="otherPartyId"/></field-row>
+                        <field-row><field-ref name="submitButton"/></field-row>
+                    </field-layout>
+                </form-single>
+            </container-dialog>
+        </widgets><fail-widgets>
+            <link url="postReverseAcctgTrans" text="Post Reverse Transaction" confirmation="Post a new transaction that reverses this?"/>
+        </fail-widgets></section>
 
         <container-row>
             <row-col lg="1"><label text="ID" type="strong"/></row-col>
