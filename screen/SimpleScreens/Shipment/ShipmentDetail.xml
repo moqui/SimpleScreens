@@ -114,7 +114,7 @@ along with this software (see the LICENSE.md file). If not, see
         <script>
             outList = []
             for (sop in shipOptsOut.shippingOptions) outList.add([value:"${sop.carrierPartyId}:${sop.shipmentMethodEnumId}",
-                label:"${sop.carrierPartyId != '_NA_' ? (sop.carrierName + ' - ') : ''}${sop.shipmentMethodDescription}${sop.shippingTotal != null ? ' ' + ec.l10n.format(sop.shippingTotal, '#,##0.00') : ''}"])
+                label:"${sop.description ? sop.description : (sop.carrierPartyId != '_NA_' ? (sop.carrierName + ' - ') : '') + sop.shipmentMethodDescription}${sop.shippingTotal != null ? ' ' + ec.l10n.format(sop.shippingTotal, '#,##0.00') : ''}"])
             ec.web.sendJsonResponse(outList)
         </script>
     </actions><default-response type="none"/></transition>
@@ -216,7 +216,7 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container-row><row-col md="6">
-            <label text="Shipment #${shipmentId}" type="h3"/>
+            <label text="Shipment #${shipmentId}" type="h4"/>
 
             <!-- Links -->
             <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
@@ -346,8 +346,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </widgets></section-iterate>
                     </container>
                     <label text="No shipment method selected" style="text-warning" type="p" condition="!firstRouteSegment.shipmentMethodEnumId"/>
+                    <label text="&amp;nbsp;" type="p" encode="false"/>
                 </widgets></section>
-
                 <form-single name="EditShipment" transition="updateShipment" map="shipment">
                     <field name="shipmentId"><default-field><hidden/></default-field></field>
                     <field name="destPostalContactMechId"><default-field><hidden/></default-field></field>
@@ -355,7 +355,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="carrierAndShipmentMethod"><conditional-field title="Shipment Method" condition="!hasAllLabels">
                         <drop-down allow-empty="true" no-current-selected-key="${firstRouteSegment.carrierPartyId ? firstRouteSegment.carrierPartyId + ':' + firstRouteSegment.shipmentMethodEnumId : ''}">
                             <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
-                                    text="${carrierPartyId != '_NA_' ? (carrierName + ' - ') : ''}${shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
+                                    text="${description ? description : (carrierPartyId != '_NA_' ? (carrierName + ' - ') : '') + shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
                             <dynamic-options transition="getShippingOptions"/>
                         </drop-down>
                     </conditional-field></field>
