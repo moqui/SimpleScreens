@@ -155,9 +155,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </fo:table-header>
                 <fo:table-body>
                     <#list invoiceItemList as invoiceItem>
+                        <#assign itemTypeEnum = invoiceItem.type!>
                         <fo:table-row font-size="${tableFontSize}">
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoiceItem.invoiceItemSeqId}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoiceItem.description!""}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute((invoiceItem.description)!(itemTypeEnum.description)!"", false)}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoiceItem.amount, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
@@ -206,12 +207,12 @@ along with this software (see the LICENSE.md file). If not, see
                 </fo:block-container>
 
                 <#-- Middle Area -->
-                <fo:block-container absolute-position="absolute" top="${topHeight}in" left="0" width="8.5in" height="${middleHeight}in"<#if stubLines> border="thin solid black"</#if>>
+                <fo:block-container absolute-position="absolute" top="${topHeight}in" left="0" width="8.5in" height="${middleHeight}in" overflow="hidden"<#if stubLines> border="thin solid black"</#if>>
                     <#if checkPosition == "middle"><@checkBody paymentInfo/><#else><@stubBody paymentInfo/></#if>
                 </fo:block-container>
 
                 <#-- Bottom Area -->
-                <fo:block-container absolute-position="absolute" top="${topHeight+middleHeight}in" left="0" width="8.5in" height="${bottomHeight}in">
+                <fo:block-container absolute-position="absolute" top="${topHeight+middleHeight}in" left="0" width="8.5in" height="${bottomHeight}in" overflow="hidden">
                     <#if checkPosition == "bottom"><@checkBody paymentInfo/><#else><@stubBody paymentInfo/></#if>
                 </fo:block-container>
             </fo:flow>
