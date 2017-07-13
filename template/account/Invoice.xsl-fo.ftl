@@ -17,6 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign dateFormat = dateFormat!"dd MMM yyyy">
 <#assign negOne = -1>
 
+<#macro encodeText textValue>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(textValue!"", false))!""}</#macro>
 <#macro productItemRow invoiceItem invoiceItemList itemIndex>
     <#assign childItemList = invoiceItemList.cloneList().filterByAnd("parentItemSeqId", invoiceItem.invoiceItemSeqId)>
     <#assign itemTypeEnum = invoiceItem.type!>
@@ -28,7 +29,7 @@ along with this software (see the LICENSE.md file). If not, see
         <fo:table-cell padding="${cellPadding}"><fo:block>${(product.pseudoId)!(invoiceItem.productId)!""}</fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block>${(lot.lotNumber)!(asset.lotId)!""}</fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}">
-            <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute((invoiceItem.description)!(itemTypeEnum.description)!"", false)}</fo:block>
+            <fo:block><@encodeText (invoiceItem.description)!(itemTypeEnum.description)!""/></fo:block>
             <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
         </fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
@@ -53,8 +54,8 @@ along with this software (see the LICENSE.md file). If not, see
         <fo:table-cell padding="${cellPadding}"><fo:block>${(itemTypeEnum.description)!""}</fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block>${ec.l10n.format(invoiceItem.itemDate, dateFormat)}</fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}">
-            <fo:block>${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(invoiceItem.description!"", false)}</fo:block>
-            <#if (timeEntry.workEffortId)?has_content><fo:block>Task: ${timeEntry.workEffortId} - ${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(workEffort.workEffortName!"", false)}</fo:block></#if>
+            <fo:block><@encodeText invoiceItem.description!""/></fo:block>
+            <#if (timeEntry.workEffortId)?has_content><fo:block>Task: ${timeEntry.workEffortId} - <@encodeText workEffort.workEffortName!""/></fo:block></#if>
             <#if rateTypeEnum?has_content><fo:block>Rate: ${rateTypeEnum.description}</fo:block></#if>
             <#if timeEntry?has_content><fo:block>${ec.l10n.format(timeEntry.fromDate, "dd MMM yyyy hh:mm")} to ${ec.l10n.format(timeEntry.thruDate, "dd MMM yyyy hh:mm")}, Break ${timeEntry.breakHours!"0"}h</fo:block></#if>
             <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
@@ -86,7 +87,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" width="2in" scaling="uniform"/>
                     </fo:block>
                 <#else>
-                    <fo:block font-size="13pt" text-align="center" font-weight="bold">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", true))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
+                    <fo:block font-size="13pt" text-align="center" font-weight="bold"><@encodeText (fromParty.organizationName)!""/><@encodeText (fromParty.firstName)!""/> <@encodeText (fromParty.lastName)!""/></fo:block>
                     <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Invoice</fo:block>
                 </#if>
             </fo:block-container>
@@ -150,8 +151,8 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:table table-layout="fixed" margin-bottom="0.2in" width="7.5in">
                 <fo:table-body><fo:table-row>
                     <fo:table-cell padding="3pt" width="3.25in">
-                    <#if toBillingRep?has_content><fo:block>Attention: ${(toBillingRep.organizationName)!""} ${(toBillingRep.firstName)!""} ${(toBillingRep.lastName)!""}</fo:block></#if>
-                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toParty.organizationName!"", true))!""} ${(toParty.firstName)!""} ${(toParty.lastName)!""}</fo:block>
+                    <#if toBillingRep?has_content><fo:block>Attention: <@encodeText (toBillingRep.organizationName)!""/> <@encodeText (toBillingRep.firstName)!""/> <@encodeText (toBillingRep.lastName)!""/></fo:block></#if>
+                        <fo:block><@encodeText (toParty.organizationName)!""/> <@encodeText (toParty.firstName)!""/> <@encodeText (toParty.lastName)!""/></fo:block>
                     <#if toContactInfo.postalAddress?has_content>
                         <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
                         <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>

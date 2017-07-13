@@ -43,6 +43,8 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign tableFontSize = tableFontSize!"9pt">
 <#assign detailTableFontSize = detailTableFontSize!"8pt">
 
+<#macro encodeText textValue>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(textValue!"", false))!""}</#macro>
+
 <#macro checkBody paymentInfo>
     <#-- Check number, if populated -->
     <#if checkNumber && paymentInfo.payment.paymentRefNum?has_content>
@@ -59,7 +61,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#-- Pay to line -->
     <#if separatePayToLine>
     <fo:block-container absolute-position="absolute" top="1.35in" left="1.1in">
-        <fo:block text-align="left">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.toPartyDetail.organizationName!"", false)}${paymentInfo.toPartyDetail.firstName!} ${paymentInfo.toPartyDetail.lastName!}</fo:block>
+        <fo:block text-align="left"><@encodeText (paymentInfo.toPartyDetail.organizationName)!""/><@encodeText (paymentInfo.toPartyDetail.firstName)!""/> <@encodeText (paymentInfo.toPartyDetail.lastName)!""/></fo:block>
     </fo:block-container>
     </#if>
 
@@ -84,7 +86,7 @@ along with this software (see the LICENSE.md file). If not, see
             <#if (contactInfo.postalAddress.toName)?has_content><fo:block text-align="left">${contactInfo.postalAddress.toName}</fo:block></#if>
             <#if (contactInfo.postalAddress.attnName)?has_content><fo:block text-align="left">Attn: ${contactInfo.postalAddress.attnName}</fo:block></#if>
         <#else>
-            <fo:block text-align="left">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.toPartyDetail.organizationName!"", false)}${paymentInfo.toPartyDetail.firstName!} ${paymentInfo.toPartyDetail.lastName!}</fo:block>
+            <fo:block text-align="left"><@encodeText (paymentInfo.toPartyDetail.organizationName)!""/><@encodeText (paymentInfo.toPartyDetail.firstName)!""/> <@encodeText (paymentInfo.toPartyDetail.lastName)!""/></fo:block>
         </#if>
         <#if (contactInfo.postalAddress.address1)?has_content><fo:block text-align="left">${contactInfo.postalAddress.address1}<#if (contactInfo.postalAddress.unitNumber)?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block></#if>
         <#if (contactInfo.postalAddress.address2)?has_content><fo:block text-align="left">${contactInfo.postalAddress.address2}</fo:block></#if>
@@ -117,7 +119,7 @@ along with this software (see the LICENSE.md file). If not, see
 </#macro>
 <#macro stubBody paymentInfo>
 <fo:block margin="0.3in" padding-top="0.1in" overflow="hidden">
-    <fo:block text-align="left" margin-bottom="0.1in">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.fromPartyDetail.organizationName!"", false)}${paymentInfo.fromPartyDetail.firstName!} ${paymentInfo.fromPartyDetail.lastName!} - Payment #${paymentInfo.payment.paymentId}<#if paymentInfo.payment.paymentRefNum?has_content> - Check #${paymentInfo.payment.paymentRefNum}</#if><#if paymentInfo.distGroupEnum?has_content> - ${paymentInfo.distGroupEnum.description}</#if></fo:block>
+    <fo:block text-align="left" margin-bottom="0.1in"><@encodeText (paymentInfo.fromPartyDetail.organizationName)!""/><@encodeText (paymentInfo.fromPartyDetail.firstName)!""/> <@encodeText (paymentInfo.fromPartyDetail.lastName)!""/> - Payment #${paymentInfo.payment.paymentId}<#if paymentInfo.payment.paymentRefNum?has_content> - Check #${paymentInfo.payment.paymentRefNum}</#if><#if paymentInfo.distGroupEnum?has_content> - ${paymentInfo.distGroupEnum.description}</#if></fo:block>
 
     <#if paymentInfo.invoiceList?has_content>
         <fo:table table-layout="fixed" width="7.5in">
@@ -158,7 +160,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <#assign itemTypeEnum = invoiceItem.type!>
                         <fo:table-row font-size="${tableFontSize}">
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoiceItem.invoiceItemSeqId}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute((invoiceItem.description)!(itemTypeEnum.description)!"", false)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><@encodeText (invoiceItem.description)!(itemTypeEnum.description)!""/></fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoiceItem.amount, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>

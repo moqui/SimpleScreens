@@ -14,6 +14,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#-- See the mantle.order.OrderInfoServices.get#OrderDisplayInfo service for data preparation -->
 
 <#assign cellPadding = "1pt">
+<#macro encodeText textValue>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(textValue!"", false))!""}</#macro>
 <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format" font-family="Helvetica, sans-serif" font-size="10pt">
     <fo:layout-master-set>
         <fo:simple-page-master master-name="letter-portrait" page-width="8.5in" page-height="11in"
@@ -31,9 +32,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:table-body><fo:table-row>
                     <fo:table-cell padding="3pt" width="3.75in">
                         <fo:block font-weight="bold">Vendor</fo:block>
-                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(firstPartInfo.vendorDetail.organizationName!"", false))!""}${(firstPartInfo.vendorDetail.firstName)!""} ${(firstPartInfo.vendorDetail.lastName)!""}</fo:block>
+                        <fo:block><@encodeText (firstPartInfo.vendorDetail.organizationName)!""/><@encodeText (firstPartInfo.vendorDetail.firstName)!""/> <@encodeText (firstPartInfo.vendorDetail.lastName)!""/></fo:block>
                         <fo:block font-weight="bold">Customer</fo:block>
-                        <fo:block>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(firstPartInfo.customerDetail.organizationName!"", false))!""}${(firstPartInfo.customerDetail.firstName)!""} ${(firstPartInfo.customerDetail.lastName)!""}</fo:block>
+                        <fo:block><@encodeText (firstPartInfo.customerDetail.organizationName)!""/><@encodeText (firstPartInfo.customerDetail.firstName)!""/> <@encodeText (firstPartInfo.customerDetail.lastName)!""/></fo:block>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="2in">
                         <fo:block font-weight="bold">Date</fo:block>
@@ -103,10 +104,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <fo:block font-weight="bold">Ship To</fo:block>
                             <#if contactInfo.postalAddress?has_content>
                                 <#if contactInfo.postalAddress.toName?has_content || contactInfo.postalAddress.attnName?has_content>
-                                    <#if contactInfo.postalAddress.toName?has_content><fo:block font-weight="bold">To: ${contactInfo.postalAddress.toName}</fo:block></#if>
-                                    <#if contactInfo.postalAddress.attnName?has_content><fo:block font-weight="bold">Attn: ${contactInfo.postalAddress.attnName}</fo:block></#if>
+                                    <#if contactInfo.postalAddress.toName?has_content><fo:block font-weight="bold">To: <@encodeText contactInfo.postalAddress.toName/></fo:block></#if>
+                                    <#if contactInfo.postalAddress.attnName?has_content><fo:block font-weight="bold">Attn: <@encodeText contactInfo.postalAddress.attnName/></fo:block></#if>
                                 <#else>
-                                    <fo:block font-weight="bold">${(orderPartInfo.customerDetail.organizationName)!""} ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</fo:block>
+                                    <fo:block font-weight="bold">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(orderPartInfo.customerDetail.organizationName!"", false))!""} ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</fo:block>
                                 </#if>
                                 <fo:block>${(contactInfo.postalAddress.address1)!""}<#if contactInfo.postalAddress.unitNumber?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block>
                                 <#if contactInfo.postalAddress.address2?has_content><fo:block>${contactInfo.postalAddress.address2}</fo:block></#if>
@@ -146,7 +147,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <fo:table-cell padding="${cellPadding}"><fo:block>${(itemTypeEnum.description)!""}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block>${ec.l10n.format(orderItem.requiredByDate, "dd MMM yyyy")}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}">
-                                    <fo:block>${orderItem.itemDescription!""}</fo:block>
+                                    <fo:block><@encodeText orderItem.itemDescription!""/></fo:block>
                                     <#if orderItem.productId?has_content>
                                         <#assign product = ec.entity.find("mantle.product.Product").condition("productId", orderItem.productId).useCache(true).one()>
                                         <fo:block>${ec.resource.expand("ProductNameTemplate", "", product)}</fo:block>
