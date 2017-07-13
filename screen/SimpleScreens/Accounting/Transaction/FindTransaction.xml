@@ -83,8 +83,8 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="transactionDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display also-hidden="false"/></default-field></field>
-            <field name="acctgTransId"><header-field show-order-by="case-insensitive" title="TX ID"/><default-field>
-                <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
+            <field name="acctgTransId"><header-field show-order-by="true" title="TX ID"><text-find hide-options="true" default-operator="begins"/></header-field>
+                <default-field><link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
             <field name="glJournalId"><header-field title="Journal"><text-find size="20" hide-options="true"/></header-field>
                 <default-field><display/></default-field></field>
 
@@ -112,14 +112,21 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editParty" link-type="anchor" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="otherPartyId"/></default-field>
             </field>
 
-            <field name="invoiceId"><header-field title="Invoice" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+            <field name="invoiceId"><header-field title="Invoice" show-order-by="true"><text-line size="20"/></header-field>
                 <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor" condition="invoiceId"/></default-field></field>
-            <field name="paymentId"><header-field title="Payment" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+            <field name="paymentId"><header-field title="Payment" show-order-by="true"><text-line size="20"/></header-field>
                 <default-field><link url="editPayment" text="${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
             <field name="assetId"><header-field title="Asset" show-order-by="true"><text-line size="20"/></header-field>
                 <default-field><link url="assetDetail" text="${assetId}" link-type="anchor" condition="assetId"/></default-field></field>
             <field name="shipmentId"><header-field title="Shipment" show-order-by="true"><text-line size="20"/></header-field>
                 <default-field><link url="shipmentDetail" text="${shipmentId}" link-type="anchor" condition="shipmentId"/></default-field></field>
+
+            <field name="reversedByAcctgTransId"><header-field title="Rev By" show-order-by="true"><text-line size="20"/></header-field>
+                <default-field><link url="editTransaction" text="${reversedByAcctgTransId}" link-type="anchor" condition="reversedByAcctgTransId"
+                        parameter-map="[acctgTransId:reversedByAcctgTransId]"/></default-field></field>
+            <field name="reverseOfAcctgTransId"><header-field title="Rev Of" show-order-by="true"><text-line size="20"/></header-field>
+                <default-field><link url="editTransaction" text="${reverseOfAcctgTransId}" link-type="anchor" condition="reverseOfAcctgTransId"
+                        parameter-map="[acctgTransId:reverseOfAcctgTransId]"/></default-field></field>
 
             <field name="isPosted">
                 <header-field title="Posted" show-order-by="true"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
@@ -129,6 +136,17 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="debitTotal" align="right"><default-field title="Total"><display currency-unit-field="amountUomId"/></default-field></field>
 
             <field name="find"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="transactionDate"/><field-ref name="acctgTransId"/></form-list-column>
+            <form-list-column><field-ref name="acctgTransTypeEnumId"/><field-ref name="glJournalId"/></form-list-column>
+            <form-list-column><field-ref name="organizationPartyId"/><field-ref name="otherPartyId"/></form-list-column>
+            <form-list-column><field-ref name="invoiceId"/></form-list-column>
+            <form-list-column><field-ref name="paymentId"/></form-list-column>
+            <form-list-column><field-ref name="assetId"/></form-list-column>
+            <form-list-column><field-ref name="shipmentId"/></form-list-column>
+            <form-list-column><field-ref name="reversedByAcctgTransId"/><field-ref name="reverseOfAcctgTransId"/></form-list-column>
+            <form-list-column><field-ref name="isPosted"/></form-list-column>
+            <form-list-column><field-ref name="debitTotal"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
