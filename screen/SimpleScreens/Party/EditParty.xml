@@ -57,6 +57,10 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updateUserAccount"><service-call name="mantle.party.PartyServices.update#PartyUserAccount"/>
         <default-response url="."/></transition>
+    <transition name="enableUserAccount"><service-call name="org.moqui.impl.UserServices.enable#UserAccount"/>
+        <default-response url="."/></transition>
+    <transition name="disableUserAccount"><service-call name="org.moqui.impl.UserServices.disable#UserAccount"/>
+        <default-response url="."/></transition>
     <transition name="createUserGroupMember"><service-call name="create#moqui.security.UserGroupMember"/>
         <default-response url="."/></transition>
     <transition name="updateUserGroupMember"><service-call name="update#moqui.security.UserGroupMember"/>
@@ -285,6 +289,13 @@ along with this software (see the LICENSE.md file). If not, see
                         <option key="N"/><option key="Y"/></drop-down></default-field></field>
 
                     <field name="submitButton"><default-field title="Update Person"><submit/></default-field></field>
+
+                    <field-layout>
+                        <fields-not-referenced/>
+                        <field-row><field-ref name="birthDate"/><field-ref name="externalId"/></field-row>
+                        <field-row><field-ref name="disabled"/><field-ref name="gatewayCimId"/></field-row>
+                        <field-ref name="submitButton"/>
+                    </field-layout>
                 </form-single>
             </fail-widgets></section>
 
@@ -452,7 +463,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <iterate list="Locale.getAvailableLocales()" entry="lcl"><script>localeStringList.add([locale:lcl.toString(), name:lcl.getDisplayName(ec.user.locale)])</script></iterate>
                 <order-map-list list="localeStringList"><order-by field-name="name"/></order-map-list>
             </actions><widgets>
-                <container-box><box-header><label text="User Account" type="h5"/></box-header><box-body>
+                <container-box><box-header><label text="User Account" type="h5"/></box-header><box-toolbar>
+                    <link url="enableUserAccount" text="Enable Account" parameter-map="[userId:userAccount.userId]" condition="userAccount.disabled == 'Y'"/>
+                    <link url="disableUserAccount" text="Disable Account" parameter-map="[userId:userAccount.userId]" condition="userAccount.disabled != 'Y'"/>
+                </box-toolbar><box-body>
                     <form-single name="UpdateUserAccount" map="userAccount" transition="updateUserAccount">
                         <field name="partyId"><default-field><hidden/></default-field></field>
                         <field name="userId"><default-field><hidden/></default-field></field>
@@ -465,8 +479,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="timeZone"><default-field>
                             <drop-down allow-empty="true" combo-box="true"><list-options list="new TreeSet(TimeZone.getAvailableIDs().collect())"/></drop-down>
                         </default-field></field>
-                        <field name="disabled"><default-field><drop-down no-current-selected-key="N" current="selected">
-                            <option key="N"/><option key="Y"/></drop-down></default-field></field>
+
+                        <field name="requirePasswordChange"><default-field>
+                            <drop-down no-current-selected-key="N"><option key="Y"/><option key="N"/></drop-down>
+                        </default-field></field>
+                        <field name="disabled"><default-field><display/></default-field></field>
                         <field name="disabledDateTime">
                             <conditional-field condition="userAccount?.disabledDateTime"><display/></conditional-field>
                             <default-field><ignored/></default-field>
@@ -475,11 +492,15 @@ along with this software (see the LICENSE.md file). If not, see
                             <conditional-field condition="userAccount?.successiveFailedLogins"><display/></conditional-field>
                             <default-field><ignored/></default-field>
                         </field>
-                        <field name="requirePasswordChange"><default-field>
-                            <drop-down no-current-selected-key="N"><option key="Y"/><option key="N"/></drop-down>
-                        </default-field></field>
 
                         <field name="submitButton"><default-field title="Update User"><submit/></default-field></field>
+
+                        <field-layout>
+                            <fields-not-referenced/>
+                            <field-row><field-ref name="requirePasswordChange"/><field-ref name="disabled"/></field-row>
+                            <field-row><field-ref name="successiveFailedLogins"/><field-ref name="disabledDateTime"/></field-row>
+                            <field-ref name="submitButton"/>
+                        </field-layout>
                     </form-single>
                 </box-body></container-box>
             </widgets></section>
