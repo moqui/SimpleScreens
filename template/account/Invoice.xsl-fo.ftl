@@ -143,55 +143,65 @@ along with this software (see the LICENSE.md file). If not, see
                 </#if>
                 <#if fromContactInfo.emailAddress?has_content> -- ${fromContactInfo.emailAddress}</#if>
                 </fo:block>
-                <fo:block text-align="center">Invoice #${invoiceId} -- ${ec.l10n.format(invoice.invoiceDate, dateFormat)} -- Page <fo:page-number/><#-- of <fo:page-number-citation-last ref-id="mainSequence"/>--></fo:block>
+                <fo:block text-align="center"><@encodeText (fromParty.organizationName)!""/><@encodeText (fromParty.firstName)!""/> <@encodeText (fromParty.lastName)!""/> Invoice #${invoiceId} -- ${ec.l10n.format(invoice.invoiceDate, dateFormat)} -- Page <fo:page-number/><#-- of <fo:page-number-citation-last ref-id="mainSequence"/>--></fo:block>
             </fo:block>
         </fo:static-content>
 
+        <#-- body starts 0.5in + 0.7in = 1.2in from top, 0.5in from left -->
         <fo:flow flow-name="xsl-region-body">
-            <fo:table table-layout="fixed" margin-bottom="0.2in" width="7.5in">
-                <fo:table-body><fo:table-row>
-                    <fo:table-cell padding="3pt" width="3.25in">
-                    <#if toBillingRep?has_content><fo:block>Attention: <@encodeText (toBillingRep.organizationName)!""/> <@encodeText (toBillingRep.firstName)!""/> <@encodeText (toBillingRep.lastName)!""/></fo:block></#if>
-                        <fo:block><@encodeText (toParty.organizationName)!""/> <@encodeText (toParty.firstName)!""/> <@encodeText (toParty.lastName)!""/></fo:block>
-                    <#if toContactInfo.postalAddress?has_content>
-                        <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
-                        <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>
-                        <fo:block font-size="8pt">${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
-                        <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
-                    </#if>
-                    <#if toContactInfo.telecomNumber?has_content>
-                        <fo:block font-size="8pt"><#if toContactInfo.telecomNumber.countryCode?has_content>${toContactInfo.telecomNumber.countryCode}-</#if><#if toContactInfo.telecomNumber.areaCode?has_content>${toContactInfo.telecomNumber.areaCode}-</#if>${toContactInfo.telecomNumber.contactNumber!""}</fo:block>
-                    </#if>
-                    <#if toContactInfo.emailAddress?has_content>
-                        <fo:block font-size="8pt">${toContactInfo.emailAddress}</fo:block>
-                    </#if>
-                    </fo:table-cell>
-                    <fo:table-cell padding="3pt" width="1.5in">
+            <fo:block-container width="7.5in" height="0.8in">
+                <fo:table table-layout="fixed" margin-bottom="0.2in" width="7.5in"><fo:table-body><fo:table-row>
+                    <fo:table-cell padding="3pt" width="1.75in">
                         <fo:block font-weight="bold">Invoice #</fo:block>
                         <fo:block>${invoiceId}</fo:block>
-                        <#if orderIdSet?has_content>
-                            <fo:block font-weight="bold">Order #</fo:block>
-                            <fo:block><#list orderIdSet as orderId>${orderId}<#sep>, </#list></fo:block>
-                        </#if>
+                    </fo:table-cell>
+                    <fo:table-cell padding="3pt" width="1.75in">
                         <#if invoice.referenceNumber?has_content>
                             <fo:block font-weight="bold">PO or Ref #</fo:block>
                             <fo:block font-weight="bold">${invoice.referenceNumber}</fo:block>
                         </#if>
                     </fo:table-cell>
-                    <fo:table-cell padding="3pt" width="1.75in">
+                    <fo:table-cell padding="3pt" width="2in">
                         <fo:block font-weight="bold">Invoice Date</fo:block>
                         <fo:block>${ec.l10n.format(invoice.invoiceDate, dateFormat)}</fo:block>
-                        <#if invoice.dueDate??>
-                            <fo:block font-weight="bold">Due Date</fo:block>
-                            <fo:block>${ec.l10n.format(invoice.dueDate, dateFormat)}</fo:block>
-                        </#if>
-                        <#if settlementTerm?has_content>
-                            <fo:block font-weight="bold">Term</fo:block>
-                            <fo:block>${settlementTerm.description}</fo:block>
-                        </#if>
                     </fo:table-cell>
-                </fo:table-row></fo:table-body>
-            </fo:table>
+                    <#if orderIdSet?has_content>
+                        <fo:table-cell padding="3pt" width="2in">
+                            <fo:block font-weight="bold">Order #</fo:block>
+                            <fo:block><#list orderIdSet as orderId>${orderId}<#sep>, </#list></fo:block>
+                        </fo:table-cell>
+                    </#if>
+                </fo:table-row></fo:table-body></fo:table>
+            </fo:block-container>
+            <fo:table table-layout="fixed" margin-bottom="0.2in" width="7.5in"><fo:table-body><fo:table-row>
+                <#-- Customer Billing Address - for envelope window make a total of 0.8in from left, 2in from top (1.2in tall, 4.5in wide) -->
+                <fo:table-cell padding="3pt" width="4.5in">
+                    <fo:block-container margin-left="0.5in" margin-top="0.3in" height="1.0in" font-size="10pt">
+                    <#if toBillingRep?has_content><fo:block>Attention: <@encodeText (toBillingRep.organizationName)!""/> <@encodeText (toBillingRep.firstName)!""/> <@encodeText (toBillingRep.lastName)!""/></fo:block></#if>
+                        <fo:block><@encodeText (toParty.organizationName)!""/> <@encodeText (toParty.firstName)!""/> <@encodeText (toParty.lastName)!""/></fo:block>
+                    <#if toContactInfo.postalAddress?has_content>
+                        <fo:block>${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
+                        <#if toContactInfo.postalAddress.address2?has_content><fo:block>${toContactInfo.postalAddress.address2}</fo:block></#if>
+                        <fo:block>${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                        <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block>${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
+                    </#if>
+                    </fo:block-container>
+                    <fo:block-container margin-left="0.5in"><fo:block font-size="8pt">
+                        <#if toContactInfo.telecomNumber?has_content>T: <#if toContactInfo.telecomNumber.countryCode?has_content>${toContactInfo.telecomNumber.countryCode}-</#if><#if toContactInfo.telecomNumber.areaCode?has_content>${toContactInfo.telecomNumber.areaCode}-</#if>${toContactInfo.telecomNumber.contactNumber!""}</#if>
+                        <#if toContactInfo.emailAddress?has_content>E: ${toContactInfo.emailAddress}</#if>
+                    </fo:block></fo:block-container>
+                </fo:table-cell>
+                <fo:table-cell padding="3pt" width="3in">
+                    <#if invoice.dueDate??>
+                        <fo:block font-weight="bold">Due Date</fo:block>
+                        <fo:block>${ec.l10n.format(invoice.dueDate, dateFormat)}</fo:block>
+                    </#if>
+                    <#if settlementTerm?has_content>
+                        <fo:block font-weight="bold">Term</fo:block>
+                        <fo:block>${settlementTerm.description}</fo:block>
+                    </#if>
+                </fo:table-cell>
+            </fo:table-row></fo:table-body></fo:table>
 
             <#if hasProductItems && !hasTimeEntryItems>
                 <fo:table table-layout="fixed" width="100%">
@@ -247,7 +257,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </fo:table>
             </#if>
 
-            <fo:table table-layout="fixed" width="100%" margin-top="0.3in">
+            <fo:table table-layout="fixed" width="100%" margin-top="0.1in">
                 <fo:table-header font-size="9pt" border-bottom="solid black">
                     <fo:table-cell width="2.0in" padding="${cellPadding}"><fo:block>Type</fo:block></fo:table-cell>
                     <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="center">Qty</fo:block></fo:table-cell>
