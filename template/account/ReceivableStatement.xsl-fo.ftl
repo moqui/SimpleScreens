@@ -94,6 +94,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-cell padding="3pt" width="1.75in">
                         <fo:block font-weight="bold">As of Date</fo:block>
                         <fo:block>${ec.l10n.format(asOfTimestamp, dateFormat)}</fo:block>
+                        <fo:block font-weight="bold">Customer ID</fo:block>
+                        <fo:block>${toParty.pseudoId}</fo:block>
                     </fo:table-cell>
                 </fo:table-row></fo:table-body>
             </fo:table>
