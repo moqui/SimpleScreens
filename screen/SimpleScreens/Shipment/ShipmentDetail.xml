@@ -741,11 +741,10 @@ along with this software (see the LICENSE.md file). If not, see
 
                             <field name="quantitySis" from="quantity">
                                 <default-field title="Quantity"><display/></default-field></field>
-                            <field name="quantityNotHandled"><default-field><display/></default-field></field>
+                            <field name="quantityNotHandled"><default-field title="Not Issued"><display/></default-field></field>
 
-                            <field name="invoiceId"><default-field title="Invoice">
-                                <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/></default-field></field>
-                            <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="invoiceId"><default-field title="Invoice Item">
+                                <link url="editInvoice" text="${invoiceId?:''}:${invoiceItemSeqId?:''}" link-type="anchor"/></default-field></field>
 
                             <field name="assetReservations">
                                 <conditional-field condition="existingResList">
@@ -762,10 +761,13 @@ along with this software (see the LICENSE.md file). If not, see
                                 </conditional-field>
                                 <default-field><display text=" "/></default-field>
                             </field>
+                            <field name="reserveItem"><default-field title="">
+                                <dynamic-dialog id="ItemReserveDialog" button-text="Reserve" transition="ItemReserve" condition="quantityNotHandled &gt; 0.0"/>
+                            </default-field></field>
 
                             <field name="shipmentPackageSeqId" from="shipmentPackageList ? shipmentPackageList[0].shipmentPackageSeqId : null">
                                 <conditional-field condition="resPackForm" title="Package"><drop-down>
-                                    <option key="" text="New Package"/>
+                                    <option key="" text="New"/>
                                     <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
                                 </drop-down></conditional-field>
                                 <default-field title="Package"><display text=" "/></default-field>
@@ -775,7 +777,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <default-field title="Pack Quantity"><display text=" "/></default-field>
                             </field>
                             <field name="packButton">
-                                <conditional-field condition="resPackForm" title="Pack"><submit/></conditional-field>
+                                <conditional-field condition="resPackForm" title="Issue &amp; Pack"><submit/></conditional-field>
                                 <default-field title=""><display text=" "/></default-field>
                             </field>
                         </form-list>

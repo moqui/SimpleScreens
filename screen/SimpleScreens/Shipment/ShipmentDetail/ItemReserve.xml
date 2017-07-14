@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="shipmentId" required="true"/>
+    <parameter name="orderId" required="true"/>
+    <parameter name="orderItemSeqId" required="true"/>
+
+    <transition name="reserveAssetForOrderItem"><service-call name="mantle.product.AssetServices.reserve#AssetForOrderItem"/>
+        <default-response url=".."/></transition>
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.order.OrderItem" value-field="orderItem"/>
+        <set field="orderPart" from="orderItem.part"/>
+    </actions>
+    <widgets>
+        <form-single name="ReserveItem" transition="reserveAssetForOrderItem">
+            <field name="shipmentId"><default-field><hidden/></default-field></field>
+            <field name="orderId"><default-field title="Order"><display/></default-field></field>
+            <field name="orderItemSeqId"><default-field title="Order Item"><display/></default-field></field>
+
+            <field name="productId" from="orderItem.productId"><default-field title="Product">
+                <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+            <field name="orderQuantity" from="orderItem.quantity"><default-field><display/></default-field></field>
+
+            <field name="assetId"><default-field title="Asset">
+                <drop-down allow-empty="true"><dynamic-options transition="getAssetList" server-search="true" min-length="0"
+                    parameter-map="[facilityId:orderPart.facilityId, productId:orderItem.productId, assetTypeEnumId:null, excludeZeroQoh:'true']"/></drop-down>
+            </default-field></field>
+
+            <field name="resetReservations"><default-field title="">
+                <check no-current-selected-key="true"><option key="true" text="Reset Reservations"/></check></default-field></field>
+
+            <field name="submitButton"><default-field title="Reserve"><submit/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>
