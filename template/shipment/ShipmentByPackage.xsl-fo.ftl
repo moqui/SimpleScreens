@@ -62,28 +62,34 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:table-cell padding="3pt" width="3in">
                     <fo:block font-weight="bold">Shipment #</fo:block>
                     <fo:block>${shipmentId}</fo:block>
-                <#if originFacility?has_content>
-                    <fo:block font-weight="bold">Origin Facility</fo:block>
-                    <fo:block>${ec.resource.expand("FacilityNameTemplate", "", originFacility)}</fo:block>
-                </#if>
-                <#if destinationFacility?has_content>
-                    <fo:block font-weight="bold">Destination Facility</fo:block>
-                    <fo:block>${ec.resource.expand("FacilityNameTemplate", "", destinationFacility)}</fo:block>
-                </#if>
+                    <#if invoiceList?has_content>
+                        <fo:block font-weight="bold">Invoice</fo:block>
+                        <#list invoiceList as invoice>
+                            <fo:block>${invoice.invoiceId}<#if invoice.referenceNumber?has_content> - PO ${invoice.referenceNumber}</#if></fo:block>
+                        </#list>
+                    </#if>
+                    <#if originFacility?has_content>
+                        <fo:block font-weight="bold">Origin Facility</fo:block>
+                        <fo:block>${ec.resource.expand("FacilityNameTemplate", "", originFacility)}</fo:block>
+                    </#if>
+                    <#if destinationFacility?has_content>
+                        <fo:block font-weight="bold">Destination Facility</fo:block>
+                        <fo:block>${ec.resource.expand("FacilityNameTemplate", "", destinationFacility)}</fo:block>
+                    </#if>
                 </fo:table-cell>
                 <fo:table-cell padding="3pt" width="1.5in">
-                <#if shipment.estimatedReadyDate?exists>
-                    <fo:block font-weight="bold">Est. Ready</fo:block>
-                    <fo:block>${ec.l10n.format(shipment.estimatedReadyDate, dateTimeFormat)}</fo:block>
-                </#if>
-                <#if shipment.estimatedShipDate?exists>
-                    <fo:block font-weight="bold">Est. Ship</fo:block>
-                    <fo:block>${ec.l10n.format(shipment.estimatedShipDate, dateTimeFormat)}</fo:block>
-                </#if>
-                <#if shipment.estimatedArrivalDate?exists>
-                    <fo:block font-weight="bold">Est. Arrival</fo:block>
-                    <fo:block>${ec.l10n.format(shipment.estimatedArrivalDate, dateTimeFormat)}</fo:block>
-                </#if>
+                    <#if shipment.estimatedReadyDate?exists>
+                        <fo:block font-weight="bold">Est. Ready</fo:block>
+                        <fo:block>${ec.l10n.format(shipment.estimatedReadyDate, dateTimeFormat)}</fo:block>
+                    </#if>
+                    <#if shipment.estimatedShipDate?exists>
+                        <fo:block font-weight="bold">Est. Ship</fo:block>
+                        <fo:block>${ec.l10n.format(shipment.estimatedShipDate, dateTimeFormat)}</fo:block>
+                    </#if>
+                    <#if shipment.estimatedArrivalDate?exists>
+                        <fo:block font-weight="bold">Est. Arrival</fo:block>
+                        <fo:block>${ec.l10n.format(shipment.estimatedArrivalDate, dateTimeFormat)}</fo:block>
+                    </#if>
                     <fo:block font-size="6pt"> </fo:block>
                 </fo:table-cell>
                 <fo:table-cell padding="3pt" width="3in">
@@ -113,7 +119,7 @@ along with this software (see the LICENSE.md file). If not, see
             </#if>
 
         <#list packageInfoList as packageInfo>
-            <fo:table table-layout="fixed" margin-top="0.3in" width="7.5in"><fo:table-body><fo:table-row>
+            <fo:table table-layout="fixed" margin-top="0.1in" width="7.5in"><fo:table-body><fo:table-row>
                 <fo:table-cell padding="3pt" width="1.5in"><fo:block>
                     <fo:inline font-weight="bold">Package</fo:inline> ${packageInfo.shipmentPackage.shipmentPackageSeqId}
                 </fo:block></fo:table-cell>
