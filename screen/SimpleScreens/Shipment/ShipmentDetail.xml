@@ -161,7 +161,10 @@ along with this software (see the LICENSE.md file). If not, see
         </then><else>
             <set field="allItemsPacked" from="true"/>
             <iterate list="shipmentItemSourceList" entry="sisCheck">
-                <if condition="sisCheck.quantityNotHandled &gt; 0"><set field="allItemsPacked" from="false"/><break/></if></iterate>
+                <if condition="sisCheck.quantityNotHandled &gt; 0.0"><set field="allItemsPacked" from="false"/><break/></if></iterate>
+            <set field="anyItemPacked" from="false"/>
+            <iterate list="shipmentItemSourceList" entry="sisCheck">
+                <if condition="sisCheck.quantityNotHandled == 0.0"><set field="anyItemPacked" from="true"/><break/></if></iterate>
 
             <set field="hasAllLabels" from="true"/><set field="hasAnyLabels" from="false"/>
             <iterate list="packageRouteSegList" entry="packageRouteSeg">
@@ -221,26 +224,26 @@ along with this software (see the LICENSE.md file). If not, see
             <!-- Links -->
             <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
                 <section name="ShipInputInOutSection" condition="isIncoming"><widgets>
-                    <link url="scheduleShipment" text="Set Scheduled"><parameter name="shipmentId"/></link>
-                    <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"><parameter name="shipmentId"/></link>
+                    <link url="scheduleShipment" text="Set Scheduled"/>
+                    <link url="shipShipment" text="Set Shipped"/>
+                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"/>
                 </widgets><fail-widgets>
-                    <link url="scheduleShipment" text="Set Scheduled"><parameter name="shipmentId"/></link>
-                    <link url="pickShipment" text="Set Picked"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"><parameter name="shipmentId"/></link>
+                    <link url="scheduleShipment" text="Set Scheduled"/>
+                    <link url="pickShipment" text="Set Picked"/>
+                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipScheduledSection" condition="shipment.statusId == 'ShipScheduled'"><widgets>
                 <section name="ShipScheduledInOutSection" condition="isIncoming"><widgets>
-                    <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
-                    <link url="deliverShipment" text="Set Delivered" condition="anyReceived"><parameter name="shipmentId"/></link>
-                    <link url="receiveEntireShipment" text="Receive Entire Shipment"><parameter name="shipmentId"/></link>
+                    <link url="shipShipment" text="Set Shipped"/>
+                    <link url="deliverShipment" text="Set Delivered" condition="anyReceived"/>
+                    <link url="receiveEntireShipment" text="Receive Entire Shipment"/>
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
-                    <link url="pickShipment" text="Set Picked"><parameter name="shipmentId"/></link>
-                    <link url="packShipment" text="Set Packed" condition="allItemsPacked" style="btn-success"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"><parameter name="shipmentId"/></link>
+                    <link url="pickShipment" text="Set Picked"/>
+                    <link url="packShipment" text="Set Packed" condition="allItemsPacked" style="btn-success"/>
+                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?"/>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
@@ -248,12 +251,13 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
             <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
                 <section name="ShipPickedInOuSection" condition="isIncoming"><widgets>
-                    <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
+                    <link url="shipShipment" text="Set Shipped"/>
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
-                    <link url="packShipment" text="Set Packed" condition="allItemsPacked" style="btn-success"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"><parameter name="shipmentId"/></link>
+                    <link url="packShipment" text="Set Packed" condition="allItemsPacked" style="btn-success"/>
+                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?">
+                        <parameter name="shipmentId"/></link>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                 </fail-widgets></section>
                 <link url="ShipmentByPackage.pdf" text="Package PDF"/>
