@@ -133,12 +133,16 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-single>
             </container-dialog>
         </widgets><fail-widgets>
-            <link url="postReverseAcctgTrans" text="Post Reverse Transaction" confirmation="Post a new transaction that reverses this?"/>
+            <link url="postReverseAcctgTrans" text="Create Reverse Transaction (don't post)" parameter-map="[createOnly:'true']"
+                    condition="!acctgTrans.reversedByAcctgTransId"/>
+            <link url="postReverseAcctgTrans" text="Create and Post Reverse Transaction"
+                    condition="!acctgTrans.reverseOfAcctgTransId &amp;&amp; !acctgTrans.reversedByAcctgTransId"
+                    confirmation="Create and post a new transaction that reverses this?"/>
         </fail-widgets></section>
 
         <container-row>
             <row-col lg="1"><label text="ID" type="strong"/></row-col>
-            <row-col lg="3"><label text="${acctgTransId}"/></row-col>
+            <row-col lg="3"><label text="${acctgTransId}" type="strong" style="${acctgTrans.reversedByAcctgTransId || acctgTrans.reverseOfAcctgTransId ? 'text-warning' : 'text-info'}"/></row-col>
             <row-col lg="1"><label text="Organization" type="strong"/></row-col>
             <row-col lg="3"><label text="${orgDetail.organizationName?:''} [${orgDetail.pseudoId}]" type="p"/></row-col>
             <row-col lg="1"><label text="TX Type" type="strong"/></row-col>
@@ -179,12 +183,12 @@ along with this software (see the LICENSE.md file). If not, see
             <row-col style="col-lg-11"><label text="${acctgTrans.description?:''}" type="p"/></row-col>
         </container-row>
         <container-row>
-            <row-col lg="1"><label text="Reversed By" type="strong"/></row-col>
-            <row-col lg="3"><link url="editTransaction" text="${acctgTrans.reversedByAcctgTransId}" link-type="anchor"
-                    parameter-map="[acctgTransId:acctgTrans.reversedByAcctgTransId]" condition="acctgTrans.reversedByAcctgTransId"/></row-col>
             <row-col lg="1"><label text="Reverse Of" type="strong"/></row-col>
-            <row-col lg="3"><link url="editTransaction" text="${acctgTrans.reverseOfAcctgTransId}" link-type="anchor"
+            <row-col lg="3"><link url="editTransaction" text="${acctgTrans.reverseOfAcctgTransId}" link-type="anchor-button"
                     parameter-map="[acctgTransId:acctgTrans.reverseOfAcctgTransId]" condition="acctgTrans.reverseOfAcctgTransId"/></row-col>
+            <row-col lg="1"><label text="Reversed By" type="strong"/></row-col>
+            <row-col lg="3"><link url="editTransaction" text="${acctgTrans.reversedByAcctgTransId}" link-type="anchor-button"
+                    parameter-map="[acctgTransId:acctgTrans.reversedByAcctgTransId]" condition="acctgTrans.reversedByAcctgTransId"/></row-col>
         </container-row>
         <container-row>
             <row-col lg="1"><label text="Debit" type="strong"/></row-col>
@@ -221,19 +225,19 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="acctgTransId"><default-field><hidden/></default-field></field>
             <field name="acctgTransEntrySeqId"><default-field><hidden/></default-field></field>
 
-            <field name="amount">
-                <conditional-field condition="acctgTrans.isPosted != 'Y'"><text-line size="10"/></conditional-field>
-                <default-field><display currency-unit-field="acctgTrans.amountUomId"/></default-field>
+            <field name="amount" align="right">
+                <conditional-field condition="acctgTrans.isPosted != 'Y'"><text-line size="12" format="#,##0.00##"/></conditional-field>
+                <default-field container-style="${debitCreditFlag == 'C' ? 'text-success' : 'text-info'}"><display currency-unit-field="acctgTrans.amountUomId"/></default-field>
             </field>
-            <field name="originalCurrencyAmount">
-                <conditional-field condition="acctgTrans.isPosted != 'Y'"><text-line size="8"/></conditional-field>
+            <field name="originalCurrencyAmount" align="right">
+                <conditional-field condition="acctgTrans.isPosted != 'Y'"><text-line size="10"/></conditional-field>
                 <default-field title="Orig Currency Amt"><display currency-unit-field="acctgTrans.originalCurrencyUomId"/></default-field>
             </field>
             <field name="debitCreditFlag">
                 <conditional-field condition="acctgTrans.isPosted != 'Y'">
                     <drop-down><option key="D"/><option key="C"/></drop-down>
                 </conditional-field>
-                <default-field title="Dbt Cdt"><display/></default-field>
+                <default-field title="Dbt Cdt" container-style="text-strong ${debitCreditFlag == 'C' ? 'text-success' : 'text-info'}"><display/></default-field>
             </field>
             <field name="glAccountTypeEnumId">
                 <conditional-field condition="acctgTrans.isPosted != 'Y'">
@@ -273,6 +277,16 @@ along with this software (see the LICENSE.md file). If not, see
                 </conditional-field>
                 <default-field title=""><display/></default-field>
             </field>
+
+            <form-list-column><field-ref name="amount"/><field-ref name="originalCurrencyAmount"/></form-list-column>
+            <form-list-column><field-ref name="debitCreditFlag"/></form-list-column>
+            <form-list-column><field-ref name="glAccountId"/><field-ref name="glAccountTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="reconcileStatusId"/></form-list-column>
+            <form-list-column><field-ref name="invoiceItemSeqId"/></form-list-column>
+            <form-list-column><field-ref name="productId"/></form-list-column>
+            <form-list-column><field-ref name="assetId"/></form-list-column>
+            <form-list-column><field-ref name="submitButton"/></form-list-column>
+            <form-list-column><field-ref name="removeLink"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
