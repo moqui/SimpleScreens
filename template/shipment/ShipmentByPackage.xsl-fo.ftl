@@ -17,6 +17,8 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign dateFormat = dateFormat!"dd MMM yyyy">
 <#assign dateTimeFormat = dateTimeFormat!"yyyy-MM-dd HH:mm">
 
+<#macro encodeText textValue>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(textValue!"", false))!""}</#macro>
+
 <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format" font-family="Helvetica, sans-serif" font-size="10pt">
     <fo:layout-master-set>
         <fo:simple-page-master master-name="letter-portrait" page-width="8.5in" page-height="11in"
@@ -29,7 +31,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <fo:page-sequence master-reference="letter-portrait">
         <fo:static-content flow-name="xsl-region-before">
-        <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block></#if>
+        <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center"><@encodeText fromPartyDetail.organizationName!""/><@encodeText fromPartyDetail.firstName!""/> <@encodeText fromPartyDetail.lastName!""/></fo:block></#if>
             <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment by Package</fo:block>
             <fo:block-container absolute-position="absolute" top="0in" right="0.5in" width="3in">
                 <fo:block text-align="right">
@@ -95,10 +97,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:table-cell padding="3pt" width="3in">
                 <#if toContactInfo.postalAddress?has_content>
                     <#if toContactInfo.postalAddress.toName?has_content || toContactInfo.postalAddress.attnName?has_content>
-                        <#if toContactInfo.postalAddress.toName?has_content><fo:block font-weight="bold">To: ${toContactInfo.postalAddress.toName}</fo:block></#if>
-                        <#if toContactInfo.postalAddress.attnName?has_content><fo:block font-weight="bold">Attn: ${toContactInfo.postalAddress.attnName}</fo:block></#if>
+                        <#if toContactInfo.postalAddress.toName?has_content><fo:block font-weight="bold">To: <@encodeText toContactInfo.postalAddress.toName/></fo:block></#if>
+                        <#if toContactInfo.postalAddress.attnName?has_content><fo:block font-weight="bold">Attn: <@encodeText toContactInfo.postalAddress.attnName/></fo:block></#if>
                     <#else>
-                        <fo:block font-weight="bold">${(toPartyDetail.organizationName)!""} ${(toPartyDetail.firstName)!""} ${(toPartyDetail.middleName)!""} ${(toPartyDetail.lastName)!""}</fo:block>
+                        <fo:block font-weight="bold"><@encodeText (toPartyDetail.organizationName)!""/> <@encodeText (toPartyDetail.firstName)!""/> <@encodeText (toPartyDetail.middleName)!""/> <@encodeText (toPartyDetail.lastName)!""/></fo:block>
                     </#if>
                     <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
                     <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>
