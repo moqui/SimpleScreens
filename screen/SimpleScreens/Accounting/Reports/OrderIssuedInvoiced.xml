@@ -26,7 +26,11 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="OrderIssuedInvoiced" list="oisbsList" skip-form="true" header-dialog="true"
                    select-columns="true" saved-finds="true" show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.order.OrderItemShipBillSummary" list="oisbsList">
-                <search-form-inputs default-order-by="placedDate"/>
+                <search-form-inputs default-order-by="placedDate">
+                    <default-parameters statusId_op="in" statusId="OrderPlaced,OrderProcessing,OrderApproved,OrderCompleted,OrderHold"
+                            placedDate_poffset="-3" placedDate_period="30d"/>
+                </search-form-inputs>
+                <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
                 <econditions combine="or">
                     <econdition field-name="issuedQuantity" operator="is-null"/>
                     <econdition field-name="quantity" operator="not-equals" to-field-name="issuedQuantity"/>
@@ -37,11 +41,27 @@ along with this software (see the LICENSE.md file). If not, see
             </entity-find>
 
             <field name="placedDate"><header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display/></default-field></field>
+                <default-field><display format="yyyy-MM-dd"/></default-field></field>
             <field name="orderId"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
                 <default-field><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
             <field name="orderItemSeqId"><header-field title="Item" show-order-by="true"/>
                 <default-field><display/></default-field></field>
+            <field name="statusId">
+                <header-field title="Status" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="OrderHeader"/><set field="allowMultiple" value="true"/>
+                        <set field="allowEmpty" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+            </field>
+            <field name="customerPartyId">
+                <header-field title="Customer" show-order-by="true">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"
+                            parameter-map="[roleTypeId:'Customer,OrgInternal']"/></drop-down>
+                </header-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:customerPartyId]"/></default-field>
+            </field>
 
             <field name="productId">
                 <header-field title="Product" show-order-by="true"><drop-down allow-empty="true" allow-multiple="true">
@@ -61,12 +81,12 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="itemTotal" from="quantity * unitAmount" align="right" show-total="sum">
                 <default-field><display format="#,##0.00"/></default-field></field>
 
-            <field name="issuedQuantity" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
+            <field name="issuedQuantity" align="right" show-total="sum"><header-field title="Issued" show-order-by="true"><range-find size="15"/></header-field>
                 <default-field><display format="#,##0"/></default-field></field>
             <field name="issuedTotal" from="(issuedQuantity?:0.0) * unitAmount" align="right" show-total="sum">
                 <default-field><display format="#,##0.00"/></default-field></field>
 
-            <field name="billedQuantity" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
+            <field name="billedQuantity" align="right" show-total="sum"><header-field title="Billed" show-order-by="true"><range-find size="15"/></header-field>
                 <default-field><display format="#,##0"/></default-field></field>
             <field name="billedTotal" from="(billedQuantity?:0.0) * unitAmount" align="right" show-total="sum">
                 <default-field><display format="#,##0.00"/></default-field></field>
