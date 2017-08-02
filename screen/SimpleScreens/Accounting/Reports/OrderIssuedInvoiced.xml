@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Order Issued and Invoiced" default-menu-include="false">
+
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <widgets>
+        <form-list name="OrderIssuedInvoiced" list="oisbsList" skip-form="true" header-dialog="true"
+                   select-columns="true" saved-finds="true" show-csv-button="true" show-all-button="true">
+            <entity-find entity-name="mantle.order.OrderItemShipBillSummary" list="oisbsList">
+                <search-form-inputs default-order-by="placedDate"/>
+                <econditions combine="or">
+                    <econdition field-name="issuedQuantity" operator="is-null"/>
+                    <econdition field-name="quantity" operator="not-equals" to-field-name="issuedQuantity"/>
+                    <econdition field-name="billedQuantity" operator="is-null"/>
+                    <econdition field-name="quantity" operator="not-equals" to-field-name="billedQuantity"/>
+                </econditions>
+                <select-field field-name="productId,unitAmount"/>
+            </entity-find>
+
+            <field name="placedDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="orderId"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
+                <default-field><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
+            <field name="orderItemSeqId"><header-field title="Item" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+
+            <field name="productId">
+                <header-field title="Product" show-order-by="true"><drop-down allow-empty="true" allow-multiple="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
+            </field>
+            <field name="pseudoId" show-total="count">
+                <header-field title="Product" show-order-by="true"/>
+                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor" condition="productId"/></default-field>
+            </field>
+            <field name="productName">
+                <header-field title="Name" show-order-by="true"/>
+                <default-field><link url="editProduct" text="${productName}" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="quantity" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
+                <default-field><display format="#,##0"/></default-field></field>
+            <field name="itemTotal" from="quantity * unitAmount" align="right" show-total="sum">
+                <default-field><display format="#,##0.00"/></default-field></field>
+
+            <field name="issuedQuantity" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
+                <default-field><display format="#,##0"/></default-field></field>
+            <field name="issuedTotal" from="(issuedQuantity?:0.0) * unitAmount" align="right" show-total="sum">
+                <default-field><display format="#,##0.00"/></default-field></field>
+
+            <field name="billedQuantity" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
+                <default-field><display format="#,##0"/></default-field></field>
+            <field name="billedTotal" from="(billedQuantity?:0.0) * unitAmount" align="right" show-total="sum">
+                <default-field><display format="#,##0.00"/></default-field></field>
+
+            <field name="find"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+    </widgets>
+</screen>
