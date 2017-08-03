@@ -172,13 +172,12 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <#if orderPartInfo.orderPart.shippingInstructions?has_content>
                     <fo:block margin-top="0.2in" font-weight="bold">Shipping Instructions</fo:block>
-                    <fo:block>${orderPartInfo.orderPart.shippingInstructions}</fo:block>
+                    <fo:block><@encodeText orderPartInfo.orderPart.shippingInstructions/></fo:block>
                 </#if>
                 <#if orderPartInfo.orderPart.giftMessage?has_content>
                     <fo:block margin-top="0.2in" font-weight="bold">Gift Message</fo:block>
-                    <fo:block>${orderPartInfo.orderPart.giftMessage}</fo:block>
+                    <fo:block><@encodeText orderPartInfo.orderPart.giftMessage/></fo:block>
                 </#if>
-
             </#list>
         </fo:flow>
     </fo:page-sequence>

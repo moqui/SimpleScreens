@@ -208,6 +208,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-body>
                 </fo:table>
             </#if>
+            <#if shipment.handlingInstructions?has_content>
+                <fo:block font-weight="bold" margin-top="0.1in">Shipping Instructions</fo:block>
+                <fo:block><@encodeText shipment.handlingInstructions/></fo:block>
+            </#if>
         </fo:flow>
     </fo:page-sequence>
 </fo:root>
