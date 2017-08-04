@@ -20,6 +20,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
     <transition name="assetOnHand"><default-response url="//${appRoot}/Accounting/Reports/AssetOnHand"/></transition>
 
+    <transition name="recordChange"><service-call name="mantle.product.AssetServices.record#PhysicalInventoryChange"/>
+        <default-response url=".."/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
@@ -35,10 +38,36 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="../EditLots" text="Lots"/>
         <link url="assetOnHand" text="On Hand Report"/>
 
+        <container-dialog id="PhysicalManualDialog" button-text="Physical Change">
+            <form-single name="PhysicalManualChange" transition="recordChange">
+                <field name="productId"><default-field title="Product"><drop-down>
+                    <dynamic-options transition="getProductList" server-search="true"/></drop-down></default-field></field>
+                <field name="facilityId"><default-field title="Facility">
+                    <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                </default-field></field>
+                <field name="locationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLocationList" server-search="true" min-length="0" depends-optional="true">
+                        <depends-on field="facilityId"/></dynamic-options>
+                </drop-down></default-field></field>
+                <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLotList" server-search="true" min-length="2"/>
+                </drop-down></default-field></field>
+
+                <field name="quantityChange"><default-field title="Quantity Difference"><text-line size="6"/></default-field></field>
+                <field name="comments"><default-field><text-area cols="60" rows="5"/></default-field></field>
+                <field name="varianceReasonEnumId"><default-field title="Variance Reason">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="InventoryVarianceReason"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </default-field></field>
+
+                <field name="submitButton"><default-field title="Record"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
         <form-list name="AssetSummary" list="assetList" skip-form="true" header-dialog="true" saved-finds="true"
                 select-columns="true" show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="assetList">
-                <search-form-inputs default-order-by="productName"/>
+                <search-form-inputs default-order-by="productName,facilityId,lotId"/>
                 <having-econditions combine="or">
                     <econdition field-name="quantityOnHandTotal" operator="not-equals" from="0.0"/>
                     <econdition field-name="availableToPromiseTotal" operator="not-equals" from="0.0"/>
@@ -53,10 +82,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title="Assets"><link url="findAsset" text="Assets" parameter-map="[pseudoId:pseudoId, statusId:statusId,
                             facilityId:facilityId, locationSeqId:locationSeqId, lotId:lotId]" condition="pseudoId"/></default-field>
             </field>
+            <field name="productId"><header-field title="Product"><drop-down allow-empty="true">
+                <dynamic-options transition="getProductList" server-search="true"/></drop-down></header-field></field>
             <field name="pseudoId">
-                <header-field title="Product" show-order-by="case-insensitive"><drop-down allow-empty="true">
-                    <dynamic-options transition="getProductList" server-search="true" min-length="2"/></drop-down>
-                </header-field>
+                <header-field title="Product ID" show-order-by="true"><text-find size="15" hide-options="true"/></header-field>
                 <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
             </field>
             <field name="productName">
@@ -102,7 +131,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><label condition="locationSeqId" text-map="facLoc" text="FacilityLocationNameTemplate"/></default-field>
             </field>
             <field name="lotId">
-                <header-field title="Lot"><drop-down allow-empty="true">
+                <header-field title="Lot" show-order-by="true"><drop-down allow-empty="true">
                     <dynamic-options transition="getLotList" server-search="true" min-length="2"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field>
             </field>
@@ -127,7 +156,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="assetsLink"/></form-list-column>
             <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/></form-list-column>
             <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/></form-list-column>
-            <form-list-column><field-ref name="facilityId"/></form-list-column>
+            <form-list-column><field-ref name="facilityId"/><field-ref name="lotId"/></form-list-column>
             <form-list-column><field-ref name="availableToPromiseTotal"/></form-list-column>
             <form-list-column><field-ref name="quantityOnHandTotal"/></form-list-column>
             <form-list-column><field-ref name="physicalQuantity"/></form-list-column>
