@@ -20,6 +20,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="editTransaction"><default-response url="."/></transition>
     <transition name="updateAcctgTrans"><service-call name="mantle.ledger.LedgerServices.update#AcctgTrans"/><default-response url="."/></transition>
+    <transition name="updateAcctgTransPosted"><service-call name="mantle.ledger.LedgerServices.update#AcctgTransPosted"/><default-response url="."/></transition>
     <transition name="deleteAcctgTrans"><service-call name="mantle.ledger.LedgerServices.delete#AcctgTrans"/>
         <default-response url=".."/></transition>
     <transition name="postAcctgTrans"><service-call name="mantle.ledger.LedgerServices.post#AcctgTrans"/><default-response url="."/></transition>
@@ -105,7 +106,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </drop-down>
                     </default-field></field>
 
-                    <field name="description"><default-field><text-area cols="80" rows="5"/></default-field></field>
+                    <field name="description"><default-field><text-area cols="80" rows="2"/></default-field></field>
 
                     <field name="invoiceId"><default-field title="Invoice ID">
                         <text-line size="20"/>
@@ -138,6 +139,14 @@ along with this software (see the LICENSE.md file). If not, see
             <link url="postReverseAcctgTrans" text="Create and Post Reverse Transaction"
                     condition="!acctgTrans.reverseOfAcctgTransId &amp;&amp; !acctgTrans.reversedByAcctgTransId"
                     confirmation="Create and post a new transaction that reverses this?"/>
+            <container-dialog id="UpdatePostedDialog" button-text="Update Transaction" width="900">
+                <form-single name="UpdateAcctgTransPosted" map="acctgTrans" transition="updateAcctgTransPosted" extends="UpdateAcctgTrans">
+                    <field name="organizationPartyId"><default-field><ignored/></default-field></field>
+                    <field name="transactionDate"><default-field><ignored/></default-field></field>
+                    <field name="amountUomId"><default-field><ignored/></default-field></field>
+                    <field name="originalCurrencyUomId"><default-field><ignored/></default-field></field>
+                </form-single>
+            </container-dialog>
         </fail-widgets></section>
 
         <container-row>
