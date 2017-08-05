@@ -156,9 +156,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:block>${invoiceId}</fo:block>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="1.75in">
+                        <fo:block font-weight="bold">Customer #</fo:block>
+                        <fo:block>${toParty.pseudoId}</fo:block>
                         <#if invoice.referenceNumber?has_content>
                             <fo:block font-weight="bold">PO or Ref #</fo:block>
-                            <fo:block font-weight="bold">${invoice.referenceNumber}</fo:block>
+                            <fo:block>${invoice.referenceNumber}</fo:block>
                         </#if>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="2in">
