@@ -64,6 +64,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:table-cell padding="3pt" width="3in">
                     <fo:block font-weight="bold">Shipment #</fo:block>
                     <fo:block>${shipmentId}</fo:block>
+                    <#if orderPartList?has_content>
+                        <fo:block font-weight="bold">Order</fo:block>
+                        <#list orderPartList as orderPart>
+                            <fo:block>${orderPart.orderId}:${orderPart.orderPartSeqId}<#if orderPart.otherPartyOrderId?has_content> - PO ${orderPart.otherPartyOrderId}</#if></fo:block>
+                        </#list>
+                    </#if>
                     <#if invoiceList?has_content>
                         <fo:block font-weight="bold">Invoice</fo:block>
                         <#list invoiceList as invoice>
@@ -95,6 +101,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:block font-size="6pt"> </fo:block>
                 </fo:table-cell>
                 <fo:table-cell padding="3pt" width="3in">
+                    <#if toPartyDetail?has_content>
+                        <fo:block font-weight="bold">${toPartyDetail.pseudoId}: <@encodeText (toPartyDetail.organizationName)!""/> <@encodeText (toPartyDetail.firstName)!""/> <@encodeText (toPartyDetail.middleName)!""/> <@encodeText (toPartyDetail.lastName)!""/></fo:block>
+                    </#if>
                 <#if toContactInfo.postalAddress?has_content>
                     <#if toContactInfo.postalAddress.toName?has_content || toContactInfo.postalAddress.attnName?has_content>
                         <#if toContactInfo.postalAddress.toName?has_content><fo:block font-weight="bold">To: <@encodeText toContactInfo.postalAddress.toName/></fo:block></#if>
@@ -125,10 +134,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:table-cell padding="3pt" width="1.5in"><fo:block>
                     <fo:inline font-weight="bold">Package</fo:inline> ${packageInfo.shipmentPackage.shipmentPackageSeqId}
                 </fo:block></fo:table-cell>
-                <fo:table-cell padding="3pt" width="2.5in"><fo:block>
+                <fo:table-cell padding="3pt" width="3.5in"><fo:block>
                     <fo:inline font-weight="bold">Box Type</fo:inline> ${(packageInfo.shipmentBoxType.description)!''}
                 </fo:block></fo:table-cell>
-                <fo:table-cell padding="3pt" width="2in"><fo:block>
+                <fo:table-cell padding="3pt" width="2.5in"><fo:block>
                     <fo:inline font-weight="bold">Weight</fo:inline> ${ec.l10n.format((packageInfo.shipmentPackage.weight)!, '')} ${(packageInfo.weightUom.description)!''}
                 </fo:block></fo:table-cell>
             </fo:table-row></fo:table-body></fo:table>
