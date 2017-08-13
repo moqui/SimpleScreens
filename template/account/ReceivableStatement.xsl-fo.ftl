@@ -104,17 +104,19 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:table table-layout="fixed" width="100%">
                 <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
                     <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Invoice #</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="left">PO #</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Ref #</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Order</fo:block></fo:table-cell>
                     <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Invoice Date</fo:block></fo:table-cell>
                     <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Due Date</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">Unpaid</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.25in" padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.25in" padding="${cellPadding}"><fo:block text-align="right">Unpaid</fo:block></fo:table-cell>
                 </fo:table-header>
                 <fo:table-body>
                     <#list invoiceList as invoice>
                         <fo:table-row font-size="${tableFontSize}" border-bottom="thin solid black">
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoice.invoiceId}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoice.referenceNumber!" "}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoice.otherPartyOrderId!" "}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.format(invoice.invoiceDate, dateFormat)}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.format(invoice.dueDate, dateFormat)}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoice.invoiceTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
