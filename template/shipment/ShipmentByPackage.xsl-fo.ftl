@@ -73,7 +73,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <#if invoiceList?has_content>
                         <fo:block font-weight="bold">Invoice</fo:block>
                         <#list invoiceList as invoice>
-                            <fo:block>${invoice.invoiceId}<#if invoice.referenceNumber?has_content> - PO ${invoice.referenceNumber}</#if></fo:block>
+                            <fo:block>${invoice.invoiceId}<#if invoice.otherPartyOrderId?has_content || invoice.referenceNumber?has_content> - PO ${invoice.otherPartyOrderId!invoice.referenceNumber}</#if></fo:block>
                         </#list>
                     </#if>
                     <#if originFacility?has_content>

@@ -163,7 +163,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <fo:block>${invoice.referenceNumber}</fo:block>
                         </#if>
                         <#if invoice.otherPartyOrderId?has_content>
-                            <fo:block font-weight="bold">PO</fo:block>
+                            <fo:block font-weight="bold">Order</fo:block>
                             <fo:block>${invoice.otherPartyOrderId}</fo:block>
                         </#if>
                     </fo:table-cell>

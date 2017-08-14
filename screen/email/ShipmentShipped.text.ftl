@@ -4,7 +4,7 @@ Shipment ${shipmentId}
 Order ${orderId}
 </#list>
 <#if invoiceList?has_content>
-Invoice <#list invoiceList as invoice>${invoice.invoiceId}<#if invoice.referenceNumber?has_content> - PO ${invoice.referenceNumber}</#if><#sep>, </#list>
+Invoice <#list invoiceList as invoice>${invoice.invoiceId}<#if invoice.otherPartyOrderId?has_content || invoice.referenceNumber?has_content> - PO ${invoice.otherPartyOrderId!invoice.referenceNumber}</#if><#sep>, </#list>
 </#if>
 <#if originFacility?has_content>Shipping from ${originFacility.facilityName}</#if>
 
