@@ -343,6 +343,36 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body-nopad></container-box>
             </widgets></section>
 
+            <container-box><box-header><label text="GL Transactions" type="h5"/></box-header><box-body-nopad>
+                <form-list name="PaymentTxList" list="acctgTransList" skip-form="true">
+                    <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
+                        <econdition field-name="paymentId"/><order-by field-name="postedDate,acctgTransId"/></entity-find>
+                    <row-actions>
+                        <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
+                                in-map="[acctgTransId:acctgTransId]" out-map="context"/>
+                    </row-actions>
+
+                    <field name="acctgTransId"><default-field title="TX ID">
+                        <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
+                    <field name="acctgTransTypeEnumId">
+                        <default-field title="TX Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                    <field name="invoiceId"><default-field title="Invoice">
+                        <link url="editInvoice" text="${invoiceId}" link-type="anchor" condition="invoiceId"/></default-field></field>
+
+                    <field name="reversedByAcctgTransId"><default-field title="Rev By">
+                        <link url="editTransaction" text="${reversedByAcctgTransId}" link-type="anchor" condition="reversedByAcctgTransId"
+                                parameter-map="[acctgTransId:reversedByAcctgTransId]"/></default-field></field>
+                    <field name="reverseOfAcctgTransId"><default-field title="Rev Of">
+                        <link url="editTransaction" text="${reverseOfAcctgTransId}" link-type="anchor" condition="reverseOfAcctgTransId"
+                                parameter-map="[acctgTransId:reverseOfAcctgTransId]"/></default-field></field>
+
+                    <field name="isPosted"><default-field title="Posted"><display/></default-field></field>
+                    <field name="postedDate"><default-field><display/></default-field></field>
+
+                    <field name="debitTotal" align="right"><default-field title="Total"><display currency-unit-field="amountUomId"/></default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
+
             <section name="ContentSection"><actions>
                 <entity-find entity-name="mantle.account.payment.PaymentContent" list="contentList">
                     <econdition field-name="paymentId"/><order-by field-name="-contentDate"/></entity-find>
