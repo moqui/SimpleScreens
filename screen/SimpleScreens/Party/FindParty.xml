@@ -35,45 +35,43 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getGeoCountryStates" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
-        <service-call name="mantle.party.PartyServices.find#Party" in-map="context + [leadingWildcard:true]" out-map="context"/>
+        <set field="indexName" from="searchIndexName ?: 'mantle'"/>
+        <set field="documentType" from="searchPartyDocType ?: 'MantleParty'"/>
+
+        <set field="queryString" from="anyField ?: queryString"/>
+        <set field="originalQueryString" from="queryString"/>
+        <set field="anyField" from="originalQueryString"/>
+        <if condition="queryString"><set field="queryString" from="'(' + queryString + ')'"/></if>
+
+        <if condition="roleTypeId">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'roleTypeId:' + roleTypeId"/></if>
+        <if condition="pseudoId">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'pseudoId:' + pseudoId + '*'"/></if>
+        <if condition="organizationName">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'organizationName:' + organizationName + '*'"/></if>
+        <if condition="firstName">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'firstName:' + firstName + '*'"/></if>
+        <if condition="lastName">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'lastName:' + lastName + '*'"/></if>
+        <if condition="combinedName">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'organizationName:(' + combinedName + ')' + 'firstName:(' + combinedName + ')' + 'lastName:(' + combinedName + ')'"/>
+        </if>
+        <if condition="idValue">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'idValue:' + idValue + '*'"/></if>
+        <if condition="infoString">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'infoString:' + infoString + '*'"/></if>
+
+        <if condition="orderByField"><set field="orderByFields" from="[orderByField]"/></if>
+
+        <!-- <log level="warn" message="Product search queryString: ${queryString}"/> -->
+        <if condition="queryString">
+            <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
+                    in-map="[indexName:indexName, documentType:documentType, queryString:queryString,
+                             orderByFields:[(orderByField ?: 'pseudoId')], pageIndex:pageIndex, pageSize:pageSize]"/>
+            <!-- NOTE: in latest ElasticSearch can't sort by 'name' because is text type field without fielddata=true -->
+        </if>
     </actions>
     <widgets>
-        <container-dialog id="FindOptionsDialog" button-text="Find Options">
-            <form-single name="FindOptionsForm" transition=".">
-                <field name="pseudoId"><default-field><text-line size="20"/></default-field></field>
-                <field name="roleTypeId"><default-field title="Role">
-                    <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
-                        <entity-find entity-name="mantle.party.RoleType">
-                            <order-by field-name="description"/></entity-find>
-                    </entity-options></drop-down>
-                </default-field></field>
-
-                <field name="combinedName"><default-field><text-line size="40"/></default-field></field>
-                <field name="organizationName"><default-field><text-line size="40"/></default-field></field>
-                <field name="firstName"><default-field><text-line size="40"/></default-field></field>
-                <field name="lastName"><default-field><text-line size="40"/></default-field></field>
-                <field name="username"><default-field><text-line size="40"/></default-field></field>
-
-                <field name="address1"><default-field><text-line size="40"/></default-field></field>
-                <field name="city"><default-field><text-line size="30"/></default-field></field>
-                <field name="stateProvinceGeoId"><default-field title="State">
-                    <drop-down allow-empty="true"><entity-options key="${toGeoId}" text="${geoName}">
-                        <entity-find entity-name="moqui.basic.GeoAssocAndToDetail">
-                            <econdition field-name="geoId" value="USA"/>
-                            <econdition field-name="geoAssocTypeEnumId" value="GAT_REGIONS"/>
-                            <order-by field-name="geoName"/>
-                        </entity-find>
-                    </entity-options></drop-down>
-                </default-field></field>
-                <field name="postalCode"><default-field><text-line size="10"/></default-field></field>
-
-                <field name="emailAddress"><default-field><text-line size="40"/></default-field></field>
-                <field name="areaCode"><default-field><text-line size="5"/></default-field></field>
-                <field name="contactNumber"><default-field><text-line size="10"/></default-field></field>
-
-                <field name="submitButton"><default-field title="Find"><submit/></default-field></field>
-            </form-single>
-        </container-dialog>
         <container-dialog id="CreatePersonDialog" button-text="New Person">
             <form-single name="CreatePersonForm" transition="createPerson">
                 <field name="roleTypeId"><default-field><hidden/></default-field></field>
@@ -216,32 +214,73 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <form-list name="PartyListForm" list="partyIdList" list-entry="partyId" skip-form="true">
+        <render-mode><text type="html,vuet"><![CDATA[
+            <div class="row"><div class="form-group">
+                <label class="control-label col-lg-2 text-right" for="PartyListForm_header_queryString">Search Any Field</label>
+                <div class="col-lg-10">
+                    <input type="text" name="queryString" value="${(originalQueryString!'')?html}" size="100" id="PartyListForm_header_queryString" class="form-control" form="PartyListForm_header">
+                </div>
+            </div></div>
+        ]]></text></render-mode>
+        <label text="Full search string: ${queryString?:''}" type="p"/>
+        <form-list name="PartyListForm" list="documentList" skip-form="true" header-dialog="true">
             <row-actions>
                 <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
                 <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
                     <field-map field-name="partyId"/></entity-find-one>
             </row-actions>
+
+            <field name="anyField"><header-field><text-line size="80"/></header-field></field>
+
+            <field name="roleTypeId"><header-field title="Role">
+                <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                    <entity-find entity-name="mantle.party.RoleType">
+                        <order-by field-name="description"/></entity-find>
+                </entity-options></drop-down>
+            </header-field></field>
+
             <field name="pseudoId">
-                <header-field title="ID" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <header-field title="ID" show-order-by="true"><text-line size="20"/></header-field>
                 <default-field><link url="editParty" text="${party.pseudoId}" link-type="anchor"/></default-field>
             </field>
+            <field name="organizationName"><header-field><text-line size="40"/></header-field></field>
+            <field name="firstName"><header-field><text-line size="40"/></header-field></field>
+            <field name="lastName"><header-field><text-line size="40"/></header-field></field>
+
             <field name="combinedName">
-                <header-field title="Name" show-order-by="case-insensitive"><text-find size="20" hide-options="true"/></header-field>
-                <default-field><link url="editParty" text="PartyNameOnlyTemplate" text-map="party" link-type="anchor"/></default-field>
+                <!-- TODO: any way to order by with multiple name fields and ES type text vs keyword? -->
+                <header-field title="Name"><text-line size="40"/></header-field>
+                <default-field><link url="editParty" text="PartyNameOnlyTemplate" link-type="anchor"/></default-field>
             </field>
             <field name="username">
-                <header-field><text-find size="10" hide-options="true"/></header-field>
+                <header-field><text-line size="20"/></header-field>
                 <default-field><display text="${userAccount?.username?:''}"/></default-field>
             </field>
-            <field name="disabled" from="party.disabled">
+            <field name="disabled">
                 <header-field><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
                 <default-field><display/></default-field>
             </field>
-            <field name="hasDuplicates" from="party.hasDuplicates">
-                <header-field><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
+            <field name="hasDuplicates">
+                <header-field title="Dups"><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
                 <default-field><display/></default-field>
             </field>
+
+            <field name="infoString"><header-field title="Email"><text-line size="40"/></header-field></field>
+            <field name="areaCode"><header-field><text-line size="5"/></header-field></field>
+            <field name="contactNumber"><header-field><text-line size="10"/></header-field></field>
+
+            <field name="address1"><header-field><text-line size="40"/></header-field></field>
+            <field name="city"><header-field><text-line size="30"/></header-field></field>
+            <field name="stateProvinceGeoId"><header-field title="State">
+                <drop-down allow-empty="true"><entity-options key="${toGeoId}" text="${geoName}">
+                    <entity-find entity-name="moqui.basic.GeoAssocAndToDetail">
+                        <econdition field-name="geoId" value="USA"/>
+                        <econdition field-name="geoAssocTypeEnumId" value="GAT_REGIONS"/>
+                        <order-by field-name="geoName"/>
+                    </entity-find>
+                </entity-options></drop-down>
+            </header-field></field>
+            <field name="postalCode"><header-field><text-line size="10"/></header-field></field>
 
             <field name="submitButton">
                 <header-field title="Find"><submit/></header-field>
