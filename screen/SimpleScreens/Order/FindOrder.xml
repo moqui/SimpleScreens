@@ -23,6 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
     <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
@@ -57,6 +58,7 @@ along with this software (see the LICENSE.md file). If not, see
     </actions><default-response type="none"/></transition>
 
     <actions>
+        <set field="itemTypeEnumId" from="salesItemTypeEnumId ?: purchaseItemTypeEnumId ?: 'ItemProduct,ItemInventory,ItemAsset'"/>
         <if condition="'sales'.equalsIgnoreCase(orderType)"><then><set field="vendorRoleTypeId" value="OrgInternal"/></then>
             <else-if condition="'purchase'.equalsIgnoreCase(orderType)"><set field="customerRoleTypeId" value="OrgInternal"/></else-if></if>
 
@@ -117,30 +119,39 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
             </form-single>
         </container-dialog>
+        <link url="../OrderIssuedInvoiced" text="Issued and Invoiced Report"/>
+        <link url="../SalesAnalysis" text="Sales Analysis Report"/>
 
         <form-list name="OrderList" list="orderList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true"
                 show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
                 <search-form-inputs default-order-by="-entryDate,-orderId,orderPartSeqId"
-                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId">
+                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId">
                     <default-parameters statusId="OrderOpen,OrderPlaced,OrderApproved" statusId_op="in"
                             entryDate_poffset="-1" entryDate_period="30d" orderType="Any"/></search-form-inputs>
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate"/>
                 <econdition field-name="vendorRoleTypeId" ignore-if-empty="true"/>
                 <econdition field-name="customerRoleTypeId" ignore-if-empty="true"/>
                 <econdition field-name="customerClassificationId" ignore-if-empty="true"/>
+                <econdition field-name="itemTypeEnumId" operator="in" ignore-if-empty="true"/>
                 <econdition field-name="productId" operator="in" from="findProductId" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="greater-equals" from="findQuantity_from" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
-                <econdition field-name="itemTypeEnumId" from="salesItemTypeEnumId" ignore-if-empty="true"/>
-                <econdition field-name="itemTypeEnumId" from="purchaseItemTypeEnumId" ignore-if-empty="true"/>
                 <select-field field-name="orderPartSeqId"/>
             </entity-find>
             <row-actions>
+                <!-- Customer Classification -->
                 <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
                     <date-filter/><econdition field-name="partyId" from="customerPartyId"/>
                     <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
                 <set field="custPcaa" from="custPcaaList ? custPcaaList[0] : null"/>
+
+                <!-- Shipments -->
+                <entity-find entity-name="mantle.order.OrderItemShipSummary" list="oissList">
+                    <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
+                    <having-econditions><econdition field-name="shipmentQuantity" operator="greater" from="0.0"/></having-econditions>
+                    <select-field field-name="shipmentId,shipmentQuantity,quantityHandled"/>
+                </entity-find>
             </row-actions>
 
             <field name="orderType"><header-field><radio no-current-selected-key="Any">
@@ -215,12 +226,22 @@ along with this software (see the LICENSE.md file). If not, see
                 <display text="${custPcaa?.description ?: ''}"/>
             </default-field></field>
 
+            <field name="shipments"><default-field>
+                <section-iterate name="ShipmentListSection" list="oissList" entry="oiss"><widgets><container>
+                    <link url="shipmentDetail" link-type="anchor" text="${oiss.shipmentId}" parameter-map="[shipmentId:oiss.shipmentId]"/>
+                    <label text=" (${ec.l10n.format(oiss.quantityHandled, null)} of ${ec.l10n.format(oiss.shipmentQuantity, null)})"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
+
             <field name="partTotal" align="right" show-total="sum">
                 <header-field show-order-by="true" title="Total"><range-find/></header-field>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="quantityTotal" align="right" show-total="sum">
+                <header-field show-order-by="true" title="Quantity"><range-find/></header-field>
+                <default-field><display/></default-field></field>
 
             <field name="purchaseItemTypeEnumId"><header-field title="Purchase Item Type">
-                <drop-down allow-empty="true">
+                <drop-down allow-empty="true" allow-multiple="true">
                     <entity-options key="${enumId}" text="${description}">
                         <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
                             <econdition field-name="enumGroupEnumId" value="EngItemsPurchase"/>
@@ -228,7 +249,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down>
             </header-field></field>
             <field name="salesItemTypeEnumId"><header-field title="Sales Item Type">
-                <drop-down allow-empty="true">
+                <drop-down allow-empty="true" allow-multiple="true">
                     <entity-options key="${enumId}" text="${description}">
                         <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
                             <econdition field-name="enumGroupEnumId" value="EngItemsSales"/>
@@ -248,7 +269,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="productStoreId"/></form-list-column>
             <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
                 <field-ref name="customerClassificationId"/></form-list-column>
-            <form-list-column><field-ref name="partTotal"/></form-list-column>
+            <form-list-column><field-ref name="shipments"/></form-list-column>
+            <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
     </widgets>
