@@ -38,15 +38,19 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="indexName" from="searchIndexName ?: 'mantle'"/>
         <set field="documentType" from="searchPartyDocType ?: 'MantleParty'"/>
 
-        <set field="queryString" from="anyField ?: queryString"/>
-        <set field="originalQueryString" from="queryString"/>
-        <set field="anyField" from="originalQueryString"/>
+        <set field="orderByField" from="orderByField ?: 'combinedName'"/>
+
+
+        <set field="queryString" from="anyField"/>
         <if condition="queryString"><set field="queryString" from="'(' + queryString + ')'"/></if>
 
         <if condition="roleTypeId">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'roleTypeId:' + roleTypeId"/></if>
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'roles.roleTypeId:' + roleTypeId"/></if>
         <if condition="pseudoId">
             <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'pseudoId:' + pseudoId + '*'"/></if>
+        <if condition="idValue">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'identifications.idValue:' + idValue + '*'"/></if>
+
         <if condition="organizationName">
             <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'organizationName:' + organizationName + '*'"/></if>
         <if condition="firstName">
@@ -54,12 +58,31 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="lastName">
             <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'lastName:' + lastName + '*'"/></if>
         <if condition="combinedName">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'organizationName:(' + combinedName + ')' + 'firstName:(' + combinedName + ')' + 'lastName:(' + combinedName + ')'"/>
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'combinedName:*' + combinedName + '*'"/>
         </if>
-        <if condition="idValue">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'idValue:' + idValue + '*'"/></if>
+
+        <if condition="username">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'userAccounts.username:' + username + '*'"/></if>
+        <if condition="disabled">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'disabled:' + disabled + '*'"/></if>
+        <if condition="hasDuplicates">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'hasDuplicates:' + hasDuplicates + '*'"/></if>
+
         <if condition="infoString">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'infoString:' + infoString + '*'"/></if>
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.infoString:' + infoString + '*'"/></if>
+        <if condition="areaCode">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.areaCode:' + areaCode + '*'"/></if>
+        <if condition="contactNumber">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.contactNumber:' + contactNumber + '*'"/></if>
+
+        <if condition="address1">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.address1:*' + address1 + '*'"/></if>
+        <if condition="city">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.city:' + city + '*'"/></if>
+        <if condition="stateProvinceGeoId">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.stateProvinceGeoId:' + stateProvinceGeoId"/></if>
+        <if condition="postalCode">
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.postalCode:' + postalCode + '*'"/></if>
 
         <if condition="orderByField"><set field="orderByFields" from="[orderByField]"/></if>
 
@@ -67,7 +90,7 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="queryString">
             <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
                     in-map="[indexName:indexName, documentType:documentType, queryString:queryString,
-                             orderByFields:[(orderByField ?: 'pseudoId')], pageIndex:pageIndex, pageSize:pageSize]"/>
+                             orderByFields:[orderByField.replace('combinedName', 'combinedName.keyword')], pageIndex:pageIndex, pageSize:pageSize]"/>
             <!-- NOTE: in latest ElasticSearch can't sort by 'name' because is text type field without fielddata=true -->
         </if>
     </actions>
@@ -119,14 +142,14 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field></field>
                 <field name="cardNumber"><default-field title=""><text-line size="16"/></default-field></field>
                 <field name="expireMonth">
-                    <default-field title=""><drop-down current="selected" no-current-selected-key="${ec.l10n.format(ec.user.nowTimestamp, 'MM')}">
+                    <default-field title=""><drop-down no-current-selected-key="${ec.l10n.format(ec.user.nowTimestamp, 'MM')}">
                         <option key="01"/><option key="02"/><option key="03"/><option key="04"/><option key="05"/>
                         <option key="06"/><option key="07"/><option key="08"/><option key="09"/><option key="10"/>
                         <option key="11"/><option key="12"/>
                     </drop-down></default-field>
                 </field>
                 <field name="expireYear">
-                    <default-field title=""><drop-down current="selected" no-current-selected-key="${ec.l10n.format(ec.user.nowTimestamp, 'yyyy')}">
+                    <default-field title=""><drop-down no-current-selected-key="${ec.l10n.format(ec.user.nowTimestamp, 'yyyy')}">
                         <list-options list="org.moqui.util.StringUtilities.getYearList(10)"/></drop-down></default-field>
                 </field>
 
@@ -145,7 +168,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </drop-down>
                 </default-field></field>
                 <field name="stateProvinceGeoId"><default-field title="">
-                    <drop-down><dynamic-options transition="getGeoCountryStates" value-field="geoId" label-field="label">
+                    <drop-down><dynamic-options transition="getGeoCountryStates" value-field="geoId">
                         <depends-on field="countryGeoId"/></dynamic-options></drop-down>
                 </default-field></field>
                 <field name="postalCode"><default-field title="" tooltip="Zip/Postal Code"><text-line size="8"/></default-field></field>
@@ -214,15 +237,12 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <render-mode><text type="html,vuet"><![CDATA[
-            <div class="row"><div class="form-group">
-                <label class="control-label col-lg-2 text-right" for="PartyListForm_header_queryString">Search Any Field</label>
-                <div class="col-lg-10">
-                    <input type="text" name="queryString" value="${(originalQueryString!'')?html}" size="100" id="PartyListForm_header_queryString" class="form-control" form="PartyListForm_header">
-                </div>
-            </div></div>
-        ]]></text></render-mode>
-        <label text="Full search string: ${queryString?:''}" type="p"/>
+        <form-single name="OuterSearchForm">
+            <field name="anyField"><default-field><text-line size="100"/></default-field></field>
+            <field name="submitButton"><default-field title="Search"><submit/></default-field></field>
+            <field-layout><field-row-big><field-ref name="anyField"/><field-ref name="submitButton"/></field-row-big></field-layout>
+        </form-single>
+
         <form-list name="PartyListForm" list="documentList" skip-form="true" header-dialog="true">
             <row-actions>
                 <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
@@ -243,14 +263,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="ID" show-order-by="true"><text-line size="20"/></header-field>
                 <default-field><link url="editParty" text="${party.pseudoId}" link-type="anchor"/></default-field>
             </field>
+            <field name="idValue"><header-field title="Other ID" show-order-by="true"><text-line size="20"/></header-field></field>
             <field name="organizationName"><header-field><text-line size="40"/></header-field></field>
             <field name="firstName"><header-field><text-line size="40"/></header-field></field>
             <field name="lastName"><header-field><text-line size="40"/></header-field></field>
 
             <field name="combinedName">
-                <!-- TODO: any way to order by with multiple name fields and ES type text vs keyword? -->
-                <header-field title="Name"><text-line size="40"/></header-field>
-                <default-field><link url="editParty" text="PartyNameOnlyTemplate" link-type="anchor"/></default-field>
+                <header-field title="Name" show-order-by="true"><text-line size="40"/></header-field>
+                <default-field><link url="editParty" text="${combinedName}" link-type="anchor"/></default-field>
             </field>
             <field name="username">
                 <header-field><text-line size="20"/></header-field>
@@ -290,5 +310,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field>
             </field>
         </form-list>
+
+        <container-row><row-col md="2" style="text-right"><label text="Current Search String" type="strong"/></row-col>
+            <row-col><label text="${queryString?:'No Current Search'}"/></row-col></container-row>
     </widgets>
 </screen>
