@@ -64,9 +64,9 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="username">
             <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'userAccounts.username:' + username + '*'"/></if>
         <if condition="disabled">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'disabled:' + disabled + '*'"/></if>
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'disabled:' + disabled"/></if>
         <if condition="hasDuplicates">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'hasDuplicates:' + hasDuplicates + '*'"/></if>
+            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'hasDuplicates:' + hasDuplicates"/></if>
 
         <if condition="infoString">
             <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.infoString:' + infoString + '*'"/></if>
@@ -84,14 +84,12 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="postalCode">
             <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.postalCode:' + postalCode + '*'"/></if>
 
-        <if condition="orderByField"><set field="orderByFields" from="[orderByField]"/></if>
-
+        <set field="orderByFields" from="[orderByField.replace('combinedName', 'combinedName.keyword').replace('username', 'userAccounts.username.keyword')]"/>
         <!-- <log level="warn" message="Product search queryString: ${queryString}"/> -->
         <if condition="queryString">
             <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
-                    in-map="[indexName:indexName, documentType:documentType, queryString:queryString,
-                             orderByFields:[orderByField.replace('combinedName', 'combinedName.keyword')], pageIndex:pageIndex, pageSize:pageSize]"/>
-            <!-- NOTE: in latest ElasticSearch can't sort by 'name' because is text type field without fielddata=true -->
+                    in-map="[indexName:indexName, documentType:documentType, queryString:queryString, flattenDocument:false,
+                             orderByFields:orderByFields, pageIndex:pageIndex, pageSize:pageSize]"/>
         </if>
     </actions>
     <widgets>
@@ -244,24 +242,11 @@ along with this software (see the LICENSE.md file). If not, see
         </form-single>
 
         <form-list name="PartyListForm" list="documentList" skip-form="true" header-dialog="true">
-            <row-actions>
-                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
-                <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
-                    <field-map field-name="partyId"/></entity-find-one>
-            </row-actions>
-
             <field name="anyField"><header-field><text-line size="80"/></header-field></field>
-
-            <field name="roleTypeId"><header-field title="Role">
-                <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
-                    <entity-find entity-name="mantle.party.RoleType">
-                        <order-by field-name="description"/></entity-find>
-                </entity-options></drop-down>
-            </header-field></field>
 
             <field name="pseudoId">
                 <header-field title="ID" show-order-by="true"><text-line size="20"/></header-field>
-                <default-field><link url="editParty" text="${party.pseudoId}" link-type="anchor"/></default-field>
+                <default-field><link url="editParty" text="${pseudoId}" link-type="anchor"/></default-field>
             </field>
             <field name="idValue"><header-field title="Other ID" show-order-by="true"><text-line size="20"/></header-field></field>
             <field name="organizationName"><header-field><text-line size="40"/></header-field></field>
@@ -273,9 +258,20 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editParty" text="${combinedName}" link-type="anchor"/></default-field>
             </field>
             <field name="username">
-                <header-field><text-line size="20"/></header-field>
-                <default-field><display text="${userAccount?.username?:''}"/></default-field>
+                <header-field show-order-by="true"><text-line size="20"/></header-field>
+                <default-field><display text="${userAccounts ? userAccounts*.username.join(', ') : ''}"/></default-field>
             </field>
+
+            <field name="roleTypeId">
+                <header-field title="Role">
+                    <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                        <entity-find entity-name="mantle.party.RoleType">
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options></drop-down>
+                </header-field>
+                <default-field><display text="${roles ? roles*.role.join(', ') : ''}"/></default-field>
+            </field>
+
             <field name="disabled">
                 <header-field><drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></header-field>
                 <default-field><display/></default-field>
