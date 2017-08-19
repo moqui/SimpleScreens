@@ -14,6 +14,21 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd">
 
+    <transition name="getPartyClassificationList">
+        <parameter name="classificationTypeEnumId"/>
+        <parameter name="partyClassificationId"/>
+        <actions>
+            <if condition="partyClassificationId">
+                <entity-find-one entity-name="mantle.party.PartyClassification" value-field="partyClass"/>
+                <script>if (partyClass != null) ec.web.sendJsonResponse([partyClass])</script>
+            </if>
+            <entity-find entity-name="mantle.party.PartyClassification" list="classList">
+                <econdition field-name="classificationTypeEnumId"/><order-by field-name="description"/></entity-find>
+            <script>ec.web.sendJsonResponse(classList)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
     <transition name="getPartySettingList"><parameter name="partySettingTypeId"/><actions>
         <entity-find-one entity-name="mantle.party.PartySettingType" value-field="settingType"/>
         <if condition="settingType == null || !settingType.enumTypeId"><then>
@@ -59,6 +74,5 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
-    <widgets>
-    </widgets>
+    <widgets></widgets>
 </screen>
