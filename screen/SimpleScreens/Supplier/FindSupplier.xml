@@ -22,18 +22,15 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="../EditSupplier"/></transition>
     <transition name="createOrganization"><service-call name="mantle.party.PartyServices.create#Organization"/>
         <default-response url="../EditSupplier"/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getPartyClassificationList" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
 
     <pre-actions><set field="roleTypeId" value="Supplier"/></pre-actions>
     <actions>
-        <service-call name="mantle.party.PartyServices.find#Party" in-map="context + [leadingWildcard:true]" out-map="context"/>
+        <service-call name="mantle.party.PartyServices.search#Party" in-map="context" out-map="context"/>
     </actions>
     <widgets>
-        <container-dialog id="FindOptionsDialog" button-text="Find Options">
-            <form-single name="FindOptionsForm" transition="."
-                    extends="component://SimpleScreens/screen/SimpleScreens/Party/FindParty.xml#FindOptionsForm"/>
-        </container-dialog>
-
         <container-dialog id="CreatePersonDialog" button-text="New Person Supplier">
             <form-single name="CreatePersonForm" transition="createPerson"
                     extends="component://SimpleScreens/screen/SimpleScreens/Party/FindParty.xml#CreatePersonForm"/>
@@ -43,9 +40,13 @@ along with this software (see the LICENSE.md file). If not, see
                     extends="component://SimpleScreens/screen/SimpleScreens/Party/FindParty.xml#CreateOrganizationForm"/>
         </container-dialog>
 
-        <form-list name="SupplierListForm" list="partyIdList" list-entry="partyId" skip-form="true"
+        <link url="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax"
+                url-type="plain" link-type="anchor" target-window="_blank" text="Search String Reference"/>
+        <form-single name="OuterSearchForm" extends="component://SimpleScreens/screen/SimpleScreens/Party/FindParty.xml#OuterSearchForm"/>
+
+        <form-list name="SupplierListForm" list="documentList" skip-form="true" header-dialog="true"
                 extends="component://SimpleScreens/screen/SimpleScreens/Party/FindParty.xml#PartyListForm">
-            <field name="pseudoId"><default-field><link url="editSupplier" text="${party.pseudoId}" link-type="anchor"/></default-field></field>
+            <field name="pseudoId"><default-field><link url="editSupplier" text="${pseudoId}" link-type="anchor"/></default-field></field>
             <field name="combinedName"><default-field><link url="editSupplier" text="PartyNameOnlyTemplate" text-map="party" link-type="anchor"/></default-field></field>
             <field name="submitButton">
                 <header-field title="Find"><submit/></header-field>
@@ -53,5 +54,8 @@ along with this software (see the LICENSE.md file). If not, see
                         link-type="anchor"/></default-field>
             </field>
         </form-list>
+
+        <container-row><row-col md="2" style="text-right"><label text="Current Search String" type="strong"/></row-col>
+            <row-col><label text="${queryString?:'No Current Search'}"/></row-col></container-row>
     </widgets>
 </screen>

@@ -12,8 +12,7 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-include="false">
 
     <transition name="editParty"><default-response url="../EditParty"/></transition>
@@ -33,64 +32,10 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getGeoCountryStates" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getPartyClassificationList" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
 
     <actions>
-        <set field="indexName" from="searchIndexName ?: 'mantle'"/>
-        <set field="documentType" from="searchPartyDocType ?: 'MantleParty'"/>
-
-        <set field="orderByField" from="orderByField ?: 'combinedName'"/>
-
-
-        <set field="queryString" from="anyField"/>
-        <if condition="queryString"><set field="queryString" from="'(' + queryString + ')'"/></if>
-
-        <if condition="roleTypeId">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'roles.roleTypeId:' + roleTypeId"/></if>
-        <if condition="pseudoId">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'pseudoId:' + pseudoId + '*'"/></if>
-        <if condition="idValue">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'identifications.idValue:' + idValue + '*'"/></if>
-
-        <if condition="organizationName">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'organizationName:' + organizationName + '*'"/></if>
-        <if condition="firstName">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'firstName:' + firstName + '*'"/></if>
-        <if condition="lastName">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'lastName:' + lastName + '*'"/></if>
-        <if condition="combinedName">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'combinedName:*' + combinedName + '*'"/>
-        </if>
-
-        <if condition="username">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'userAccounts.username:' + username + '*'"/></if>
-        <if condition="disabled">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'disabled:' + disabled"/></if>
-        <if condition="hasDuplicates">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'hasDuplicates:' + hasDuplicates"/></if>
-
-        <if condition="infoString">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.infoString:' + infoString + '*'"/></if>
-        <if condition="areaCode">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.areaCode:' + areaCode + '*'"/></if>
-        <if condition="contactNumber">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.contactNumber:' + contactNumber + '*'"/></if>
-
-        <if condition="address1">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.address1:*' + address1 + '*'"/></if>
-        <if condition="city">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.city:' + city + '*'"/></if>
-        <if condition="stateProvinceGeoId">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.stateProvinceGeoId:' + stateProvinceGeoId"/></if>
-        <if condition="postalCode">
-            <set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'contactMechs.postalCode:' + postalCode + '*'"/></if>
-
-        <set field="orderByFields" from="[orderByField.replace('combinedName', 'combinedName.keyword').replace('username', 'userAccounts.username.keyword')]"/>
-        <!-- <log level="warn" message="Product search queryString: ${queryString}"/> -->
-        <if condition="queryString">
-            <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
-                    in-map="[indexName:indexName, documentType:documentType, queryString:queryString, flattenDocument:false,
-                             orderByFields:orderByFields, pageIndex:pageIndex, pageSize:pageSize]"/>
-        </if>
+        <service-call name="mantle.party.PartyServices.search#Party" in-map="context" out-map="context"/>
     </actions>
     <widgets>
         <container-dialog id="CreatePersonDialog" button-text="New Person">
@@ -235,8 +180,11 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
+        <link url="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax"
+                url-type="plain" link-type="anchor" target-window="_blank" text="Search String Reference"/>
         <form-single name="OuterSearchForm">
-            <field name="anyField"><default-field><text-line size="100"/></default-field></field>
+            <field name="anyField"><default-field title="" tooltip="Matches whole words, use the asterisk (*) wildcard to match partial words; use field:term to search a specific field">
+                <text-line size="100"/></default-field></field>
             <field name="submitButton"><default-field title="Search"><submit/></default-field></field>
             <field-layout><field-row-big><field-ref name="anyField"/><field-ref name="submitButton"/></field-row-big></field-layout>
         </form-single>
@@ -248,7 +196,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="ID" show-order-by="true"><text-line size="20"/></header-field>
                 <default-field><link url="editParty" text="${pseudoId}" link-type="anchor"/></default-field>
             </field>
-            <field name="idValue"><header-field title="Other ID" show-order-by="true"><text-line size="20"/></header-field></field>
+            <field name="idValue"><header-field title="Other ID"><text-line size="20"/></header-field></field>
+            <field name="gatewayCimId"><header-field title="CIM ID"><text-line size="20"/></header-field></field>
+
             <field name="organizationName"><header-field><text-line size="40"/></header-field></field>
             <field name="firstName"><header-field><text-line size="40"/></header-field></field>
             <field name="lastName"><header-field><text-line size="40"/></header-field></field>
@@ -270,6 +220,20 @@ along with this software (see the LICENSE.md file). If not, see
                     </entity-options></drop-down>
                 </header-field>
                 <default-field><display text="${roles ? roles*.role.join(', ') : ''}"/></default-field>
+            </field>
+
+            <field name="classificationTypeEnumId"><header-field title="Class Type">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="PartyClassificationType"/><set field="noCurrentSelectedKey" value="PcltCustomer"/>
+                    <set field="allowEmpty" value="true"/></widget-template-include>
+            </header-field></field>
+            <field name="partyClassificationId">
+                <header-field title="Class">
+                    <drop-down allow-empty="true"><dynamic-options transition="getPartyClassificationList"
+                            value-field="partyClassificationId" label-field="description">
+                        <depends-on field="classificationTypeEnumId"/></dynamic-options></drop-down>
+                </header-field>
+                <default-field><display text="${classifications ? classifications*.class.join(', ') : ''}"/></default-field>
             </field>
 
             <field name="disabled">
