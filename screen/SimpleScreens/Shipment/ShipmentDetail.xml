@@ -178,10 +178,10 @@ along with this software (see the LICENSE.md file). If not, see
                     in-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
             <set field="shippingPostalAddressList" from="toPartyShippingInfo.postalAddressList ?: []"/>
 
-            <if condition="firstRouteSegment.destPostalContactMechId">
+            <if condition="lastRouteSegment.destPostalContactMechId">
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curPaInfo"
-                        in-map="[partyId:toPartyId, postalContactMechId:firstRouteSegment.destPostalContactMechId]"/>
-                <if condition="!(firstRouteSegment.destPostalContactMechId in shippingPostalAddressList*.postalContactMechId)">
+                        in-map="[partyId:toPartyId, postalContactMechId:lastRouteSegment.destPostalContactMechId]"/>
+                <if condition="!(lastRouteSegment.destPostalContactMechId in shippingPostalAddressList*.postalContactMechId)">
                     <script>shippingPostalAddressList.add(0, curPaInfo)</script></if>
             </if>
         </if>
@@ -309,9 +309,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="orderDetail" text="Order ${orderId}" link-type="anchor-button"/></widgets></section-iterate>
             <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
                 <link url="editInvoice" text="Invoice ${invoiceId}" link-type="anchor-button"/></widgets></section-iterate>
+            <!-- no value in this as shown in better context in issuance or receipt list:
             <section-iterate name="AcctgTransLinks" list="acctgTransIdSet" entry="acctgTransId"><widgets>
                 <link url="editTransaction" text="TX ${acctgTransId}" link-type="anchor-button"/>
             </widgets></section-iterate>
+            -->
 
             <label text="Shipping Gateway: ${shippingGatewayConfig.description}" type="p" condition="shippingGatewayConfig != null"/>
 
@@ -320,10 +322,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="DestPostalAddressSection" condition="!isIncoming"><widgets>
                     <container><dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
                             parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
-                    <label text="No shipping address selected" style="text-danger" type="p" condition="!firstRouteSegment.destPostalContactMechId"/>
+                    <label text="No shipping address selected" style="text-danger" type="p" condition="!lastRouteSegment.destPostalContactMechId"/>
                     <container style="float-box" type="ul">
                         <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="contactInfo"><actions>
-                            <set field="checkRadio" from="(firstRouteSegment.destPostalContactMechId &amp;&amp; firstRouteSegment.destPostalContactMechId == contactInfo.postalContactMechId)"/>
+                            <set field="checkRadio" from="(lastRouteSegment.destPostalContactMechId &amp;&amp; lastRouteSegment.destPostalContactMechId == contactInfo.postalContactMechId)"/>
                         </actions><widgets>
                             <container type="li" style="box-narrow">
                                 <render-mode><text type="html,vuet"><![CDATA[
