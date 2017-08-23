@@ -96,6 +96,9 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:table table-layout="fixed" margin-bottom="0.1in" width="7.5in">
                 <fo:table-body><fo:table-row>
                     <fo:table-cell padding="3pt" width="3.25in">
+                        <#if toPartyDetail?has_content>
+                            <fo:block font-weight="bold">${toPartyDetail.pseudoId}: <@encodeText (toPartyDetail.organizationName)!""/> <@encodeText (toPartyDetail.firstName)!""/> <@encodeText (toPartyDetail.middleName)!""/> <@encodeText (toPartyDetail.lastName)!""/></fo:block>
+                        </#if>
                         <#if toContactInfo.postalAddress?has_content>
                             <#if toContactInfo.postalAddress.toName?has_content || toContactInfo.postalAddress.attnName?has_content>
                                 <#if toContactInfo.postalAddress.toName?has_content><fo:block font-weight="bold">To: <@encodeText toContactInfo.postalAddress.toName/></fo:block></#if>
@@ -156,7 +159,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <#list packageInfoList as packageInfo><#if packageInfo.contentInfoList?has_content>
                 <#assign routeSegments = packageInfo.shipmentPackage.routeSegments!>
-                <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="0.3in">
+                <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="0.2in">
                     <fo:table-header font-size="10pt" font-weight="bold" border-bottom="solid black">
                         <fo:table-cell width="3.9in" padding="2pt"><fo:block text-align="left">Package ${packageInfo_index + 1} of ${packageInfoList?size}<#if routeSegments?has_content && routeSegments[0].trackingCode?has_content> (${routeSegments[0].trackingCode})</#if></fo:block></fo:table-cell>
                         <fo:table-cell width="1.2in" padding="2pt"><fo:block text-align="center">Qty Ordered</fo:block></fo:table-cell>
