@@ -26,6 +26,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="resetAndGetTimeEntryRates"><service-call name="mantle.work.TimeServices.resetAndGet#TimeEntryRates"/>
         <default-response url="."/></transition>
 
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
     <actions>
         <entity-find entity-name="mantle.work.time.TimeEntry" list="timeEntryList">
             <search-form-inputs default-order-by="-fromDate"/>
@@ -88,6 +90,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <conditional-field condition="entryEditable"><text-line size="6" format="0.000"/></conditional-field>
                 <default-field><display/></default-field>
             </field>
+
             <field name="clientPartyId">
                 <header-field title="Employer"><drop-down allow-empty="true">
                     <list-options list="employerRelList" key="${toPartyId}" text="PartyNameTemplate"/></drop-down></header-field>
@@ -106,6 +109,18 @@ along with this software (see the LICENSE.md file). If not, see
                            condition="workEffort &amp;&amp; workEffort?.purposeEnumId != 'WepShipmentShip' &amp;&amp; workEffort?.purposeEnumId != 'WepProductionRun'"/>
                 </default-field>
             </field>
+            <field name="facilityId">
+                <header-field title="Facility" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></header-field>
+                <conditional-field condition="entryEditable">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
+                    <link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"/>
+                </conditional-field>
+                <default-field>
+                    <link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"/>
+                </default-field>
+            </field>
             <field name="workTypeEnumId">
                 <header-field title="Work Type" show-order-by="true"><drop-down allow-empty="true">
                     <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></header-field>
@@ -113,6 +128,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></conditional-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
+
             <field name="rateTypeEnumId">
                 <header-field title="Rate Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumGroupDropDown">
@@ -187,7 +203,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
             <form-list-column><field-ref name="pieceCount"/><field-ref name="hours"/><field-ref name="breakHours"/></form-list-column>
             <form-list-column><field-ref name="clientPartyId"/><field-ref name="workEffortId"/>
-                <field-ref name="workTypeEnumId"/></form-list-column>
+                <field-ref name="facilityId"/><field-ref name="workTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="rateTypeEnumId"/><field-ref name="clientHourRate"/><field-ref name="rateAmountId"/>
                 <field-ref name="vendorHourRate"/><field-ref name="vendorRateAmountId"/></form-list-column>
             <form-list-column><field-ref name="pieceRateTypeEnumId"/><field-ref name="clientPieceRate"/><field-ref name="pieceRateAmountId"/>
