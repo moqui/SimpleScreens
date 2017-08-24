@@ -88,9 +88,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
                     <link url="editInvoice" text="Invoice ${invoiceId}"/>
                 </widgets></section-iterate>
+                <!-- not needed now that GL Transactions section exists below:
                 <section-iterate name="AcctgTransLinks" list="acctgTransIdSet" entry="acctgTransId"><widgets>
                     <link url="editTransaction" text="TX ${acctgTransId}" link-type="anchor-button"/>
                 </widgets></section-iterate>
+                -->
 
                 <link url="PaymentCheck.pdf" text="Check PDF" condition="isCheck &amp;&amp; isFromPartyOrgInternal"/>
                 <link url="PaymentDetail.pdf" text="Detail PDF" condition="isCheck &amp;&amp; isFromPartyOrgInternal"/>
@@ -346,7 +348,7 @@ along with this software (see the LICENSE.md file). If not, see
             <container-box><box-header><label text="GL Transactions" type="h5"/></box-header><box-body-nopad>
                 <form-list name="PaymentTxList" list="acctgTransList" skip-form="true">
                     <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
-                        <econdition field-name="paymentId"/><order-by field-name="postedDate,acctgTransId"/></entity-find>
+                        <econdition field-name="paymentId"/><order-by field-name="acctgTransId"/></entity-find>
                     <row-actions>
                         <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
                                 in-map="[acctgTransId:acctgTransId]" out-map="context"/>
@@ -366,6 +368,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="editTransaction" text="${reverseOfAcctgTransId}" link-type="anchor" condition="reverseOfAcctgTransId"
                                 parameter-map="[acctgTransId:reverseOfAcctgTransId]"/></default-field></field>
 
+                    <field name="transactionDate"><default-field title="TX Date"><display/></default-field></field>
                     <field name="isPosted"><default-field title="Posted"><display/></default-field></field>
                     <field name="postedDate"><default-field><display/></default-field></field>
 
