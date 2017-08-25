@@ -50,7 +50,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="Invoice.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Accounting/Invoice/PrintInvoice" url-type="plain">
-            <parameter name="invoiceId"/><parameter name="filename" value="Invoice-${invoiceId}.pdf"/></default-response>
+            <parameter name="invoiceId"/><parameter name="original"/><parameter name="filename" value="Invoice${original == 'true' ? 'Original' : 'Current'}-${invoiceId}.pdf"/></default-response>
     </transition>
 
     <actions>
@@ -100,7 +100,9 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-dialog>
                 </widgets></section>
 
-                <link url="Invoice.pdf" text="Invoice PDF" link-type="anchor-button"><parameter name="invoiceId"/></link>
+                <link url="Invoice.pdf" text="Current PDF" link-type="anchor-button"><parameter name="invoiceId"/></link>
+                <link url="Invoice.pdf" text="Original PDF" link-type="anchor-button">
+                    <parameter name="invoiceId"/><parameter name="original" value="true"/></link>
 
                 <section-iterate name="OrderLinks" list="orderIdSet" entry="orderId"><widgets>
                     <link url="orderDetail" text="Order ${orderId}" link-type="anchor-button"/>
@@ -187,7 +189,7 @@ along with this software (see the LICENSE.md file). If not, see
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
             <container-box><box-header><label text="Payment Applications" type="h5"/></box-header><box-toolbar>
-                <container-dialog id="RecordPaymentContainer" button-text="New Payment" condition="unpaidTotal">
+                <container-dialog id="RecordPaymentContainer" button-text="New Payment for Invoice" condition="unpaidTotal">
                     <form-single name="RecordPaymentForm" transition="recordPayment">
                         <field name="invoiceId"><default-field><display also-hidden="true"/></default-field></field>
                         <field name="statusId" from="paymentStatusId"><default-field title="Status">
@@ -233,9 +235,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="editPayment" text="${paymentId?:''}" link-type="anchor"/></default-field></field>
                     <field name="amountApplied" align="right"><default-field title="Amount"><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
                     <field name="appliedDate"><default-field title="Applied"><display/></default-field></field>
-                    <field name="statusId" from="payment?.statusId"><default-field title="Status">
+                    <field name="statusId"><default-field title="Status">
                         <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
-                    <field name="paymentRefNum" from="payment?.paymentRefNum"><default-field title="Ref"><display/></default-field></field>
+                    <field name="paymentRefNum"><default-field title="Ref/Check"><display/></default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
 

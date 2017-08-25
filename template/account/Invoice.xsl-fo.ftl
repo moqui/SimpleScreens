@@ -16,6 +16,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign cellPadding = "1pt">
 <#assign dateFormat = dateFormat!"dd MMM yyyy">
 <#assign negOne = -1>
+<#if original! == "true"><#assign showOrig = true><#else><#assign showOrig = false></#if>
 
 <#macro encodeText textValue>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(textValue!"", false))!""}</#macro>
 <#macro productItemRow invoiceItem invoiceItemList itemIndex>
@@ -198,13 +199,23 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:block></fo:block-container>
                 </fo:table-cell>
                 <fo:table-cell padding="3pt" width="3in">
-                    <#if invoice.dueDate??>
-                        <fo:block font-weight="bold">Due Date</fo:block>
-                        <fo:block>${ec.l10n.format(invoice.dueDate, dateFormat)}</fo:block>
+                    <#if !showOrig>
+                        <#if unpaidTotal == 0>
+                            <fo:block font-weight="bold">PAID IN FULL</fo:block>
+                        <#else>
+                            <fo:block font-weight="bold">Balance Due</fo:block>
+                            <fo:block>${ec.l10n.formatCurrency(unpaidTotal, invoice.currencyUomId)}</fo:block>
+                        </#if>
                     </#if>
-                    <#if settlementTerm?has_content>
-                        <fo:block font-weight="bold">Term</fo:block>
-                        <fo:block>${settlementTerm.description}</fo:block>
+                    <#if showOrig || unpaidTotal != 0>
+                        <#if invoice.dueDate??>
+                            <fo:block font-weight="bold">Due Date</fo:block>
+                            <fo:block>${ec.l10n.format(invoice.dueDate, dateFormat)}</fo:block>
+                        </#if>
+                        <#if settlementTerm?has_content>
+                            <fo:block font-weight="bold">Term</fo:block>
+                            <fo:block>${settlementTerm.description}</fo:block>
+                        </#if>
                     </#if>
                 </fo:table-cell>
             </fo:table-row></fo:table-body></fo:table>
@@ -225,13 +236,13 @@ along with this software (see the LICENSE.md file). If not, see
                             <#if !(invoiceItem.parentItemSeqId?has_content)><@productItemRow invoiceItem invoiceItemList invoiceItem_index+1/></#if>
                         </#list>
                         <fo:table-row font-size="9pt" border-top="solid black">
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">Total</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">${ec.l10n.formatCurrency(invoiceTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">${ec.l10n.formatCurrency(noAdjustmentTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
                         </fo:table-row>
                     </fo:table-body>
                 </fo:table>
@@ -251,13 +262,13 @@ along with this software (see the LICENSE.md file). If not, see
                         <#if !(invoiceItem.parentItemSeqId?has_content)><@otherItemRow invoiceItem invoiceItemList invoiceItem_index+1/></#if>
                     </#list>
                         <fo:table-row font-size="9pt" border-top="solid black">
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">Total</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">${ec.l10n.formatCurrency(invoiceTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">${ec.l10n.formatCurrency(noAdjustmentTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
                         </fo:table-row>
                     </fo:table-body>
                 </fo:table>
@@ -266,8 +277,8 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:table table-layout="fixed" width="100%" margin-top="0.1in">
                 <fo:table-header font-size="9pt" border-bottom="solid black">
                     <fo:table-cell width="2.0in" padding="${cellPadding}"><fo:block>Type</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="center">Qty</fo:block></fo:table-cell>
                     <#if hasTimeEntryItems><fo:table-cell width="1.2in" padding="${cellPadding}"><fo:block text-align="right">Amount</fo:block></fo:table-cell></#if>
+                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="center">Qty</fo:block></fo:table-cell>
                     <fo:table-cell width="1.2in" padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
                 </fo:table-header>
                 <fo:table-body>
@@ -281,15 +292,83 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-row>
                 </#list>
                 <fo:table-row font-size="9pt">
-                    <fo:table-cell padding="${cellPadding}" font-weight="bold"><fo:block>Total</fo:block></fo:table-cell>
                     <fo:table-cell padding="${cellPadding}"><fo:block text-align="center"> </fo:block></fo:table-cell>
+                    <fo:table-cell padding="${cellPadding}" font-weight="bold"><fo:block text-align="right">Total</fo:block></fo:table-cell>
                     <#if hasTimeEntryItems><fo:table-cell padding="${cellPadding}"><fo:block text-align="right"> </fo:block></fo:table-cell></#if>
-                    <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">${ec.l10n.formatCurrency(invoiceTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                    <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">${ec.l10n.formatCurrency(noAdjustmentTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
                 </fo:table-row>
                 </fo:table-body>
             </fo:table>
 
-            <#if invoice.invoiceMessage?has_content><fo:block margin-top="0.2in">${invoice.invoiceMessage}</fo:block></#if>
+            <#if !showOrig && adjustmentItemList?has_content>
+                <fo:table table-layout="fixed" width="100%" margin-top="0.1in">
+                    <fo:table-header font-size="9pt" border-bottom="solid black">
+                        <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="center">Adjustment</fo:block></fo:table-cell>
+                        <fo:table-cell width="4in" padding="${cellPadding}"><fo:block>Description</fo:block></fo:table-cell>
+                        <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="center">Date</fo:block></fo:table-cell>
+                        <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="right">Amount</fo:block></fo:table-cell>
+                    </fo:table-header>
+                    <fo:table-body>
+                        <#list adjustmentItemList as invoiceItem>
+                            <#assign itemTypeEnum = invoiceItem.type!>
+                            <fo:table-row font-size="8pt" border-bottom="thin solid black">
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem_index}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}">
+                                    <fo:block><@encodeText (invoiceItem.description)!(itemTypeEnum.description)!""/></fo:block>
+                                    <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
+                                </fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${ec.l10n.format(invoiceItem.itemDate!, dateFormat)}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
+                            </fo:table-row>
+                        </#list>
+                        <fo:table-row font-size="9pt" border-top="solid black">
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">Adjustments Total</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">${ec.l10n.formatCurrency(adjustmentTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                        </fo:table-row>
+                        <fo:table-row font-size="9pt" border-top="solid black">
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">Invoice Total</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">${ec.l10n.formatCurrency(invoiceTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                        </fo:table-row>
+                    </fo:table-body>
+                </fo:table>
+            </#if>
+
+        <#if !showOrig && paymentApplicationList?has_content>
+            <fo:block font-size="10pt" font-weight="bold" margin-top="0.1in">Applied Payments</fo:block>
+            <fo:table table-layout="fixed" width="100%">
+                <fo:table-header font-size="9pt" border-bottom="solid black">
+                    <fo:table-cell width="1in" padding="${cellPadding}"><fo:block>Payment</fo:block></fo:table-cell>
+                    <fo:table-cell width="2in" padding="${cellPadding}"><fo:block>Ref/Check</fo:block></fo:table-cell>
+                    <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="right">Amount</fo:block></fo:table-cell>
+                    <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="center">Date</fo:block></fo:table-cell>
+                    <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="right">Applied</fo:block></fo:table-cell>
+                </fo:table-header>
+                <fo:table-body>
+                    <#list paymentApplicationList as paymentAppl>
+                        <fo:table-row font-size="8pt" border-bottom="thin solid black">
+                            <fo:table-cell padding="${cellPadding}"><fo:block>${paymentAppl.paymentId}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block>${paymentAppl.paymentRefNum!""}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(paymentAppl.amount!, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${ec.l10n.format(paymentAppl.effectiveDate!, dateFormat)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(paymentAppl.amountApplied!, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                        </fo:table-row>
+                    </#list>
+                    <fo:table-row font-size="9pt" border-top="solid black">
+                        <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">Payments Total</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-weight="bold">${ec.l10n.formatCurrency(appliedPaymentsTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
+                    </fo:table-row>
+                </fo:table-body>
+            </fo:table>
+        </#if>
+
+        <#if invoice.invoiceMessage?has_content><fo:block margin-top="0.2in">${invoice.invoiceMessage}</fo:block></#if>
         </fo:flow>
     </fo:page-sequence>
 </fo:root>
