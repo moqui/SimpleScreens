@@ -26,6 +26,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updateInvoiceItem"><service-call name="mantle.account.InvoiceServices.update#InvoiceItem"/>
         <default-response url="."/></transition>
+    <transition name="updateInvoiceItemClosed"><service-call name="mantle.account.InvoiceServices.update#InvoiceItemClosed"/>
+        <default-response url="."/></transition>
     <transition name="deleteInvoiceItem"><service-call name="mantle.account.InvoiceServices.delete#InvoiceItem"/>
         <default-response url="."/></transition>
 
@@ -105,7 +107,7 @@ along with this software (see the LICENSE.md file). If not, see
         </container></widgets></section>
 
         <label text="Invoice Total: ${ec.l10n.formatCurrency(invoice.invoiceTotal, invoice.currencyUomId)}, Unpaid: ${ec.l10n.formatCurrency(invoice.unpaidTotal, invoice.currencyUomId)}"/>
-        <form-list name="EditInvoiceItems" list="invoiceItemList" transition="updateInvoiceItem" multi="true">
+        <form-list name="EditInvoiceItems" list="invoiceItemList" transition="${invoiceEditable ? 'updateInvoiceItem' : 'updateInvoiceItemClosed'}" multi="true">
             <field name="invoiceId"><default-field><hidden/></default-field></field>
             <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
             <field name="parentItemSeqId">
@@ -132,8 +134,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title="Override GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
                         text="GlAccountNameTemplate"/></default-field>
             </field>
-            <field name="description"><conditional-field condition="invoiceEditable"><text-line size="60"/></conditional-field>
-                <default-field><display/></default-field></field>
+            <field name="description"><default-field><text-line size="60"/></default-field></field>
             <field name="productId">
                 <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></conditional-field>
@@ -155,26 +156,25 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display/></default-field></field>
             <field name="amount"><conditional-field condition="invoiceEditable"><text-line size="8"/></conditional-field>
                 <default-field><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
-            <field name="itemDate"><conditional-field condition="invoiceEditable" title="Date"><date-time/></conditional-field>
-                <default-field title="Item Date"><display/></default-field></field>
+            <field name="itemDate"><default-field><date-time/></default-field></field>
 
             <field name="total" from="((quantity != null ? quantity : 1) * (amount ?: 0))">
                 <default-field><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+            <field name="isAdjustment"><default-field title="Is Adjust"><display/></default-field></field>
 
             <field name="deleteButton"><default-field title="">
                 <link url="deleteInvoiceItem" text="Delete" condition="invoiceEditable" confirmation="Delete this item?"
                         parameter-map="[invoiceId:invoiceId, invoiceItemSeqId:invoiceItemSeqId]"/>
             </default-field></field>
 
-            <field name="submitButton"><conditional-field condition="invoiceEditable" title="Update"><submit/></conditional-field>
-                <default-field title=""><ignored/></default-field></field>
+            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
 
             <form-list-column><field-ref name="invoiceItemSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
             <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="typeGlAccount"/><field-ref name="overrideGlAccountId"/></form-list-column>
             <form-list-column><field-ref name="description"/><field-ref name="productId"/><field-ref name="otherPartyProductId"/>
                 <field-ref name="assetId"/></form-list-column>
             <form-list-column><field-ref name="quantity"/><field-ref name="amount"/><field-ref name="itemDate"/></form-list-column>
-            <form-list-column><field-ref name="total"/></form-list-column>
+            <form-list-column><field-ref name="total"/><field-ref name="isAdjustment"/></form-list-column>
             <form-list-column><field-ref name="deleteButton"/></form-list-column>
         </form-list>
     </widgets>
