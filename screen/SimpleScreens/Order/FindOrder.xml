@@ -144,7 +144,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
                     <date-filter/><econdition field-name="partyId" from="customerPartyId"/>
                     <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
-                <set field="custPcaa" from="custPcaaList ? custPcaaList[0] : null"/>
 
                 <!-- Shipments -->
                 <entity-find entity-name="mantle.order.OrderItemShipSummary" list="oissList">
@@ -222,9 +221,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/>
                             <order-by field-name="description"/></entity-find></entity-options>
                 </drop-down>
-            </header-field><default-field>
-                <display text="${custPcaa?.description ?: ''}"/>
-            </default-field></field>
+            </header-field></field>
+            <field name="customerClass"><default-field><display text="${custPcaaList ? custPcaaList*.description.join(', ') : ''}"/></default-field></field>
 
             <field name="shipments"><default-field>
                 <section-iterate name="ShipmentListSection" list="oissList" entry="oiss"><widgets><container>
@@ -268,7 +266,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="statusId"/><field-ref name="facilityId"/>
                 <field-ref name="productStoreId"/></form-list-column>
             <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
-                <field-ref name="customerClassificationId"/></form-list-column>
+                <field-ref name="customerClass"/></form-list-column>
             <form-list-column><field-ref name="shipments"/></form-list-column>
             <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
