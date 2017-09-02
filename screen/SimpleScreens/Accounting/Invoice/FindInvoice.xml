@@ -66,7 +66,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
                             <econdition field-name="roleTypeId" value="OrgInternal"/>
                             <econdition field-name="disabled" value="N" or-null="true"/>
-                            <order-by field-name="organizationName,firstName,lastName"/></entity-find>
+                            <order-by field-name="organizationName"/></entity-find>
                     </entity-options></drop-down>
                 </default-field></field>
                 <field name="invoiceTypeEnumId"><default-field title="Type">
@@ -98,7 +98,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
                             <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
                             <econdition field-name="disabled" value="N" or-null="true"/>
-                            <order-by field-name="organizationName,firstName,lastName"/></entity-find>
+                            <order-by field-name="organizationName"/></entity-find>
                     </entity-options></drop-down>
                 </default-field></field>
                 <field name="toPartyId"><default-field title="Customer">
@@ -111,14 +111,11 @@ along with this software (see the LICENSE.md file). If not, see
             <container-dialog id="ProjectInvoiceDialog" button-text="Invoice Project Client" width="700">
                 <form-single name="ProjectInvoice" transition="createProjectInvoiceItems">
                     <field name="workEffortId"><default-field title="Project">
-                        <drop-down allow-empty="false" combo-box="false">
-                            <entity-options key="${workEffortId}" text="WorkEffortNameTemplate">
-                                <entity-find entity-name="mantle.work.effort.WorkEffort">
-                                    <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
-                                    <order-by field-name="workEffortId"/>
-                                </entity-find>
-                            </entity-options>
-                        </drop-down>
+                        <drop-down><entity-options key="${workEffortId}" text="WorkEffortNameTemplate">
+                            <entity-find entity-name="mantle.work.effort.WorkEffort">
+                                <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+                                <order-by field-name="workEffortId"/></entity-find>
+                        </entity-options></drop-down>
                     </default-field></field>
 
                     <field name="thruDate"><default-field><date-time type="date-time"/></default-field></field>
@@ -134,14 +131,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-single name="WorkerInvoice" transition="createProjectInvoiceItems">
                     <field name="ratePurposeEnumId"><default-field><hidden default-value="RaprVendor"/></default-field></field>
                     <field name="workEffortId"><default-field title="Project">
-                        <drop-down allow-empty="false" combo-box="false">
-                            <entity-options key="${workEffortId}" text="${workEffortId} - ${workEffortName}">
-                                <entity-find entity-name="mantle.work.effort.WorkEffort">
-                                    <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
-                                    <order-by field-name="workEffortId"/>
-                                </entity-find>
-                            </entity-options>
-                        </drop-down>
+                        <drop-down><entity-options key="${workEffortId}" text="${workEffortId} - ${workEffortName}">
+                            <entity-find entity-name="mantle.work.effort.WorkEffort">
+                                <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+                                <order-by field-name="workEffortId"/></entity-find>
+                        </entity-options></drop-down>
                     </default-field></field>
                     <field name="workerPartyId"><default-field title="Worker"><drop-down>
                         <dynamic-options transition="getProjectParties" value-field="partyId" label-field="name"
@@ -163,14 +157,13 @@ along with this software (see the LICENSE.md file). If not, see
         <container-dialog id="CustomerStatementDialog" button-text="Customer Statement PDF">
             <form-single name="CustomerStatementForm" transition="receivableStatement">
                 <field name="fromPartyId"><default-field title="Organization">
-                    <drop-down allow-empty="true">
-                        <entity-options key="${partyId}" text="PartyNameTemplate">
-                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
-                                <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
-                                <econdition field-name="disabled" value="N" or-null="true"/>
-                                <order-by field-name="organizationName,firstName,lastName"/></entity-find></entity-options>
-                    </drop-down>
+                    <drop-down allow-empty="true"><entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                            <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/></entity-find>
+                    </entity-options></drop-down>
                 </default-field></field>
                 <field name="toPartyId"><default-field title="Customer">
                     <drop-down><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
@@ -233,9 +226,9 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="invoiceId"><header-field show-order-by="true" title="Invoice"><text-find hide-options="ignore-case" default-operator="begins"/></header-field>
                 <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
-            <field name="referenceNumber"><header-field title="Their Invoice"><text-find size="20" hide-options="true"/></header-field>
+            <field name="referenceNumber"><header-field title="Their Invoice"><text-find size="20" default-operator="begins"/></header-field>
                 <default-field><display/></default-field></field>
-            <field name="otherPartyOrderId"><header-field title="Their Order"><text-find size="20" hide-options="true"/></header-field>
+            <field name="otherPartyOrderId"><header-field title="Their Order"><text-find size="20" default-operator="begins"/></header-field>
                 <default-field><display/></default-field></field>
             <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
