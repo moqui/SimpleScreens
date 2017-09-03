@@ -19,7 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
         <form-single name="SummaryOptions">
             <field name="interval"><default-field><drop-down><option key="w" text="Week"/><option key="M" text="Month"/>
                 <option key="q" text="Quarter"/><option key="y" text="Year"/></drop-down></default-field></field>
-            <field name="intervalCount"><default-field title="Periods"><text-line size="2" default-value="12"/></default-field></field>
+            <field name="intervalCount"><default-field title="Periods"><text-line size="2" default-value="13"/></default-field></field>
             <field name="thruDate"><default-field><date-time type="date"/></default-field></field>
             <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
             <field-layout><field-row-big><field-ref name="interval"/><field-ref name="intervalCount"/>
@@ -32,24 +32,35 @@ along with this software (see the LICENSE.md file). If not, see
         </actions><widgets>
             <container-box><box-header><label text="Sales Orders by Placed Date" type="h5"/></box-header><box-body-nopad>
                 <form-list name="SalesOrderSummaryList" list="salesOrderSummaryList" skip-form="true">
-                    <field name="dateKey"><default-field title="Period"><display/></default-field></field>
-                    <field name="orderCount" align="right"><default-field title="Orders"><display/></default-field></field>
-                    <field name="newCustomerOrderCount" align="right"><default-field title="New Cust"><display/></default-field></field>
-                    <field name="newCustomerPercent" align="right" from="orderCount ? (newCustomerOrderCount/orderCount)*100 : 0.0">
-                        <default-field title="New %"><display format="0.0"/></default-field></field>
-                    <field name="orderCount" align="right"><default-field title="Orders"><display/></default-field></field>
-                    <field name="productQuantityTotal" align="right"><default-field title="Product Quantity"><display/></default-field></field>
-                    <field name="totalSales" align="right"><default-field title="Total Sales"><display format="#,##0.00"/></default-field></field>
-                    <field name="productSaleTotal" align="right"><default-field title="Product Sold"><display format="#,##0.00"/></default-field></field>
-                    <field name="discountTotal" align="right"><default-field title="Discounts"><display format="#,##0.00"/></default-field></field>
-                    <field name="netSales" align="right" from="productSaleTotal + discountTotal">
-                        <default-field title="Net Product"><display format="#,##0.00"/></default-field></field>
-                    <field name="discountPercent" align="right" from="productSaleTotal ? (-discountTotal/productSaleTotal)*100 : 0.0">
-                        <default-field title="Disc %"><display format="0.0"/></default-field></field>
-                    <field name="productIssuedTotal" align="right"><default-field title="Product Issued"><display format="#,##0.00"/></default-field></field>
-                    <field name="productCostTotal" align="right"><default-field title="Cost"><display format="#,##0.00"/></default-field></field>
-                    <field name="costPercent" align="right" from="productIssuedTotal ? (productCostTotal/productIssuedTotal)*100 : 0.0">
-                        <default-field title="Cost %"><display format="0.0"/></default-field></field>
+                    <row-actions><set field="rowStyle" from="dateKey?.charAt(0)?.letter ? 'text-strong' : ''"/></row-actions>
+                    <field name="dateKey"><default-field title="Period" container-style="${rowStyle}">
+                        <display/></default-field></field>
+                    <field name="orderCount" align="right"><default-field title="Orders" container-style="${rowStyle}">
+                        <display/></default-field></field>
+                    <field name="newCustomerOrderCount" align="right"><default-field title="New Cust" container-style="${rowStyle}">
+                        <display/></default-field></field>
+                    <field name="newCustomerPercent" align="right"><default-field title="New %" container-style="${rowStyle}">
+                        <display format="0.0"/></default-field></field>
+                    <field name="orderCount" align="right"><default-field title="Orders" container-style="${rowStyle}">
+                        <display/></default-field></field>
+                    <field name="productQuantityTotal" align="right"><default-field title="Product Quantity" container-style="${rowStyle}">
+                        <display/></default-field></field>
+                    <field name="totalSales" align="right"><default-field title="Total Sales" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="productSaleTotal" align="right"><default-field title="Product Sold" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="discountTotal" align="right"><default-field title="Discounts" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="netSales" align="right"><default-field title="Net Product" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="discountPercent" align="right"><default-field title="Disc %" container-style="${rowStyle}">
+                        <display format="0.0"/></default-field></field>
+                    <field name="productIssuedTotal" align="right"><default-field title="Product Issued" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="productCostTotal" align="right"><default-field title="Cost" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="costPercent" align="right"><default-field title="Cost %" container-style="${rowStyle}">
+                        <display format="0.0"/></default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
         </widgets></section>
@@ -60,24 +71,34 @@ along with this software (see the LICENSE.md file). If not, see
         </actions><widgets>
             <container-box><box-header><label text="Sales Invoices by Invoice Date" type="h5"/></box-header><box-body-nopad>
                 <form-list name="SalesInvoiceSummaryList" list="salesInvoiceSummaryList" skip-form="true">
-                    <field name="dateKey"><default-field title="Period"><display/></default-field></field>
-                    <field name="invoiceCount" align="right"><default-field title="Invoices"><display/></default-field></field>
-                    <field name="productQuantityTotal" align="right"><default-field title="Product Quantity"><display/></default-field></field>
-                    <field name="invoiceTotal" align="right"><default-field title="Invoices Total"><display format="#,##0.00"/></default-field></field>
-                    <field name="invoicePaymentsApplied" align="right"><default-field title="Paid Amount"><display format="#,##0.00"/></default-field></field>
-                    <field name="paidPercent" align="right" from="invoiceTotal ? (invoicePaymentsApplied/invoiceTotal)*100 : 0.0">
-                        <default-field title="Paid %"><display format="0.0"/></default-field></field>
+                    <row-actions><set field="rowStyle" from="dateKey?.charAt(0)?.letter ? 'text-strong' : ''"/></row-actions>
+                    <field name="dateKey"><default-field title="Period" container-style="${rowStyle}">
+                        <display/></default-field></field>
+                    <field name="invoiceCount" align="right"><default-field title="Invoices" container-style="${rowStyle}">
+                        <display/></default-field></field>
+                    <field name="productQuantityTotal" align="right"><default-field title="Product Quantity" container-style="${rowStyle}">
+                        <display/></default-field></field>
+                    <field name="invoiceTotal" align="right"><default-field title="Invoices Total" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="invoicePaymentsApplied" align="right"><default-field title="Paid Amount" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="paidPercent" align="right"><default-field title="Paid %" container-style="${rowStyle}">
+                        <display format="0.0"/></default-field></field>
                     <!-- <field name="totalSales" align="right"><default-field title="Total Sales"><display format="#,##0.00"/></default-field></field> -->
-                    <field name="productSaleTotal" align="right"><default-field title="Product Sold"><display format="#,##0.00"/></default-field></field>
-                    <field name="discountTotal" align="right"><default-field title="Discounts"><display format="#,##0.00"/></default-field></field>
-                    <field name="netSales" align="right" from="productSaleTotal + discountTotal">
-                        <default-field title="Net Product"><display format="#,##0.00"/></default-field></field>
-                    <field name="discountPercent" align="right" from="productSaleTotal ? (-discountTotal/productSaleTotal)*100 : 0.0">
-                        <default-field title="Disc %"><display format="0.0"/></default-field></field>
-                    <field name="productIssuedTotal" align="right"><default-field title="Product Issued"><display format="#,##0.00"/></default-field></field>
-                    <field name="productCostTotal" align="right"><default-field title="Cost"><display format="#,##0.00"/></default-field></field>
-                    <field name="costPercent" align="right" from="productIssuedTotal ? (productCostTotal/productIssuedTotal)*100 : 0.0">
-                        <default-field title="Cost %"><display format="0.0"/></default-field></field>
+                    <field name="productSaleTotal" align="right"><default-field title="Product Sold" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="discountTotal" align="right"><default-field title="Discounts" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="netSales" align="right"><default-field title="Net Product" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="discountPercent" align="right"><default-field title="Disc %" container-style="${rowStyle}">
+                        <display format="0.0"/></default-field></field>
+                    <field name="productIssuedTotal" align="right"><default-field title="Product Issued" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="productCostTotal" align="right"><default-field title="Cost" container-style="${rowStyle}">
+                        <display format="#,##0.00"/></default-field></field>
+                    <field name="costPercent" align="right"><default-field title="Cost %" container-style="${rowStyle}">
+                        <display format="0.0"/></default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
         </widgets></section>
