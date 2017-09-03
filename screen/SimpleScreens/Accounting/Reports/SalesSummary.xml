@@ -33,23 +33,28 @@ along with this software (see the LICENSE.md file). If not, see
             orderLabelList = orderSummaryNoTotals*.dateKey
             invoiceLabelList = invoiceSummaryNoTotals*.dateKey
 
+            newCustomerPercentList = orderSummaryNoTotals*.newCustomerPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
+            orderProductSaleTotalList = orderSummaryNoTotals*.productSaleTotal.collect({ it.setScale(2, RoundingMode.HALF_UP) })
+            orderNetSalesList = orderSummaryNoTotals*.netSales.collect({ it.setScale(2, RoundingMode.HALF_UP) })
+            orderDiscountPercentList = orderSummaryNoTotals*.discountPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
+
             countSummaryDatasets = [
                     [label: 'Orders', backgroundColor: defaultColors[0], borderColor: defaultColors[0], fill: false,
                             data: orderSummaryNoTotals*.orderCount],
                     [label: 'New Customers', backgroundColor: defaultColors[1], borderColor: defaultColors[1], fill: false,
                             data: orderSummaryNoTotals*.newCustomerOrderCount],
                     [label: 'New Customer %', backgroundColor: defaultColors[3].replace('1.0', '0.5'), borderColor: defaultColors[3].replace('1.0', '0.5'), fill: false,
-                            yAxisID: 'rightSide', data: orderSummaryNoTotals*.newCustomerPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })],
+                            yAxisID:'rightSide', data:newCustomerPercentList],
                     [label: 'Invoices', backgroundColor: defaultColors[2], borderColor: defaultColors[2], fill: false,
                             data: invoiceSummaryNoTotals*.invoiceCount],
             ]
             orderAmountsDatasets = [
                     [label: 'Product Ordered', backgroundColor: defaultColors[0], borderColor: defaultColors[0], fill: false,
-                            data: orderSummaryNoTotals*.productSaleTotal.collect({ it.setScale(2, RoundingMode.HALF_UP) })],
+                            data: orderProductSaleTotalList],
                     [label: 'Order Discounts', backgroundColor: defaultColors[1], borderColor: defaultColors[1], fill: false,
                             data: orderSummaryNoTotals*.discountTotal.collect({ -it.setScale(2, RoundingMode.HALF_UP) })],
                     [label: 'Discount %', backgroundColor: defaultColors[3].replace('1.0', '0.5'), borderColor: defaultColors[3].replace('1.0', '0.5'), fill: false,
-                            yAxisID: 'rightSide', data: orderSummaryNoTotals*.discountPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })],
+                            yAxisID: 'rightSide', data: orderDiscountPercentList ],
             ]
             invoiceMarginDatasets = [
                     [label: 'Product Invoiced', backgroundColor: defaultColors[0], borderColor: defaultColors[0], fill: false, type:'line',
