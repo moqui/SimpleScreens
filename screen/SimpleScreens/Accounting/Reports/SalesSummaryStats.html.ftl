@@ -62,10 +62,44 @@ along with this software (see the LICENSE.md file). If not, see
 </div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
 <@statsPanel "Invoiced Quantity", '#,##0', (invoicesThis.productQuantityTotal)!0.0, (invoicesLast.productQuantityTotal)!0.0, (invoicesPrior.productQuantityTotal)!0.0, (invoicesAverage.productQuantityTotal)!0.0/>
 </div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
-<@statsPanel "Invoiced Amount", '$#,##0', (invoicesThis.invoiceTotal)!0.0, (invoicesLast.invoiceTotal)!0.0, (invoicesPrior.invoiceTotal)!0.0, (invoicesAverage.invoiceTotal)!0.0/>
+<@statsPanel "Invoices Total", '$#,##0', (invoicesThis.invoiceTotal)!0.0, (invoicesLast.invoiceTotal)!0.0, (invoicesPrior.invoiceTotal)!0.0, (invoicesAverage.invoiceTotal)!0.0/>
 </div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
 <@statsPanel "Paid Percent", '0.0%', ((invoicesThis.paidPercent)!0.0), ((invoicesLast.paidPercent)!0.0), ((invoicesPrior.paidPercent)!0.0), ((invoicesAverage.paidPercent)!0.0)/>
 </div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
 <@statsPanel "Cost Percent", '0.0%', ((invoicesThis.costPercent)!0.0), ((invoicesLast.costPercent)!0.0), ((invoicesPrior.costPercent)!0.0), ((invoicesAverage.costPercent)!0.0)/>
-
 </div></div>
+
+<div class="row"><div class="col-md-4 col-sm-6">
+    <div class="chart-container" style="position:relative; height:300px; width:100%;"><canvas id="CountSummaryChart"></canvas></div>
+</div><div class="col-md-4 col-sm-6">
+    <div class="chart-container" style="position:relative; height:300px; width:100%;"><canvas id="OrderAmountChart"></canvas></div>
+</div><div class="col-md-4 col-sm-6">
+    <div class="chart-container" style="position:relative; height:300px; width:100%;"><canvas id="InvoiceMarginChart"></canvas></div>
+</div><div class="col-md-4 col-sm-6">
+    <div class="chart-container" style="position:relative; height:300px; width:100%;"><canvas id="DiscountCostChart"></canvas></div>
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js" type="text/javascript"></script>
+<script>
+    var CountSummaryChart = new Chart(document.getElementById("CountSummaryChart"), { type: 'line',
+        data: { labels:${Static["groovy.json.JsonOutput"].toJson(orderLabelList)},
+            datasets:${Static["groovy.json.JsonOutput"].toJson(countSummaryDatasets)} },
+        options: { scales:{ yAxes: [{ position:'left', id:'leftSide', ticks:{beginAtZero:true} },
+            { position:'right', id:'rightSide', ticks:{beginAtZero:true} }] }, maintainAspectRatio:false }
+    });
+    var OrderAmountChart = new Chart(document.getElementById("OrderAmountChart"), { type: 'line',
+        data: { labels:${Static["groovy.json.JsonOutput"].toJson(orderLabelList)},
+            datasets:${Static["groovy.json.JsonOutput"].toJson(orderAmountsDatasets)} },
+        options: { scales:{ yAxes: [{ position:'left', id:'leftSide', ticks:{beginAtZero:true} },
+            { position:'right', id:'rightSide', ticks:{beginAtZero:true} }] }, maintainAspectRatio:false }
+    });
+    var InvoiceMarginChart = new Chart(document.getElementById("InvoiceMarginChart"), { type: 'bar',
+        data: { labels:${Static["groovy.json.JsonOutput"].toJson(invoiceLabelList)},
+            datasets:${Static["groovy.json.JsonOutput"].toJson(invoiceMarginDatasets)} },
+        options: { scales:{ yAxes: [{ ticks:{beginAtZero:true} }] }, maintainAspectRatio:false }
+    });
+    var DiscountCostChart = new Chart(document.getElementById("DiscountCostChart"), { type: 'line',
+        data: { labels:${Static["groovy.json.JsonOutput"].toJson(invoiceLabelList)},
+            datasets:${Static["groovy.json.JsonOutput"].toJson(discountCostDatasets)} },
+        options: { scales:{ yAxes: [{ ticks:{beginAtZero:true} }] }, maintainAspectRatio:false }
+    });
+</script>
