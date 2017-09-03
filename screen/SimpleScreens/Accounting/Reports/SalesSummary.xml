@@ -15,6 +15,12 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Sales Summary" default-menu-include="false">
 
+    <actions>
+        <service-call name="mantle.sales.SalesReportServices.get#SalesOrderSummary" out-map="context"
+                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
+        <service-call name="mantle.sales.SalesReportServices.get#SalesInvoiceSummary" out-map="context"
+                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
+    </actions>
     <widgets>
         <form-single name="SummaryOptions">
             <field name="interval"><default-field><drop-down><option key="w" text="Week"/><option key="M" text="Month"/>
@@ -26,81 +32,73 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="thruDate"/><field-ref name="submitButton"/></field-row-big></field-layout>
         </form-single>
 
-        <section name="SalesOrderSummary"><actions>
-            <service-call name="mantle.sales.SalesReportServices.get#SalesOrderSummary" out-map="context"
-                    in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
-        </actions><widgets>
-            <container-box><box-header><label text="Sales Orders by Placed Date" type="h5"/></box-header><box-body-nopad>
-                <form-list name="SalesOrderSummaryList" list="salesOrderSummaryList" skip-form="true">
-                    <row-actions><set field="rowStyle" from="dateKey?.charAt(0)?.letter ? 'text-strong' : ''"/></row-actions>
-                    <field name="dateKey"><default-field title="Period" container-style="${rowStyle}">
-                        <display/></default-field></field>
-                    <field name="orderCount" align="right"><default-field title="Orders" container-style="${rowStyle}">
-                        <display/></default-field></field>
-                    <field name="newCustomerOrderCount" align="right"><default-field title="New Cust" container-style="${rowStyle}">
-                        <display/></default-field></field>
-                    <field name="newCustomerPercent" align="right"><default-field title="New %" container-style="${rowStyle}">
-                        <display format="0.0"/></default-field></field>
-                    <field name="orderCount" align="right"><default-field title="Orders" container-style="${rowStyle}">
-                        <display/></default-field></field>
-                    <field name="productQuantityTotal" align="right"><default-field title="Product Quantity" container-style="${rowStyle}">
-                        <display/></default-field></field>
-                    <field name="totalSales" align="right"><default-field title="Total Sales" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="productSaleTotal" align="right"><default-field title="Product Sold" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="discountTotal" align="right"><default-field title="Discounts" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="netSales" align="right"><default-field title="Net Product" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="discountPercent" align="right"><default-field title="Disc %" container-style="${rowStyle}">
-                        <display format="0.0"/></default-field></field>
-                    <field name="productIssuedTotal" align="right"><default-field title="Product Issued" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="productCostTotal" align="right"><default-field title="Cost" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="costPercent" align="right"><default-field title="Cost %" container-style="${rowStyle}">
-                        <display format="0.0"/></default-field></field>
-                </form-list>
-            </box-body-nopad></container-box>
-        </widgets></section>
+        <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryStats.html.ftl"/></render-mode>
 
-        <section name="SalesInvoiceSummary"><actions>
-            <service-call name="mantle.sales.SalesReportServices.get#SalesInvoiceSummary" out-map="context"
-                    in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
-        </actions><widgets>
-            <container-box><box-header><label text="Sales Invoices by Invoice Date" type="h5"/></box-header><box-body-nopad>
-                <form-list name="SalesInvoiceSummaryList" list="salesInvoiceSummaryList" skip-form="true">
-                    <row-actions><set field="rowStyle" from="dateKey?.charAt(0)?.letter ? 'text-strong' : ''"/></row-actions>
-                    <field name="dateKey"><default-field title="Period" container-style="${rowStyle}">
-                        <display/></default-field></field>
-                    <field name="invoiceCount" align="right"><default-field title="Invoices" container-style="${rowStyle}">
-                        <display/></default-field></field>
-                    <field name="productQuantityTotal" align="right"><default-field title="Product Quantity" container-style="${rowStyle}">
-                        <display/></default-field></field>
-                    <field name="invoiceTotal" align="right"><default-field title="Invoices Total" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="invoicePaymentsApplied" align="right"><default-field title="Paid Amount" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="paidPercent" align="right"><default-field title="Paid %" container-style="${rowStyle}">
-                        <display format="0.0"/></default-field></field>
-                    <!-- <field name="totalSales" align="right"><default-field title="Total Sales"><display format="#,##0.00"/></default-field></field> -->
-                    <field name="productSaleTotal" align="right"><default-field title="Product Sold" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="discountTotal" align="right"><default-field title="Discounts" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="netSales" align="right"><default-field title="Net Product" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="discountPercent" align="right"><default-field title="Disc %" container-style="${rowStyle}">
-                        <display format="0.0"/></default-field></field>
-                    <field name="productIssuedTotal" align="right"><default-field title="Product Issued" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="productCostTotal" align="right"><default-field title="Cost" container-style="${rowStyle}">
-                        <display format="#,##0.00"/></default-field></field>
-                    <field name="costPercent" align="right"><default-field title="Cost %" container-style="${rowStyle}">
-                        <display format="0.0"/></default-field></field>
-                </form-list>
-            </box-body-nopad></container-box>
-        </widgets></section>
+        <container-box><box-header><label text="Sales Orders by Placed Date" type="h5"/></box-header><box-body-nopad>
+            <form-list name="SalesOrderSummaryList" list="salesOrderSummaryList" skip-form="true">
+                <row-actions><set field="rowStyle" from="dateKey?.charAt(0)?.letter ? 'text-strong' : ''"/></row-actions>
+                <field name="dateKey"><default-field title="Period" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="orderCount" align="right"><default-field title="Orders" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="newCustomerOrderCount" align="right"><default-field title="New Cust" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="newCustomerPercent" align="right"><default-field title="New %" container-style="${rowStyle}">
+                    <display format="0.0%"/></default-field></field>
+                <field name="orderCount" align="right"><default-field title="Orders" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="productQuantityTotal" align="right"><default-field title="Product Quantity" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="totalSales" align="right"><default-field title="Total Sales" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="productSaleTotal" align="right"><default-field title="Product Sold" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="discountTotal" align="right"><default-field title="Discounts" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="netSales" align="right"><default-field title="Net Product" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="discountPercent" align="right"><default-field title="Disc %" container-style="${rowStyle}">
+                    <display format="0.0%"/></default-field></field>
+                <field name="productIssuedTotal" align="right"><default-field title="Product Issued" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="productCostTotal" align="right"><default-field title="Cost" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="costPercent" align="right"><default-field title="Cost %" container-style="${rowStyle}">
+                    <display format="0.0%"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+
+        <container-box><box-header><label text="Sales Invoices by Invoice Date" type="h5"/></box-header><box-body-nopad>
+            <form-list name="SalesInvoiceSummaryList" list="salesInvoiceSummaryList" skip-form="true">
+                <row-actions><set field="rowStyle" from="dateKey?.charAt(0)?.letter ? 'text-strong' : ''"/></row-actions>
+                <field name="dateKey"><default-field title="Period" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="invoiceCount" align="right"><default-field title="Invoices" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="productQuantityTotal" align="right"><default-field title="Product Quantity" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="invoiceTotal" align="right"><default-field title="Invoices Total" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="invoicePaymentsApplied" align="right"><default-field title="Paid Amount" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="paidPercent" align="right"><default-field title="Paid %" container-style="${rowStyle}">
+                    <display format="0.0%"/></default-field></field>
+                <!-- <field name="totalSales" align="right"><default-field title="Total Sales"><display format="#,##0.00"/></default-field></field> -->
+                <field name="productSaleTotal" align="right"><default-field title="Product Sold" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="discountTotal" align="right"><default-field title="Discounts" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="netSales" align="right"><default-field title="Net Product" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="discountPercent" align="right"><default-field title="Disc %" container-style="${rowStyle}">
+                    <display format="0.0%"/></default-field></field>
+                <field name="productIssuedTotal" align="right"><default-field title="Product Issued" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="productCostTotal" align="right"><default-field title="Cost" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="costPercent" align="right"><default-field title="Cost %" container-style="${rowStyle}">
+                    <display format="0.0%"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
     </widgets>
 </screen>
