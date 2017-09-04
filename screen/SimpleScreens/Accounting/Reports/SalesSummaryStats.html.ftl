@@ -82,19 +82,22 @@ along with this software (see the LICENSE.md file). If not, see
 
 </div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
 <@statsPanel "Invoice Count", '#,##0', (invoicesThis.invoiceCount)!0.0, (invoicesLast.invoiceCount)!0.0,
-    (invoicesPrior.invoiceCount)!0.0, (invoicesAverage.invoiceCount)!0.0/>
+    (invoicesPrior.invoiceCount)!0.0, (invoicesAverage.invoiceCount)!0.0, ec.resource.expression("invoiceSummaryNoTotals*.invoiceCount", "")/>
 </div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
 <@statsPanel "Invoiced Quantity", '#,##0', (invoicesThis.productQuantityTotal)!0.0, (invoicesLast.productQuantityTotal)!0.0,
-    (invoicesPrior.productQuantityTotal)!0.0, (invoicesAverage.productQuantityTotal)!0.0/>
+    (invoicesPrior.productQuantityTotal)!0.0, (invoicesAverage.productQuantityTotal)!0.0, ec.resource.expression("invoiceSummaryNoTotals*.productQuantityTotal", "")/>
 </div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
 <@statsPanel "Invoices Total", '$#,##0', (invoicesThis.invoiceTotal)!0.0, (invoicesLast.invoiceTotal)!0.0,
-    (invoicesPrior.invoiceTotal)!0.0, (invoicesAverage.invoiceTotal)!0.0/>
+    (invoicesPrior.invoiceTotal)!0.0, (invoicesAverage.invoiceTotal)!0.0, invoiceTotalList/>
 </div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
 <@statsPanel "Paid Percent", '0.0%', ((invoicesThis.paidPercent)!0.0), ((invoicesLast.paidPercent)!0.0),
-    ((invoicesPrior.paidPercent)!0.0), ((invoicesAverage.paidPercent)!0.0)/>
+    ((invoicesPrior.paidPercent)!0.0), ((invoicesAverage.paidPercent)!0.0), invoicePaidPercentList/>
 </div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
-<@statsPanel "Cost Percent", '0.0%', ((invoicesThis.costPercent)!0.0), ((invoicesLast.costPercent)!0.0),
-    ((invoicesPrior.costPercent)!0.0), ((invoicesAverage.costPercent)!0.0)/>
+<@statsPanel "Invoice Cost Percent", '0.0%', ((invoicesThis.costPercent)!0.0), ((invoicesLast.costPercent)!0.0),
+    ((invoicesPrior.costPercent)!0.0), ((invoicesAverage.costPercent)!0.0), invoiceCostPercentList/>
+</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+<@statsPanel "Invoice Discount Percent", '0.0%', ((invoicesThis.discountPercent)!0.0), ((invoicesLast.discountPercent)!0.0),
+    ((invoicesPrior.discountPercent)!0.0), ((invoicesAverage.discountPercent)!0.0), invoiceDiscountPercentList/>
 </div></div>
 
 <div class="row"><div class="col-md-4 col-sm-6">
