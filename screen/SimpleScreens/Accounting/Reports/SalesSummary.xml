@@ -21,6 +21,11 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="mantle.sales.SalesReportServices.get#SalesInvoiceSummary" out-map="context"
                 in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
 
+        <service-call name="mantle.sales.SalesReportServices.get#SalesTopProduct" out-map="context"
+                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, topLimit:(topLimit?:15)]"/>
+        <service-call name="mantle.sales.SalesReportServices.get#InvoicesByCustomerClass" out-map="context"
+                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
+
         <script><![CDATA[
             import java.math.RoundingMode
 
@@ -78,6 +83,9 @@ along with this software (see the LICENSE.md file). If not, see
                             data: invoiceCostPercentList],
             ]
         ]]></script>
+
+        <set field="statsPanelColStyle" value="col-lg-3 col-md-4 col-sm-4 col-xs-6"/>
+        <set field="statsChartColStyle" value="col-md-6 col-sm-6"/>
     </actions>
     <widgets>
         <form-single name="SummaryOptions">
@@ -91,8 +99,20 @@ along with this software (see the LICENSE.md file). If not, see
         </form-single>
 
         <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryStats.html.ftl"/></render-mode>
+        <container-row><row-col md="8">
+            <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryCharts.html.ftl"/></render-mode>
+        </row-col><row-col md="4">
+            <container-box><box-header title="Top Products Ordered (last period)"/><box-body-nopad>
+                <form-list name="TopProductList" list="topProductList" skip-form="true">
+                    <field name="productId"><default-field title="Product">
+                        <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                    <field name="totalQuantity" align="right"><default-field title="Quantity"><display/></default-field></field>
+                    <field name="totalSales" align="right"><default-field title="Total Sales"><display format="#,##0.00"/></default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
+        </row-col></container-row>
 
-        <container-box><box-header><label text="Sales Orders by Placed Date" type="h5"/></box-header><box-body-nopad>
+        <container-box><box-header title="Sales Orders by Placed Date"/><box-body-nopad>
             <form-list name="SalesOrderSummaryList" list="salesOrderSummaryList" skip-form="true">
                 <row-actions><set field="rowStyle" from="dateKey?.charAt(0)?.letter ? 'text-strong' : ''"/></row-actions>
                 <field name="dateKey"><default-field title="Period" container-style="${rowStyle}">
@@ -126,7 +146,39 @@ along with this software (see the LICENSE.md file). If not, see
             </form-list>
         </box-body-nopad></container-box>
 
-        <container-box><box-header><label text="Sales Invoices by Invoice Date" type="h5"/></box-header><box-body-nopad>
+        <container-box><box-header title="Invoices by Customer Classification (last period)"/><box-body-nopad>
+            <form-list name="TopCustomerClassList" list="topCustomerClassList" skip-form="true">
+                <row-actions><set field="rowStyle" from="customerClassId ? '' : 'text-strong'"/></row-actions>
+                <field name="classDescription"><default-field title="Classification"><display/></default-field></field>
+                <field name="invoiceCount" align="right"><default-field title="Invoices" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="productQuantityTotal" align="right"><default-field title="Product Quantity" container-style="${rowStyle}">
+                    <display/></default-field></field>
+                <field name="invoiceTotal" align="right"><default-field title="Invoices Total" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="invoicePaymentsApplied" align="right"><default-field title="Paid Amount" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="paidPercent" align="right"><default-field title="Paid %" container-style="${rowStyle}">
+                    <display format="0.0%"/></default-field></field>
+                <!-- <field name="totalSales" align="right"><default-field title="Total Sales"><display format="#,##0.00"/></default-field></field> -->
+                <field name="productSaleTotal" align="right"><default-field title="Product Sold" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="discountTotal" align="right"><default-field title="Discounts" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="netSales" align="right"><default-field title="Net Product" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="discountPercent" align="right"><default-field title="Disc %" container-style="${rowStyle}">
+                    <display format="0.0%"/></default-field></field>
+                <field name="productIssuedTotal" align="right"><default-field title="Product Issued" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="productCostTotal" align="right"><default-field title="Cost" container-style="${rowStyle}">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="costPercent" align="right"><default-field title="Cost %" container-style="${rowStyle}">
+                    <display format="0.0%"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+
+        <container-box><box-header title="Sales Invoices by Invoice Date"/><box-body-nopad>
             <form-list name="SalesInvoiceSummaryList" list="salesInvoiceSummaryList" skip-form="true">
                 <row-actions><set field="rowStyle" from="dateKey?.charAt(0)?.letter ? 'text-strong' : ''"/></row-actions>
                 <field name="dateKey"><default-field title="Period" container-style="${rowStyle}">

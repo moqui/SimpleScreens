@@ -58,78 +58,44 @@ along with this software (see the LICENSE.md file). If not, see
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js" type="text/javascript"></script>
 
-<div class="row"><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+<div class="row"><div class="${statsPanelColStyle}">
 <@statsPanel "Order Count", '#,##0', (ordersThis.orderCount)!0.0, (ordersLast.orderCount)!0.0, (ordersPrior.orderCount)!0.0,
     (ordersAverage.orderCount)!0.0, ec.resource.expression("orderSummaryNoTotals*.orderCount", "")/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+</div><div class="${statsPanelColStyle}">
 <@statsPanel "New Customer Count", '#,##0', (ordersThis.newCustomerOrderCount)!0.0, (ordersLast.newCustomerOrderCount)!0.0, (ordersPrior.newCustomerOrderCount)!0.0,
     (ordersAverage.newCustomerOrderCount)!0.0, ec.resource.expression("orderSummaryNoTotals*.newCustomerOrderCount", "")/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+</div><div class="${statsPanelColStyle}">
 <@statsPanel "New Customer Percent", '0.0%', ((ordersThis.newCustomerPercent)!0.0), ((ordersLast.newCustomerPercent)!0.0),
     ((ordersPrior.newCustomerPercent)!0.0), ((ordersAverage.newCustomerPercent)!0.0), newCustomerPercentList/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
-<@statsPanel "Quantity Sold", '#,##0', (ordersThis.productQuantityTotal)!0.0, (ordersLast.productQuantityTotal)!0.0,
+</div><div class="${statsPanelColStyle}">
+<@statsPanel "Order Quantity", '#,##0', (ordersThis.productQuantityTotal)!0.0, (ordersLast.productQuantityTotal)!0.0,
     (ordersPrior.productQuantityTotal)!0.0, (ordersAverage.productQuantityTotal)!0.0, ec.resource.expression("orderSummaryNoTotals*.productQuantityTotal", "")/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
-<@statsPanel "Product Sales", '$#,##0', (ordersThis.productSaleTotal)!0.0, (ordersLast.productSaleTotal)!0.0,
+</div><div class="${statsPanelColStyle}">
+<@statsPanel "Order Product Sales", '$#,##0', (ordersThis.productSaleTotal)!0.0, (ordersLast.productSaleTotal)!0.0,
     (ordersPrior.productSaleTotal)!0.0, (ordersAverage.productSaleTotal)!0.0, orderProductSaleTotalList/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
-<@statsPanel "Discount Percent", '0.0%', ((ordersThis.discountPercent)!0.0), ((ordersLast.discountPercent)!0.0),
+</div><div class="${statsPanelColStyle}">
+<@statsPanel "Order Discount Percent", '0.0%', ((ordersThis.discountPercent)!0.0), ((ordersLast.discountPercent)!0.0),
     ((ordersPrior.discountPercent)!0.0), ((ordersAverage.discountPercent)!0.0), orderDiscountPercentList/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
-<@statsPanel "Net Product", '$#,##0', (ordersThis.netSales)!0.0, (ordersLast.netSales)!0.0,
+</div><div class="${statsPanelColStyle}">
+<@statsPanel "Order Net Product", '$#,##0', (ordersThis.netSales)!0.0, (ordersLast.netSales)!0.0,
     (ordersPrior.netSales)!0.0, (ordersAverage.netSales)!0.0, orderNetSalesList/>
 
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+</div><div class="${statsPanelColStyle}">
 <@statsPanel "Invoice Count", '#,##0', (invoicesThis.invoiceCount)!0.0, (invoicesLast.invoiceCount)!0.0,
     (invoicesPrior.invoiceCount)!0.0, (invoicesAverage.invoiceCount)!0.0, ec.resource.expression("invoiceSummaryNoTotals*.invoiceCount", "")/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+</div><div class="${statsPanelColStyle}">
 <@statsPanel "Invoiced Quantity", '#,##0', (invoicesThis.productQuantityTotal)!0.0, (invoicesLast.productQuantityTotal)!0.0,
     (invoicesPrior.productQuantityTotal)!0.0, (invoicesAverage.productQuantityTotal)!0.0, ec.resource.expression("invoiceSummaryNoTotals*.productQuantityTotal", "")/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+</div><div class="${statsPanelColStyle}">
 <@statsPanel "Invoices Total", '$#,##0', (invoicesThis.invoiceTotal)!0.0, (invoicesLast.invoiceTotal)!0.0,
     (invoicesPrior.invoiceTotal)!0.0, (invoicesAverage.invoiceTotal)!0.0, invoiceTotalList/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+</div><div class="${statsPanelColStyle}">
 <@statsPanel "Paid Percent", '0.0%', ((invoicesThis.paidPercent)!0.0), ((invoicesLast.paidPercent)!0.0),
     ((invoicesPrior.paidPercent)!0.0), ((invoicesAverage.paidPercent)!0.0), invoicePaidPercentList/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+</div><div class="${statsPanelColStyle}">
 <@statsPanel "Invoice Cost Percent", '0.0%', ((invoicesThis.costPercent)!0.0), ((invoicesLast.costPercent)!0.0),
     ((invoicesPrior.costPercent)!0.0), ((invoicesAverage.costPercent)!0.0), invoiceCostPercentList/>
-</div><div class="col-lg-3 col-md-4 col-sm-4 col-xs-6">
+</div><div class="${statsPanelColStyle}">
 <@statsPanel "Invoice Discount Percent", '0.0%', ((invoicesThis.discountPercent)!0.0), ((invoicesLast.discountPercent)!0.0),
     ((invoicesPrior.discountPercent)!0.0), ((invoicesAverage.discountPercent)!0.0), invoiceDiscountPercentList/>
 </div></div>
-
-<div class="row"><div class="col-md-4 col-sm-6">
-    <div class="chart-container" style="position:relative; height:300px; width:100%;"><canvas id="CountSummaryChart"></canvas></div>
-</div><div class="col-md-4 col-sm-6">
-    <div class="chart-container" style="position:relative; height:300px; width:100%;"><canvas id="OrderAmountChart"></canvas></div>
-</div><div class="col-md-4 col-sm-6">
-    <div class="chart-container" style="position:relative; height:300px; width:100%;"><canvas id="InvoiceMarginChart"></canvas></div>
-</div><div class="col-md-4 col-sm-6">
-    <div class="chart-container" style="position:relative; height:300px; width:100%;"><canvas id="DiscountCostChart"></canvas></div>
-</div></div>
-<script>
-    var CountSummaryChart = new Chart(document.getElementById("CountSummaryChart"), { type: 'line',
-        data: { labels:${Static["groovy.json.JsonOutput"].toJson(orderLabelList)},
-            datasets:${Static["groovy.json.JsonOutput"].toJson(countSummaryDatasets)} },
-        options: { scales:{ yAxes: [{ position:'left', id:'leftSide', ticks:{beginAtZero:true} },
-            { position:'right', id:'rightSide', ticks:{beginAtZero:true}, gridLines:{drawOnChartArea:false} }] }, maintainAspectRatio:false }
-    });
-    var OrderAmountChart = new Chart(document.getElementById("OrderAmountChart"), { type: 'line',
-        data: { labels:${Static["groovy.json.JsonOutput"].toJson(orderLabelList)},
-            datasets:${Static["groovy.json.JsonOutput"].toJson(orderAmountsDatasets)} },
-        options: { scales:{ yAxes: [{ position:'left', id:'leftSide', ticks:{beginAtZero:true} },
-            { position:'right', id:'rightSide', ticks:{beginAtZero:true}, gridLines:{drawOnChartArea:false} }] }, maintainAspectRatio:false }
-    });
-    var InvoiceMarginChart = new Chart(document.getElementById("InvoiceMarginChart"), { type: 'bar',
-        data: { labels:${Static["groovy.json.JsonOutput"].toJson(invoiceLabelList)},
-            datasets:${Static["groovy.json.JsonOutput"].toJson(invoiceMarginDatasets)} },
-        options: { scales:{ yAxes: [{ ticks:{beginAtZero:true} }] }, maintainAspectRatio:false }
-    });
-    var DiscountCostChart = new Chart(document.getElementById("DiscountCostChart"), { type: 'line',
-        data: { labels:${Static["groovy.json.JsonOutput"].toJson(invoiceLabelList)},
-            datasets:${Static["groovy.json.JsonOutput"].toJson(discountCostDatasets)} },
-        options: { scales:{ yAxes: [{ ticks:{beginAtZero:true} }] }, maintainAspectRatio:false }
-    });
-</script>
