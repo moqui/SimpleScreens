@@ -14,7 +14,8 @@ along with this software (see the LICENSE.md file). If not, see
 <div class="panel panel-default"><div class="panel-body">
     <h5 class="text-center" style="margin-top:0;">${title}</h5>
     <div class="row"><div class="col-xs-6 text-right">
-        <h4 class="text-primary">${ec.l10n.format(valThis, mainFormat)}</h4>
+        <div class="small text-muted">this</div>
+        <h4 class="text-primary" style="margin-top:0;">${ec.l10n.format(valThis, mainFormat)}</h4>
     </div><div class="col-xs-6">
         <div>
             <i class="glyphicon <#if (valThis < valLast)>glyphicon-triangle-bottom text-danger<#else>glyphicon-triangle-top text-success</#if>"></i>
@@ -28,7 +29,8 @@ along with this software (see the LICENSE.md file). If not, see
         </div>
     </div></div>
     <div class="row"><div class="col-xs-6 text-right">
-        <h4 class="text-primary">${ec.l10n.format(valLast, mainFormat)}</h4>
+        <div class="small text-muted">last</div>
+        <h4 class="text-primary" style="margin-top:0;">${ec.l10n.format(valLast, mainFormat)}</h4>
     </div><div class="col-xs-6">
         <div>
             <i class="glyphicon <#if (valLast < valPrior)>glyphicon-triangle-bottom text-danger<#else>glyphicon-triangle-top text-success</#if>"></i>
