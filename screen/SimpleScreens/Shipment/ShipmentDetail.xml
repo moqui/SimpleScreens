@@ -443,7 +443,7 @@ along with this software (see the LICENSE.md file). If not, see
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
             <section name="OrderNotesSection"><widgets>
-                <container-box><box-header><label text="Order Notes" type="h5"/></box-header><box-body>
+                <container-box><box-header title="Order Notes"/><box-body>
                     <section-iterate name="NoteIterateSection" list="orderNoteList" entry="note"><actions>
                         <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
                             <field-map field-name="userId" from="note.userId"/></entity-find-one>
@@ -454,7 +454,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body></container-box>
             </widgets></section>
 
-            <container-box><box-header><label text="Payments" type="h5"/></box-header><box-body-nopad>
+            <container-box><box-header title="Payments"/><box-body-nopad>
                 <form-list name="ShipmentOrderPaymentList" list="shipmentPaymentList">
                     <entity-find entity-name="mantle.shipment.ShipmentOrderPayment" list="shipmentPaymentList" distinct="true">
                         <econdition field-name="shipmentId"/>
@@ -492,7 +492,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-list>
             </box-body-nopad></container-box>
 
-            <container-box><box-header><label text="Content" type="h5"/></box-header><box-toolbar>
+            <container-box><box-header title="Content"/><box-toolbar>
                 <container-dialog id="NewContentDialog" button-text="Add Content">
                     <form-single name="NewContentForm" transition="createContent">
                         <field name="shipmentId"><default-field><hidden/></default-field></field>
@@ -526,7 +526,7 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body></container-box>
 
             <section name="EmailMessageSection"><widgets>
-                <container-box><box-header><label text="Email Messages" type="h5"/></box-header><box-toolbar>
+                <container-box><box-header title="Email Messages"/><box-toolbar>
                     <section name="SendPlacedEmailSection" condition="shipment.statusId in ['ShipPacked', 'ShipShipped', 'ShipDelivered']"><actions>
                         <if condition="shipment.toPartyId">
                             <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="emailInfo"
@@ -567,7 +567,7 @@ along with this software (see the LICENSE.md file). If not, see
         </row-col></container-row>
 
         <!-- Items -->
-        <container-box><box-header><label text="Shipment Items" type="h5"/></box-header><box-toolbar>
+        <container-box><box-header title="Shipment Items"/><box-toolbar>
             <section name="ShipItemInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
                 <container-dialog id="AddItemContainer" button-text="Add Item">
                     <form-single name="AddItemForm" transition="addItem">
@@ -606,7 +606,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="packageContentTotal" from="(packageContentList*.quantity).sum() ?: 0.0"/>
                 <set field="quantityNotInPackage" from="((BigDecimal) sid.quantity ?: 0.0) - packageContentTotal"/>
             </actions><widgets>
-                <container-box type="success"><box-header><label text="ProductNameTemplate" text-map="sid" type="h5"/></box-header><box-toolbar>
+                <container-box type="success"><box-header title="${ec.resource.expand('ProductNameTemplate', '', sid)}"/><box-toolbar>
                     <section name="PackItemSection" condition="allowPack"><widgets>
                         <container-dialog id="PackItemContainer" button-text="Pack Item">
                             <form-single name="PackItemForm" transition="packItem" map="sid">
@@ -826,7 +826,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <!-- Packages -->
         <section name="ShipmentPackageSection"><widgets>
-            <container-box><box-header><label text="Packages" type="h5"/></box-header><box-toolbar>
+            <container-box><box-header title="Packages"/><box-toolbar>
                 <link url="createShipmentAutoPackages" text="Auto Packages" condition="shippingGatewayConfig?.getAutoPackageInfoName"
                     parameter-map="[resetExisting:true]" confirmation="Remove existing packages and create new based on auto-package data?"/>
                 <link url="createPackage" text="Add Package"/>
@@ -839,7 +839,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <set field="trackingStatusEnum" from="packageRouteSeg?.trackingStatusEnum"/>
                     <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
                 </actions><widgets>
-                    <container-box type="warning"><box-header><label text="Package ${shipmentPackage.shipmentPackageSeqId}" type="h5"/></box-header><box-toolbar>
+                    <container-box type="warning"><box-header title="Package ${shipmentPackage.shipmentPackageSeqId}"/><box-toolbar>
                         <container-dialog id="UpdatePackageDialog" button-text="Update Package">
                             <form-single name="UpdatePackageForm" map="packageAndRouteSeg" transition="updatePackageAndRouteSeg">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>

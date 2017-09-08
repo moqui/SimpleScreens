@@ -186,11 +186,59 @@ along with this software (see the LICENSE.md file). If not, see
                     <fields-not-referenced/>
                 </field-layout>
             </form-single>
+
+            <section name="ContentSection"><actions>
+                <entity-find entity-name="mantle.account.invoice.InvoiceContent" list="contentList">
+                    <econdition field-name="invoiceId"/><order-by field-name="-contentDate"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header title="Content"/><box-toolbar>
+                    <container-dialog id="NewContentDialog" button-text="Add Content">
+                        <form-single name="NewContentForm" transition="createContent">
+                            <field name="invoiceId"><default-field><hidden/></default-field></field>
+                            <field name="contentTypeEnumId"><default-field title="Content Type">
+                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                    <set field="enumTypeId" value="InvoiceContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                            </default-field></field>
+                            <field name="contentFile"><default-field><file/></default-field></field>
+                            <field name="description"><default-field><text-line size="60"/></default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <section-iterate name="ContentIterateSection" list="contentList" entry="content"><actions>
+                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                            <field-map field-name="userId" from="content.userId"/></entity-find-one>
+                        <entity-find-one entity-name="moqui.basic.Enumeration" value-field="contentTypeEnum">
+                            <field-map field-name="enumId" from="content.contentTypeEnumId"/></entity-find-one>
+                    </actions><widgets><container>
+                        <container><label text="${contentTypeEnum?.description?:'No Type'}" type="strong"/></container>
+                        <link url="downloadContent" condition="content.contentLocation"
+                                parameter-map="[invoiceContentId:content.invoiceContentId]"
+                                text="Download ${content.contentLocation.substring(content.contentLocation.lastIndexOf('/')+1)}"/>
+                        <container-dialog id="UpdateContentContainer" button-text="Edit Content">
+                            <form-single name="UpdateContentForm" transition="updateContent" map="content">
+                                <field name="invoiceContentId"><default-field><hidden/></default-field></field>
+                                <field name="invoiceId"><default-field><hidden/></default-field></field>
+                                <field name="contentTypeEnumId"><default-field title="Content Type">
+                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                        <set field="enumTypeId" value="InvoiceContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                                </default-field></field>
+                                <field name="contentFile"><default-field><file/></default-field></field>
+                                <field name="description"><default-field><text-line size="60"/></default-field></field>
+                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                        <container><label text="By ${ec.resource.expand('UsernameTemplate','',paua+[userId:content.userId])} at ${ec.l10n.format(content.contentDate, 'yyyy-MM-dd HH:mm')}"
+                                condition="paua"/></container>
+                        <label text="${content.description ?: 'No Description'}" type="p"/>
+                    </container></widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
         </row-col><row-col lg="6">
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
-            <container-box><box-header><label text="Payment Applications" type="h5"/></box-header><box-toolbar>
+            <container-box><box-header title="Payment Applications"/><box-toolbar>
                 <container-dialog id="RecordPaymentContainer" button-text="New Payment for Invoice" condition="unpaidTotal">
                     <form-single name="RecordPaymentForm" transition="recordPayment">
                         <field name="invoiceId"><default-field><display also-hidden="true"/></default-field></field>
@@ -245,7 +293,7 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body-nopad></container-box>
 
             <section name="RecordPaymentSection" condition="canRecordPayments"><widgets>
-                <container-box><box-header><label text="Promised Order Payments" type="h5"/></box-header><box-body-nopad>
+                <container-box><box-header title="Promised Order Payments"/><box-body-nopad>
                     <form-list name="OrderPromisedPaymentList" list="orderPromisedPaymentList" transition="sendPromisedPayment">
                         <field name="invoiceId"><default-field><hidden/></default-field></field>
                         <field name="orderId"><default-field title="Order">
@@ -259,7 +307,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body-nopad></container-box>
             </widgets></section>
             <section name="ApplyPaymentSection" condition="canRecordPayments"><widgets>
-                <container-box><box-header><label text="Applicable Payments" type="h5"/></box-header><box-body-nopad>
+                <container-box><box-header title="Applicable Payments"/><box-body-nopad>
                     <form-list name="UnappliedPaymentList" list="unappliedPaymentInfoList" transition="applyInvoicePayment">
                         <field name="invoiceId"><default-field><hidden/></default-field></field>
                         <field name="paymentId" from="payment.paymentId"><default-field title="Payment">
@@ -351,54 +399,6 @@ along with this software (see the LICENSE.md file). If not, see
                             <display format="#,##0.00"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
-            </widgets></section>
-
-            <section name="ContentSection"><actions>
-                <entity-find entity-name="mantle.account.invoice.InvoiceContent" list="contentList">
-                    <econdition field-name="invoiceId"/><order-by field-name="-contentDate"/></entity-find>
-            </actions><widgets>
-                <container-box><box-header><label text="Content" type="h5"/></box-header><box-toolbar>
-                    <container-dialog id="NewContentDialog" button-text="Add Content">
-                        <form-single name="NewContentForm" transition="createContent">
-                            <field name="invoiceId"><default-field><hidden/></default-field></field>
-                            <field name="contentTypeEnumId"><default-field title="Content Type">
-                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                                    <set field="enumTypeId" value="InvoiceContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
-                            </default-field></field>
-                            <field name="contentFile"><default-field><file/></default-field></field>
-                            <field name="description"><default-field><text-line size="60"/></default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <section-iterate name="ContentIterateSection" list="contentList" entry="content"><actions>
-                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
-                            <field-map field-name="userId" from="content.userId"/></entity-find-one>
-                        <entity-find-one entity-name="moqui.basic.Enumeration" value-field="contentTypeEnum">
-                            <field-map field-name="enumId" from="content.contentTypeEnumId"/></entity-find-one>
-                    </actions><widgets><container>
-                        <container><label text="${contentTypeEnum?.description?:'No Type'}" type="strong"/></container>
-                        <link url="downloadContent" condition="content.contentLocation"
-                                parameter-map="[invoiceContentId:content.invoiceContentId]"
-                                text="Download ${content.contentLocation.substring(content.contentLocation.lastIndexOf('/')+1)}"/>
-                        <container-dialog id="UpdateContentContainer" button-text="Edit Content">
-                            <form-single name="UpdateContentForm" transition="updateContent" map="content">
-                                <field name="invoiceContentId"><default-field><hidden/></default-field></field>
-                                <field name="invoiceId"><default-field><hidden/></default-field></field>
-                                <field name="contentTypeEnumId"><default-field title="Content Type">
-                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                                        <set field="enumTypeId" value="InvoiceContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
-                                </default-field></field>
-                                <field name="contentFile"><default-field><file/></default-field></field>
-                                <field name="description"><default-field><text-line size="60"/></default-field></field>
-                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                            </form-single>
-                        </container-dialog>
-                        <container><label text="By ${ec.resource.expand('UsernameTemplate','',paua+[userId:content.userId])} at ${ec.l10n.format(content.contentDate, 'yyyy-MM-dd HH:mm')}"
-                                condition="paua"/></container>
-                        <label text="${content.description ?: 'No Description'}" type="p"/>
-                    </container></widgets></section-iterate>
-                </box-body></container-box>
             </widgets></section>
         </row-col></container-row>
     </widgets>
