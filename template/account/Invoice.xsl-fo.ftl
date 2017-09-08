@@ -164,7 +164,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <fo:block>${invoice.referenceNumber}</fo:block>
                         </#if>
                         <#if invoice.otherPartyOrderId?has_content>
-                            <fo:block font-weight="bold">Order</fo:block>
+                            <fo:block font-weight="bold">Your Order</fo:block>
                             <fo:block>${invoice.otherPartyOrderId}</fo:block>
                         </#if>
                     </fo:table-cell>
@@ -174,7 +174,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-cell>
                     <#if orderIdSet?has_content>
                         <fo:table-cell padding="3pt" width="2in">
-                            <fo:block font-weight="bold">Order #</fo:block>
+                            <fo:block font-weight="bold">Our Order</fo:block>
                             <fo:block><#list orderIdSet as orderId>${orderId}<#sep>, </#list></fo:block>
                         </fo:table-cell>
                     </#if>

@@ -23,6 +23,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateStatus"><service-call name="update#mantle.account.invoice.Invoice"/><default-response url="."/></transition>
 
     <transition name="adjustInvoice"><service-call name="mantle.account.InvoiceServices.adjust#Invoice"/><default-response url="."/></transition>
+    <transition name="repostInvoice"><service-call name="mantle.ledger.InvoiceAutoPostServices.repost#Invoice"/><default-response url="."/></transition>
+
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
     <transition-include name="getItemTypeGlAccount" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
@@ -184,6 +186,54 @@ along with this software (see the LICENSE.md file). If not, see
                     <fields-not-referenced/>
                 </field-layout>
             </form-single>
+
+            <section name="ContentSection"><actions>
+                <entity-find entity-name="mantle.account.invoice.InvoiceContent" list="contentList">
+                    <econdition field-name="invoiceId"/><order-by field-name="-contentDate"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header title="Content"/><box-toolbar>
+                    <container-dialog id="NewContentDialog" button-text="Add Content">
+                        <form-single name="NewContentForm" transition="createContent">
+                            <field name="invoiceId"><default-field><hidden/></default-field></field>
+                            <field name="contentTypeEnumId"><default-field title="Content Type">
+                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                    <set field="enumTypeId" value="InvoiceContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                            </default-field></field>
+                            <field name="contentFile"><default-field><file/></default-field></field>
+                            <field name="description"><default-field><text-line size="60"/></default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <section-iterate name="ContentIterateSection" list="contentList" entry="content"><actions>
+                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                            <field-map field-name="userId" from="content.userId"/></entity-find-one>
+                        <entity-find-one entity-name="moqui.basic.Enumeration" value-field="contentTypeEnum">
+                            <field-map field-name="enumId" from="content.contentTypeEnumId"/></entity-find-one>
+                    </actions><widgets><container>
+                        <container><label text="${contentTypeEnum?.description?:'No Type'}" type="strong"/></container>
+                        <link url="downloadContent" condition="content.contentLocation"
+                                parameter-map="[invoiceContentId:content.invoiceContentId]"
+                                text="Download ${content.contentLocation.substring(content.contentLocation.lastIndexOf('/')+1)}"/>
+                        <container-dialog id="UpdateContentContainer" button-text="Edit Content">
+                            <form-single name="UpdateContentForm" transition="updateContent" map="content">
+                                <field name="invoiceContentId"><default-field><hidden/></default-field></field>
+                                <field name="invoiceId"><default-field><hidden/></default-field></field>
+                                <field name="contentTypeEnumId"><default-field title="Content Type">
+                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                        <set field="enumTypeId" value="InvoiceContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                                </default-field></field>
+                                <field name="contentFile"><default-field><file/></default-field></field>
+                                <field name="description"><default-field><text-line size="60"/></default-field></field>
+                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                        <container><label text="By ${ec.resource.expand('UsernameTemplate','',paua+[userId:content.userId])} at ${ec.l10n.format(content.contentDate, 'yyyy-MM-dd HH:mm')}"
+                                condition="paua"/></container>
+                        <label text="${content.description ?: 'No Description'}" type="p"/>
+                    </container></widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
         </row-col><row-col lg="6">
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
@@ -283,83 +333,72 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body-nopad></container-box>
             </widgets></section>
 
-            <container-box><box-header title="GL Transactions"/><box-body-nopad>
-                <form-list name="InvoiceTxList" list="acctgTransList" skip-form="true">
-                    <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
-                        <econdition field-name="invoiceId"/><order-by field-name="acctgTransId"/></entity-find>
-                    <row-actions>
-                        <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
-                                in-map="[acctgTransId:acctgTransId]" out-map="context"/>
-                    </row-actions>
+            <section name="GlTransactionsSection"><actions>
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="entrySummaryList">
+                    <econdition field-name="invoiceId"/>
+                    <select-field field-name="glAccountId,accountCode,accountName,isDebit,glAccountClassEnumId,debitCreditFlag,amount"/>
+                </entity-find>
+                <set field="glaSummaryMap" from="[:]"/>
+                <iterate list="entrySummaryList" entry="entrySummary">
+                    <set field="curEntry" from="glaSummaryMap.get(entrySummary.glAccountId)"/>
+                    <if condition="curEntry == null">
+                        <set field="curEntry" from="entrySummary.getMap()"/>
+                        <script>glaSummaryMap.put(entrySummary.glAccountId, curEntry)</script>
+                    </if>
+                    <if condition="entrySummary.debitCreditFlag == 'D'"><then><set field="curEntry.debits" from="entrySummary.amount"/></then>
+                        <else><set field="curEntry.credits" from="entrySummary.amount"/></else></if>
+                    <set field="curEntry.cdDiff" from="entrySummary.isDebit == 'Y' ? (curEntry.debits?:0.0) - (curEntry.credits?:0.0) : (curEntry.credits?:0.0) - (curEntry.debits?:0.0)"/>
+                </iterate>
+                <set field="glaSummaryList" from="[]"/>
+                <iterate list="glaSummaryMap.values()" entry="curEntry">
+                    <if condition="curEntry.cdDiff != 0.0"><script>glaSummaryList.add(curEntry)</script></if></iterate>
+                <order-map-list list="glaSummaryList"><order-by field-name="accountCode"/></order-map-list>
 
-                    <field name="acctgTransId"><default-field title="TX ID">
-                        <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
-                    <field name="acctgTransTypeEnumId">
-                        <default-field title="TX Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
-                    <field name="paymentId"><default-field title="Payment">
-                        <link url="editPayment" text="${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
-
-                    <field name="reversedByAcctgTransId"><default-field title="Rev By">
-                        <link url="editTransaction" text="${reversedByAcctgTransId}" link-type="anchor" condition="reversedByAcctgTransId"
-                                parameter-map="[acctgTransId:reversedByAcctgTransId]"/></default-field></field>
-                    <field name="reverseOfAcctgTransId"><default-field title="Rev Of">
-                        <link url="editTransaction" text="${reverseOfAcctgTransId}" link-type="anchor" condition="reverseOfAcctgTransId"
-                                parameter-map="[acctgTransId:reverseOfAcctgTransId]"/></default-field></field>
-
-                    <field name="transactionDate"><default-field title="TX Date"><display/></default-field></field>
-                    <field name="isPosted"><default-field title="Posted"><display/></default-field></field>
-                    <field name="postedDate"><default-field><display/></default-field></field>
-
-                    <field name="debitTotal" align="right"><default-field title="Total"><display currency-unit-field="amountUomId"/></default-field></field>
-                </form-list>
-            </box-body-nopad></container-box>
-
-            <section name="ContentSection"><actions>
-                <entity-find entity-name="mantle.account.invoice.InvoiceContent" list="contentList">
-                    <econdition field-name="invoiceId"/><order-by field-name="-contentDate"/></entity-find>
+                <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
+                <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
             </actions><widgets>
-                <container-box><box-header title="Content"/><box-toolbar>
-                    <container-dialog id="NewContentDialog" button-text="Add Content">
-                        <form-single name="NewContentForm" transition="createContent">
-                            <field name="invoiceId"><default-field><hidden/></default-field></field>
-                            <field name="contentTypeEnumId"><default-field title="Content Type">
-                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                                    <set field="enumTypeId" value="InvoiceContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
-                            </default-field></field>
-                            <field name="contentFile"><default-field><file/></default-field></field>
-                            <field name="description"><default-field><text-line size="60"/></default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <section-iterate name="ContentIterateSection" list="contentList" entry="content"><actions>
-                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
-                            <field-map field-name="userId" from="content.userId"/></entity-find-one>
-                        <entity-find-one entity-name="moqui.basic.Enumeration" value-field="contentTypeEnum">
-                            <field-map field-name="enumId" from="content.contentTypeEnumId"/></entity-find-one>
-                    </actions><widgets><container>
-                        <container><label text="${contentTypeEnum?.description?:'No Type'}" type="strong"/></container>
-                        <link url="downloadContent" condition="content.contentLocation"
-                                parameter-map="[invoiceContentId:content.invoiceContentId]"
-                                text="Download ${content.contentLocation.substring(content.contentLocation.lastIndexOf('/')+1)}"/>
-                        <container-dialog id="UpdateContentContainer" button-text="Edit Content">
-                            <form-single name="UpdateContentForm" transition="updateContent" map="content">
-                                <field name="invoiceContentId"><default-field><hidden/></default-field></field>
-                                <field name="invoiceId"><default-field><hidden/></default-field></field>
-                                <field name="contentTypeEnumId"><default-field title="Content Type">
-                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                                        <set field="enumTypeId" value="InvoiceContentType"/><set field="allowEmpty" value="true"/></widget-template-include>
-                                </default-field></field>
-                                <field name="contentFile"><default-field><file/></default-field></field>
-                                <field name="description"><default-field><text-line size="60"/></default-field></field>
-                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                            </form-single>
-                        </container-dialog>
-                        <container><label text="By ${ec.resource.expand('UsernameTemplate','',paua+[userId:content.userId])} at ${ec.l10n.format(content.contentDate, 'yyyy-MM-dd HH:mm')}"
-                                condition="paua"/></container>
-                        <label text="${content.description ?: 'No Description'}" type="p"/>
-                    </container></widgets></section-iterate>
-                </box-body></container-box>
+                <container-box><box-header title="GL Transactions"/><box-toolbar>
+                    <link url="repostInvoice" text="Repost"/>
+                </box-toolbar><box-body-nopad>
+                    <form-list name="InvoiceTxList" list="acctgTransList" skip-form="true">
+                        <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
+                            <econdition field-name="invoiceId"/><order-by field-name="acctgTransId"/></entity-find>
+                        <row-actions>
+                            <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
+                                    in-map="[acctgTransId:acctgTransId]" out-map="context"/>
+                        </row-actions>
+
+                        <field name="acctgTransId"><default-field title="TX ID">
+                            <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
+                        <field name="acctgTransTypeEnumId">
+                            <default-field title="TX Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                        <field name="paymentId"><default-field title="Payment">
+                            <link url="editPayment" text="${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
+
+                        <field name="reversedByAcctgTransId"><default-field title="Rev By">
+                            <link url="editTransaction" text="${reversedByAcctgTransId}" link-type="anchor" condition="reversedByAcctgTransId"
+                                    parameter-map="[acctgTransId:reversedByAcctgTransId]"/></default-field></field>
+                        <field name="reverseOfAcctgTransId"><default-field title="Rev Of">
+                            <link url="editTransaction" text="${reverseOfAcctgTransId}" link-type="anchor" condition="reverseOfAcctgTransId"
+                                    parameter-map="[acctgTransId:reverseOfAcctgTransId]"/></default-field></field>
+
+                        <field name="transactionDate"><default-field title="TX Date"><display/></default-field></field>
+                        <field name="isPosted"><default-field title="Posted"><display/></default-field></field>
+                        <field name="postedDate"><default-field><display/></default-field></field>
+
+                        <field name="debitTotal" align="right"><default-field title="Total"><display currency-unit-field="amountUomId"/></default-field></field>
+                    </form-list>
+                    <form-list name="InvoiceGlaList" list="glaSummaryList" skip-form="true">
+                        <field name="glAccountId"><conditional-field condition="glAccountId"><display text="GlAccountNameTemplate"/></conditional-field>
+                            <default-field title="GL Account"><display text=" "/></default-field></field>
+                        <field name="debits" align="right" show-total="true"><default-field container-style="${(!glAccountId &amp;&amp; credits != debits) ? 'text-danger' : ''}">
+                            <display format="#,##0.00"/></default-field></field>
+                        <field name="credits" align="right" show-total="true"><default-field container-style="${(!glAccountId &amp;&amp; credits != debits) ? 'text-danger' : ''}">
+                            <display format="#,##0.00"/></default-field></field>
+                        <field name="cdDiff" align="right"><default-field title="Total" container-style="${(unpaidTotal == 0.0 &amp;&amp; glAccountClassEnumId in ['ACCOUNTS_RECEIVABLE', 'ACCOUNTS_PAYABLE']) ? 'text-danger' : ''}">
+                            <display format="#,##0.00"/></default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
             </widgets></section>
         </row-col></container-row>
     </widgets>
