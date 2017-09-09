@@ -334,6 +334,21 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
 
             <section name="GlTransactionsSection"><actions>
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
+                    <econdition field-name="invoiceId"/><order-by field-name="acctgTransId"/></entity-find>
+
+                <!-- find existing AcctgTrans for this invoiceId -->
+                <set field="allInvoiceTxTypes" from="['AttSalesInvoice', 'AttVendRtnInvoice', 'AttPurchaseInvoice', 'AttCustRtnInvoice',
+                    'AttPayrollInvoice', 'AttTaxInvoice', 'AttGarnishmentInvoice', 'AttCommissionInvoice', 'AttInvoiceAdjust']"/>
+                <!-- NOTE: including 'AttInvoiceAdjust' to remove and repost those as well -->
+                <entity-find-count entity-name="mantle.ledger.transaction.AcctgTrans" count-field="existingTransCount">
+                    <econdition field-name="invoiceId"/>
+                    <econdition field-name="acctgTransTypeEnumId" operator="in" from="allInvoiceTxTypes"/>
+                    <econdition field-name="reversedByAcctgTransId" from="null"/>
+                    <econdition field-name="reverseOfAcctgTransId" from="null"/>
+                </entity-find-count>
+                <set field="unpostableStatus" from="invoice.statusId in ['InvoiceInProcess', 'InvoiceWriteOff', 'InvoiceIncoming', 'InvoiceReceived', 'InvoiceCancelled']"/>
+
                 <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="entrySummaryList">
                     <econdition field-name="invoiceId"/>
                     <select-field field-name="glAccountId,accountCode,accountName,isDebit,glAccountClassEnumId,debitCreditFlag,amount"/>
@@ -358,11 +373,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
             </actions><widgets>
                 <container-box><box-header title="GL Transactions"/><box-toolbar>
-                    <link url="repostInvoice" text="Repost"/>
+                    <link url="repostInvoice" text="Re-post" condition="existingTransCount &amp;&amp; !unpostableStatus"
+                            confirmation="This will delete the current invoice and invoice adjustment transactions and post new ones based on the current state of the invoice. Re-post this invoice?"/>
                 </box-toolbar><box-body-nopad>
                     <form-list name="InvoiceTxList" list="acctgTransList" skip-form="true">
-                        <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
-                            <econdition field-name="invoiceId"/><order-by field-name="acctgTransId"/></entity-find>
                         <row-actions>
                             <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
                                     in-map="[acctgTransId:acctgTransId]" out-map="context"/>
@@ -395,7 +409,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <display format="#,##0.00"/></default-field></field>
                         <field name="credits" align="right" show-total="true"><default-field container-style="${(!glAccountId &amp;&amp; credits != debits) ? 'text-danger' : ''}">
                             <display format="#,##0.00"/></default-field></field>
-                        <field name="cdDiff" align="right"><default-field title="Total" container-style="${(unpaidTotal == 0.0 &amp;&amp; glAccountClassEnumId in ['ACCOUNTS_RECEIVABLE', 'ACCOUNTS_PAYABLE']) ? 'text-danger' : ''}">
+                        <field name="cdDiff" align="right"><default-field title="Total" container-style="${(unpaidTotal != cdDiff &amp;&amp; glAccountClassEnumId in ['ACCOUNTS_RECEIVABLE', 'ACCOUNTS_PAYABLE']) ? 'text-danger' : ''}">
                             <display format="#,##0.00"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
