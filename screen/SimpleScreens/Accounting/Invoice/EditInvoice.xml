@@ -23,6 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateStatus"><service-call name="update#mantle.account.invoice.Invoice"/><default-response url="."/></transition>
 
     <transition name="adjustInvoice"><service-call name="mantle.account.InvoiceServices.adjust#Invoice"/><default-response url="."/></transition>
+    <transition name="postInvoice"><service-call name="mantle.ledger.InvoiceAutoPostServices.post#Invoice"/><default-response url="."/></transition>
     <transition name="repostInvoice"><service-call name="mantle.ledger.InvoiceAutoPostServices.repost#Invoice"/><default-response url="."/></transition>
 
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
@@ -378,7 +379,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
             </actions><widgets>
                 <container-box><box-header title="GL Transactions"/><box-toolbar>
-                    <link url="repostInvoice" text="Re-post" condition="existingTransCount &amp;&amp; !unpostableStatus"
+                    <link url="postInvoice" text="Post Invoice" condition="!existingTransCount &amp;&amp; !unpostableStatus"
+                            confirmation="This will attempt to create and post a GL transaction for this invoice, and one for each invoice adjustment item if there are any. Post now?"/>
+                    <link url="repostInvoice" text="Re-post Invoice" condition="existingTransCount &amp;&amp; !unpostableStatus"
                             confirmation="This will delete the current invoice and invoice adjustment transactions and post new ones based on the current state of the invoice. Re-post this invoice?"/>
                 </box-toolbar><box-body-nopad>
                     <form-list name="InvoiceTxList" list="acctgTransList" skip-form="true">
