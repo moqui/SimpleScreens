@@ -32,6 +32,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="recordPayment"><service-call name="mantle.account.PaymentServices.create#InvoicePayment"/><default-response url="."/></transition>
     <transition name="sendPromisedPayment"><service-call name="mantle.account.PaymentServices.send#PromisedPayment"/><default-response url="."/></transition>
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/><default-response url="."/></transition>
+    <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/><default-response url="."/></transition>
 
     <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
     <transition name="editTimePeriod"><default-response url="../../TimePeriod/EditTimePeriod"/></transition>
@@ -241,15 +242,14 @@ along with this software (see the LICENSE.md file). If not, see
             <container-box><box-header title="Payment Applications"/><box-toolbar>
                 <container-dialog id="RecordPaymentContainer" button-text="New Payment for Invoice" condition="unpaidTotal">
                     <form-single name="RecordPaymentForm" transition="recordPayment">
-                        <field name="invoiceId"><default-field><display also-hidden="true"/></default-field></field>
+                        <field name="invoiceId"><default-field><display/></default-field></field>
                         <field name="statusId" from="paymentStatusId"><default-field title="Status">
                             <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
                                 <set field="statusTypeId" value="Payment"/>
                                 <set field="noCurrentSelectedKey" value="PmntDelivered"/></widget-template-include>
                         </default-field></field>
                         <field name="amountUomId" from="invoice.currencyUomId"><default-field title="Currency">
-                            <display-entity entity-name="moqui.basic.Uom" key-field-name="uomId" text="${description}" also-hidden="true"/>
-                        </default-field></field>
+                            <display-entity entity-name="moqui.basic.Uom"/></default-field></field>
                         <field name="amount"><default-field>
                             <text-line size="10" default-value="${ec.l10n.format(unpaidTotal, '#,##0.00')}"/>
                         </default-field></field>
@@ -276,7 +276,7 @@ along with this software (see the LICENSE.md file). If not, see
             </box-toolbar><box-body>
                 <label text="Applied Payments ${ec.l10n.formatCurrency(appliedPaymentsTotal, invoice.currencyUomId)}, Unpaid ${ec.l10n.formatCurrency(unpaidTotal, invoice.currencyUomId)}" type="strong"/>
             </box-body><box-body-nopad>
-                <form-list name="PaymentApplicationList" list="paymentApplicationList">
+                <form-list name="PaymentApplicationList" list="paymentApplicationList" skip-form="true">
                     <row-actions>
                         <entity-find-one entity-name="mantle.account.payment.Payment" value-field="payment">
                             <field-map field-name="paymentId"/><select-field field-name="statusId,paymentRefNum"/></entity-find-one>
@@ -289,6 +289,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="statusId"><default-field title="Status">
                         <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
                     <field name="paymentRefNum"><default-field title="Ref/Check"><display/></default-field></field>
+                    <field name="unapply"><default-field title=""><link url="unapplyPaymentApplication" text="Un-apply" condition="amountApplied"
+                            confirmation="This will reduce the amount paid (applied) on this invoice possibly changing it back to an un-paid status, reverse the payment application GL transaction, and free up the payment to be applied to another invoice. Un-apply payment?"/></default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
 
@@ -399,9 +401,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <link url="editTransaction" text="${reverseOfAcctgTransId}" link-type="anchor" condition="reverseOfAcctgTransId"
                                     parameter-map="[acctgTransId:reverseOfAcctgTransId]"/></default-field></field>
 
-                        <field name="transactionDate"><default-field title="TX Date"><display/></default-field></field>
+                        <field name="transactionDate"><default-field title="TX Date"><display format="yyyy-MM-dd"/></default-field></field>
                         <field name="isPosted"><default-field title="Posted"><display/></default-field></field>
-                        <field name="postedDate"><default-field><display/></default-field></field>
+                        <field name="postedDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
 
                         <field name="debitTotal" align="right"><default-field title="Total"><display currency-unit-field="amountUomId"/></default-field></field>
                     </form-list>
