@@ -364,9 +364,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <else><set field="curEntry.credits" from="entrySummary.amount"/></else></if>
                     <set field="curEntry.cdDiff" from="entrySummary.isDebit == 'Y' ? (curEntry.debits?:0.0) - (curEntry.credits?:0.0) : (curEntry.credits?:0.0) - (curEntry.debits?:0.0)"/>
                 </iterate>
+                <!-- might as well include all, don't exclude 0 net balance:
                 <set field="glaSummaryList" from="[]"/>
                 <iterate list="glaSummaryMap.values()" entry="curEntry">
                     <if condition="curEntry.cdDiff != 0.0"><script>glaSummaryList.add(curEntry)</script></if></iterate>
+                -->
+                <set field="glaSummaryList" from="new ArrayList(glaSummaryMap.values())"/>
                 <order-map-list list="glaSummaryList"><order-by field-name="accountCode"/></order-map-list>
 
                 <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
