@@ -25,6 +25,11 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateParty"><service-call name="mantle.party.PartyServices.update#PartyDetail"/>
         <default-response url="."/></transition>
+    <transition name="convertPartyToOrganization"><service-call name="mantle.party.PartyServices.convert#PartyToOrganization"/>
+        <default-response url="."/></transition>
+    <transition name="convertPartyToPerson"><service-call name="mantle.party.PartyServices.convert#PartyToPerson"/>
+        <default-response url="."/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <transition name="createPartyRole"><service-call name="create#mantle.party.PartyRole"/><default-response url="."/></transition>
@@ -204,6 +209,31 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-single>
                 </container-dialog>
             </widgets></section>
+
+            <section name="ConvertPartySection" condition="party?.partyTypeEnumId == 'PtyOrganization'"><widgets>
+                <container-dialog id="ConvertToPersonSection" button-text="Convert To Person">
+                    <form-single name="ConvertToPersonForm" map="party" transition="convertPartyToPerson">
+                        <field name="partyId"><default-field><hidden/></default-field></field>
+                        <field name="firstName" from="party.organizationName.contains(' ') ? party.organizationName.substring(0, party.organizationName.lastIndexOf(' ')) : party.organizationName">
+                            <default-field><text-line size="30"/></default-field></field>
+                        <field name="middleName"><default-field><text-line size="20"/></default-field></field>
+                        <field name="lastName" from="party.organizationName.contains(' ') ? party.organizationName.substring(party.organizationName.lastIndexOf(' ') + 1) : ''">
+                            <default-field><text-line size="30"/></default-field></field>
+                        <field name="birthDate"><default-field><date-time type="date"/></default-field></field>
+                        <field name="submitButton"><default-field title="Convert To Person"><submit confirmation="Are you sure?"/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </widgets><fail-widgets>
+                <container-dialog id="ConvertToOrganizationSection" button-text="Convert To Organization">
+                    <form-single name="ConvertToOrganizationForm" map="party" transition="convertPartyToOrganization">
+                        <field name="partyId"><default-field><hidden/></default-field></field>
+                        <field name="organizationName"><default-field>
+                            <text-line size="60" default-value="${party.firstName?:''}${party.middleName ? ' ' + party.middleName : ''}${party.lastName ? ' ' + party.lastName : ''}"/></default-field></field>
+                        <field name="submitButton"><default-field title="Convert To Organization"><submit confirmation="Are you sure?"/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </fail-widgets></section>
+
             <section name="AddContactSection" condition="roleTypeIdList.contains('Account')"><widgets>
                 <container-dialog id="AddContactAssignDialog" button-text="Add Contact">
                     <form-single name="AddContactAssignForm" transition="addContact">
