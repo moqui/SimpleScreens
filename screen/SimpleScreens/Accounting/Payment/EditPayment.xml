@@ -25,6 +25,10 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updateStatus"><service-call name="update#mantle.account.payment.Payment"/>
         <default-response url="."/></transition>
+    <transition name="postPayment"><service-call name="mantle.ledger.PaymentAutoPostServices.post#Payment"/>
+        <default-response url="."/></transition>
+    <transition name="repostPaymentAndApplications"><service-call name="mantle.ledger.PaymentAutoPostServices.repost#PaymentAndApplications"/>
+        <default-response url="."/></transition>
 
     <transition name="gatewayAuthorize"><service-call name="mantle.account.PaymentServices.authorize#SinglePayment"/>
         <default-response url="."/></transition>
@@ -38,7 +42,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
         <default-response url="."/></transition>
-    <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/><default-response url="."/></transition>
+    <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/>
+        <default-response url="."/></transition>
 
     <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
     <transition name="editFinancialAccount"><default-response url="../../FinancialAccount/EditFinancialAccount"/></transition>
@@ -353,6 +358,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
                     <econdition field-name="paymentId"/><order-by field-name="acctgTransId"/></entity-find>
 
+                <set field="unpostableStatus" from="!(payment.statusId in ['PmntDelivered', 'PmntConfirmed'])"/>
+
                 <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="entrySummaryList">
                     <econdition field-name="paymentId"/>
                     <select-field field-name="glAccountId,accountCode,accountName,isDebit,glAccountClassEnumId,debitCreditFlag,amount"/>
@@ -379,7 +386,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
                 <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
             </actions><widgets>
-                <container-box><box-header title="GL Transactions"/><box-body-nopad>
+                <container-box><box-header title="GL Transactions"/><box-toolbar>
+                    <link url="postPayment" text="Post Payment" condition="!acctgTransList &amp;&amp; !unpostableStatus"
+                            confirmation="This will attempt to create and post a GL transaction for this payment. Post now?"/>
+                    <link url="repostPaymentAndApplications" text="Re-post Payment and Applications" condition="acctgTransList &amp;&amp; !unpostableStatus"
+                            confirmation="This will delete the current payment and payment application transactions and post new ones based on the current state of the payment. Re-post this payment?"/>
+                </box-toolbar><box-body-nopad>
                     <form-list name="PaymentTxList" list="acctgTransList" skip-form="true">
                         <row-actions>
                             <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"

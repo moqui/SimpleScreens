@@ -18,22 +18,31 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="invoiceId" required="true"/>
 
-    <transition name="updateInvoice"><service-call name="mantle.account.InvoiceServices.update#Invoice"/><default-response url="."/></transition>
-    <transition name="updateInvoiceClosed"><service-call name="mantle.account.InvoiceServices.update#InvoiceClosed"/><default-response url="."/></transition>
+    <transition name="updateInvoice"><service-call name="mantle.account.InvoiceServices.update#Invoice"/>
+        <default-response url="."/></transition>
+    <transition name="updateInvoiceClosed"><service-call name="mantle.account.InvoiceServices.update#InvoiceClosed"/>
+        <default-response url="."/></transition>
     <transition name="updateStatus"><service-call name="update#mantle.account.invoice.Invoice"/><default-response url="."/></transition>
 
-    <transition name="adjustInvoice"><service-call name="mantle.account.InvoiceServices.adjust#Invoice"/><default-response url="."/></transition>
-    <transition name="postInvoice"><service-call name="mantle.ledger.InvoiceAutoPostServices.post#Invoice"/><default-response url="."/></transition>
-    <transition name="repostInvoice"><service-call name="mantle.ledger.InvoiceAutoPostServices.repost#Invoice"/><default-response url="."/></transition>
+    <transition name="adjustInvoice"><service-call name="mantle.account.InvoiceServices.adjust#Invoice"/>
+        <default-response url="."/></transition>
+    <transition name="postInvoice"><service-call name="mantle.ledger.InvoiceAutoPostServices.post#Invoice"/>
+        <default-response url="."/></transition>
+    <transition name="repostInvoice"><service-call name="mantle.ledger.InvoiceAutoPostServices.repost#Invoice"/>
+        <default-response url="."/></transition>
 
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
     <transition-include name="getItemTypeGlAccount" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
     <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
-    <transition name="recordPayment"><service-call name="mantle.account.PaymentServices.create#InvoicePayment"/><default-response url="."/></transition>
-    <transition name="sendPromisedPayment"><service-call name="mantle.account.PaymentServices.send#PromisedPayment"/><default-response url="."/></transition>
-    <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/><default-response url="."/></transition>
-    <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/><default-response url="."/></transition>
+    <transition name="recordPayment"><service-call name="mantle.account.PaymentServices.create#InvoicePayment"/>
+        <default-response url="."/></transition>
+    <transition name="sendPromisedPayment"><service-call name="mantle.account.PaymentServices.send#PromisedPayment"/>
+        <default-response url="."/></transition>
+    <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
+        <default-response url="."/></transition>
+    <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/>
+        <default-response url="."/></transition>
 
     <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
     <transition name="editTimePeriod"><default-response url="../../TimePeriod/EditTimePeriod"/></transition>
@@ -340,16 +349,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
                     <econdition field-name="invoiceId"/><order-by field-name="acctgTransId"/></entity-find>
 
-                <!-- find existing AcctgTrans for this invoiceId -->
-                <set field="allInvoiceTxTypes" from="['AttSalesInvoice', 'AttVendRtnInvoice', 'AttPurchaseInvoice', 'AttCustRtnInvoice',
-                    'AttPayrollInvoice', 'AttTaxInvoice', 'AttGarnishmentInvoice', 'AttCommissionInvoice', 'AttInvoiceAdjust']"/>
-                <!-- NOTE: including 'AttInvoiceAdjust' to remove and repost those as well -->
-                <entity-find-count entity-name="mantle.ledger.transaction.AcctgTrans" count-field="existingTransCount">
-                    <econdition field-name="invoiceId"/>
-                    <econdition field-name="acctgTransTypeEnumId" operator="in" from="allInvoiceTxTypes"/>
-                    <econdition field-name="reversedByAcctgTransId" from="null"/>
-                    <econdition field-name="reverseOfAcctgTransId" from="null"/>
-                </entity-find-count>
                 <set field="unpostableStatus" from="invoice.statusId in ['InvoiceInProcess', 'InvoiceWriteOff', 'InvoiceIncoming', 'InvoiceReceived', 'InvoiceCancelled']"/>
 
                 <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="entrySummaryList">
@@ -379,9 +378,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
             </actions><widgets>
                 <container-box><box-header title="GL Transactions"/><box-toolbar>
-                    <link url="postInvoice" text="Post Invoice" condition="!existingTransCount &amp;&amp; !unpostableStatus"
+                    <link url="postInvoice" text="Post Invoice" condition="!acctgTransList &amp;&amp; !unpostableStatus"
                             confirmation="This will attempt to create and post a GL transaction for this invoice, and one for each invoice adjustment item if there are any. Post now?"/>
-                    <link url="repostInvoice" text="Re-post Invoice" condition="existingTransCount &amp;&amp; !unpostableStatus"
+                    <link url="repostInvoice" text="Re-post Invoice" condition="acctgTransList &amp;&amp; !unpostableStatus"
                             confirmation="This will delete the current invoice and invoice adjustment transactions and post new ones based on the current state of the invoice. Re-post this invoice?"/>
                 </box-toolbar><box-body-nopad>
                     <form-list name="InvoiceTxList" list="acctgTransList" skip-form="true">
