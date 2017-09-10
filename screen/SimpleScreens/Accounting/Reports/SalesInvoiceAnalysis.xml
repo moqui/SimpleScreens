@@ -13,19 +13,19 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
-        default-menu-title="Sales Order Analysis" default-menu-include="false">
+        default-menu-title="Sales Invoice Analysis" default-menu-include="false">
 
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
-    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <widgets>
-        <form-list name="SalesAnalysis" list="summaryList" skip-form="true" header-dialog="true"
+        <form-list name="SalesInvoiceAnalysis" list="summaryList" skip-form="true" header-dialog="true"
                    select-columns="true" saved-finds="true" show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.order.OrderItemIssuanceSummary" list="summaryList">
+            <entity-find entity-name="mantle.account.invoice.InvoiceItemIssuanceSummary" list="summaryList">
                 <search-form-inputs default-order-by="pseudoId,lotNumber" paginate="false">
                     <default-parameters issuedDate_poffset="-1" issuedDate_period="month"/></search-form-inputs>
                 <select-field field-name="productId,totalSales,totalCost"/>
@@ -58,25 +58,25 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="lotNumber"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
                 <default-field><display/></default-field></field>
 
-            <field name="orderId"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
-                <default-field><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
+            <field name="invoiceId"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
+                <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
 
             <field name="minUnitAmount" align="right" show-total="min"><default-field title="Min"><display format="#,##0.00"/></default-field></field>
             <field name="maxUnitAmount" align="right" show-total="max"><default-field title="Max"><display format="#,##0.00"/></default-field></field>
-            <field name="averageAmount" from="totalSales &amp;&amp; quantity ? totalSales/quantity : 0.0" align="right" show-total="avg">
+            <field name="averageAmount" from="weightedAmount &amp;&amp; quantity ? weightedAmount/quantity : 0.0" align="right" show-total="avg">
                 <default-field title="Avg"><display format="#,##0.00"/></default-field></field>
 
             <field name="quantity" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
                 <default-field><display format="#,##0"/></default-field></field>
-            <field name="totalSales" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
+            <field name="weightedAmount" align="right" show-total="sum"><header-field title="Total Sales" show-order-by="true"><range-find size="15"/></header-field>
                 <default-field><display format="#,##0.00"/></default-field></field>
             <field name="totalCost" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
                 <default-field><display format="#,##0.00"/></default-field></field>
 
-            <field name="marginAmount" from="(totalSales ?: 0.0) - (totalCost ?: 0.0)" align="right" show-total="true">
+            <field name="marginAmount" from="(weightedAmount ?: 0.0) - (totalCost ?: 0.0)" align="right" show-total="true">
                 <default-field title="Margin Amount"><display format="#,##0.00"/></default-field></field>
             <field name="marginPercent" align="right"><default-field title="Margin Percent">
-                <display text="${ec.l10n.format(totalSales ? ((((totalSales ?: 0.0) - (totalCost ?: 0.0)).divide(totalSales, 10, BigDecimal.ROUND_HALF_EVEN))*100.0) : 0.0, '0.00')}"/></default-field></field>
+                <display text="${ec.l10n.format(weightedAmount ? ((((weightedAmount ?: 0.0) - (totalCost ?: 0.0)).divide(weightedAmount, 10, BigDecimal.ROUND_HALF_EVEN))*100.0) : 0.0, '0.00')}"/></default-field></field>
 
             <field name="find"><header-field title="Find"><submit/></header-field></field>
 
@@ -88,7 +88,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="maxUnitAmount"/></form-list-column>
             <form-list-column><field-ref name="averageAmount"/></form-list-column>
             <form-list-column><field-ref name="quantity"/></form-list-column>
-            <form-list-column><field-ref name="totalSales"/></form-list-column>
+            <form-list-column><field-ref name="weightedAmount"/></form-list-column>
             <form-list-column><field-ref name="totalCost"/></form-list-column>
             <form-list-column><field-ref name="marginAmount"/></form-list-column>
             <form-list-column><field-ref name="marginPercent"/></form-list-column>
