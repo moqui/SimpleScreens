@@ -398,10 +398,11 @@ along with this software (see the LICENSE.md file). If not, see
                                     parameter-map="[facilityId:originFacilityId]"/>
                         </conditional-field>
                     </field>
-                    <field name="estimatedReadyDate"><conditional-field condition="!isIncoming"><date-time/></conditional-field></field>
-                    <field name="estimatedArrivalDate"><default-field><date-time/></default-field></field>
                     <field name="handlingInstructions"><default-field title="Shipping Instructions">
                         <text-area rows="3" cols="60"/></default-field></field>
+                    <field name="estimatedReadyDate"><conditional-field condition="!isIncoming" title="Ready Date"><date-time/></conditional-field></field>
+                    <field name="estimatedShipDate"><default-field title="Pack/Ship"><date-time/></default-field></field>
+                    <field name="estimatedArrivalDate"><default-field title="Arrival Date"><date-time/></default-field></field>
 
                     <field name="submitButton"><default-field title="Update Shipment"><submit/></default-field></field>
 
@@ -409,7 +410,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field-ref name="carrierAndShipmentMethod"/>
                         <field-row><field-ref name="shipmentTypeEnumId"/><field-ref name="statusId"/></field-row>
                         <fields-not-referenced/>
-                        <field-row><field-ref name="estimatedReadyDate"/><field-ref name="estimatedArrivalDate"/></field-row>
+                        <field-row><field-ref name="estimatedShipDate"/><field-ref name="estimatedArrivalDate"/></field-row>
                         <field-ref name="submitButton"/>
                     </field-layout>
                 </form-single>
@@ -767,6 +768,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 <dynamic-dialog id="ItemReserveDialog" button-text="Reserve" transition="ItemReserve" condition="quantityNotHandled &gt; 0.0"/>
                             </default-field></field>
 
+                            <field name="packDate" from="shipment.estimatedShipDate ?: ec.user.nowTimestamp">
+                                <conditional-field condition="resPackForm" title="Pack Date"><date-time/></conditional-field>
+                                <default-field title="Pack Date"><display text=" "/></default-field>
+                            </field>
                             <field name="shipmentPackageSeqId" from="shipmentPackageList ? shipmentPackageList[0].shipmentPackageSeqId : null">
                                 <conditional-field condition="resPackForm" title="Package"><drop-down>
                                     <option key="" text="New"/>
