@@ -25,6 +25,8 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign cellPadding = "1pt">
 <#assign tableFontSize = tableFontSize!"10pt">
 
+<#macro encodeText textValue>${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(textValue!"", false))!""}</#macro>
+
 <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format" font-family="Helvetica, sans-serif" font-size="${fontSize}">
     <fo:layout-master-set>
         <fo:simple-page-master master-name="letter-portrait" page-width="8.5in" page-height="11in"
@@ -44,16 +46,16 @@ along with this software (see the LICENSE.md file). If not, see
 
             <fo:flow flow-name="xsl-region-body">
                 <fo:block>
-                    <fo:block font-size="14pt" text-align="center" margin-bottom="0">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.fromPartyDetail.organizationName!"", false)}</fo:block>
+                    <fo:block font-size="14pt" text-align="center" margin-bottom="0"><@encodeText (paymentInfo.fromPartyDetail.organizationName!"")/></fo:block>
                     <fo:block font-size="13pt" text-align="center" margin-bottom="0.1in">Payment Detail</fo:block>
 
                     <fo:table table-layout="fixed" width="7.5in"><fo:table-body><fo:table-row font-size="10pt">
                         <fo:table-cell padding="0.05in" width="3.5in">
                             <#assign contactInfo = paymentInfo.toBillingContactInfo>
-                            <fo:block text-align="left">${Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(paymentInfo.toPartyDetail.organizationName!"", false)}${paymentInfo.toPartyDetail.firstName!} ${paymentInfo.toPartyDetail.lastName!}</fo:block>
-                            <#if (contactInfo.postalAddress.address1)?has_content><fo:block text-align="left">${contactInfo.postalAddress.address1}<#if (contactInfo.postalAddress.unitNumber)?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block></#if>
-                            <#if (contactInfo.postalAddress.address2)?has_content><fo:block text-align="left">${contactInfo.postalAddress.address2}</fo:block></#if>
-                            <#if (contactInfo.postalAddress)?has_content><fo:block text-align="left">${contactInfo.postalAddress.city!}<#if (contactInfo.postalAddressStateGeo.geoCodeAlpha2)?has_content>, ${contactInfo.postalAddressStateGeo.geoCodeAlpha2} </#if>${contactInfo.postalAddress.postalCode!}<#if (contactInfo.postalAddress.postalCodeExt)?has_content>-${contactInfo.postalAddress.postalCodeExt}</#if><#if (contactInfo.postalAddressCountryGeo.geoCodeAlpha3)?has_content> ${contactInfo.postalAddressCountryGeo.geoCodeAlpha3}</#if></fo:block></#if>
+                            <fo:block text-align="left"><@encodeText (paymentInfo.toPartyDetail.organizationName!"")/><@encodeText (paymentInfo.toPartyDetail.firstName!"")/> <@encodeText (paymentInfo.toPartyDetail.lastName!"")/></fo:block>
+                            <#if (contactInfo.postalAddress.address1)?has_content><fo:block text-align="left"><@encodeText contactInfo.postalAddress.address1/><#if (contactInfo.postalAddress.unitNumber)?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block></#if>
+                            <#if (contactInfo.postalAddress.address2)?has_content><fo:block text-align="left"><@encodeText contactInfo.postalAddress.address2/></fo:block></#if>
+                            <#if (contactInfo.postalAddress)?has_content><fo:block text-align="left"><@encodeText (contactInfo.postalAddress.city!"")/><#if (contactInfo.postalAddressStateGeo.geoCodeAlpha2)?has_content>, ${contactInfo.postalAddressStateGeo.geoCodeAlpha2} </#if>${contactInfo.postalAddress.postalCode!}<#if (contactInfo.postalAddress.postalCodeExt)?has_content>-${contactInfo.postalAddress.postalCodeExt}</#if><#if (contactInfo.postalAddressCountryGeo.geoCodeAlpha3)?has_content> ${contactInfo.postalAddressCountryGeo.geoCodeAlpha3}</#if></fo:block></#if>
                             <#if (contactInfo.telecomNumber)?has_content><fo:block text-align="left"><#if (contactInfo.telecomNumber.countryCode)?has_content>${contactInfo.telecomNumber.countryCode}-</#if><#if (contactInfo.telecomNumber.areaCode)?has_content>${contactInfo.telecomNumber.areaCode}-</#if>${contactInfo.telecomNumber.contactNumber!}</fo:block></#if>
                         </fo:table-cell>
                         <fo:table-cell padding="0.05in" width="2in">
@@ -106,7 +108,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     <#list invoiceItemList as invoiceItem>
                                         <fo:table-row font-size="${tableFontSize}">
                                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoiceItem.invoiceItemSeqId}</fo:block></fo:table-cell>
-                                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoiceItem.description!""}</fo:block></fo:table-cell>
+                                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><@encodeText (invoiceItem.description!"")/></fo:block></fo:table-cell>
                                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
                                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoiceItem.amount, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
                                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>

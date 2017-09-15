@@ -83,21 +83,21 @@ along with this software (see the LICENSE.md file). If not, see
     <fo:block-container absolute-position="absolute" top="2in" left="1.1in" width="4in" height="0.8in">
         <#assign contactInfo = paymentInfo.toBillingContactInfo>
         <#if (contactInfo.postalAddress.toName)?has_content || (contactInfo.postalAddress.attnName)?has_content>
-            <#if (contactInfo.postalAddress.toName)?has_content><fo:block text-align="left">${contactInfo.postalAddress.toName}</fo:block></#if>
-            <#if (contactInfo.postalAddress.attnName)?has_content><fo:block text-align="left">Attn: ${contactInfo.postalAddress.attnName}</fo:block></#if>
+            <#if (contactInfo.postalAddress.toName)?has_content><fo:block text-align="left"><@encodeText contactInfo.postalAddress.toName/></fo:block></#if>
+            <#if (contactInfo.postalAddress.attnName)?has_content><fo:block text-align="left">Attn: <@encodeText contactInfo.postalAddress.attnName/></fo:block></#if>
         <#else>
             <fo:block text-align="left"><@encodeText (paymentInfo.toPartyDetail.organizationName)!""/><@encodeText (paymentInfo.toPartyDetail.firstName)!""/> <@encodeText (paymentInfo.toPartyDetail.lastName)!""/></fo:block>
         </#if>
-        <#if (contactInfo.postalAddress.address1)?has_content><fo:block text-align="left">${contactInfo.postalAddress.address1}<#if (contactInfo.postalAddress.unitNumber)?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block></#if>
-        <#if (contactInfo.postalAddress.address2)?has_content><fo:block text-align="left">${contactInfo.postalAddress.address2}</fo:block></#if>
-        <#if (contactInfo.postalAddress)?has_content><fo:block text-align="left">${contactInfo.postalAddress.city!}<#if (contactInfo.postalAddressStateGeo.geoCodeAlpha2)?has_content>, ${contactInfo.postalAddressStateGeo.geoCodeAlpha2} </#if>${contactInfo.postalAddress.postalCode!}<#if (contactInfo.postalAddress.postalCodeExt)?has_content>-${contactInfo.postalAddress.postalCodeExt}</#if><#if (contactInfo.postalAddressCountryGeo.geoCodeAlpha3)?has_content> ${contactInfo.postalAddressCountryGeo.geoCodeAlpha3}</#if></fo:block></#if>
+        <#if (contactInfo.postalAddress.address1)?has_content><fo:block text-align="left"><@encodeText contactInfo.postalAddress.address1/><#if (contactInfo.postalAddress.unitNumber)?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block></#if>
+        <#if (contactInfo.postalAddress.address2)?has_content><fo:block text-align="left"><@encodeText contactInfo.postalAddress.address2/></fo:block></#if>
+        <#if (contactInfo.postalAddress)?has_content><fo:block text-align="left"><@encodeText (contactInfo.postalAddress.city!"")/><#if (contactInfo.postalAddressStateGeo.geoCodeAlpha2)?has_content>, ${contactInfo.postalAddressStateGeo.geoCodeAlpha2} </#if>${contactInfo.postalAddress.postalCode!}<#if (contactInfo.postalAddress.postalCodeExt)?has_content>-${contactInfo.postalAddress.postalCodeExt}</#if><#if (contactInfo.postalAddressCountryGeo.geoCodeAlpha3)?has_content> ${contactInfo.postalAddressCountryGeo.geoCodeAlpha3}</#if></fo:block></#if>
         <#-- <#if (contactInfo.telecomNumber)?has_content><fo:block text-align="left"><#if (contactInfo.telecomNumber.countryCode)?has_content>${contactInfo.telecomNumber.countryCode}-</#if><#if (contactInfo.telecomNumber.areaCode)?has_content>${contactInfo.telecomNumber.areaCode}-</#if>${contactInfo.telecomNumber.contactNumber!}</fo:block></#if> -->
         <#-- <#if (contactInfo.emailAddress)?has_content><fo:block text-align="left">${contactInfo.emailAddress}</fo:block></#if> -->
     </fo:block-container>
 
     <#-- Memo -->
     <fo:block-container absolute-position="absolute" top="2.75in" left="0.8in" width="4in">
-        <fo:block text-align="left">${paymentInfo.payment.memo!" "}</fo:block>
+        <fo:block text-align="left"><@encodeText (paymentInfo.payment.memo!" ")/></fo:block>
     </fo:block-container>
 
     <#-- Primary Signature image -->
