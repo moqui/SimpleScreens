@@ -22,16 +22,23 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
+    <actions>
+        <set field="orderStatusList" from="['OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderSent', 'OrderCompleted', 'OrderHold']"/>
+    </actions>
     <widgets>
         <form-list name="SalesAnalysis" list="summaryList" skip-form="true" header-dialog="true"
                    select-columns="true" saved-finds="true" show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.order.OrderItemIssuanceSummary" list="summaryList">
-                <search-form-inputs default-order-by="pseudoId,lotNumber" paginate="false">
-                    <default-parameters issuedDate_poffset="-1" issuedDate_period="month"/></search-form-inputs>
+            <entity-find entity-name="mantle.order.OrderItemSalesSummary" list="summaryList">
+                <search-form-inputs default-order-by="pseudoId" paginate="false">
+                    <default-parameters placedDate_poffset="-1" placedDate_period="month"/></search-form-inputs>
+                <econdition field-name="orderStatusId" operator="in" from="orderStatusList"/>
+                <econdition field-name="partStatusId" operator="in" from="orderStatusList" or-null="true"/>
+                <econdition field-name="productId" operator="is-not-null"/>
+                <econdition field-name="condIssuanceQuantity" operator="not-equals" from="0.0" or-null="true"/>
                 <select-field field-name="productId,totalSales,totalCost"/>
             </entity-find>
 
-            <field name="issuedDate"><header-field title="Issued Date"><date-period/></header-field></field>
+            <field name="placedDate"><header-field title="Placed Date"><date-period/></header-field></field>
             <field name="productId">
                 <header-field title="Product" show-order-by="true"><drop-down allow-empty="true" allow-multiple="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
@@ -49,15 +56,6 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field>
             </field>
 
-            <field name="mfgPartyId">
-                <header-field title="Manufacturer"><drop-down allow-empty="true">
-                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
-                <default-field><link url="editParty" link-type="anchor" parameter-map="[partyId:mfgPartyId]"
-                        entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="mfgPartyId"/></default-field>
-            </field>
-            <field name="lotNumber"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
-                <default-field><display/></default-field></field>
-
             <field name="orderId"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
                 <default-field><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
 
@@ -66,29 +64,33 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="averageAmount" from="totalSales &amp;&amp; quantity ? totalSales/quantity : 0.0" align="right" show-total="avg">
                 <default-field title="Avg"><display format="#,##0.00"/></default-field></field>
 
-            <field name="quantity" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
+            <field name="quantity" align="right" show-total="sum"><header-field show-order-by="true"/>
                 <default-field><display format="#,##0"/></default-field></field>
-            <field name="totalSales" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
+            <field name="totalSales" align="right" show-total="sum"><header-field show-order-by="true"/>
                 <default-field><display format="#,##0.00"/></default-field></field>
-            <field name="totalCost" align="right" show-total="sum"><header-field show-order-by="true"><range-find size="15"/></header-field>
+            <field name="issuedQuantity" align="right" show-total="sum"><header-field show-order-by="true"/>
+                <default-field><display format="#,##0"/></default-field></field>
+            <field name="totalIssued" align="right" show-total="sum"><header-field show-order-by="true"/>
+                <default-field><display format="#,##0.00"/></default-field></field>
+            <field name="totalCost" align="right" show-total="sum"><header-field show-order-by="true"/>
                 <default-field><display format="#,##0.00"/></default-field></field>
 
-            <field name="marginAmount" from="(totalSales ?: 0.0) - (totalCost ?: 0.0)" align="right" show-total="true">
+            <field name="marginAmount" from="(totalIssued ?: 0.0) - (totalCost ?: 0.0)" align="right" show-total="true">
                 <default-field title="Margin Amount"><display format="#,##0.00"/></default-field></field>
             <field name="marginPercent" align="right"><default-field title="Margin Percent">
-                <display text="${ec.l10n.format(totalSales ? ((((totalSales ?: 0.0) - (totalCost ?: 0.0)).divide(totalSales, 10, BigDecimal.ROUND_HALF_EVEN))*100.0) : 0.0, '0.00')}"/></default-field></field>
+                <display text="${ec.l10n.format(totalIssued ? ((((totalIssued ?: 0.0) - (totalCost ?: 0.0)).divide(totalIssued, 10, BigDecimal.ROUND_HALF_EVEN))*100.0) : 0.0, '0.00')}"/></default-field></field>
 
             <field name="find"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="pseudoId"/></form-list-column>
             <form-list-column><field-ref name="productName"/></form-list-column>
-            <form-list-column><field-ref name="mfgPartyId"/></form-list-column>
-            <form-list-column><field-ref name="lotNumber"/></form-list-column>
             <form-list-column><field-ref name="minUnitAmount"/></form-list-column>
             <form-list-column><field-ref name="maxUnitAmount"/></form-list-column>
             <form-list-column><field-ref name="averageAmount"/></form-list-column>
             <form-list-column><field-ref name="quantity"/></form-list-column>
             <form-list-column><field-ref name="totalSales"/></form-list-column>
+            <form-list-column><field-ref name="issuedQuantity"/></form-list-column>
+            <form-list-column><field-ref name="totalIssued"/></form-list-column>
             <form-list-column><field-ref name="totalCost"/></form-list-column>
             <form-list-column><field-ref name="marginAmount"/></form-list-column>
             <form-list-column><field-ref name="marginPercent"/></form-list-column>

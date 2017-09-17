@@ -25,9 +25,11 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <form-list name="SalesInvoiceAnalysis" list="summaryList" skip-form="true" header-dialog="true"
                    select-columns="true" saved-finds="true" show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.account.invoice.InvoiceItemIssuanceSummary" list="summaryList">
+            <entity-find entity-name="mantle.account.invoice.InvoiceItemSalesSummary" list="summaryList">
                 <search-form-inputs default-order-by="pseudoId,lotNumber" paginate="false">
                     <default-parameters issuedDate_poffset="-1" issuedDate_period="month"/></search-form-inputs>
+                <econdition field-name="invoiceStatusId" operator="in" from="['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoicePmtRecvd']"/>
+                <econdition field-name="productId" operator="is-not-null"/>
                 <select-field field-name="productId,totalSales,totalCost"/>
             </entity-find>
 
@@ -61,8 +63,8 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="invoiceId"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
                 <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
 
-            <field name="minUnitAmount" align="right" show-total="min"><default-field title="Min"><display format="#,##0.00"/></default-field></field>
-            <field name="maxUnitAmount" align="right" show-total="max"><default-field title="Max"><display format="#,##0.00"/></default-field></field>
+            <field name="minAmount" align="right" show-total="min"><default-field title="Min"><display format="#,##0.00"/></default-field></field>
+            <field name="maxAmount" align="right" show-total="max"><default-field title="Max"><display format="#,##0.00"/></default-field></field>
             <field name="averageAmount" from="weightedAmount &amp;&amp; quantity ? weightedAmount/quantity : 0.0" align="right" show-total="avg">
                 <default-field title="Avg"><display format="#,##0.00"/></default-field></field>
 
@@ -84,8 +86,8 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="productName"/></form-list-column>
             <form-list-column><field-ref name="mfgPartyId"/></form-list-column>
             <form-list-column><field-ref name="lotNumber"/></form-list-column>
-            <form-list-column><field-ref name="minUnitAmount"/></form-list-column>
-            <form-list-column><field-ref name="maxUnitAmount"/></form-list-column>
+            <form-list-column><field-ref name="minAmount"/></form-list-column>
+            <form-list-column><field-ref name="maxAmount"/></form-list-column>
             <form-list-column><field-ref name="averageAmount"/></form-list-column>
             <form-list-column><field-ref name="quantity"/></form-list-column>
             <form-list-column><field-ref name="weightedAmount"/></form-list-column>
