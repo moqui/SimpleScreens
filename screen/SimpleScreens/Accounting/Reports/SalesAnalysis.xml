@@ -31,10 +31,10 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="mantle.order.OrderItemSalesSummary" list="summaryList">
                 <search-form-inputs default-order-by="pseudoId" paginate="false">
                     <default-parameters placedDate_poffset="-1" placedDate_period="month"/></search-form-inputs>
+                <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
                 <econdition field-name="orderStatusId" operator="in" from="orderStatusList"/>
                 <econdition field-name="partStatusId" operator="in" from="orderStatusList" or-null="true"/>
                 <econdition field-name="productId" operator="is-not-null"/>
-                <econdition field-name="condIssuanceQuantity" operator="not-equals" from="0.0" or-null="true"/>
                 <select-field field-name="productId,totalSales,totalCost"/>
             </entity-find>
 
@@ -95,5 +95,12 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="marginAmount"/></form-list-column>
             <form-list-column><field-ref name="marginPercent"/></form-list-column>
         </form-list>
+        <section name="ShowSql" condition="summaryList_xafind?.getQueryTextList()"><widgets>
+            <container-dialog id="ShowSqlDialog" button-text="Show SQL">
+                <section-iterate name="ShowSqlIter" list="summaryList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                    <label text="${queryText}" type="p"/>
+                </widgets></section-iterate>
+            </container-dialog>
+        </widgets></section>
     </widgets>
 </screen>
