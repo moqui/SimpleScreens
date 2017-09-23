@@ -28,10 +28,10 @@ along with this software (see the LICENSE.md file). If not, see
         </#if>
         <#list timePeriodIdList as timePeriodId>
             <#if showBeginningAndPosted>
+                <#assign beginningClassBalance = (classInfo.balanceByTimePeriod[timePeriodId]!0) - (classInfo.postedByTimePeriod[timePeriodId]!0)>
                 <td class="text-right">${ec.l10n.formatCurrency(beginningClassBalance, currencyUomId)}</td>
                 <td class="text-right">${ec.l10n.formatCurrency(classInfo.postedByTimePeriod[timePeriodId]!0, currencyUomId)}</td>
             </#if>
-            <#assign beginningClassBalance = (classInfo.balanceByTimePeriod[timePeriodId]!0) - (classInfo.postedByTimePeriod[timePeriodId]!0)>
             <td class="text-right">${ec.l10n.formatCurrency(classInfo.balanceByTimePeriod[timePeriodId]!0, currencyUomId)}</td>
         </#list>
     </tr>
