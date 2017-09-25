@@ -17,7 +17,8 @@ define({
                 data:{ moquiSessionToken: this.$root.moquiSessionToken, preferenceKey:'ACTIVE_ORGANIZATION', preferenceValue:partyId },
                 success: function() {
                     var orgList = vm.userOrgList;
-                    for (var i=0; i<orgList.length; i++) { if (orgList[i].partyId == partyId) { vm.activeOrg = orgList[i]; break; } }
+                    if (partyId) { for (var i=0; i<orgList.length; i++) { if (orgList[i].partyId === partyId) { vm.activeOrg = orgList[i]; break; } } }
+                    else { vm.activeOrg = null; }
                     vm.$root.reloadSubscreens();
                 }
             });
