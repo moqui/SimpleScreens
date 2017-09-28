@@ -24,6 +24,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="getPartyList">
         <parameter name="term"/>
         <parameter name="roleTypeId"/>
+        <parameter name="includeDisabled"/> <!-- 'true' includes disabled -->
+        <parameter name="activeOrgId"/>
+        <parameter name="restrictActiveOrg"/> <!-- !'true' restricts to active org (only if present) -->
         <actions>
             <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail">
                 <field-map field-name="partyId" from="term"/></entity-find-one>
@@ -33,7 +36,8 @@ along with this software (see the LICENSE.md file). If not, see
             </then><else>
                 <entity-find entity-name="mantle.party.PartyDetailAndRole" list="partyList" limit="20" distinct="true">
                     <econdition field-name="roleTypeId" operator="in" ignore-if-empty="true"/>
-                    <econdition field-name="disabled" value="N" or-null="true"/>
+                    <econdition field-name="disabled" value="N" or-null="true" ignore="includeDisabled == 'true'"/>
+                    <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId || restrictActiveOrg != 'true'"/>
                     <econditions combine="or">
                         <econdition field-name="partyId" operator="like" value="%${term}%" ignore-case="true"/>
                         <econdition field-name="pseudoId" operator="like" value="%${term}%" ignore-case="true"/>
@@ -58,7 +62,9 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="roleTypeId"/>
         <parameter name="indexName"/>
         <parameter name="documentType"/>
-        <parameter name="includeDisabled"/>
+        <parameter name="includeDisabled"/> <!-- 'true' includes disabled -->
+        <parameter name="activeOrgId"/>
+        <parameter name="restrictActiveOrg"/> <!-- !'true' restricts to active org (only if present) -->
         <parameter name="pageIndex"/>
         <actions>
             <if condition="!term &amp;&amp; !pageIndex"><script>ec.web.sendJsonResponse([])</script><return/></if>
@@ -84,6 +90,7 @@ along with this software (see the LICENSE.md file). If not, see
                     termSb.append(')')
                     if (roleTypeId) termSb.append(' AND roles.roleTypeId:(').append(roleTypeId.replaceAll(/,/, ' ')).append(')')
                     if (!'true'.equals(includeDisabled)) {termSb.append(' AND (NOT disabled:Y)')}
+                    if (activeOrgId && 'true'.equals(restrictActiveOrg)) {termSb.append(' AND (partyId:' + activeOrgId + ')')}
                 ]]></script>
                 <!-- <log level="warn" message="Doing party search with queryString [${termSb.toString()}], indexName:${indexName}, documentType:${documentType}"/> -->
                 <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
