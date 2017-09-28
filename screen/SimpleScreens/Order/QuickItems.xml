@@ -34,11 +34,17 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="productStoreId" from="orderHeader.productStoreId"/>
 
         <if condition="!productCategoryId &amp;&amp; productStoreId">
-            <!-- use the Quick Add category if there is one, otherwise try Search category -->
+            <!-- For the default category to select: look for Quick Add Internal, then Quick Add, then Search category -->
             <entity-find entity-name="mantle.product.store.ProductStoreCategory" list="psCatList" cache="true">
                 <date-filter/><econdition field-name="productStoreId"/>
-                <econdition field-name="storeCategoryTypeEnumId" value="PsctQuickAdd"/>
+                <econdition field-name="storeCategoryTypeEnumId" value="PsctQuickInternal"/>
             </entity-find>
+            <if condition="!psCatList">
+                <entity-find entity-name="mantle.product.store.ProductStoreCategory" list="psCatList" cache="true">
+                    <date-filter/><econdition field-name="productStoreId"/>
+                    <econdition field-name="storeCategoryTypeEnumId" value="PsctQuickAdd"/>
+                </entity-find>
+            </if>
             <if condition="!psCatList">
                 <entity-find entity-name="mantle.product.store.ProductStoreCategory" list="psCatList" cache="true">
                     <date-filter/><econdition field-name="productStoreId"/>
