@@ -27,6 +27,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editPayment"><default-response url="//apps/${appRoot}/Accounting/Payment/EditPayment"/></transition>
     <transition name="editProduct"><default-response url="//apps/${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="shipmentDetail"><default-response url="//apps/${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="editTransaction"><default-response url="//apps/${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
 
     <actions>
         <service-call name="mantle.GeneralServices.lookup#ById" in-map="[lookupId:lookupId]" out-map="context"/>
@@ -40,7 +41,7 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
     </actions>
     <widgets>
-        <label text="Lookup by ID for Asset, Facility, Invoice, Order, Party, Badge, Payment, Product, Shipment" type="p"/>
+        <label text="Lookup by ID for Asset, Facility, Invoice, Order, Party, Badge, Payment, Product, Shipment, GL Transaction" type="p"/>
         <form-single name="QuickLookupForm" transition="." focus-field="lookupId">
             <field name="lookupId"><default-field title=""><text-line size="20"/></default-field></field>
             <field name="submitButton"><default-field title="Lookup by ID"><submit/></default-field></field>
@@ -55,7 +56,7 @@ along with this software (see the LICENSE.md file). If not, see
             </actions>
             <widgets>
                 <container-box>
-                    <box-header title="Asset #${assetId}"/>
+                    <box-header title="Asset ${assetId}"/>
                     <box-toolbar>
                         <link url="assetDetail" text="Asset"/>
                         <!-- <link url="equipmentDetail" text="Equipment" condition="asset.assetTypeEnumId == 'AstTpEquipment'"/> -->
@@ -119,7 +120,7 @@ along with this software (see the LICENSE.md file). If not, see
             </actions>
             <widgets>
                 <container-box>
-                    <box-header title="Invoice #${invoiceId}"/>
+                    <box-header title="Invoice ${invoiceId}"/>
                     <box-toolbar>
                         <link url="editInvoice" text="Invoice"/>
                     </box-toolbar>
@@ -150,7 +151,7 @@ along with this software (see the LICENSE.md file). If not, see
             </actions>
             <widgets>
                 <container-box>
-                    <box-header title="Order #${orderId}"/>
+                    <box-header title="Order ${orderId}"/>
                     <box-toolbar><link url="orderDetail" text="Order"/></box-toolbar>
                     <box-body>
                         <container-row>
@@ -202,7 +203,7 @@ along with this software (see the LICENSE.md file). If not, see
             </actions>
             <widgets>
                 <container-box>
-                    <box-header title="Payment #${paymentId}"/>
+                    <box-header title="Payment ${paymentId}"/>
                     <box-toolbar>
                         <link url="editPayment" text="Payment"/>
                     </box-toolbar>
@@ -271,7 +272,7 @@ along with this software (see the LICENSE.md file). If not, see
             </actions>
             <widgets>
                 <container-box>
-                    <box-header title="Shipment #${shipmentId}"/>
+                    <box-header title="Shipment ${shipmentId}"/>
                     <box-toolbar>
                         <link url="shipmentDetail" text="Shipment"/>
                     </box-toolbar>
@@ -304,5 +305,38 @@ along with this software (see the LICENSE.md file). If not, see
                 </container-box>
             </widgets>
         </section>
+        <section name="AcctgTransSection" condition="acctgTrans"><actions>
+            <entity-find-one entity-name="moqui.basic.Enumeration" value-field="typeEnum">
+                <field-map field-name="enumId" from="acctgTrans.acctgTransTypeEnumId"/></entity-find-one>
+        </actions><widgets>
+            <container-box><box-header title="GL Transaction ${acctgTransId}"/><box-toolbar>
+                <link url="editTransaction" text="GL Transaction"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col lg="1"><label text="TX Type" type="strong"/></row-col>
+                    <row-col lg="3"><label text="${typeEnum?.description?:''}"/></row-col>
+                    <row-col lg="1"><label text="TX Date" type="strong"/></row-col>
+                    <row-col lg="3"><label text="${ec.l10n.format(acctgTrans.transactionDate, null)}"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col lg="1"><label text="Is Posted" type="strong"/></row-col>
+                    <row-col lg="3"><label text="${acctgTrans.isPosted}"/></row-col>
+                    <row-col lg="1"><label text="Posted Date" type="strong"/></row-col>
+                    <row-col lg="3"><label text="${ec.l10n.format(acctgTrans.postedDate, null)}"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col lg="1"><label text="Reverse Of" type="strong"/></row-col>
+                    <row-col lg="3"><link url="editTransaction" text="${acctgTrans.reverseOfAcctgTransId}" link-type="anchor"
+                            parameter-map="[acctgTransId:acctgTrans.reverseOfAcctgTransId]" condition="acctgTrans.reverseOfAcctgTransId"/></row-col>
+                    <row-col lg="1"><label text="Reversed By" type="strong"/></row-col>
+                    <row-col lg="3"><link url="editTransaction" text="${acctgTrans.reversedByAcctgTransId}" link-type="anchor"
+                            parameter-map="[acctgTransId:acctgTrans.reversedByAcctgTransId]" condition="acctgTrans.reversedByAcctgTransId"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col lg="1"><label text="Description" type="strong"/></row-col>
+                    <row-col lg="11"><label text="${acctgTrans.description?:''}" type="p"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
     </widgets>
 </screen>
