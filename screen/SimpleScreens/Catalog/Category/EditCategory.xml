@@ -15,40 +15,109 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Category" default-menu-index="1">
 
-    <parameter name="productCategoryId" required="true"/>
+    <parameter name="productCategoryId" required="true" from="curProductCategoryId ?: productCategoryId"/>
 
+    <transition name="editFeatureGroup"><default-response url="../../FeatureGroup/EditFeatureGroup"/></transition>
     <transition name="updateCategory"><service-call name="update#mantle.product.category.ProductCategory"/>
         <default-response url="."/></transition>
 
-    <transition name="createProductCategoryFeatGrpAppl">
-        <service-call name="create#mantle.product.feature.ProductCategoryFeatGrpAppl"/><default-response url="."/></transition>
-    <transition name="updateProductCategoryFeatGrpAppl">
-        <service-call name="update#mantle.product.feature.ProductCategoryFeatGrpAppl"/><default-response url="."/></transition>
-    <transition name="editFeatureGroup"><default-response url="../../FeatureGroup/EditFeatureGroup"/></transition>
+    <transition name="createProductCategoryFeatGrpAppl"><service-call name="create#mantle.product.feature.ProductCategoryFeatGrpAppl"/>
+        <default-response url="."/></transition>
+    <transition name="updateProductCategoryFeatGrpAppl"><service-call name="update#mantle.product.feature.ProductCategoryFeatGrpAppl"/>
+        <default-response url="."/></transition>
+
+    <transition name="createProductCategoryRollup"><service-call name="create#mantle.product.category.ProductCategoryRollup"
+            in-map="context + [productCategoryId:childProductCategoryId]"/><default-response url="."/></transition>
+    <transition name="updateProductCategoryRollup"><service-call name="update#mantle.product.category.ProductCategoryRollup"
+            in-map="context + [productCategoryId:childProductCategoryId]"/><default-response url="."/></transition>
+    <transition name="deleteProductCategoryRollup"><service-call name="delete#mantle.product.category.ProductCategoryRollup"
+            in-map="context + [productCategoryId:childProductCategoryId]"/><default-response url="."/></transition>
 
     <actions>
         <entity-find-one entity-name="mantle.product.category.ProductCategory" value-field="category"/>
-        <entity-find entity-name="mantle.product.feature.ProductFeatureGroupAndCategoryAppl" list="pfgacaList">
-            <date-filter/><econdition field-name="productCategoryId"/></entity-find>
+        <set field="curProductCategoryId" from="productCategoryId"/>
     </actions>
     <widgets>
-        <form-single name="EditCategoryForm" map="category" transition="updateCategory">
-            <field name="productCategoryId"><default-field><hidden/></default-field></field>
-            <field name="pseudoId"><default-field title="ID"><text-line size="15"/></default-field></field>
-            <field name="categoryName"><default-field title="Name"><text-line size="60"/></default-field></field>
-            <field name="productCategoryTypeEnumId"><default-field title="Type">
-                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                    <set field="enumTypeId" value="ProductCategoryType"/></widget-template-include>
-            </default-field></field>
+        <container-row><row-col md="7">
+            <form-single name="EditCategoryForm" map="category" transition="updateCategory">
+                <field name="productCategoryId"><default-field><hidden/></default-field></field>
+                <field name="pseudoId"><default-field title="ID"><text-line size="15"/></default-field></field>
+                <field name="categoryName"><default-field title="Name"><text-line size="60"/></default-field></field>
+                <field name="productCategoryTypeEnumId"><default-field title="Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ProductCategoryType"/></widget-template-include>
+                </default-field></field>
 
-            <field name="description"><default-field><text-area cols="65" rows="4"/></default-field></field>
+                <field name="description"><default-field><text-area cols="65" rows="4"/></default-field></field>
 
-            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-        </form-single>
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
 
-        <container-box>
-            <box-header title="Feature Groups"/>
-            <box-toolbar>
+            <section name="ChildCategorySection"><actions>
+                <set field="parentProductCategoryId" from="productCategoryId"/>
+            </actions><widgets>
+                <container-box><box-header title="Child Categories"/><box-toolbar>
+                    <container-dialog id="AddChildDialog" button-text="Add Child Category">
+                        <form-single name="AddChild" transition="createProductCategoryRollup">
+                            <field name="curProductCategoryId"><default-field><hidden/></default-field></field>
+                            <field name="parentProductCategoryId"><default-field><hidden/></default-field></field>
+                            <field name="childProductCategoryId"><default-field title="Child"><drop-down>
+                                <entity-options key="${productCategoryId}" text="${pseudoId}: ${categoryName} (${typeDescription})">
+                                    <entity-find entity-name="mantle.product.category.ProductCategoryAndType" limit="200">
+                                        <order-by field-name="pseudoId"/><order-by field-name="categoryName"/></entity-find>
+                                </entity-options>
+                            </drop-down></default-field></field>
+                            <field name="fromDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                            <field name="thruDate"><default-field><date-time/></default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body-nopad>
+                    <form-list name="ChildCategoriesForm" list="pccList" transition="updateProductCategoryRollup">
+                        <entity-find entity-name="mantle.product.category.ProductCategoryChildren" list="pccList">
+                            <econdition field-name="parentProductCategoryId"/>
+                            <order-by field-name="sequenceNum,categoryName"/>
+                        </entity-find>
+
+                        <field name="curProductCategoryId"><default-field><hidden/></default-field></field>
+                        <field name="parentProductCategoryId"><default-field><hidden/></default-field></field>
+                        <field name="childProductCategoryId"><default-field><hidden/></default-field></field>
+
+                        <field name="sequenceNum"><default-field><text-line size="4"/></default-field></field>
+                        <field name="pseudoId"><default-field title="ID"><link url="." text="${pseudoId}" link-type="anchor"
+                                parameter-map="[productCategoryId:childProductCategoryId]"/></default-field></field>
+                        <field name="categoryName"><default-field><link url="." text="${categoryName}" link-type="anchor"
+                                parameter-map="[productCategoryId:childProductCategoryId]"/></default-field></field>
+                        <field name="fromDate"><default-field><display/></default-field></field>
+                        <field name="thruDate"><default-field><date-time/></default-field></field>
+
+                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                        <field name="delete"><default-field title=""><link url="deleteProductCategoryRollup" text=""
+                                icon="glyphicon glyphicon-trash" confirmation="Delete record of child within category?"
+                                parameter-map="[childProductCategoryId:childProductCategoryId, parentProductCategoryId:parentProductCategoryId, fromDate:fromDate]"/>
+                        </default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
+        </row-col><row-col md="5">
+            <container-box><box-header title="Parent Categories"/><box-body-nopad>
+                <form-list name="ParentCategoriesForm" list="pcpList" skip-form="true">
+                    <entity-find entity-name="mantle.product.category.ProductCategoryParents" list="pcpList">
+                        <econdition field-name="productCategoryId"/>
+                        <select-field field-name="parentProductCategoryId"/>
+                        <order-by field-name="sequenceNum,categoryName"/>
+                    </entity-find>
+
+                    <field name="pseudoId"><default-field title="ID"><link url="." text="${pseudoId}" link-type="anchor"
+                            parameter-map="[productCategoryId:parentProductCategoryId]"/></default-field></field>
+                    <field name="categoryName"><default-field><link url="." text="${categoryName}" link-type="anchor"
+                            parameter-map="[productCategoryId:parentProductCategoryId]"/></default-field></field>
+                    <field name="fromDate"><default-field><display/></default-field></field>
+                    <field name="thruDate"><default-field><display/></default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
+
+            <container-box><box-header title="Feature Groups"/><box-toolbar>
                 <container-dialog id="AddFeatureGroupDialog" button-text="Apply Feature Group">
                     <form-single name="AddFeatureGroupForm" transition="createProductCategoryFeatGrpAppl">
                         <field name="productCategoryId"><default-field><hidden/></default-field></field>
@@ -69,9 +138,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Apply"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
-            </box-toolbar>
-            <box-body>
+            </box-toolbar><box-body>
                 <form-list name="FeatureGroupsForm" list="pfgacaList" transition="updateProductCategoryFeatGrpAppl">
+                    <entity-find entity-name="mantle.product.feature.ProductFeatureGroupAndCategoryAppl" list="pfgacaList">
+                        <date-filter/><econdition field-name="productCategoryId"/></entity-find>
+
                     <field name="productCategoryId"><default-field><hidden/></default-field></field>
                     <field name="productFeatureGroupId"><default-field><hidden/></default-field></field>
                     <field name="featureGroup"><default-field><link url="editFeatureGroup" link-type="anchor"
@@ -82,7 +153,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="thruDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
                     <field name="submitButton"><default-field title="Unapply"><submit/></default-field></field>
                 </form-list>
-            </box-body>
-        </container-box>
+            </box-body></container-box>
+        </row-col></container-row>
     </widgets>
 </screen>
