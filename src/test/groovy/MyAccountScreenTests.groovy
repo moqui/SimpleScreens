@@ -35,7 +35,7 @@ class MyAccountScreenTests extends Specification {
     def setupSpec() {
         ec = Moqui.getExecutionContext()
         // this is the user created in WorkPlanToCashBasicFlow
-        ec.user.loginUser("worker", "moqui1!")
+        ec.user.loginUser("worker", "moqui1!!")
         screenTest = ec.screen.makeTest().baseScreenPath("apps/my")
 
         ec.entity.tempSetSequencedIdPrimary("mantle.party.communication.CommunicationEvent", 61000, 10)
