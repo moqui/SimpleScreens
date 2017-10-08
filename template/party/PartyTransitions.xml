@@ -45,6 +45,7 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="partyId"/>
         <parameter name="timePeriodTypeId"/>
         <parameter name="periodPurposeEnumId"/>
+        <parameter name="pastOnly"/>
         <actions>
             <set field="pageIndex" from="pageIndex ?: 0"/>
             <set field="pageSize" from="pageSize ?: 20"/>
@@ -62,6 +63,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <econdition field-name="timePeriodId" operator="like" value="%${term}%" ignore-case="true"/>
                         <econdition field-name="periodName" operator="like" value="%${term}%" ignore-case="true"/>
                     </econditions>
+                    <econdition field-name="fromDate" operator="less" from="ec.user.nowTimestamp" ignore="pastOnly != 'true'"/>
                     <select-field field-name="timePeriodId,periodName"/>
                 </entity-find>
             </else></if>
