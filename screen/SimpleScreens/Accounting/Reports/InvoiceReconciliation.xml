@@ -41,10 +41,11 @@ along with this software (see the LICENSE.md file). If not, see
         </else></if>
 
         <script>
+            // look back 6 months
             Calendar asOfCal = ec.user.getNowCalendar()
             asOfCal.setTimeInMillis(asOfDate.time)
             Calendar lookBackCal = (Calendar) asOfCal.clone()
-            lookBackCal.add(Calendar.YEAR, -1)
+            lookBackCal.add(Calendar.MONTH, -6)
             lookBackDate = new Timestamp(lookBackCal.getTimeInMillis())
         </script>
 
@@ -103,13 +104,14 @@ along with this software (see the LICENSE.md file). If not, see
                 </econditions>
                 <select-field field-name="invoiceId,itemsTotal,amountApplied"/>
             </entity-find>
-            <set field="itemsTotalSum" from="invoiceAgingList*.itemsTotal.sum() ?: 0.0"/>
-            <set field="amountAppliedSum" from="invoiceAgingList*.amountApplied.sum() ?: 0.0"/>
+            <set field="itemsTotalSum" from="invoiceAgingList.sum({ it.itemsTotal ?: 0.0 }) ?: 0.0"/>
+            <set field="amountAppliedSum" from="invoiceAgingList.sum({ it.amountApplied ?: 0.0 }) ?: 0.0"/>
             <set field="invoiceUnpaid" from="itemsTotalSum - amountAppliedSum"/>
 
             <entity-find entity-name="mantle.ledger.report.GlAccountOrgTimePeriodDetail" list="glSummaryList">
                 <econdition field-name="organizationPartyId"/><econdition field-name="timePeriodId"/>
                 <econdition field-name="glAccountClassEnumId"/>
+                <econdition field-name="endingBalance" operator="not-equals" from="0.0"/>
                 <select-field field-name="accountCode,accountName,endingBalance"/>
             </entity-find>
             <set field="glEndingTotal" from="glSummaryList*.endingBalance.sum() ?: 0.0"/>
@@ -131,7 +133,56 @@ along with this software (see the LICENSE.md file). If not, see
             </row-col></container-row>
         </widgets></section>
 
-        <!--  -->
+        <container-box><box-header title="Invoices where Unpaid different from GL Amount"/><box-body-nopad>
+            <form-list name="InvoiceVsGlList" list="invoiceGlList" skip-form="true">
+                <entity-find entity-name="mantle.account.invoice.InvoiceGlImpactSummary" list="invoiceGlList">
+                    <!-- do by account class instead: <econdition field-name="acctgTransTypeEnumId" operator="in" from="txTypeEnumIdList"/> -->
+                    <econdition field-name="statusId" operator="in" from="statusIdList"/>
+                    <econdition field-name="fromPartyId" from="organizationPartyId" ignore="invoiceType != 'Receivable'"/>
+                    <econdition field-name="toPartyId" from="organizationPartyId" ignore="invoiceType != 'Payable'"/>
+                    <econdition field-name="invoiceDate" operator="greater-equals" from="lookBackDate"/>
+                    <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
+                    <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
+                    <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+
+                    <econdition field-name="debitGlAccountClassEnumId" from="glAccountClassEnumId"/>
+                    <econdition field-name="debitTransactionDate" operator="less-equals" from="asOfDate"/>
+                    <econdition field-name="creditGlAccountClassEnumId" from="glAccountClassEnumId"/>
+                    <econdition field-name="creditTransactionDate" operator="less-equals" from="asOfDate"/>
+                    <econdition field-name="unpaidAmount" operator="not-equals" to-field-name="debitMinusCredit" ignore="invoiceType != 'Receivable'"/>
+                    <econdition field-name="unpaidAmount" operator="not-equals" to-field-name="creditMinusDebit" ignore="invoiceType != 'Payable'"/>
+                    <select-field field-name="itemsTotal,amountApplied,debitTotal,creditTotal,debitMinusCredit,creditMinusDebit"/>
+                    <order-by field-name="invoiceDate"/>
+                </entity-find>
+
+                <field name="invoiceId"><default-field title="Invoice">
+                    <link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+                <field name="referenceNumber"><default-field title="Their Invoice"><display/></default-field></field>
+                <field name="invoiceDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="invoiceTypeEnumId"><default-field title="Type">
+                    <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+
+                <field name="itemsTotal" align="right" show-total="sum"><default-field title="Invoice">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="amountApplied" align="right" show-total="sum"><default-field title="Pmt Applied">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="unpaidAmount" align="right" show-total="sum"><default-field title="Unpaid">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="glNetAmount" align="right" show-total="sum" from="invoiceType == 'Payable' ? creditMinusDebit : debitMinusCredit">
+                    <default-field title="GL Net"><display format="#,##0.00"/></default-field></field>
+                <field name="difference" align="right" show-total="sum" from="unpaidAmount - (invoiceType == 'Payable' ? creditMinusDebit : debitMinusCredit)">
+                    <default-field title="Diff"><display format="#,##0.00"/></default-field></field>
+            </form-list>
+            <section name="ShowSql" condition="invoiceGlList_xafind?.getQueryTextList()"><widgets>
+                <container-dialog id="ShowSqlDialog" button-text="Show SQL">
+                    <section-iterate name="ShowSqlIter" list="invoiceGlList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                        <label text="${queryText}" type="p"/>
+                    </widgets></section-iterate>
+                </container-dialog>
+            </widgets></section>
+        </box-body-nopad></container-box>
 
 
         <!--
@@ -173,6 +224,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="transactionDate" operator="greater-equals" from="lookBackDate"/>
                     <econdition field-name="transactionDate" operator="less-equals" from="asOfDate"/>
                     <econdition field-name="isPosted" operator="not-equals" value="Y" or-null="true"/>
+                    <order-by field-name="transactionDate"/>
                 </entity-find>
                 <row-actions>
                     <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
@@ -206,6 +258,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="transactionDate" operator="greater-equals" from="lookBackDate"/>
                     <econdition field-name="transactionDate" operator="less-equals" from="asOfDate"/>
                     <econdition field-name="debitTotal" operator="not-equals" to-field-name="creditTotal"/>
+                    <order-by field-name="transactionDate"/>
                 </entity-find>
                 <row-actions>
                     <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
@@ -242,7 +295,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="glAccountClassEnumId"/>
                     <econdition field-name="transactionDate" operator="greater-equals" from="lookBackDate"/>
                     <econdition field-name="transactionDate" operator="less-equals" from="asOfDate"/>
+                    <econdition field-name="reversedByAcctgTransId" operator="is-null"/>
+                    <econdition field-name="reverseOfAcctgTransId" operator="is-null"/>
                     <econdition field-name="invoiceId" operator="is-null"/>
+                    <order-by field-name="transactionDate"/>
                 </entity-find>
                 <row-actions>
                     <service-call name="mantle.ledger.LedgerServices.calculate#AcctgTransTrialBalance"
