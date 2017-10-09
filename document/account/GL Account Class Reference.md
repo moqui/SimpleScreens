@@ -78,6 +78,7 @@
     - **Liability**
         - Current Liability
             - Accounts Payable
+            - Loans Payable
             - Accrued Expenses (incurred, not yet paid)
             - Unearned Revenue (received, not yet earned)
             - Third-Party Holdings
