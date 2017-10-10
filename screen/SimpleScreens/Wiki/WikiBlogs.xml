@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Wiki Blogs" default-menu-include="false">
+
+    <pre-actions><set field="html_title" value="Find Wiki Blog"/></pre-actions>
+
+    <actions>
+        <entity-find entity-name="moqui.resource.wiki.WikiBlog" list="blogsList">
+            <search-form-inputs default-order-by="publishDate DESC"/></entity-find>
+    </actions>
+
+    <widgets>
+        <container>
+            <link text="New Post" url="../EditWikiBlog" link-type="anchor-button"/>
+        </container>
+        <form-list name="WikiBlogList" list="blogsList" skip-form="true" header-dialog="true" saved-finds="true">
+            <field name="wikiBlogId"><default-field title="View">
+                <link url="../EditWikiBlog" text="View">
+                    <parameter name="wikiBlogId"/>
+                </link>
+            </default-field></field>
+            <field name="title"><header-field show-order-by="case-insensitive"><text-find /></header-field>
+                <default-field><display also-hidden="false"/></default-field></field>
+            <field name="author"><header-field show-order-by="case-insensitive">
+                <drop-down allow-empty="true">
+                    <entity-options text="${author}" key="${author}">
+                        <entity-find entity-name="moqui.resource.wiki.WikiBlog" distinct="true">
+                            <select-field field-name="author"/>
+                        </entity-find>
+                        </entity-options>
+                </drop-down></header-field>
+                <default-field><display also-hidden="false"/></default-field></field>
+            <field name="publishDate"><header-field show-order-by="case-insensitive"><date-find type="date" /></header-field>
+                <default-field><display format="yyyy-MM-dd" /></default-field>
+            </field>
+
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+    </widgets>
+</screen>
