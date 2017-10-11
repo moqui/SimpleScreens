@@ -19,8 +19,6 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
     <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
-    <transition name="editShipment"><default-response url="//${appRoot}/Shipment/EditShipment"/></transition>
-    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getTimePeriodList" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
@@ -47,6 +45,9 @@ along with this software (see the LICENSE.md file). If not, see
             Calendar lookBackCal = (Calendar) asOfCal.clone()
             lookBackCal.add(Calendar.MONTH, -6)
             lookBackDate = new Timestamp(lookBackCal.getTimeInMillis())
+            Calendar shortLookBackCal = (Calendar) asOfCal.clone()
+            shortLookBackCal.add(Calendar.MONTH, -1)
+            shortLookBackDate = new Timestamp(shortLookBackCal.getTimeInMillis())
         </script>
 
         <!-- not currently used, looking by glAccountClassEnumId to be more thorough:
@@ -175,47 +176,59 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="difference" align="right" show-total="sum" from="unpaidAmount - (invoiceType == 'Payable' ? creditMinusDebit : debitMinusCredit)">
                     <default-field title="Diff"><display format="#,##0.00"/></default-field></field>
             </form-list>
-            <section name="ShowSql" condition="invoiceGlList_xafind?.getQueryTextList()"><widgets>
-                <container-dialog id="ShowSqlDialog" button-text="Show SQL">
-                    <section-iterate name="ShowSqlIter" list="invoiceGlList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+            <section name="ShowSqlInvoice" condition="invoiceGlList_xafind?.getQueryTextList()"><widgets>
+                <container-dialog id="ShowSqlInvoiceDialog" button-text="Show SQL">
+                    <section-iterate name="ShowSqlInvoiceIter" list="invoiceGlList_xafind?.getQueryTextList()" entry="queryText"><widgets>
                         <label text="${queryText}" type="p"/>
                     </widgets></section-iterate>
                 </container-dialog>
             </widgets></section>
         </box-body-nopad></container-box>
 
+        <container-box><box-header title="Payments where Applied different from GL Amount"/><box-body-nopad>
+            <form-list name="PaymentVsGlList" list="paymentGlList" skip-form="true">
+                <entity-find entity-name="mantle.account.payment.PaymentGlImpactSummary" list="paymentGlList">
+                    <econdition field-name="toPartyId" from="organizationPartyId" ignore="invoiceType != 'Receivable'"/>
+                    <econdition field-name="fromPartyId" from="organizationPartyId" ignore="invoiceType != 'Payable'"/>
+                    <!-- look back just 1 month for these, use lookBackDate to look back full range -->
+                    <econdition field-name="effectiveDate" operator="greater-equals" from="shortLookBackDate"/>
+                    <econdition field-name="effectiveDate" operator="less-equals" from="asOfDate"/>
+                    <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
 
-        <!--
-        NOTE: this section would be more useful if it operated very differently to reconcile Invoice and PaymentApplication against AcctgTrans/Entry
+                    <econdition field-name="debitGlAccountClassEnumId" from="glAccountClassEnumId"/>
+                    <econdition field-name="debitTransactionDate" operator="less-equals" from="asOfDate"/>
+                    <econdition field-name="creditGlAccountClassEnumId" from="glAccountClassEnumId"/>
+                    <econdition field-name="creditTransactionDate" operator="less-equals" from="asOfDate"/>
+                    <econdition field-name="amountApplied" operator="not-equals" to-field-name="creditMinusDebit" ignore="invoiceType != 'Receivable'"/>
+                    <econdition field-name="amountApplied" operator="not-equals" to-field-name="debitMinusCredit" ignore="invoiceType != 'Payable'"/>
+                    <select-field field-name="amountApplied,debitTotal,creditTotal,debitMinusCredit,creditMinusDebit"/>
+                    <order-by field-name="effectiveDate"/>
+                </entity-find>
 
-        Business goals, comments:
-        - Explain differences between invoice aging reports and Balance Sheet
-        - View negative transaction entries for invoices
-          - There is a valid case for these transactions in Mantle, ie invoice adjustments such early payment and other discounts applied
-            at the time of payment so not in the original transaction for the invoice
-          - Not sure why this needs to be checked, should result in valid totals in the Balance Sheet and Income Statement, ie at the
-            time of payment the AR/AP accounts would be fully adjusted for the settled invoice
-          - The code for the reconcile report flags these as 'suspicious' but I don't see that displayed anywhere, so maybe this is ignored anyway
-        - View payment application transactions for invoices that are not posted within the period
-          - This shouldn't ever happen, ie a payment applied to an invoice before the invoice is posted
-          - Mantle does not allow this, just like it doesn't allow applying a Payment that is not yet received or sent
-          - Would result in an incorrect value in AR/AP accounts (reducing payable/receivable total for other invoices posted)
-          - Payment should remain unapplied so it shows in Unearned Revenue for receivable or Prepaid Expense for payable
-            instead of mucking up the AR/AP amount
-            (ie for receivable moving the amount from Liability (Unearned Revenue) to negative amount in Asset (Accounts Receivable)
-        - View invoice transaction total and/or payment application transaction total for invoices where they are not equal with the time period
-          - The approach in Mantle is to handle receivable unapplied payments to Unearned Revenue (Liability) and payable unapplied payments to Prepaid Expense (Asset)
-          - The concept of an unapplied payment is still important as this is how these accounts (Unearned Revenue, Prepaid Expense) are maintained
-        - View unposted transactions
-          - Automatic unposted transactions are added to the error journal
-          - The period close finalize checks to make sure all transactions in the period are posted
-        - View transactions posted to a payable or receivable account with no invoiceId
-          - There seem to be valid reasons for these such as manual adjustments
-          - Does this really need to be checked? What scenario would result in an invalid transaction or balance sheet issue?
-        - View payment application transactions where invoice date on related invoice is after the period
-          - See notes about about payment application transactions for invoices not yet posted
+                <field name="paymentId"><default-field title="Payment">
+                    <link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+                <field name="paymentRefNum"><default-field title="Ref Num"><display/></default-field></field>
+                <field name="effectiveDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="paymentTypeEnumId"><default-field title="Type">
+                    <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
 
-        -->
+                <field name="amountApplied" align="right" show-total="sum"><default-field title="Pmt Applied">
+                    <display format="#,##0.00"/></default-field></field>
+                <field name="glNetAmount" align="right" show-total="sum" from="invoiceType == 'Payable' ? debitMinusCredit : creditMinusDebit">
+                    <default-field title="GL Net"><display format="#,##0.00"/></default-field></field>
+                <field name="difference" align="right" show-total="sum" from="amountApplied - (invoiceType == 'Payable' ? debitMinusCredit : creditMinusDebit)">
+                    <default-field title="Diff"><display format="#,##0.00"/></default-field></field>
+            </form-list>
+            <section name="ShowSqlPayment" condition="paymentGlList_xafind?.getQueryTextList()"><widgets>
+                <container-dialog id="ShowSqlPaymentDialog" button-text="Show SQL">
+                    <section-iterate name="ShowSqlPaymentIter" list="paymentGlList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                        <label text="${queryText}" type="p"/>
+                    </widgets></section-iterate>
+                </container-dialog>
+            </widgets></section>
+        </box-body-nopad></container-box>
 
 
         <container-box><box-header title="GL Transactions not Posted"/><box-body-nopad>
