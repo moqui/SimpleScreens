@@ -238,10 +238,18 @@ along with this software (see the LICENSE.md file). If not, see
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="pickShipment" text="Set Picked"/>
-                    <link url="packShipment" text="Set Packed" condition="allItemsPacked" style="btn-success"/>
+                    <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="allItemsPacked" type="success">
+                        <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
+                        <form-single name="SetPackedForm" transition="packShipment">
+                            <field name="shipmentId"><default-field><display/></default-field></field>
+                            <field name="packedDate" from="shipment.estimatedShipDate ?: ec.user.nowTimestamp">
+                                <default-field><date-time/></default-field></field>
+                            <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
                     <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?"/>
-                    <link url="ShipmentPick.pdf" text="Pick PDF"/>
-                    <link url="ShipmentByPackage.pdf" text="Package PDF"/>
+                    <link url="ShipmentPick.pdf" text="Pick PDF" style="btn-info"/>
+                    <link url="ShipmentByPackage.pdf" text="Package PDF" style="btn-info"/>
                     <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
                 </fail-widgets></section>
             </widgets></section>
@@ -251,12 +259,20 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
-                    <link url="packShipment" text="Set Packed" condition="allItemsPacked" style="btn-success"/>
+                    <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="allItemsPacked" type="success">
+                        <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
+                        <form-single name="SetPackedForm" transition="packShipment">
+                            <field name="shipmentId"><default-field><display/></default-field></field>
+                            <field name="packedDate" from="shipment.estimatedShipDate ?: ec.user.nowTimestamp">
+                                <default-field><date-time/></default-field></field>
+                            <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
                     <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?">
                         <parameter name="shipmentId"/></link>
-                    <link url="ShipmentPick.pdf" text="Pick PDF"/>
+                    <link url="ShipmentPick.pdf" text="Pick PDF" style="btn-info"/>
                 </fail-widgets></section>
-                <link url="ShipmentByPackage.pdf" text="Package PDF"/>
+                <link url="ShipmentByPackage.pdf" text="Package PDF" style="btn-info"/>
                 <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
             </widgets></section>
 
@@ -282,11 +298,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </widgets><fail-widgets>
                     <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
-                    <link url="shipShipment" text="Set Shipped"/>
+                    <link url="shipShipment" text="Set Shipped" style="btn-success"/>
                     <link url="deliverShipment" text="Set Delivered"/>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
-                    <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
+                    <link url="ShipmentPack.pdf" text="Pack Insert PDF" style="btn-info"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
@@ -301,7 +317,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="deliverShipment" text="Set Delivered"/>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
-                    <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
+                    <link url="ShipmentPack.pdf" text="Pack Insert PDF" style="btn-info"/>
                 </fail-widgets></section>
             </widgets></section>
 
@@ -362,17 +378,19 @@ along with this software (see the LICENSE.md file). If not, see
                         </drop-down>
                     </conditional-field></field>
 
-                    <field name="shipmentTypeEnumId"><default-field title="Shipment Type">
+                    <field name="shipmentTypeEnumId"><default-field title="Type">
                         <display text="${shipmentTypeEnum.description}" also-hidden="false"/></default-field></field>
                     <field name="statusId"><default-field title="Status">
                         <display text="${statusItem.description}" also-hidden="false"/></default-field></field>
 
                     <!-- Incoming Shipment Fields -->
-                    <field name="fromPartyId"><conditional-field title="From Party" condition="isIncoming">
-                        <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
-                        <link url="editSupplier" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
-                                condition="fromPartyId" parameter-map="[partyId:fromPartyId]"/>
-                    </conditional-field></field>
+                    <field name="fromPartyId">
+                        <conditional-field title="From Party" condition="isIncoming">
+                            <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                            <link url="editSupplier" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                                    condition="fromPartyId" parameter-map="[partyId:fromPartyId]"/>
+                        </conditional-field>
+                    </field>
                     <field name="destinationFacilityId" from="lastRouteSegment.destinationFacilityId">
                         <conditional-field title="Destination Facility" condition="isIncoming">
                             <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
@@ -382,13 +400,16 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
 
                     <!-- Outgoing Shipment Fields -->
-                    <field name="toPartyId"><conditional-field title="To Party" condition="!isIncoming &amp;&amp; allowUpdate">
-                        <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
-                        <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
-                                condition="toPartyId" parameter-map="[partyId:toPartyId]"/>
-                    </conditional-field><conditional-field condition="!isIncoming" title="To Party">
-                        <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/>
-                    </conditional-field></field>
+                    <field name="toPartyId">
+                        <conditional-field title="To Party" condition="!isIncoming &amp;&amp; allowUpdate">
+                            <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                            <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                                    condition="toPartyId" parameter-map="[partyId:toPartyId]"/>
+                        </conditional-field>
+                        <conditional-field condition="!isIncoming" title="To Party">
+                            <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/>
+                        </conditional-field>
+                    </field>
                     <field name="originFacilityId" from="firstRouteSegment.originFacilityId">
                         <conditional-field title="Origin Facility" condition="!isIncoming &amp;&amp; allowUpdate">
                             <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
@@ -400,9 +421,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </field>
                     <field name="handlingInstructions"><default-field title="Shipping Instructions">
                         <text-area rows="3" cols="60"/></default-field></field>
-                    <field name="estimatedReadyDate"><conditional-field condition="!isIncoming" title="Ready Date"><date-time/></conditional-field></field>
+                    <field name="estimatedReadyDate"><conditional-field condition="!isIncoming" title="Ready"><date-time/></conditional-field></field>
+                    <field name="packedDate"><default-field title="Packed"><display/></default-field></field>
                     <field name="estimatedShipDate"><default-field title="Pack/Ship"><date-time/></default-field></field>
-                    <field name="estimatedArrivalDate"><default-field title="Arrival Date"><date-time/></default-field></field>
+                    <field name="estimatedArrivalDate"><default-field title="Arrival"><date-time/></default-field></field>
 
                     <field name="submitButton"><default-field title="Update Shipment"><submit/></default-field></field>
 
@@ -410,6 +432,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field-ref name="carrierAndShipmentMethod"/>
                         <field-row><field-ref name="shipmentTypeEnumId"/><field-ref name="statusId"/></field-row>
                         <fields-not-referenced/>
+                        <field-row><field-ref name="estimatedReadyDate"/><field-ref name="packedDate"/></field-row>
                         <field-row><field-ref name="estimatedShipDate"/><field-ref name="estimatedArrivalDate"/></field-row>
                         <field-ref name="submitButton"/>
                     </field-layout>

@@ -13,73 +13,90 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
-        default-menu-title="Wiki Blog Post" default-menu-index="1">
+        default-menu-title="Edit Blog Post" default-menu-index="1">
 
-    <parameter name="wikiBlogId"/>
+    <parameter name="wikiBlogId" required="true"/>
 
-    <transition name="createBlog">
-        <service-call name="org.moqui.impl.WikiServices.create#WikiBlog" in-map="context"/>
-        <default-response url="../WikiBlogs"/><error-response url="."/>
-    </transition>
-    <transition name="updateBlog">
-        <service-call name="org.moqui.impl.WikiServices.update#WikiBlog" in-map="context"/>
-        <default-response url="."><parameter name="wikiBlogId" from="wikiBlogId"/></default-response>
-        <error-response url="."/>
+    <transition name="updateBlog"><service-call name="org.moqui.impl.WikiServices.update#WikiBlog"/>
+        <default-response url="."/></transition>
+    <transition name="addCategory"><service-call name="create#moqui.resource.wiki.WikiBlogCategory"/>
+        <default-response url="."/></transition>
+    <transition name="removeCategory"><service-call name="delete#moqui.resource.wiki.WikiBlogCategory"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="getSpacePages" location="component://SimpleScreens/screen/SimpleScreens/Wiki/WikiBlogs.xml"/>
+    <transition name="downloadSmallImage" read-only="true">
+        <actions>
+            <entity-find-one entity-name="moqui.resource.wiki.WikiBlog" value-field="wikiBlog"/>
+            <script>ec.web.sendResourceResponse(wikiBlog?.smallImageLocation)</script>
+        </actions>
+        <default-response type="none"/>
     </transition>
 
     <actions>
-        <set field="isCreate" from="!wikiBlogId"/>
-        <if condition="wikiBlogId">
-            <entity-find-one entity-name="moqui.resource.wiki.WikiBlog" value-field="wikiBlog"/>
+        <entity-find-one entity-name="moqui.resource.wiki.WikiBlog" value-field="wikiBlog"/>
+        <entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
+            <field-map field-name="wikiPageId" from="wikiBlog.wikiPageId"/></entity-find-one>
+        <set field="wikiSpaceId" from="wikiPage?.wikiSpaceId"/>
 
-            <if condition="wikiBlog.blogLocation">
-                <service-call name="org.moqui.impl.WikiServices.get#WikiPageInfo" out-map="context"
-                        in-map="[wikiSpaceId:wikiBlog.wikiSpaceId, pagePath:wikiBlog.blogLocation]"/>
-                <set field="blogText" from="pageReference?.text"/>
-            </if>
-        </if>
+        <entity-find entity-name="moqui.resource.wiki.WikiPageCategory" list="wikiPageCategories">
+            <order-by field-name="categoryName"/></entity-find>
     </actions>
-
     <widgets>
-        <container><label text="${isCreate ? 'Create Blog' : 'Edit Blog'}" type="h3"/></container>
-        <form-single name="EditBlogForm" map="wikiBlog" transition="${isCreate?'createBlog':'updateBlog'}">
-            <field name="wikiBlogId"><default-field><hidden /></default-field></field>
-            <field name="wikiSpaceId"><conditional-field condition="isCreate">
-                <drop-down>
-                    <entity-options key="${wikiSpaceId}" text="${wikiSpaceId}">
+        <container-row><row-col md="8">
+            <link url="../WikiBlogs" text="Back to Find Blog Post"/>
+            <form-single name="EditBlogForm" map="wikiBlog" transition="updateBlog">
+                <field name="wikiBlogId"><default-field><hidden/></default-field></field>
+                <field name="title"><default-field tooltip="letters, digits, [.,-_()!? ] only"><text-line size="100"/></default-field></field>
+                <field name="publishDate"><default-field><date-time/></default-field></field>
+                <field name="author"><default-field><text-line size="60"/></default-field></field>
+                <field name="summary"><default-field><text-area cols="100" rows="6" maxlength="4000"/></default-field></field>
+                <field name="metaKeywords"><default-field><text-line size="100"/></default-field></field>
+                <field name="metaDescription"><default-field><text-area cols="100" rows="2" maxlength="160"/></default-field></field>
+                <field name="smallImage"><default-field><file/></default-field></field>
+                <field name="wikiSpaceId"><default-field title="Wiki Space"><drop-down>
+                    <entity-options key="${wikiSpaceId}" text="${wikiSpaceId}: ${description}">
                         <entity-find entity-name="moqui.resource.wiki.WikiSpace">
-                            <order-by field-name="wikiSpaceId"/>
-                        </entity-find>
-                    </entity-options>
-                </drop-down>
-                </conditional-field>
-                <default-field><hidden /></default-field>
-            </field>
-            <field name="title">
-                <conditional-field condition="isCreate"><text-line size="120"/></conditional-field>
-                <default-field><display/></default-field>
-            </field>
-            <field name="publishDate"><default-field><date-time/></default-field></field>
-            <field name="author"><default-field><text-line size="60"/></default-field></field>
-            <field name="summary"><default-field><text-area cols="120" rows="6" maxlength="4000"/></default-field></field>
-            <field name="metaKeywords"><default-field><text-line size="120"/></default-field></field>
-            <field name="metaDescription"><default-field><text-area cols="120" rows="2" maxlength="160"/></default-field></field>
-            <field name="smallImage"><default-field><file /></default-field></field>
-            <field name="blogText"><default-field><text-area cols="120" rows="35"/></default-field></field>
-            <field name="submitButton"><default-field title="Post"><submit/></default-field></field>
-        </form-single>
-        <section name="HtmlEditorSection">
-            <widgets>
-                <render-mode><text type="html"><![CDATA[
-                    <script src="https://cdn.ckeditor.com/4.7.3/full/ckeditor.js" type="text/javascript"></script>
-                    <script src="https://cdn.ckeditor.com/4.7.3/full/adapters/jquery.js" type="text/javascript"></script>
-                    <script>CKEDITOR.dtd.$removeEmpty['i'] = false;
-                    $('#EditBlogForm_blogText').ckeditor({ allowedContent:true, linkJavaScriptLinksAllowed:true, fillEmptyBlocks:false,
-                        extraAllowedContent:'p(*)[*]{*};div(*)[*]{*};li(*)[*]{*};ul(*)[*]{*};i(*)[*]{*};span(*)[*]{*}',
-                        width:'100%', height:'600px', removeButtons:'Save,NewPage,Preview' }).editor.on('change', function(evt) { this.updateElement(); });</script>
-                    ]]></text>
-                </render-mode>
-            </widgets>
-        </section>
+                            <order-by field-name="wikiSpaceId"/></entity-find></entity-options>
+                </drop-down></default-field></field>
+                <field name="wikiPageId"><default-field title="Wiki Page"><drop-down>
+                    <dynamic-options transition="getSpacePages" server-search="true" min-length="0"><depends-on field="wikiSpaceId"/></dynamic-options>
+                </drop-down></default-field></field>
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                <field name="viewPage"><default-field title=""><link url="../wiki/${wikiPage.wikiSpaceId}/${wikiPage.pagePath}"
+                        text="View/Edit Page: ${wikiPage.pagePath}" condition="wikiPage"/></default-field></field>
+            </form-single>
+        </row-col><row-col md="4">
+            <section name="ShowSmallImage" condition="wikiBlog.smallImageLocation"><widgets>
+                <image url="downloadSmallImage" url-type="transition" width="200" style="img-thumbnail"
+                        parameter-map="[wikiBlogId:wikiBlog.wikiBlogId]"/>
+            </widgets></section>
+
+            <section name="CategoriesSection" condition="wikiPageCategories"><actions>
+                <entity-find entity-name="moqui.resource.wiki.WikiBlogCategory" list="membershipList">
+                    <econdition field-name="wikiBlogId"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header title="Categories"/><box-toolbar>
+                    <container-dialog id="AddCategoryDialog" button-text="Add Category">
+                        <form-single name="AddCategory" transition="addCategory">
+                            <field name="wikiBlogId"><default-field><hidden/></default-field></field>
+                            <field name="wikiPageCategoryId"><default-field title="Category"><drop-down>
+                                <list-options list="wikiPageCategories" text="${categoryName}" key="${wikiPageCategoryId}"/>
+                            </drop-down></default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <form-list name="CategoriesForm" list="membershipList" transition="removeCategory" skip-header="true">
+                        <field name="wikiBlogId"><default-field><hidden/></default-field></field>
+                        <field name="wikiPageCategoryId"><default-field title="">
+                            <display-entity entity-name="moqui.resource.wiki.WikiPageCategory" text="${categoryName}"/>
+                        </default-field></field>
+                        <field name="submitButton" align="right"><default-field title="">
+                            <submit icon="glyphicon glyphicon-trash" confirmation="Really remove?"/></default-field></field>
+                    </form-list>
+                </box-body></container-box>
+            </widgets></section>
+        </row-col></container-row>
     </widgets>
 </screen>
