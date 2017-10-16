@@ -35,8 +35,9 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="moqui.resource.wiki.WikiBlog" value-field="wikiBlog"/>
-        <if condition="wikiBlog.wikiPageId"><entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
-            <field-map field-name="wikiPageId" from="wikiBlog.wikiPageId"/></entity-find-one></if>
+        <entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
+            <field-map field-name="wikiPageId" from="wikiBlog.wikiPageId"/></entity-find-one>
+        <set field="wikiSpaceId" from="wikiPage?.wikiSpaceId"/>
 
         <entity-find entity-name="moqui.resource.wiki.WikiPageCategory" list="wikiPageCategories">
             <order-by field-name="categoryName"/></entity-find>
@@ -45,9 +46,7 @@ along with this software (see the LICENSE.md file). If not, see
         <container-row><row-col md="8">
             <link url="../WikiBlogs" text="Back to Find Blog Post"/>
             <form-single name="EditBlogForm" map="wikiBlog" transition="updateBlog">
-                <field name="wikiBlogId"><default-field><hidden /></default-field></field>
-                <field name="wikiSpaceId"><default-field title="Wiki Space">
-                    <display-entity entity-name="moqui.resource.wiki.WikiSpace" text="${wikiSpaceId}: ${description}"/></default-field></field>
+                <field name="wikiBlogId"><default-field><hidden/></default-field></field>
                 <field name="title"><default-field tooltip="letters, digits, [.,-_()!? ] only"><text-line size="100"/></default-field></field>
                 <field name="publishDate"><default-field><date-time/></default-field></field>
                 <field name="author"><default-field><text-line size="60"/></default-field></field>
@@ -55,6 +54,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="metaKeywords"><default-field><text-line size="100"/></default-field></field>
                 <field name="metaDescription"><default-field><text-area cols="100" rows="2" maxlength="160"/></default-field></field>
                 <field name="smallImage"><default-field><file/></default-field></field>
+                <field name="wikiSpaceId"><default-field title="Wiki Space"><drop-down>
+                    <entity-options key="${wikiSpaceId}" text="${wikiSpaceId}: ${description}">
+                        <entity-find entity-name="moqui.resource.wiki.WikiSpace">
+                            <order-by field-name="wikiSpaceId"/></entity-find></entity-options>
+                </drop-down></default-field></field>
                 <field name="wikiPageId"><default-field title="Wiki Page"><drop-down>
                     <dynamic-options transition="getSpacePages" server-search="true" min-length="0"><depends-on field="wikiSpaceId"/></dynamic-options>
                 </drop-down></default-field></field>

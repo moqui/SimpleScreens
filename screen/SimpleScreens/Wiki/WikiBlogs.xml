@@ -46,17 +46,17 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-dialog id="AddBlogPageDialog" button-text="Add Blog Post from Page">
             <form-single name="AddBlogPage" transition="createBlog">
+                <field name="title"><default-field tooltip="letters, digits, [.,-_()!? ] only"><text-line size="100"/></default-field></field>
+                <field name="publishDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                <field name="author"><default-field><text-line size="60"/></default-field></field>
+                <field name="summary"><default-field><text-area cols="100" rows="6" maxlength="4000"/></default-field></field>
+                <field name="smallImage"><default-field><file /></default-field></field>
                 <field name="wikiSpaceId"><default-field title="Wiki Space">
                     <drop-down><entity-options key="${wikiSpaceId}" text="${wikiSpaceId}: ${description}">
                         <entity-find entity-name="moqui.resource.wiki.WikiSpace">
                             <order-by field-name="wikiSpaceId"/></entity-find>
                     </entity-options></drop-down>
                 </default-field></field>
-                <field name="title"><default-field tooltip="letters, digits, [.,-_()!? ] only"><text-line size="100"/></default-field></field>
-                <field name="publishDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
-                <field name="author"><default-field><text-line size="60"/></default-field></field>
-                <field name="summary"><default-field><text-area cols="100" rows="6" maxlength="4000"/></default-field></field>
-                <field name="smallImage"><default-field><file /></default-field></field>
                 <field name="wikiPageId"><default-field title="Wiki Page"><drop-down>
                     <dynamic-options transition="getSpacePages" server-search="true" min-length="0"><depends-on field="wikiSpaceId"/></dynamic-options>
                 </drop-down></default-field></field>
@@ -81,24 +81,27 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
         <form-list name="WikiBlogList" list="blogsList" skip-form="true" header-dialog="true">
-            <entity-find entity-name="moqui.resource.wiki.WikiBlog" list="blogsList">
+            <entity-find entity-name="moqui.resource.wiki.WikiBlogAndCategory" list="blogsList">
                 <search-form-inputs default-order-by="-publishDate"/>
                 <select-field field-name="wikiBlogId,wikiPageId"/>
             </entity-find>
             <row-actions>
-                <if condition="wikiPageId"><entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
-                    <field-map field-name="wikiPageId"/></entity-find-one></if>
+                <entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
+                    <field-map field-name="wikiPageId"/></entity-find-one>
+                <entity-find entity-name="moqui.resource.wiki.WikiBlogCategoryDetail" list="blogCategoryList">
+                    <econdition field-name="wikiBlogId"/></entity-find>
             </row-actions>
 
-            <field name="wikiSpaceId">
-                <header-field title="Wiki Space" show-order-by="true">
-                    <drop-down allow-empty="true"><entity-options key="${wikiSpaceId}" text="${wikiSpaceId}: ${description}">
-                        <entity-find entity-name="moqui.resource.wiki.WikiSpace">
-                            <order-by field-name="wikiSpaceId"/></entity-find>
-                    </entity-options></drop-down>
-                </header-field>
-                <default-field><display/></default-field>
-            </field>
+            <field name="wikiPageCategoryId"><header-field title="Category"><drop-down allow-empty="true">
+                <entity-options text="${categoryName}" key="${wikiPageCategoryId}">
+                    <entity-find entity-name="moqui.resource.wiki.WikiPageCategory">
+                        <order-by field-name="categoryName"/></entity-find></entity-options>
+            </drop-down></header-field></field>
+
+            <field name="categories"><default-field>
+                <section-iterate name="CategoryListSection" list="blogCategoryList" entry="blogCategory"><widgets>
+                    <label text="${blogCategory.categoryName}" type="div"/></widgets></section-iterate>
+            </default-field></field>
             <field name="title"><header-field show-order-by="case-insensitive"><text-find/></header-field>
                 <default-field><link url="../EditWikiBlog" text="${title}" link-type="anchor"/></default-field></field>
             <field name="author">
@@ -111,6 +114,7 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="publishDate"><header-field show-order-by="case-insensitive"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
+            <field name="wikiSpaceId" from="wikiPage.wikiSpaceId"><default-field title="Wiki Space"><display/></default-field></field>
             <field name="viewPage"><default-field title=""><link url="../wiki/${wikiPage.wikiSpaceId}/${wikiPage.pagePath}"
                     text="Wiki Page" link-type="anchor" condition="wikiPage"/></default-field></field>
 
