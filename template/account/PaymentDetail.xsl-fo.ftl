@@ -89,7 +89,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <fo:table-body>
                                     <fo:table-row font-size="${tableFontSize}" border-bottom="thin solid black">
                                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoice.invoiceId}</fo:block></fo:table-cell>
-                                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoice.referenceNumber!""}<#if invoice.otherPartyOrderId?has_content> - PO ${invoice.otherPartyOrderId}</#if></fo:block></fo:table-cell>
+                                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><@encodeText (invoice.referenceNumber!"")/><#if invoice.otherPartyOrderId?has_content> - PO <@encodeText invoice.otherPartyOrderId/></#if></fo:block></fo:table-cell>
                                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.format(invoice.invoiceDate, dateFormat)}</fo:block></fo:table-cell>
                                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoiceTotals.invoiceTotal, invoice.currencyUomId)}</fo:block></fo:table-cell>
                                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoice.amountApplied, invoice.currencyUomId)}</fo:block></fo:table-cell>
@@ -106,9 +106,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 </fo:table-header>
                                 <fo:table-body>
                                     <#list invoiceItemList as invoiceItem>
+                                        <#assign itemTypeEnum = invoiceItem.type!>
                                         <fo:table-row font-size="${tableFontSize}">
                                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${invoiceItem.invoiceItemSeqId}</fo:block></fo:table-cell>
-                                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><@encodeText (invoiceItem.description!"")/></fo:block></fo:table-cell>
+                                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><@encodeText (invoiceItem.description)!(itemTypeEnum.description)!""/></fo:block></fo:table-cell>
                                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
                                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(invoiceItem.amount, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
                                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
