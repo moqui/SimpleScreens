@@ -771,13 +771,16 @@ along with this software (see the LICENSE.md file). If not, see
                             <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
                         </default-field></field>
                         <field name="quantity"><default-field><text-line size="8" default-value="1"/></default-field></field>
-                        <field name="unitAmount"><default-field title="Price" tooltip="Leave empty to use calc price">
+                        <field name="unitAmount"><default-field title="Price" tooltip="Leave empty to use Calc Price">
                             <text-line size="10"/></default-field></field>
                         <field name="calcAmount"><default-field title="Calc Price">
                             <display dynamic-transition="getProductPrice"
                                     parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId, priceFormat:'#,##0.00']">
                                 <depends-on field="productId"/><depends-on field="quantity"/></display>
                         </default-field></field>
+                        <field name="standardCost"><conditional-field condition="orderPartInfo.isCustomerInternalOrg"
+                                tooltip="Cost for accounting if different from Price, used to set Asset Acquire Cost on receipt">
+                            <text-line size="10"/></conditional-field></field>
                         <field name="requiredByDate" from="orderPartInfo.orderPart.shipBeforeDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
                         <!-- <field name="itemDescription"><default-field><text-line size="60"/></default-field></field> -->
                         <field name="itemTypeEnumId" from="null"><conditional-field condition="orderPartInfo.isCustomerInternalOrg" title="Item Type">
@@ -954,7 +957,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
                 <field name="unitAmount">
                     <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'" title="Price">
-                        <text-line size="8" format="#0.00#"/></conditional-field>
+                        <text-line size="8" format="#,##0.00#"/></conditional-field>
                     <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
                 </field>
                 <field name="unitAmountHist"><default-field title="">
@@ -994,6 +997,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="Quantity History for Item ${orderItemSeqId}" data-content="${popoverContent?html}">Quantity History</a>
                     ]]></text></render-mode>
                 </default-field></field>
+                <field name="standardCost">
+                    <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isProductItemType &amp;&amp; orderPartInfo.isCustomerInternalOrg">
+                        <text-line size="10" format="#,##0.00#"/></conditional-field>
+                    <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
+                </field>
 
                 <field name="notShippedBilled"><default-field title="Not Shipped/Billed">
                     <display text="${isProductItemType ? ec.l10n.format(itemQuantityNotShipped, '') : 'N/A'} / ${ec.l10n.format(itemQuantityNotBilled, '')}"/></default-field></field>
@@ -1052,7 +1060,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-list-column><field-ref name="itemDescription"/><field-ref name="comments"/><field-ref name="requiredByDate"/></form-list-column>
                 <form-list-column><field-ref name="unitListPrice"/><field-ref name="unitAmount"/><field-ref name="unitAmountHist"/>
                     <field-ref name="quantity"/><field-ref name="quantity_changeReason"/><field-ref name="quantityHist"/></form-list-column>
-                <form-list-column><field-ref name="notShippedBilled"/><field-ref name="assetReservations"/></form-list-column>
+                <form-list-column><field-ref name="notShippedBilled"/><field-ref name="assetReservations"/><field-ref name="standardCost"/></form-list-column>
                 <form-list-column><field-ref name="itemTotal"/><field-ref name="itemPlusChildrenTotal"/></form-list-column>
                 <form-list-column><field-ref name="returns"/><field-ref name="returnItem"/></form-list-column>
                 <form-list-column><field-ref name="submitButton"/></form-list-column>

@@ -137,7 +137,7 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:block border-top="thin solid black">
                 <fo:block text-align="center">
                 <#if fromContactInfo.postalAddress?has_content>
-                ${(fromContactInfo.postalAddress.address1)!""}<#if fromContactInfo.postalAddress.unitNumber?has_content> #${fromContactInfo.postalAddress.unitNumber}</#if><#if fromContactInfo.postalAddress.address2?has_content>, ${fromContactInfo.postalAddress.address2}</#if>, ${fromContactInfo.postalAddress.city!""}, ${(fromContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${fromContactInfo.postalAddress.postalCode!""}<#if fromContactInfo.postalAddress.postalCodeExt?has_content>-${fromContactInfo.postalAddress.postalCodeExt}</#if><#if fromContactInfo.postalAddress.countryGeoId?has_content>, ${fromContactInfo.postalAddress.countryGeoId}</#if>
+                    <@encodeText (fromContactInfo.postalAddress.address1)!""/><#if fromContactInfo.postalAddress.unitNumber?has_content> #${fromContactInfo.postalAddress.unitNumber}</#if><#if fromContactInfo.postalAddress.address2?has_content>, <@encodeText fromContactInfo.postalAddress.address2/></#if>, <@encodeText (fromContactInfo.postalAddress.city!"")/>, ${(fromContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${fromContactInfo.postalAddress.postalCode!""}<#if fromContactInfo.postalAddress.postalCodeExt?has_content>-${fromContactInfo.postalAddress.postalCodeExt}</#if><#if fromContactInfo.postalAddress.countryGeoId?has_content>, ${fromContactInfo.postalAddress.countryGeoId}</#if>
                 </#if>
                 <#if fromContactInfo.telecomNumber?has_content>
                     -- <#if fromContactInfo.telecomNumber.countryCode?has_content>${fromContactInfo.telecomNumber.countryCode}-</#if><#if fromContactInfo.telecomNumber.areaCode?has_content>${fromContactInfo.telecomNumber.areaCode}-</#if>${fromContactInfo.telecomNumber.contactNumber!""}
@@ -161,11 +161,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-cell padding="3pt" width="1.75in">
                         <#if invoice.referenceNumber?has_content>
                             <fo:block font-weight="bold">Ref #</fo:block>
-                            <fo:block>${invoice.referenceNumber}</fo:block>
+                            <fo:block><@encodeText invoice.referenceNumber/></fo:block>
                         </#if>
                         <#if invoice.otherPartyOrderId?has_content>
                             <fo:block font-weight="bold">Your Order</fo:block>
-                            <fo:block>${invoice.otherPartyOrderId}</fo:block>
+                            <fo:block><@encodeText invoice.otherPartyOrderId/></fo:block>
                         </#if>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="2in">
@@ -187,9 +187,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <#if toBillingRep?has_content><fo:block>Attention: <@encodeText (toBillingRep.organizationName)!""/> <@encodeText (toBillingRep.firstName)!""/> <@encodeText (toBillingRep.lastName)!""/></fo:block></#if>
                         <fo:block><@encodeText (toParty.organizationName)!""/> <@encodeText (toParty.firstName)!""/> <@encodeText (toParty.lastName)!""/></fo:block>
                     <#if toContactInfo.postalAddress?has_content>
-                        <fo:block>${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
-                        <#if toContactInfo.postalAddress.address2?has_content><fo:block>${toContactInfo.postalAddress.address2}</fo:block></#if>
-                        <fo:block>${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                        <fo:block><@encodeText (toContactInfo.postalAddress.address1)!""/><#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
+                        <#if toContactInfo.postalAddress.address2?has_content><fo:block><@encodeText toContactInfo.postalAddress.address2/></fo:block></#if>
+                        <fo:block><@encodeText (toContactInfo.postalAddress.city!"")/>, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
                         <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block>${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
                     </#if>
                     </fo:block-container>
@@ -214,7 +214,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </#if>
                         <#if settlementTerm?has_content>
                             <fo:block font-weight="bold">Term</fo:block>
-                            <fo:block>${settlementTerm.description}</fo:block>
+                            <fo:block><@encodeText settlementTerm.description/></fo:block>
                         </#if>
                     </#if>
                 </fo:table-cell>
