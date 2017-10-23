@@ -16,4 +16,4 @@ To install simply put the SimpleScreens directory in the moqui/runtime/component
 
     <depends-on name="SimpleScreens"/>
 
-Note that this component requires Mantle Business Artifacts to be in place.
+Note that this component requires Mantle UDM and USL (mantle-udm, mantle-usl) to be in place and has component dependencies on them.
