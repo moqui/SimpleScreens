@@ -54,16 +54,18 @@ along with this software (see the LICENSE.md file). If not, see
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
                     in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
-                    in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
+            <if condition="periodsOut.timePeriodGroups">
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
+                        in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
-            <set field="revenueExpenseCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
-            <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
+                <set field="revenueExpenseCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
+                <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+            </if>
         </actions><widgets>
             <container-box><box-header title="Operating Revenue and Expense"/><box-toolbar>
                 <render-mode><text type="html,vuet"><![CDATA[
-                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${revenueExpenseCsv?js_string}', 'OperatingRevenueExpense.csv', 'text/csv')">Get CSV</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(revenueExpenseCsv!"")?js_string}', 'OperatingRevenueExpense.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
                 <render-mode><text type="html,vuet"><![CDATA[
@@ -72,8 +74,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <script>
                 var revenueExpenseChart = new Chart(document.getElementById("RevenueExpenseChart"), {
                     type: 'bar',
-                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels)},
-                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets)} },
+                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
+                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
                     options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
                 });
                 </script>
@@ -93,16 +95,18 @@ along with this software (see the LICENSE.md file). If not, see
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
                     in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
-                    in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
+            <if condition="periodsOut.timePeriodGroups">
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
+                        in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
-            <set field="netIncomeCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
-            <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
+                <set field="netIncomeCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
+                <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+            </if>
         </actions><widgets>
             <container-box><box-header title="Net Income History"/><box-toolbar>
                 <render-mode><text type="html,vuet"><![CDATA[
-                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${netIncomeCsv?js_string}', 'NetIncomeHistory.csv', 'text/csv')">Get CSV</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(netIncomeCsv!"")?js_string}', 'NetIncomeHistory.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
                 <render-mode><text type="html,vuet"><![CDATA[
@@ -111,8 +115,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <script>
                 var netIncomeChart = new Chart(document.getElementById("NetIncomeChart"), {
                     type: 'bar',
-                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels)},
-                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets)} },
+                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
+                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
                     options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
                 });
                 </script>
@@ -130,30 +134,32 @@ along with this software (see the LICENSE.md file). If not, see
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
                     in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
-                    in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
+            <if condition="periodsOut.timePeriodGroups">
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
+                        in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
-            <if condition="periodsOut.timePeriodGroups &amp;&amp; periodsOut.timePeriodGroups[0]">
-                <set field="earliestPeriodId" from="periodsOut.timePeriodGroups[0][0]"/>
-                <entity-find-one entity-name="mantle.party.time.TimePeriod" value-field="earliestPeriod">
-                    <field-map field-name="timePeriodId" from="earliestPeriodId"/></entity-find-one>
-                <set field="priorThruDate" from="earliestPeriod.fromDate - 1"/>
-                <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="priorPeriodsOut"
-                        in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:priorThruDate]"/>
-                <if condition="priorPeriodsOut.timePeriodGroups">
-                    <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="priorOut"
-                            in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:priorPeriodsOut.timePeriodGroups, datasets:priorDatasets]"/>
-                    <script>datasets.add(priorOut.datasetsById.get("PNI")); datasets.add(priorOut.datasetsById.get("PNOI"))</script>
+                <if condition="periodsOut.timePeriodGroups[0]">
+                    <set field="earliestPeriodId" from="periodsOut.timePeriodGroups[0][0]"/>
+                    <entity-find-one entity-name="mantle.party.time.TimePeriod" value-field="earliestPeriod">
+                        <field-map field-name="timePeriodId" from="earliestPeriodId"/></entity-find-one>
+                    <set field="priorThruDate" from="earliestPeriod.fromDate - 1"/>
+                    <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="priorPeriodsOut"
+                            in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:priorThruDate]"/>
+                    <if condition="priorPeriodsOut.timePeriodGroups">
+                        <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="priorOut"
+                                in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:priorPeriodsOut.timePeriodGroups, datasets:priorDatasets]"/>
+                        <script>datasets.add(priorOut.datasetsById.get("PNI")); datasets.add(priorOut.datasetsById.get("PNOI"))</script>
+                    </if>
                 </if>
-            </if>
 
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
-            <set field="netIncomeYoyCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
-            <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
+                <set field="netIncomeYoyCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
+                <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+            </if>
         </actions><widgets>
             <container-box><box-header title="Net Income Year Over Year"/><box-toolbar>
                 <render-mode><text type="html,vuet"><![CDATA[
-                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${netIncomeYoyCsv?js_string}', 'NetIncomeYoyHistory.csv', 'text/csv')">Get CSV</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(netIncomeYoyCsv!"")?js_string}', 'NetIncomeYoyHistory.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
                 <render-mode><text type="html,vuet"><![CDATA[
@@ -162,8 +168,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <script>
                 var netIncomeYoyChart = new Chart(document.getElementById("NetIncomeYoyChart"), {
                     type: 'line',
-                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels)},
-                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets)} },
+                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
+                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
                     options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
                 });
                 </script>
@@ -189,16 +195,18 @@ along with this software (see the LICENSE.md file). If not, see
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
                     in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
-                    in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
+            <if condition="periodsOut.timePeriodGroups">
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
+                        in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
-            <set field="assetLiabilityCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
-            <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
+                <set field="assetLiabilityCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
+                <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+            </if>
         </actions><widgets>
             <container-box><box-header title="Current Assets and Liabilities"/><box-toolbar>
                 <render-mode><text type="html,vuet"><![CDATA[
-                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${assetLiabilityCsv?js_string}', 'CurrentAssetLiability.csv', 'text/csv')">Get CSV</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(assetLiabilityCsv!"")?js_string}', 'CurrentAssetLiability.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
                 <render-mode><text type="html,vuet"><![CDATA[
@@ -207,8 +215,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <script>
                 var assetLiabilityChart = new Chart(document.getElementById("AssetLiabilityChart"), {
                     type: 'bar',
-                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels)},
-                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets)} },
+                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
+                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
                     options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
                 });
                 </script>
@@ -227,16 +235,18 @@ along with this software (see the LICENSE.md file). If not, see
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
                     in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
-                    in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
+            <if condition="periodsOut.timePeriodGroups">
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
+                        in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
 
-            <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
-            <set field="balanceSheetCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
-            <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+                <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummaryRows" out-map="context" in-map="context"/>
+                <set field="balanceSheetCsv" from="rowsList.collect({ it.join(',') }).join('\n')"/>
+                <!-- <iterate list="rowsList" entry="row"><log message="Row ${row_index}: ${row}"/></iterate> -->
+            </if>
         </actions><widgets>
             <container-box><box-header title="Balance Sheet History"/><box-toolbar>
                 <render-mode><text type="html,vuet"><![CDATA[
-                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${balanceSheetCsv?js_string}', 'BalanceSheetHistory.csv', 'text/csv')">Get CSV</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(balanceSheetCsv!"")?js_string}', 'BalanceSheetHistory.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
                 <render-mode><text type="html,vuet"><![CDATA[
@@ -245,8 +255,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <script>
                 var balanceSheetChart = new Chart(document.getElementById("BalanceSheetChart"), {
                     type: 'bar',
-                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels)},
-                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets)} },
+                    data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
+                        datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
                     options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
                 });
                 </script>
