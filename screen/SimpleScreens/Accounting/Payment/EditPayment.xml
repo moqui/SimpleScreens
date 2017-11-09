@@ -81,11 +81,12 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <service-call name="mantle.account.PaymentServices.get#PaymentDisplayInfo" in-map="[paymentId:paymentId]" out-map="context"/>
+        <if condition="payment == null"><return error="true" message="Payment ${paymentId} not found"/></if>
         <set field="statusId" from="payment?.statusId"/>
         <set field="paymentEditable" from="statusId in ['PmntProposed', 'PmntPromised', 'PmntAuthorized']"/>
         <!-- <set field="paymentVoid" from="statusId in ['PmntCancelled', 'PmntVoid', 'PmntRefunded']"/> -->
         <set field="paymentDelivered" from="statusId in ['PmntDelivered', 'PmntConfirmed']"/>
-        <set field="isInvoicePayment" from="payment?.paymentTypeEnumId in ['PtInvoicePayment', 'PtPrePayment']"/>
+        <set field="isInvoicePayment" from="payment?.paymentTypeEnumId == 'PtInvoicePayment' || payment?.type?.parentEnumId == 'PtInvoicePayment'"/>
         <set field="isCheck" from="payment.paymentInstrumentEnumId in ['PiPersonalCheck', 'PiCompanyCheck']"/>
     </actions>
     <widgets>
