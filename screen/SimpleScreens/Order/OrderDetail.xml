@@ -631,10 +631,19 @@ along with this software (see the LICENSE.md file). If not, see
                                     </entity-options></drop-down>
                                 </default-field></field>
                                 <field name="paymentInstrumentEnumId"><default-field title="Instrument"><drop-down allow-empty="true">
-                                    <entity-options key="${enumId}" text="${description}">
-                                        <entity-find entity-name="moqui.basic.Enumeration">
-                                            <econdition field-name="enumTypeId" value="PaymentInstrument"/></entity-find>
-                                    </entity-options>
+                                    <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                                        <econdition field-name="enumTypeId" value="PaymentInstrument"/>
+                                        <order-by field-name="description"/>
+                                    </entity-find></entity-options>
+                                </drop-down></default-field></field>
+                                <field name="paymentTypeEnumId"><default-field title="Payment Type"><drop-down no-current-selected-key="PtInvoicePayment">
+                                    <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                                        <econditions combine="or">
+                                            <econdition field-name="enumId" value="PtInvoicePayment"/>
+                                            <econdition field-name="parentEnumId" value="PtInvoicePayment"/>
+                                        </econditions>
+                                        <order-by field-name="description"/>
+                                    </entity-find></entity-options>
                                 </drop-down></default-field></field>
                                 <field name="amount"><default-field><text-line size="10" default-value="${ec.l10n.format(orderPartInfo.partTotalUnpaid ?: 0, '#0.00')}"/></default-field></field>
                                 <field name="submitButton"><default-field title="Add"><submit/></default-field></field>

@@ -81,11 +81,12 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <service-call name="mantle.account.PaymentServices.get#PaymentDisplayInfo" in-map="[paymentId:paymentId]" out-map="context"/>
+        <if condition="payment == null"><return error="true" message="Payment ${paymentId} not found"/></if>
         <set field="statusId" from="payment?.statusId"/>
         <set field="paymentEditable" from="statusId in ['PmntProposed', 'PmntPromised', 'PmntAuthorized']"/>
         <!-- <set field="paymentVoid" from="statusId in ['PmntCancelled', 'PmntVoid', 'PmntRefunded']"/> -->
         <set field="paymentDelivered" from="statusId in ['PmntDelivered', 'PmntConfirmed']"/>
-        <set field="isInvoicePayment" from="payment?.paymentTypeEnumId in ['PtInvoicePayment', 'PtPrePayment']"/>
+        <set field="isInvoicePayment" from="payment?.paymentTypeEnumId == 'PtInvoicePayment' || payment?.type?.parentEnumId == 'PtInvoicePayment'"/>
         <set field="isCheck" from="payment.paymentInstrumentEnumId in ['PiPersonalCheck', 'PiCompanyCheck']"/>
     </actions>
     <widgets>
@@ -516,5 +517,27 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body-nopad></container-box>
             </widgets></section>
         </row-col></container-row>
+
+        <container-box><box-header title="Audit Log"/><box-body>
+            <form-list name="AuditLogList" list="auditLogList" skip-form="true">
+                <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
+                    <econdition field-name="changedEntityName" value="mantle.account.payment.Payment"/>
+                    <econdition field-name="changedFieldName" operator="not-equals" value="statusId"/>
+                    <econdition field-name="pkPrimaryValue" from="paymentId"/>
+                    <select-field field-name="changedEntityName"/>
+                    <order-by field-name="-changedDate"/>
+                </entity-find>
+
+                <field name="changedDate"><default-field title="Date"><display/></default-field></field>
+                <field name="changedByUserId"><default-field title="User">
+                    <display-entity text="UsernameTemplate" entity-name="mantle.party.PersonWithUserAccount"/></default-field></field>
+                <field name="changedFieldName"><default-field title="Field">
+                    <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedFieldName)}"/></default-field></field>
+                <field name="oldValueText"><default-field title="From">
+                    <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, oldValueText)}"/></default-field></field>
+                <field name="newValueText"><default-field title="To">
+                    <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
+            </form-list>
+        </box-body></container-box>
     </widgets>
 </screen>

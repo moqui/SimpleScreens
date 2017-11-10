@@ -64,6 +64,7 @@
             - Accounts Receivable
             - Loans Receivable
             - Prepaid Expense (paid, not yet incurred)
+            - Prepaid Inventory (paid, not yet billed)
             - Accrued Revenue (earned, not yet received)
         - Long Term Asset
             - Land and Building

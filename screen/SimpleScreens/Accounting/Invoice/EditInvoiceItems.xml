@@ -38,6 +38,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
+        <if condition="invoice == null"><return error="true" message="Invoice ${invoiceId} not found"/></if>
         <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
             <econdition field-name="invoiceId"/><order-by field-name="invoiceItemSeqId"/></entity-find>
         <set field="topItemList" from="invoiceItemList.findAll({ it.parentItemSeqId == null })"/>
@@ -86,13 +87,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="itemTypeEnumId"><default-field title="Type">
                         <drop-down><list-options list="itemTypeEnumList" key="${enumId}" text="${description}"/></drop-down>
                     </default-field></field>
-                    <field name="typeGlAccount"><default-field title="Type GL Account">
-                        <display dynamic-transition="getItemTypeGlAccount" also-hidden="false"
-                                parameter-map="[organizationPartyId:organizationPartyId, direction:(isFromPartyOrgInternal ? 'O' : 'I')]">
-                            <depends-on field="itemTypeEnumId"/></display>
-                    </default-field></field>
-                    <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
-                        <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></default-field></field>
 
                     <field name="description"><default-field><text-line size="50"/></default-field></field>
                     <field name="quantity"><default-field><text-line size="4" default-value="1"/></default-field></field>
@@ -103,6 +97,14 @@ along with this software (see the LICENSE.md file). If not, see
                         <dynamic-options transition="getProductList" server-search="true" min-length="0"/>
                     </drop-down></default-field></field>
                     <field name="otherPartyProductId"><default-field><text-line size="25"/></default-field></field>
+
+                    <field name="typeGlAccount"><default-field title="Default GL Account">
+                        <display dynamic-transition="getItemTypeGlAccount" also-hidden="false" depends-optional="true"
+                                parameter-map="[organizationPartyId:organizationPartyId, direction:(isFromPartyOrgInternal ? 'O' : 'I')]">
+                            <depends-on field="itemTypeEnumId"/><depends-on field="productId"/></display>
+                    </default-field></field>
+                    <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
+                        <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></default-field></field>
 
                     <field name="submitButton"><default-field title="Create Invoice Item"><submit/></default-field></field>
                 </form-single>
@@ -121,28 +123,14 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down></conditional-field>
                 <default-field title="Parent"><display/></default-field>
             </field>
-            <field name="itemTypeEnumId">
-                <conditional-field condition="invoiceEditable">
-                    <drop-down><list-options list="itemTypeEnumList" key="${enumId}" text="${description}"/></drop-down></conditional-field>
-                <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
-            </field>
-            <field name="typeGlAccount"><default-field title="Type GL Account">
-                <display dynamic-transition="getItemTypeGlAccount" also-hidden="false"
-                        parameter-map="[organizationPartyId:organizationPartyId, direction:(isFromPartyOrgInternal ? 'O' : 'I')]">
-                    <depends-on field="itemTypeEnumId"/></display>
-            </default-field></field>
-            <field name="overrideGlAccountId">
-                <conditional-field condition="invoiceEditable" tooltip="Use % (percent) as a wildcard"><drop-down allow-empty="true">
-                    <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></conditional-field>
-                <default-field title="Override GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
-                        text="GlAccountNameTemplate"/></default-field>
-            </field>
+
             <field name="description"><default-field><text-line size="60"/></default-field></field>
             <field name="productId">
                 <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></conditional-field>
-                <default-field title="Product"><link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
-                        link-type="anchor" condition="productId"/></default-field>
+                <default-field title="Product"><display text=" "/><!-- need display to not hide but get hidden field for typeGlAccount display.@dynamic-transition -->
+                    <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor" condition="productId"/>
+                </default-field>
             </field>
             <field name="otherPartyProductId"><default-field><text-line size="25"/></default-field></field>
             <field name="assetId">
@@ -152,6 +140,23 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down></conditional-field>
                 <default-field title="Asset"><link url="assetDetail" text="AssetNameTemplate" entity-name="mantle.product.asset.Asset"
                         link-type="anchor" condition="assetId"/></default-field>
+            </field>
+
+            <field name="itemTypeEnumId">
+                <conditional-field condition="invoiceEditable">
+                    <drop-down><list-options list="itemTypeEnumList" key="${enumId}" text="${description}"/></drop-down></conditional-field>
+                <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="typeGlAccount"><default-field title="Default GL Account">
+                <display dynamic-transition="getItemTypeGlAccount" also-hidden="false" depends-optional="true"
+                        parameter-map="[organizationPartyId:organizationPartyId, direction:(isFromPartyOrgInternal ? 'O' : 'I')]">
+                    <depends-on field="itemTypeEnumId"/><depends-on field="productId"/></display>
+            </default-field></field>
+            <field name="overrideGlAccountId">
+                <conditional-field condition="invoiceEditable" tooltip="Use % (percent) as a wildcard"><drop-down allow-empty="true">
+                    <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></conditional-field>
+                <default-field title="Override GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
+                        text="GlAccountNameTemplate"/></default-field>
             </field>
 
             <field name="quantity"><conditional-field condition="invoiceEditable"><text-line size="4"/></conditional-field>
@@ -172,9 +177,9 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
 
             <form-list-column><field-ref name="invoiceItemSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
-            <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="typeGlAccount"/><field-ref name="overrideGlAccountId"/></form-list-column>
             <form-list-column><field-ref name="description"/><field-ref name="productId"/><field-ref name="otherPartyProductId"/>
                 <field-ref name="assetId"/></form-list-column>
+            <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="typeGlAccount"/><field-ref name="overrideGlAccountId"/></form-list-column>
             <form-list-column><field-ref name="quantity"/><field-ref name="amount"/><field-ref name="itemDate"/></form-list-column>
             <form-list-column><field-ref name="total"/><field-ref name="isAdjustment"/></form-list-column>
             <form-list-column><field-ref name="deleteButton"/></form-list-column>
