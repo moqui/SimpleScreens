@@ -91,13 +91,6 @@ along with this software (see the LICENSE.md file). If not, see
                                         <order-by field-name="description"/></entity-find>
                                 </entity-options></drop-down>
                             </default-field></field>
-                            <field name="typeGlAccount"><default-field title="Type GL Account">
-                                <display dynamic-transition="getItemTypeGlAccount" also-hidden="false"
-                                        parameter-map="[organizationPartyId:organizationPartyId, direction:(isFromPartyOrgInternal ? 'O' : 'I')]">
-                                    <depends-on field="itemTypeEnumId"/></display>
-                            </default-field></field>
-                            <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
-                                <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></default-field></field>
                             <field name="itemDate" from="invoice.invoiceDate"><default-field title="Adjustment Item Date"><date-time/></default-field></field>
                             <field name="description"><default-field><text-line size="40"/></default-field></field>
                             <field name="amount"><default-field tooltip="May be positive or negative to add to or subtract from invoice total">
@@ -112,6 +105,15 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="productId"><default-field title="Product"><drop-down allow-empty="true">
                                 <dynamic-options transition="getProductList" server-search="true" min-length="0"/>
                             </drop-down></default-field></field>
+
+                            <field name="typeGlAccount"><default-field title="Default GL Account">
+                                <display dynamic-transition="getItemTypeGlAccount" also-hidden="false" depends-optional="true"
+                                        parameter-map="[organizationPartyId:organizationPartyId, direction:(isFromPartyOrgInternal ? 'O' : 'I')]">
+                                    <depends-on field="itemTypeEnumId"/><depends-on field="productId"/></display>
+                            </default-field></field>
+                            <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
+                                <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></default-field></field>
+
                             <field name="submitButton"><default-field title="Add Adjustment Item"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>

@@ -131,18 +131,19 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <transition name="getItemTypeGlAccount">
-        <!-- Return base amount and uom for a product -->
-        <parameter name="itemTypeEnumId" required="true"/>
-        <parameter name="organizationPartyId" required="true"/>
-        <parameter name="direction" required="true"/>
+        <parameter name="itemTypeEnumId"/><parameter name="productId"/>
+        <parameter name="organizationPartyId"/><parameter name="direction"/>
         <actions>
+            <if condition="!itemTypeEnumId || !organizationPartyId || !direction">
+                <script>ec.web.sendTextResponse("No GL Account mapping found")</script><return/></if>
+
             <service-call name="mantle.ledger.InvoiceAutoPostServices.get#InvoiceItemGlAccount" out-map="glAccountOut"
-                    in-map="[organizationPartyId:organizationPartyId, itemTypeEnumId:itemTypeEnumId, direction:'O']"/>
+                    in-map="[organizationPartyId:organizationPartyId, itemTypeEnumId:itemTypeEnumId, productId:productId, direction:direction]"/>
             <if condition="glAccountOut.glAccount"><then>
                 <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
                 <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
                 <script>ec.web.sendTextResponse(ec.resource.expand("GlAccountNameTemplate", '', glAccountOut.glAccount.getMap()))</script>
-            </then><else>ec.web.sendTextResponse("No GL Account mapping found")</else></if>
+            </then><else><script>ec.web.sendTextResponse("No GL Account mapping found")</script></else></if>
         </actions>
         <default-response type="none"/>
     </transition>
