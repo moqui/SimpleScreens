@@ -245,6 +245,19 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display/></default-field>
             </field>
 
+            <field name="matches"><default-field>
+                <section-iterate name="MatchesSection" list="highlights" key="hlField" entry="hlList"><actions>
+                    <script><![CDATA[
+                        hlFieldDisplay = hlField
+                        if (hlFieldDisplay.contains('.')) hlFieldDisplay = hlFieldDisplay.substring(hlFieldDisplay.lastIndexOf('.') + 1)
+                        hlFieldDisplay = org.moqui.util.StringUtilities.camelCaseToPretty(hlFieldDisplay)
+                        hlListDisplay = hlList.collect({'"' + it.toString().replace('<em>', '<strong>').replace('</em>', '</strong>') + '"'})
+                    ]]></script>
+                </actions><widgets>
+                    <label text="${hlFieldDisplay}: ${hlListDisplay.join(', ')}" type="div" encode="false"/>
+                </widgets></section-iterate>
+            </default-field></field>
+
             <field name="infoString"><header-field title="Email"><text-line size="40"/></header-field></field>
             <field name="areaCode"><header-field><text-line size="5"/></header-field></field>
             <field name="contactNumber"><header-field><text-line size="10"/></header-field></field>
