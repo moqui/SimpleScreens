@@ -73,6 +73,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <fo:block text-align="left">${ec.l10n.format(paymentInfo.payment.effectiveDate, dateFormat)}</fo:block>
                         </fo:table-cell>
                     </fo:table-row></fo:table-body></fo:table>
+                    <#if paymentInfo.payment.memo?has_content>
+                        <fo:block text-align="left" margin-bottom="0.1in"><@encodeText paymentInfo.payment.memo/></fo:block>
+                    </#if>
 
                     <#if paymentInfo.invoiceList?has_content>
                         <#list paymentInfo.invoiceList as invoice>

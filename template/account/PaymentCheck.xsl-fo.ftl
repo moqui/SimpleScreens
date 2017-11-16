@@ -120,6 +120,9 @@ along with this software (see the LICENSE.md file). If not, see
 <#macro stubBody paymentInfo>
 <fo:block margin="0.3in" padding-top="0.1in" overflow="hidden">
     <fo:block text-align="left" margin-bottom="0.1in"><@encodeText (paymentInfo.fromPartyDetail.organizationName)!""/><@encodeText (paymentInfo.fromPartyDetail.firstName)!""/> <@encodeText (paymentInfo.fromPartyDetail.lastName)!""/> - Payment #${paymentInfo.payment.paymentId}<#if paymentInfo.payment.paymentRefNum?has_content> - Check #${paymentInfo.payment.paymentRefNum}</#if><#if paymentInfo.distGroupEnum?has_content> - ${paymentInfo.distGroupEnum.description}</#if></fo:block>
+    <#if paymentInfo.payment.memo?has_content>
+        <fo:block text-align="left" margin-bottom="0.1in"><@encodeText paymentInfo.payment.memo/></fo:block>
+    </#if>
 
     <#if paymentInfo.invoiceList?has_content>
         <fo:table table-layout="fixed" width="7.5in">
