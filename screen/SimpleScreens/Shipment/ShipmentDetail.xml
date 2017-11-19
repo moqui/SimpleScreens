@@ -200,6 +200,13 @@ along with this software (see the LICENSE.md file). If not, see
             }
         ]]></script>
 
+        <!-- get dest ContactMech for trust level -->
+        <if condition="lastRouteSegment.destPostalContactMechId">
+            <entity-find-one entity-name="mantle.party.contact.ContactMech" value-field="destContactMech">
+                <field-map field-name="contactMechId" from="lastRouteSegment.destPostalContactMechId"/></entity-find-one>
+        </if>
+        <set field="destContactMechValid" from="destContactMech != null &amp;&amp; destContactMech.trustLevelEnumId in ['CmtlValid', 'CmtlVerified']"/>
+
         <if condition="!isIncoming">
             <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->
             <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="context"
@@ -296,8 +303,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
-                    <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
+                    <link url="requestShipmentLabels" text="Get Labels"
+                            condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; destContactMechValid"/>
+                    <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning"
+                            condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; !destContactMechValid">
+                        <label text="Warning: destination address is incomplete or invalid according to address validation." style="text-warning"/>
+                        <link url="requestShipmentLabels" text="Get Labels Anyway"/>
+                    </container-dialog>
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
+
                     <link url="shipShipment" text="Set Shipped" style="btn-success"/>
                     <link url="deliverShipment" text="Set Delivered"/>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
@@ -312,8 +326,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
-                    <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
+                    <link url="requestShipmentLabels" text="Get Labels"
+                            condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; destContactMechValid"/>
+                    <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning"
+                            condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; !destContactMechValid">
+                        <label text="Warning: destination address is incomplete or invalid according to address validation." style="text-warning"/>
+                        <link url="requestShipmentLabels" text="Get Labels Anyway"/>
+                    </container-dialog>
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
+
                     <link url="deliverShipment" text="Set Delivered"/>
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
