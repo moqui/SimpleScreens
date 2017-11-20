@@ -21,7 +21,8 @@ define({
                 return;
             }
 
-            var vm = this; $.ajax({ type:'GET', url:'/rest/s1/mantle/my/noticeCounts', dataType:'json', headers:{Accept:'application/json'},
+            var vm = this; $.ajax({ type:'GET', url:(this.$root.appRootPath + '/rest/s1/mantle/my/noticeCounts'),
+                dataType:'json', headers:{Accept:'application/json'},
                 success: function(countObj) { if (countObj) {
                     if (countObj.notificationCount) vm.notificationCount = countObj.notificationCount;
                     if (countObj.messageCount) vm.messageCount = countObj.messageCount;
