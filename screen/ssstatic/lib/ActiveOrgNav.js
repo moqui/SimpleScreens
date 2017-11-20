@@ -27,9 +27,8 @@ define({
     mounted: function() {
         $('#active-org-menu-link').tooltip({ placement:'bottom', trigger:'hover' });
         var vm = this;
-        $.ajax({ type:"GET", url:'/rest/s1/mantle/my/userOrgInfo', error:moqui.handleAjaxError, success: function(resp) { if (resp) {
-            vm.activeOrg = resp.activeOrg;
-            vm.userOrgList = resp.userOrgList;
-        }} });
+        $.ajax({ type:"GET", url:(this.$root.appRootPath + '/rest/s1/mantle/my/userOrgInfo'), error:moqui.handleAjaxError,
+            success: function(resp) { if (resp) { vm.activeOrg = resp.activeOrg; vm.userOrgList = resp.userOrgList; }}
+        });
     }
 });
