@@ -126,6 +126,25 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- example code for ContactInfo form -->
         <!-- see the SimpleScreens/Party/EditParty/UpdateContactInfo.xml screen, or reuse it with a subscreens.subscreens-item element -->
         <!-- an example of a call to get#PartyContactInfo to populate the form, plus a call to flatten the Map for simple use in the form -->
+        <if condition="postalContactMechId || telecomContactMechId || emailContactMechId"><then>
+            <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="contactInfo" in-map="context"/>
+            <set field="contactInfoFlat" from="contactInfo + flattenNestedMap(contactInfo)"/>
+        </then><else-if condition="postalContactMechPurposeId || telecomContactMechPurposeId || emailContactMechPurposeId">
+            <set field="contactInfoFlat" from="[postalContactMechPurposeId:postalContactMechPurposeId,
+                    telecomContactMechPurposeId:telecomContactMechPurposeId, emailContactMechPurposeId:emailContactMechPurposeId]"/>
+        </else-if><else>
+            <set field="contactInfoFlat" from="[:]"/>
+        </else></if>
+        <if condition="createPostal || postalContactMechPurposeId">
+            <entity-find entity-name="mantle.party.contact.PartyContactMechTelecomNumber" list="partyTelecomNumberList">
+                <date-filter/><econdition field-name="partyId"/></entity-find>
+            <entity-find entity-name="mantle.party.contact.PartyContactMechInfo" list="partyEmailAddressList">
+                <date-filter/><econdition field-name="partyId"/>
+                <econdition field-name="contactMechTypeEnumId" value="CmtEmailAddress"/>
+            </entity-find>
+        </if>
+
+        <!-- simple ContactInfo form for billing info -->
         <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="contactInfo"
                 in-map="[partyId:partyId, postalContactMechPurposeId:'PostalBilling',
                     telecomContactMechPurposeId:'PhoneBilling', emailContactMechPurposeId:'EmailBilling']"/>
@@ -151,7 +170,7 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="postalContactMechPurposeId">
                 <conditional-field condition="postalContactMechPurposeId"><hidden/></conditional-field>
-                <conditional-field condition="createPostal" title="Purpose"><drop-down no-current-selected-key="PostalPrimary">
+                <conditional-field condition="createPostal" title="Address Purpose"><drop-down no-current-selected-key="PostalPrimary">
                     <entity-options key="${contactMechPurposeId}" text="${description}">
                         <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
                             <econdition field-name="contactMechTypeEnumId" value="CmtPostalAddress"/>
@@ -237,11 +256,17 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="telecomContactMechId">
                 <conditional-field condition="telecomContactMechPurposeId"><hidden/></conditional-field>
+                <conditional-field title="Select Phone" condition="(createPostal || postalContactMechPurposeId) &amp;&amp; !telecomContactMechId &amp;&amp; partyTelecomNumberList">
+                    <drop-down>
+                        <option key="" text="New Phone"/>
+                        <list-options list="partyTelecomNumberList" key="${contactMechId}" text="TelecomNumberSimpleTemplate"/>
+                    </drop-down>
+                </conditional-field>
                 <default-field><ignored/></default-field>
             </field>
             <field name="telecomContactMechPurposeId">
                 <conditional-field condition="telecomContactMechPurposeId"><hidden/></conditional-field>
-                <conditional-field condition="createTelecom" title="Purpose">
+                <conditional-field condition="createTelecom" title="Phone Purpose">
                     <drop-down no-current-selected-key="PhonePrimary">
                         <entity-options key="${contactMechPurposeId}" text="${description}">
                             <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
@@ -254,26 +279,30 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><ignored/></default-field>
             </field>
             <field name="countryCode">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="" tooltip="Country Code">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId || createPostal || postalContactMechPurposeId"
+                        title="" tooltip="Country Code">
                     <label text="+"/>
                     <text-line size="3" maxlength="3" default-value="${ec.user.getPreference('TelecomNumber.DefaultCountryCode') ?: '1'}"/>
                 </conditional-field>
                 <default-field><ignored/></default-field>
             </field>
             <field name="areaCode">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="" tooltip="Area Code">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId || createPostal || postalContactMechPurposeId"
+                        title="" tooltip="Area Code">
                     <label text="-"/>
-                    <text-line size="4" maxlength="5"/></conditional-field>
+                    <text-line size="3" maxlength="5"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
             <field name="contactNumber">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="" tooltip="Phone Number">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId || createPostal || postalContactMechPurposeId"
+                        title="" tooltip="Phone Number">
                     <label text="-"/>
                     <text-line size="10" maxlength="10"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
             <field name="telecomExtension" from="telecomExtension ?: telecomPartyContactMech?.extension">
-                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId" title="" tooltip="Extension">
+                <conditional-field condition="createTelecom || telecomContactMechPurposeId || telecomContactMechId || createPostal || postalContactMechPurposeId"
+                        title="" tooltip="Extension">
                     <label text="x"/>
                     <text-line size="4" maxlength="8"/></conditional-field>
                 <default-field><ignored/></default-field>
@@ -282,11 +311,17 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="emailContactMechId">
                 <conditional-field condition="emailContactMechPurposeId"><hidden/></conditional-field>
+                <conditional-field title="Select Email" condition="(createPostal || postalContactMechPurposeId) &amp;&amp; !emailContactMechId &amp;&amp; partyEmailAddressList">
+                    <drop-down>
+                        <option key="" text="New Email"/>
+                        <list-options list="partyEmailAddressList" key="${contactMechId}" text="${infoString}"/>
+                    </drop-down>
+                </conditional-field>
                 <default-field><ignored/></default-field>
             </field>
             <field name="emailContactMechPurposeId">
                 <conditional-field condition="emailContactMechPurposeId"><hidden/></conditional-field>
-                <conditional-field condition="createEmail" title="Purpose">
+                <conditional-field condition="createEmail" title="Email Purpose">
                     <drop-down no-current-selected-key="EmailPrimary">
                         <entity-options key="${contactMechPurposeId}" text="${description}">
                             <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
@@ -299,7 +334,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><ignored/></default-field>
             </field>
             <field name="emailAddress">
-                <conditional-field condition="createEmail || emailContactMechPurposeId || emailContactMechId" title="Email">
+                <conditional-field condition="createEmail || emailContactMechPurposeId || emailContactMechId || createPostal || postalContactMechPurposeId"
+                        title="Email">
                     <text-line size="40"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
@@ -319,10 +355,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-ref name="stateProvinceGeoId"/></field-row-big>
 
                 <field-ref name="telecomContactMechPurposeId"/>
+                <field-ref name="telecomContactMechId"/>
                 <field-row-big title="Phone"><field-ref name="countryCode"/><field-ref name="areaCode"/>
                     <field-ref name="contactNumber"/><field-ref name="telecomExtension"/></field-row-big>
 
                 <field-ref name="emailContactMechPurposeId"/>
+                <field-ref name="emailContactMechId"/>
                 <field-ref name="emailAddress"/>
                 <fields-not-referenced/>
                 <field-ref name="submitButton"/>
