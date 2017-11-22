@@ -139,9 +139,11 @@ along with this software (see the LICENSE.md file). If not, see
                             <fo:block font-weight="bold">Shipping Method</fo:block>
                             <fo:block><#if carrierParty?has_content && carrierParty.partyId != "_NA_">${carrierParty.pseudoId} </#if> ${(shipmentMethodEnum.description)!""}</fo:block>
                         </#if>
-                        <#if orderIdSet?has_content>
+                        <#if orderPartList?has_content>
                             <fo:block font-weight="bold">Order</fo:block>
-                            <fo:block><#list orderIdSet as orderId>${orderId}<#sep>, </#list></fo:block>
+                            <#list orderPartList as orderPart>
+                                <fo:block>${orderPart.orderId}:${orderPart.orderPartSeqId}<#if orderPart.otherPartyOrderId?has_content> - PO ${orderPart.otherPartyOrderId}</#if></fo:block>
+                            </#list>
                         </#if>
                         <#if invoiceList?has_content>
                             <fo:block font-weight="bold">Invoice</fo:block>
