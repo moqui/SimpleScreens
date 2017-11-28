@@ -69,12 +69,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="lastName"><default-field title="" tooltip="Last Name"><text-line size="30"/></default-field></field>
                 <field name="emailAddress"><default-field title="Email"><text-line size="40"/></default-field></field>
 
-                <field name="countryCode"><default-field title="+" tooltip="Country Code">
-                    <text-line size="3" maxlength="3" default-value="1"/></default-field></field>
-                <field name="areaCode"><default-field  title="-" tooltip="Area Code">
-                    <text-line size="3" maxlength="3"/></default-field></field>
-                <field name="contactNumber"><default-field  title="-" tooltip="Phone Number">
-                    <text-line size="8" maxlength="8"/></default-field></field>
+                <field name="countryCode"><default-field title="" tooltip="Country Code">
+                    <label text="+"/><text-line size="3" maxlength="3" default-value="${ec.user.getPreference('TelecomNumber.DefaultCountryCode') ?: '1'}"/></default-field></field>
+                <field name="areaCode"><default-field  title="" tooltip="Area Code">
+                    <label text="-"/><text-line size="3" maxlength="3"/></default-field></field>
+                <field name="contactNumber"><default-field  title="" tooltip="Phone Number">
+                    <label text="-"/><text-line size="8" maxlength="8"/></default-field></field>
 
                 <field name="creditCardTypeEnumId"><default-field title="">
                     <drop-down><entity-options key="${enumId}" text="${description}">
@@ -95,6 +95,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field title=""><drop-down no-current-selected-key="${ec.l10n.format(ec.user.nowTimestamp, 'yyyy')}">
                         <list-options list="org.moqui.util.StringUtilities.getYearList(10)"/></drop-down></default-field>
                 </field>
+                <field name="paymentGatewayConfigId"><default-field title="Payment Gateway">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${paymentGatewayConfigId}" text="${description}">
+                            <entity-find entity-name="mantle.account.method.PaymentGatewayConfig">
+                                <econdition field-name="paymentGatewayTypeEnumId" operator="not-equals" value="PgtTest"/>
+                                <order-by field-name="description"/></entity-find>
+                        </entity-options>
+                    </drop-down>
+                </default-field></field>
 
                 <field name="address1"><default-field title="Address 1"><text-line size="30"/></default-field></field>
                 <field name="unitNumber"><default-field title="Unit"><text-line size="10"/></default-field></field>
@@ -133,6 +142,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field-ref name="cardNumber"/></field-row-big>
                     <field-row-big title="Expire Date"><field-ref name="expireMonth"/>
                         <field-ref name="expireYear"/></field-row-big>
+                    <field-ref name="paymentGatewayConfigId"/>
 
                     <field-row><field-ref name="address1"/><field-ref name="unitNumber"/></field-row>
                     <field-ref name="address2"/>
