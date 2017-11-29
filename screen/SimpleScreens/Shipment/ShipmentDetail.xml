@@ -945,8 +945,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 condition="shippingGatewayConfigId &amp;&amp; hasLabel &amp;&amp; !hasReturnLabel">
                             <form-single name="RequestRetLabel" transition="requestShipmentLabels">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
-                                <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
-                                <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
+                                <field name="shipmentPackageSeqId" from="shipmentPackage.shipmentPackageSeqId">
+                                    <default-field><hidden/></default-field></field>
+                                <field name="shipmentRouteSegmentSeqId" from="packageRouteSeg.shipmentRouteSegmentSeqId">
+                                    <default-field><hidden/></default-field></field>
                                 <field name="getReturnLabels" from="'true'"><default-field><hidden/></default-field></field>
                                 <field name="shipmentMethodEnumId" from="firstRouteSegment.shipmentMethodEnumId"><default-field title="Return By"><drop-down>
                                     <entity-options key="${shipmentMethodEnumId}" text="${description}">
@@ -958,10 +960,6 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="submitButton"><default-field title="Get Return Label"><submit/></default-field></field>
                             </form-single>
                         </container-dialog>
-                        <link url="requestShipmentLabels" text="Get Return Label"
-                                condition=""
-                                parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
-                                    shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId, getReturnLabels:'true']"/>
 
                         <link url="refundShipmentLabels" text="Refund Label" style="btn-danger"
                                 confirmation="Request refund? If package has not yet shipped a refund will be processed and label will not be valid for shipping."
@@ -997,8 +995,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null">
                             <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
-                                <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
-                                <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
+                                <field name="shipmentPackageSeqId" from="shipmentPackage.shipmentPackageSeqId">
+                                    <default-field><hidden/></default-field></field>
+                                <field name="shipmentRouteSegmentSeqId" from="packageRouteSeg.shipmentRouteSegmentSeqId">
+                                    <default-field><hidden/></default-field></field>
                                 <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
                                     <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
                                         <entity-find entity-name="moqui.basic.print.NetworkPrinter">
