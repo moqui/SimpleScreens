@@ -358,7 +358,10 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section-iterate>
             -->
 
-            <label text="Shipping Gateway: ${shippingGatewayConfig.description}" type="p" condition="shippingGatewayConfig != null"/>
+            <container type="dl" style="dl-horizontal">
+                <label text="Shipping Gateway" type="dt" condition="shippingGatewayConfig != null"/>
+                <label text="${shippingGatewayConfig.description}" type="dd" condition="shippingGatewayConfig != null"/>
+            </container>
 
             <!-- Header -->
             <section name="ShipmentHeaderSection" condition="allowUpdate || shipment.statusId == 'ShipPacked'"><widgets>
@@ -473,24 +476,32 @@ along with this software (see the LICENSE.md file). If not, see
                     </script>
                 ]]></text></render-mode>
             </widgets><fail-widgets>
-                <section name="ShipmentDisplaySection" condition="isIncoming"><widgets>
-                    <label text="From ${fromPartyDetail ? ec.resource.expand('PartyNameTemplate', '', fromPartyDetail) : 'Not Set'}" type="p"/>
-                    <label text="Destination Facility ${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" type="p"/>
-                    <label text="Status ${statusItem.description}" type="p"/>
-                    <label text="Estimated arrival: ${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Unknown'}" type="p"/>
-                </widgets><fail-widgets>
-                    <label text="To ${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}" type="p"/>
-                    <label text="Origin Facility ${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" type="p"/>
-                    <label text="Status ${statusItem.description}" type="p"/>
-                    <label text="Estimated ready: ${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="p"/>
-                    <label text="Ship by ${curCarrierDetail ? ec.resource.expand('PartyNameTemplate','',curCarrierDetail) : 'N/A'} - ${shipmentMethodEnum?.description ?: 'None'}" type="p"/>
-                    <label text="Shipping Instructions: ${shipment.handlingInstructions}" type="p" condition="shipment.handlingInstructions"/>
-                    <section name="ShippedShippingInfo" condition="curPaInfo"><actions><set field="contactInfo" from="curPaInfo"/></actions><widgets>
-                        <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                        <container><label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/></container>
-                        <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
-                    </widgets></section>
-                </fail-widgets></section>
+                <container type="dl" style="dl-horizontal">
+                    <section name="ShipmentDisplaySection" condition="isIncoming"><widgets>
+                        <label text="From" type="dt"/><label text="${fromPartyDetail ? ec.resource.expand('PartyNameTemplate', '', fromPartyDetail) : 'Not Set'}" type="dd"/>
+                        <label text="Destination Facility" type="dt"/><label text="${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" type="dd"/>
+                        <label text="Shipment Type" type="dt"/><label text="${shipmentTypeEnum?.description}" type="dd"/>
+                        <label text="Status" type="dt"/><label text="${statusItem.description}" type="dd"/>
+                        <label text="Estimated Arrival" type="dt"/><label text="${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="dd"/>
+                    </widgets><fail-widgets>
+                        <label text="To" type="dt"/><label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}" type="dd"/>
+                        <label text="Origin Facility" type="dt"/><label text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" type="dd"/>
+                        <label text="Shipment Type" type="dt"/><label text="${shipmentTypeEnum?.description}" type="dd"/>
+                        <label text="Status" type="dt"/><label text="${statusItem.description}" type="dd"/>
+                        <label text="Estimated Ready" type="dt"/><label text="${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="dd"/>
+                        <label text="Ship By" type="dt"/><label text="${curCarrierDetail ? ec.resource.expand('PartyNameTemplate','',curCarrierDetail) : 'N/A'} - ${shipmentMethodEnum?.description ?: 'None'}" type="dd"/>
+                        <label text="Shipping Instructions" type="dt" condition="shipment.handlingInstructions"/>
+                        <label text="${shipment.handlingInstructions}" type="dd" condition="shipment.handlingInstructions"/>
+                        <section name="ShippedShippingInfo" condition="curPaInfo"><actions><set field="contactInfo" from="curPaInfo"/></actions><widgets>
+                            <label text="Destination" type="dt"/>
+                            <container type="dd">
+                                <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                                <container><label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/></container>
+                                <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
+                            </container>
+                        </widgets></section>
+                    </fail-widgets></section>
+                </container>
             </fail-widgets></section>
         </row-col><row-col md="6">
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
