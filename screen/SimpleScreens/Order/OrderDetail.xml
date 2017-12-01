@@ -382,6 +382,9 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="customerShipToPartyId" from="orderPartInfo.customerShipToDetail?.partyId"/>
             <set field="customerBillToPartyId" from="orderPartInfo.customerBillToDetail?.partyId"/>
 
+            <!-- limit parent items to product type items only (from no parent items for part) -->
+            <set field="applicableParentItems" from="orderPartInfo.partNoParentOrderItemList?.findAll({ it.itemTypeEnumId in productItemTypes })"/>
+
             <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->
             <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
                     in-map="[productStoreId:orderHeader.productStoreId, orderId:orderId, orderPartSeqId:orderPartSeqId,
@@ -820,11 +823,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="orderId"><default-field><hidden/></default-field></field>
                         <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
 
-                        <field name="parentItemSeqId"><default-field title="Parent Item">
-                            <drop-down allow-empty="true">
-                                <list-options list="orderPartInfo.partNoParentOrderItemList" key="${orderItemSeqId}" text="${orderItemSeqId} - ${itemDescription}"/>
-                            </drop-down>
-                        </default-field></field>
+                        <field name="parentItemSeqId"><default-field title="Parent Item"><drop-down allow-empty="true">
+                            <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId} - ${itemDescription}"/>
+                        </drop-down></default-field></field>
                         <field name="itemTypeEnumId"><default-field title="Item Type">
                             <drop-down no-current-selected-key="ItemShipping">
                                 <entity-options key="${enumId}" text="${description}">
@@ -848,7 +849,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <row-actions>
                     <service-call name="mantle.order.OrderServices.get#OrderItemTotal"
                             in-map="[orderItem:orderItem, getChildrenTotals:true]" out-map="orderItemTotalOut"/>
-                    <set field="applicableParentItems" from="orderPartInfo.partNoParentOrderItemList"/>
 
                     <set field="product" from="orderItem.product"/>
                     <if condition="product != null">
@@ -864,7 +864,8 @@ along with this software (see the LICENSE.md file). If not, see
                             </entity-find-one>
                             <script><![CDATA[
                             if (assetLot?.lotId) lotIdSet.add(assetLot.lotId)
-                            if (assetLot?.expirationDate != null && (oldestLotExpire == null || assetLot.expirationDate < oldestLotExpire)) oldestLotExpire = assetLot.expirationDate
+                            if (assetLot?.expirationDate != null && (oldestLotExpire == null || assetLot.expirationDate < oldestLotExpire))
+                                oldestLotExpire = assetLot.expirationDate
                             resInfoList.add([existingRes:existingRes, assetLot:assetLot])
                             ]]></script>
                         </iterate>
@@ -919,18 +920,17 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="orderId"><default-field><hidden/></default-field></field>
 
                 <field name="orderItemSeqId"><default-field title="Item" container-style="${parentItemSeqId ? 'text-info' : ''}"><display/></default-field></field>
-                <field name="orderPartSeqId">
-                    <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'">
-                        <drop-down current="selected"><list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/></drop-down></conditional-field>
-                    <default-field title="Part"><display/></default-field>
+                <field name="orderPartSeqId" align="center">
+                    <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'"><drop-down>
+                        <list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/></drop-down></conditional-field>
+                    <default-field title="Part"><display text="Part ${orderPartSeqId}"/></default-field>
                 </field>
-                <field name="parentItemSeqId">
+                <field name="parentItemSeqId" align="center">
                     <conditional-field condition="isProductItemType || orderItemWithChildrenSet.contains(orderItem.orderItemSeqId)">
-                        <display text="N/A"/></conditional-field>
+                        <display text=" "/></conditional-field>
                     <conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'" title="Parent"><drop-down allow-empty="true">
-                            <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId}"/>
-                        </drop-down></conditional-field>
-                    <default-field title="Parent Item"><display/></default-field>
+                        <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId}"/></drop-down></conditional-field>
+                    <default-field title="Parent Item"><display text="${parentItemSeqId ? 'Parent ' + parentItemSeqId : ''}"/></default-field>
                 </field>
 
                 <field name="itemTypeEnumId">
