@@ -76,14 +76,24 @@ along with this software (see the LICENSE.md file). If not, see
                 <search-form-inputs default-order-by="-entryDate,-shipmentId">
                     <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"
                             entryDate_poffset="-1" entryDate_period="30d"/></search-form-inputs>
+                <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
                 <select-field field-name="shipmentId"/>
             </entity-find>
             <row-actions>
+                <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
+                    <date-filter/><econdition field-name="partyId" from="toPartyId"/>
+                    <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
+
                 <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList" distinct="true">
                     <econdition field-name="shipmentId"/><select-field field-name="orderId"/></entity-find>
                 <entity-find entity-name="mantle.shipment.ShipmentPackageRouteSeg" list="sprsList" distinct="true">
                     <econdition field-name="shipmentId"/><select-field field-name="trackingCode"/></entity-find>
+
+                <entity-find entity-name="mantle.order.OrderHeader" list="orderHeaderList">
+                    <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
+                    <select-field field-name="orderId,salesChannelEnumId"/>
+                </entity-find>
             </row-actions>
 
             <field name="shipmentId">
@@ -132,21 +142,38 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="To Party" show-order-by="true">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </header-field>
-                <default-field><link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
-                        link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
+                <default-field>
+                    <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                            link-type="anchor" parameter-map="[partyId:toPartyId]"/>
+                    <label text=" - ${custPcaaList*.description.join(', ')}" condition="custPcaaList"/>
+                </default-field>
             </field>
+            <field name="customerClassificationId"><header-field title="Customer Class">
+                <drop-down allow-empty="true">
+                    <entity-options key="${partyClassificationId}" text="${description}">
+                        <entity-find entity-name="mantle.party.PartyClassification">
+                            <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/>
+                            <order-by field-name="description"/></entity-find></entity-options>
+                </drop-down>
+            </header-field></field>
 
             <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field></field>
             <field name="orderId"><header-field><text-find default-operator="begins"/></header-field></field>
+            <field name="salesChannelEnumId"><header-field title="Order Source">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="SalesChannel"/><set field="allowEmpty" value="true"/></widget-template-include>
+            </header-field></field>
 
             <field name="trackingCodes"><default-field>
                 <section-iterate name="TrackingSprsList" list="sprsList" entry="sprs"><widgets>
                     <label text="${sprs.trackingCode?:''}"/></widgets></section-iterate>
             </default-field></field>
-            <field name="orderIds"><default-field>
-                <section-iterate name="OrderSisList" list="sisList" entry="sis"><widgets>
-                    <link url="orderDetail" text="${sis.orderId}" link-type="anchor" condition="sis.orderId"
-                            parameter-map="[orderId:sis.orderId]"/></widgets></section-iterate>
+            <field name="orderIds"><default-field title="Orders">
+                <section-iterate name="OrderSisList" list="orderHeaderList" entry="orderHeader"><widgets>
+                    <link url="orderDetail" text="${orderHeader.orderId}" link-type="anchor" condition="orderHeader.orderId"
+                            parameter-map="[orderId:orderHeader.orderId]"/>
+                    <label text=" - ${orderHeader.salesChannel?.description?:''}" condition="orderHeader.salesChannelEnumId"/>
+                </widgets></section-iterate>
             </default-field></field>
 
             <field name="otherPartyOrderId"><header-field title="Their Order" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
