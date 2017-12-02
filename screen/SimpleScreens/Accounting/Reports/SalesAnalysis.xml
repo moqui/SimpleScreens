@@ -24,6 +24,9 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <set field="orderStatusList" from="['OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderSent', 'OrderCompleted', 'OrderHold']"/>
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
     </actions>
     <widgets>
         <form-list name="SalesAnalysis" list="summaryList" skip-form="true" header-dialog="true"
@@ -34,7 +37,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
                 <econdition field-name="orderStatusId" operator="in" from="orderStatusList"/>
                 <econdition field-name="partStatusId" operator="in" from="orderStatusList" or-null="true"/>
-                <econdition field-name="itemTypeEnumId" operator="in" from="['ItemProduct', 'ItemInventory', 'ItemAsset']"/>
+                <econdition field-name="itemTypeEnumId" operator="in" from="productItemTypes"/>
                 <!-- <econdition field-name="productId" operator="is-not-null"/> -->
                 <select-field field-name="productId,totalSales,totalCost"/>
             </entity-find>
