@@ -28,6 +28,10 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="issuedDate_poffset" from="invoiceDate_poffset"/>
         <set field="issuedDate_period" from="invoiceDate_period"/>
         <set field="issuedDate_pdate" from="invoiceDate_pdate"/>
+
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
     </actions>
     <widgets>
         <form-list name="SalesInvoiceAnalysis" list="summaryList" skip-form="true" header-dialog="true"
@@ -35,7 +39,7 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="mantle.account.invoice.InvoiceProductSalesSummary" list="summaryList">
                 <search-form-inputs default-order-by="pseudoId" paginate="false"/><!-- see defaults in actions -->
                 <econdition field-name="invoiceStatusId" operator="in" from="['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoicePmtRecvd']"/>
-                <econdition field-name="itemTypeEnumId" operator="in" from="['ItemProduct', 'ItemInventory', 'ItemAsset']"/>
+                <econdition field-name="itemTypeEnumId" operator="in" from="productItemTypes"/>
                 <!-- <econdition field-name="productId" operator="is-not-null"/> -->
                 <select-field field-name="productId"/>
             </entity-find>

@@ -143,7 +143,9 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="vendorRole" value="OrgInternal,Supplier,Vendor"/>
         <set field="customerRole" value="OrgInternal,Customer"/>
-        <set field="productItemTypes" from="['ItemProduct', 'ItemInventory', 'ItemAsset', 'ItemExpSupplies']"/>
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
 
         <if condition="orderHeader.statusId in ['OrderPlaced', 'OrderProcessing']">
             <service-call name="mantle.order.OrderInfoServices.check#OrderPreApprove" in-map="[orderId:orderId]" out-map="context"/></if>
@@ -812,6 +814,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <drop-down no-current-selected-key="ItemProduct">
                                 <option key="ItemProduct" text="Product"/>
                                 <option key="ItemAsset" text="Fixed Asset"/>
+                                <option key="ItemRental" text="Rental Asset"/>
+                                <option key="ItemReplacement" text="Replacement"/>
                             </drop-down>
                         </default-field></field>
 
