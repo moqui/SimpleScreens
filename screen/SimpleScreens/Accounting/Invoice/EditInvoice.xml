@@ -41,6 +41,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
         <default-response url="."/></transition>
+    <transition name="applyInvoiceToInvoice"><service-call name="mantle.account.PaymentServices.apply#InvoiceToInvoice"/>
+        <default-response url="."/></transition>
     <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/>
         <default-response url="."/></transition>
 
@@ -294,17 +296,29 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body><box-body-nopad>
                 <form-list name="PaymentApplicationList" list="paymentApplicationList" skip-form="true">
                     <row-actions>
-                        <entity-find-one entity-name="mantle.account.payment.Payment" value-field="payment">
-                            <field-map field-name="paymentId"/><select-field field-name="statusId,paymentRefNum"/></entity-find-one>
+                        <set field="otherInvoiceId" from="toInvoiceId ? (toInvoiceId == invoice.invoiceId ? invoiceId : toInvoiceId) : null"/>
+                        <if condition="otherInvoiceId"><then>
+                            <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="otherInvoice">
+                                <field-map field-name="invoiceId" from="otherInvoiceId"/>
+                                <select-field field-name="statusId,referenceNumber"/>
+                            </entity-find-one>
+                        </then><else>
+                            <entity-find-one entity-name="mantle.account.payment.Payment" value-field="payment">
+                                <field-map field-name="paymentId"/><select-field field-name="statusId,paymentRefNum"/></entity-find-one>
+                        </else></if>
                     </row-actions>
                     <field name="paymentApplicationId"><default-field title="Appl"><display/></default-field></field>
                     <field name="paymentId"><default-field title="Payment">
-                        <link url="editPayment" text="${paymentId?:''}" link-type="anchor"/></default-field></field>
+                        <link url="editPayment" text="${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
+                    <field name="otherInvoiceId"><default-field title="Other Invc">
+                        <link url="." text="${otherInvoiceId}" link-type="anchor" condition="otherInvoiceId"
+                                parameter-map="[invoiceId:otherInvoiceId]"/>
+                    </default-field></field>
                     <field name="amountApplied" align="right"><default-field title="Amount"><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
                     <field name="appliedDate"><default-field title="Applied"><display/></default-field></field>
-                    <field name="statusId"><default-field title="Status">
+                    <field name="statusId" from="payment?.statusId ?: otherInvoice?.statusId"><default-field title="Status">
                         <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
-                    <field name="paymentRefNum"><default-field title="Ref/Check"><display/></default-field></field>
+                    <field name="refNum" from="payment?.paymentRefNum ?: otherInvoice?.referenceNumber"><default-field title="Ref/Check"><display/></default-field></field>
                     <field name="unapply"><default-field title=""><link url="unapplyPaymentApplication" text="Un-apply" condition="amountApplied"
                             confirmation="This will reduce the amount paid (applied) on this invoice possibly changing it back to an un-paid status, reverse the payment application GL transaction, and free up the payment to be applied to another invoice. Un-apply payment?"/></default-field></field>
                 </form-list>
@@ -334,7 +348,7 @@ along with this software (see the LICENSE.md file). If not, see
                                   parameter-map="[paymentId:payment.paymentId]"/>
                         </default-field></field>
                         <field name="statusId" from="payment.statusId"><default-field title="Status">
-                            <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                            <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
                         <field name="forThis"><default-field title="For This">
                             <display text="${payment.forInvoiceId == invoiceId ? 'Y' : 'N'}"/></default-field></field>
                         <field name="paymentTotal" align="right"><default-field title="Amount">
@@ -350,15 +364,47 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
+            <section name="ApplyToInvoiceSection" condition="canRecordPayments"><widgets>
+                <container-box><box-header title="Applicable Unpaid Invoices"/><box-body-nopad>
+                    <form-list name="UnpaidInvoiceList" list="unpaidInvoiceInfoList" transition="applyInvoiceToInvoice">
+                        <field name="invoiceId"><default-field><hidden/></default-field></field>
+                        <field name="toInvoiceId" from="invoice.invoiceId"><default-field title="Invoice">
+                            <display text=""/><!-- so that it is rendered, and a hidden value is added -->
+                            <link url="." text="${invoice.invoiceId?:''}" link-type="anchor"
+                                    parameter-map="[invoiceId:invoice.invoiceId]"/>
+                        </default-field></field>
+                        <field name="statusId" from="invoice.statusId"><default-field title="Status">
+                            <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
+                        <field name="invoiceTotal" align="right"><default-field title="Total">
+                            <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+                        <field name="unpaidTotal" align="right"><default-field title="Unpaid">
+                            <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+                        <field name="amount" from="maxApplicableAmount" align="right">
+                            <conditional-field condition="allowApply"><text-line size="8" format="0.00"/></conditional-field>
+                            <default-field title="Amount"><display currency-unit-field="invoice.currencyUomId"/></default-field>
+                        </field>
+                        <field name="submitButton"><conditional-field title="Apply" condition="allowApply"><submit/></conditional-field>
+                            <default-field title=""><display text=""/></default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
 
             <section name="GlTransactionsSection"><actions>
                 <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
-                    <econdition field-name="invoiceId"/><order-by field-name="acctgTransId"/></entity-find>
+                    <econditions combine="or">
+                        <econdition field-name="invoiceId"/>
+                        <econdition field-name="toInvoiceId" from="invoiceId"/>
+                    </econditions>
+                    <order-by field-name="acctgTransId"/>
+                </entity-find>
 
                 <set field="unpostableStatus" from="invoice.statusId in ['InvoiceInProcess', 'InvoiceWriteOff', 'InvoiceIncoming', 'InvoiceReceived', 'InvoiceCancelled']"/>
 
                 <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="entrySummaryList">
-                    <econdition field-name="invoiceId"/>
+                    <econditions combine="or">
+                        <econdition field-name="invoiceId"/>
+                        <econdition field-name="toInvoiceId" from="invoiceId"/>
+                    </econditions>
                     <select-field field-name="glAccountId,accountCode,accountName,isDebit,glAccountClassEnumId,debitCreditFlag,amount"/>
                 </entity-find>
                 <set field="glaSummaryMap" from="[:]"/>
