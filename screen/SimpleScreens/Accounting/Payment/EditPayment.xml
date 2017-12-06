@@ -42,6 +42,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
         <default-response url="."/></transition>
+    <transition name="applyPaymentToPayment"><service-call name="mantle.account.PaymentServices.apply#PaymentToPayment"/>
+        <default-response url="."/></transition>
     <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/>
         <default-response url="."/></transition>
 
@@ -342,7 +344,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     parameter-map="[invoiceId:invoice.invoiceId]"/>
                         </default-field></field>
                         <field name="statusId" from="invoice.statusId"><default-field title="Status">
-                            <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                            <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
                         <field name="forThis"><default-field title="For">
                             <display text="${payment.forInvoiceId == invoice.invoiceId ? 'Y' : 'N'}"/></default-field></field>
                         <field name="invoiceTotal" align="right"><default-field title="Total">
@@ -354,6 +356,30 @@ along with this software (see the LICENSE.md file). If not, see
                             <default-field title="Amount"><display currency-unit-field="payment.amountUomId"/></default-field>
                         </field>
                         <field name="submitButton"><conditional-field title="Apply" condition="paymentDelivered &amp;&amp; allowApply"><submit/></conditional-field>
+                            <default-field title=""><display text=""/></default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
+            <section name="ApplyPaymentSection" condition="(isInvoicePayment || payment?.paymentTypeEnumId == 'PtRefund') &amp;&amp; unappliedTotal > 0"><widgets>
+                <container-box><box-header title="Applicable Payments"/><box-body-nopad>
+                    <form-list name="UnappliedPaymentList" list="unappliedPaymentInfoList" transition="applyPaymentToPayment">
+                        <field name="paymentId"><default-field><hidden/></default-field></field>
+                        <field name="toPaymentId" from="payment.paymentId"><default-field title="Payment">
+                            <display text=""/><!-- so that it is rendered, and a hidden value is added -->
+                            <link url="editPayment" text="${payment.paymentId?:''}" link-type="anchor"
+                                    parameter-map="[paymentId:payment.paymentId]"/>
+                        </default-field></field>
+                        <field name="statusId" from="payment.statusId"><default-field title="Status">
+                            <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
+                        <field name="paymentTotal" align="right"><default-field title="Amount">
+                            <display currency-unit-field="payment.amountUomId"/></default-field></field>
+                        <field name="unappliedTotal" align="right"><default-field title="Unapplied">
+                            <display currency-unit-field="payment.amountUomId"/></default-field></field>
+                        <field name="amount" from="maxApplicableAmount" align="right">
+                            <conditional-field condition="paymentDelivered &amp;&amp; allowApply"><text-line size="8" format="0.00"/></conditional-field>
+                            <default-field title="Apply"><display currency-unit-field="payment.amountUomId"/></default-field>
+                        </field>
+                        <field name="submitButton"><conditional-field condition="allowApply" title="Apply"><submit/></conditional-field>
                             <default-field title=""><display text=""/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>

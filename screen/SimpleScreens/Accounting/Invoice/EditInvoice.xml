@@ -41,6 +41,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
         <default-response url="."/></transition>
+    <transition name="applyInvoiceToInvoice"><service-call name="mantle.account.PaymentServices.apply#InvoiceToInvoice"/>
+        <default-response url="."/></transition>
     <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/>
         <default-response url="."/></transition>
 
@@ -346,7 +348,7 @@ along with this software (see the LICENSE.md file). If not, see
                                   parameter-map="[paymentId:payment.paymentId]"/>
                         </default-field></field>
                         <field name="statusId" from="payment.statusId"><default-field title="Status">
-                            <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                            <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
                         <field name="forThis"><default-field title="For This">
                             <display text="${payment.forInvoiceId == invoiceId ? 'Y' : 'N'}"/></default-field></field>
                         <field name="paymentTotal" align="right"><default-field title="Amount">
@@ -358,6 +360,30 @@ along with this software (see the LICENSE.md file). If not, see
                             <default-field title="Apply"><display currency-unit-field="invoice.currencyUomId"/></default-field>
                         </field>
                         <field name="submitButton"><conditional-field condition="allowApply" title="Apply"><submit/></conditional-field>
+                            <default-field title=""><display text=""/></default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
+            <section name="ApplyToInvoiceSection" condition="canRecordPayments"><widgets>
+                <container-box><box-header title="Applicable Unpaid Invoices"/><box-body-nopad>
+                    <form-list name="UnpaidInvoiceList" list="unpaidInvoiceInfoList" transition="applyInvoiceToInvoice">
+                        <field name="invoiceId"><default-field><hidden/></default-field></field>
+                        <field name="toInvoiceId" from="invoice.invoiceId"><default-field title="Invoice">
+                            <display text=""/><!-- so that it is rendered, and a hidden value is added -->
+                            <link url="." text="${invoice.invoiceId?:''}" link-type="anchor"
+                                    parameter-map="[invoiceId:invoice.invoiceId]"/>
+                        </default-field></field>
+                        <field name="statusId" from="invoice.statusId"><default-field title="Status">
+                            <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
+                        <field name="invoiceTotal" align="right"><default-field title="Total">
+                            <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+                        <field name="unpaidTotal" align="right"><default-field title="Unpaid">
+                            <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+                        <field name="amount" from="maxApplicableAmount" align="right">
+                            <conditional-field condition="allowApply"><text-line size="8" format="0.00"/></conditional-field>
+                            <default-field title="Amount"><display currency-unit-field="invoice.currencyUomId"/></default-field>
+                        </field>
+                        <field name="submitButton"><conditional-field title="Apply" condition="allowApply"><submit/></conditional-field>
                             <default-field title=""><display text=""/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
