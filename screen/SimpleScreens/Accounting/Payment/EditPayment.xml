@@ -20,6 +20,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="editPayment"><default-response url="."/></transition>
     <transition name="editPaymentMethod"><default-response url="//${appRoot}/Party/PaymentMethod/EditPaymentMethod"/></transition>
+    <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
 
     <transition name="updatePayment"><service-call name="mantle.account.PaymentServices.update#Payment"/>
         <default-response url="."/></transition>
@@ -39,7 +40,6 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="gatewayRefund"><service-call name="mantle.account.PaymentServices.refund#SinglePayment"/>
         <default-response url="."/></transition>
 
-    <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
         <default-response url="."/></transition>
     <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/>
@@ -313,12 +313,16 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Applied ${ec.l10n.formatCurrency(appliedTotal, payment.amountUomId)}, Unapplied ${ec.l10n.formatCurrency(unappliedTotal, payment.amountUomId)}" type="strong"/>
             </box-body><box-body-nopad>
                 <form-list name="PaymentApplicationList" list="paymentApplicationList">
+                    <row-actions>
+                        <set field="otherPaymentId" from="toPaymentId ? (toPaymentId == payment.paymentId ? paymentId : toPaymentId) : null"/>
+                    </row-actions>
                     <field name="paymentApplicationId"><default-field title="Appl"><display/></default-field></field>
                     <field name="invoiceId"><default-field title="Invoice">
-                        <link url="editInvoice" text="${invoiceId?:''}${invoiceItemSeqId ? (':' + invoiceItemSeqId) : ''}" link-type="anchor"/>
+                        <link url="editInvoice" text="${invoiceId?:''}${invoiceItemSeqId ? (':' + invoiceItemSeqId) : ''}" link-type="anchor" condition="invoiceId"/>
                     </default-field></field>
-                    <field name="toPaymentId"><default-field title="To Pmnt">
-                        <link url="editPayment" text="${toPaymentId?:''}" link-type="anchor"/>
+                    <field name="otherPaymentId"><default-field title="Other Pmnt">
+                        <link url="editPayment" text="${otherPaymentId}" link-type="anchor" condition="otherPaymentId"
+                                parameter-map="[paymentId:otherPaymentId]"/>
                     </default-field></field>
                     <field name="amountApplied" align="right"><default-field title="Amount">
                         <display currency-unit-field="payment.amountUomId"/></default-field></field>
@@ -357,12 +361,20 @@ along with this software (see the LICENSE.md file). If not, see
 
             <section name="GlTransactionsSection"><actions>
                 <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="acctgTransList">
-                    <econdition field-name="paymentId"/><order-by field-name="acctgTransId"/></entity-find>
+                    <econditions combine="or">
+                        <econdition field-name="paymentId"/>
+                        <econdition field-name="toPaymentId" from="paymentId"/>
+                    </econditions>
+                    <order-by field-name="acctgTransId"/>
+                </entity-find>
 
                 <set field="unpostableStatus" from="!(payment.statusId in ['PmntDelivered', 'PmntConfirmed'])"/>
 
                 <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="entrySummaryList">
-                    <econdition field-name="paymentId"/>
+                    <econditions combine="or">
+                        <econdition field-name="paymentId"/>
+                        <econdition field-name="toPaymentId" from="paymentId"/>
+                    </econditions>
                     <select-field field-name="glAccountId,accountCode,accountName,isDebit,glAccountClassEnumId,debitCreditFlag,amount"/>
                 </entity-find>
                 <set field="glaSummaryMap" from="[:]"/>
