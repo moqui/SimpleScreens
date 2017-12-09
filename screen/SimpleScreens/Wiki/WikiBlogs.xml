@@ -81,7 +81,7 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
         <form-list name="WikiBlogList" list="blogsList" skip-form="true" header-dialog="true">
-            <entity-find entity-name="moqui.resource.wiki.WikiBlogAndCategory" list="blogsList">
+            <entity-find entity-name="moqui.resource.wiki.WikiBlogFindView" list="blogsList">
                 <search-form-inputs default-order-by="-publishDate"/>
                 <select-field field-name="wikiBlogId,wikiPageId"/>
             </entity-find>
@@ -106,7 +106,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="../EditWikiBlog" text="${title}" link-type="anchor"/></default-field></field>
             <field name="author">
                 <header-field show-order-by="case-insensitive"><drop-down allow-empty="true">
-                    <entity-options text="${author}" key="${author}">
+                    <entity-options key="${author}" text="${author}">
                         <entity-find entity-name="moqui.resource.wiki.WikiBlog" distinct="true">
                             <select-field field-name="author"/></entity-find></entity-options>
                 </drop-down></header-field>
@@ -114,7 +114,14 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="publishDate"><header-field show-order-by="case-insensitive"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
-            <field name="wikiSpaceId" from="wikiPage.wikiSpaceId"><default-field title="Wiki Space"><display/></default-field></field>
+            <field name="wikiSpaceId" from="wikiPage.wikiSpaceId">
+                <header-field title="Wiki Space"><drop-down allow-empty="true">
+                    <entity-options key="${wikiSpaceId}" text="${wikiSpaceId}: ${description}">
+                        <entity-find entity-name="moqui.resource.wiki.WikiSpace">
+                            <order-by field-name="wikiSpaceId"/></entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><display/></default-field>
+            </field>
             <field name="viewPage"><default-field title=""><link url="../wiki/${wikiPage.wikiSpaceId}/${wikiPage.pagePath}"
                     text="Wiki Page" link-type="anchor" condition="wikiPage"/></default-field></field>
 
