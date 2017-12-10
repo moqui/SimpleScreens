@@ -83,14 +83,16 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="WikiBlogList" list="blogsList" skip-form="true" header-dialog="true">
             <entity-find entity-name="moqui.resource.wiki.WikiBlogFindView" list="blogsList">
                 <search-form-inputs default-order-by="-publishDate"/>
-                <select-field field-name="wikiBlogId,wikiPageId"/>
+                <select-field field-name="wikiBlogId,wikiPageId,wikiSpaceId,pagePath"/>
             </entity-find>
             <row-actions>
-                <entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
-                    <field-map field-name="wikiPageId"/></entity-find-one>
+                <entity-find-one entity-name="moqui.resource.wiki.WikiSpace" value-field="wikiSpace" cache="true"/>
                 <entity-find entity-name="moqui.resource.wiki.WikiBlogCategoryDetail" list="blogCategoryList">
                     <econdition field-name="wikiBlogId"/></entity-find>
             </row-actions>
+
+            <field name="publishDate"><header-field show-order-by="case-insensitive"><date-period/></header-field>
+                <default-field><display format="yyyy-MM-dd"/></default-field></field>
 
             <field name="wikiPageCategoryId"><header-field title="Category"><drop-down allow-empty="true">
                 <entity-options text="${categoryName}" key="${wikiPageCategoryId}">
@@ -112,9 +114,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down></header-field>
                 <default-field><display/></default-field>
             </field>
-            <field name="publishDate"><header-field show-order-by="case-insensitive"><date-period/></header-field>
-                <default-field><display format="yyyy-MM-dd"/></default-field></field>
-            <field name="wikiSpaceId" from="wikiPage.wikiSpaceId">
+            <field name="wikiSpaceId">
                 <header-field title="Wiki Space"><drop-down allow-empty="true">
                     <entity-options key="${wikiSpaceId}" text="${wikiSpaceId}: ${description}">
                         <entity-find entity-name="moqui.resource.wiki.WikiSpace">
@@ -122,8 +122,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down></header-field>
                 <default-field><display/></default-field>
             </field>
-            <field name="viewPage"><default-field title=""><link url="../wiki/${wikiPage.wikiSpaceId}/${wikiPage.pagePath}"
-                    text="Wiki Page" link-type="anchor" condition="wikiPage"/></default-field></field>
+            <field name="viewPage"><default-field title=""><link url="../wiki/${wikiSpaceId}/${pagePath}"
+                    text="Wiki Page" link-type="anchor" condition="wikiSpaceId"/></default-field></field>
+            <field name="publicPage"><default-field title=""><link url="${ec.resource.expand(wikiSpace.publicBlogUrl, null, null, false)}"
+                    text="Public Link" url-type="plain" link-type="anchor" target-window="_blank" condition="wikiSpace?.publicBlogUrl"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>

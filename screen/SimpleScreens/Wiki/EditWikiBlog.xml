@@ -38,6 +38,7 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
             <field-map field-name="wikiPageId" from="wikiBlog.wikiPageId"/></entity-find-one>
         <set field="wikiSpaceId" from="wikiPage?.wikiSpaceId"/>
+        <entity-find-one entity-name="moqui.resource.wiki.WikiSpace" value-field="wikiSpace" cache="true"/>
 
         <entity-find entity-name="moqui.resource.wiki.WikiPageCategory" list="wikiPageCategories">
             <order-by field-name="categoryName"/></entity-find>
@@ -45,6 +46,11 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-row><row-col md="8">
             <link url="../WikiBlogs" text="Back to Find Blog Post"/>
+            <link url="../wiki/${wikiPage.wikiSpaceId}/${wikiPage.pagePath}"
+                    text="View/Edit Wiki Page" condition="wikiPage"/>
+            <link url="${ec.resource.expand(wikiSpace.publicBlogUrl, null, null, false)}" text="Public Link"
+                    url-type="plain" link-type="anchor" target-window="_blank" condition="wikiSpace?.publicBlogUrl"/>
+
             <form-single name="EditBlogForm" map="wikiBlog" transition="updateBlog">
                 <field name="wikiBlogId"><default-field><hidden/></default-field></field>
                 <field name="title"><default-field tooltip="letters, digits, [.,-_:()!? ] only"><text-line size="100"/></default-field></field>
@@ -63,8 +69,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="getSpacePages" server-search="true" min-length="0"><depends-on field="wikiSpaceId"/></dynamic-options>
                 </drop-down></default-field></field>
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                <field name="viewPage"><default-field title=""><link url="../wiki/${wikiPage.wikiSpaceId}/${wikiPage.pagePath}"
-                        text="View/Edit Page: ${wikiPage.pagePath}" condition="wikiPage"/></default-field></field>
             </form-single>
         </row-col><row-col md="4">
             <section name="ShowSmallImage" condition="wikiBlog.smallImageLocation"><widgets>

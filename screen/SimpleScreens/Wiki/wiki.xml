@@ -158,12 +158,14 @@ along with this software (see the LICENSE.md file). If not, see
             <container>
                 <label text="ID: ${wikiPageId?:''} (${wikiType})${versionName ? ' Version ' + versionName : ''}${publishedVersionName ? ' Published ' + publishedVersionName : ''}"/>
                 <label text="(this version published)" condition="publishedVersionName &amp;&amp; publishedVersionName == versionName" style="text-success"/>
+                <link text="Public Link" url="${ec.resource.expand(wikiSpace.publicPageUrl, null, null, false)}" url-type="plain"
+                        link-type="anchor" target-window="_blank" condition="wikiSpace?.publicPageUrl"/>
             </container>
             <container-box><box-header title="${pageName?:'[No Name]'}"/><box-toolbar>
                 <link url="setPublishedVersion" text="Publish Version ${versionName}"
                       condition="versionName &amp;&amp; versionName != publishedVersionName"
                       parameter-map="[wikiPageId:wikiPageId, publishedVersionName:versionName]"/>
-                <link url="editPage" text="Edit Page" link-type="anchor-button" icon="glyphicon glyphicon-pencil">
+                <link url="editPage" text="Edit" link-type="anchor-button" icon="glyphicon glyphicon-pencil">
                     <parameter name="wikiSpaceId"/><parameter name="pagePath"/></link>
                 <container-dialog id="AddPageDialog" button-text="Add Page">
                     <form-single name="AddPageForm" transition="createPage">
@@ -256,9 +258,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <parameter name="pagePath" from="attachment.pagePath"/>
                         <parameter name="filename" from="attachment.filename"/>
                     </link>
-                    <container>
-                        <label text="${attachment.contentType} - ${ec.l10n.format(new Timestamp(attachment.lastModified), 'yyyy-MM-dd HH:mm')}" type="p"/>
-                    </container>
+                    <container><link text="Public Link" url="${ec.resource.expand(wikiSpace.publicAttachmentUrl, null, attachment, false)}" url-type="plain"
+                            link-type="anchor" target-window="_blank" condition="wikiSpace?.publicAttachmentUrl"/></container>
+                    <container><label text="${attachment.contentType} - ${ec.l10n.format(new Timestamp(attachment.lastModified), 'yyyy-MM-dd HH:mm')}"/></container>
                     <!-- TODO: add delete link; maybe just move to a _trash directory? -->
                 </widgets></section-iterate>
             </box-body></container-box>
