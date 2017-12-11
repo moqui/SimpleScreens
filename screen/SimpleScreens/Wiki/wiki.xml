@@ -44,7 +44,7 @@ along with this software (see the LICENSE.md file). If not, see
             fileStream.close()
         ]]></script>
     </actions><default-response url="."/></transition>
-    <transition name="downloadAttachment"><actions>
+    <transition name="downloadAttachment" read-only="true"><actions>
         <service-call name="org.moqui.impl.WikiServices.get#WikiPageAttachment" in-map="context" out-map="context"/>
         <script>ec.web.sendResourceResponse(attachmentReference.location)</script>
     </actions><default-response type="none"/></transition>
@@ -146,6 +146,102 @@ along with this software (see the LICENSE.md file). If not, see
                 -->
             </box-body></container-box>
 
+        </row-col><row-col lg="7" md="6">
+
+            <container id="wiki-breadcrumbs">
+                <link text="${wikiSpace?.description?:'Space Root'}" url="${baseLinkUrl}" url-type="plain" link-type="anchor"/>
+                <section-iterate name="breadcrumbs" list="breadcrumbMapList" entry="breadcrumbMap"><widgets>
+                    <label text="/"/>
+                    <link text="${breadcrumbMap.pageName}" url="${baseLinkUrl}/${breadcrumbMap.pagePath}" url-type="plain" link-type="anchor"/>
+                </widgets></section-iterate>
+            </container>
+            <container>
+                <label text="ID: ${wikiPageId?:''} (${wikiType})${versionName ? ' Version ' + versionName : ''}${publishedVersionName ? ' Published ' + publishedVersionName : ''}"/>
+                <label text="(this version published)" condition="publishedVersionName &amp;&amp; publishedVersionName == versionName" style="text-success"/>
+                <link text="Public Link" url="${ec.resource.expand(wikiSpace.publicPageUrl, null, null, false)}" url-type="plain"
+                        link-type="anchor" target-window="_blank" condition="wikiSpace?.publicPageUrl"/>
+            </container>
+            <container-box><box-header title="${pageName?:'[No Name]'}"/><box-toolbar>
+                <link url="setPublishedVersion" text="Publish Version ${versionName}"
+                      condition="versionName &amp;&amp; versionName != publishedVersionName"
+                      parameter-map="[wikiPageId:wikiPageId, publishedVersionName:versionName]"/>
+                <link url="editPage" text="Edit" link-type="anchor-button" icon="glyphicon glyphicon-pencil">
+                    <parameter name="wikiSpaceId"/><parameter name="pagePath"/></link>
+                <container-dialog id="AddPageDialog" button-text="Add Page">
+                    <form-single name="AddPageForm" transition="createPage">
+                        <field name="wikiSpaceId"><default-field><hidden/></default-field></field>
+                        <field name="isCreate"><default-field><hidden default-value="true"/></default-field></field>
+                        <field name="parentPath" from="pagePath"><default-field><display/></default-field></field>
+                        <field name="wikiType"><default-field><drop-down>
+                            <list-options list="ec.resource.getTemplateRendererExtensionSet()"/>
+                        </drop-down></default-field></field>
+                        <field name="submitButton"><default-field title="Add Page"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+                <!--
+                <link text="Add Page" url="createPage" link-type="anchor-button" icon="glyphicon glyphicon-plus">
+                    <parameter name="wikiSpaceId"/><parameter name="parentPath" from="pagePath"/>
+                    <parameter name="isCreate" value="true"/></link>
+                -->
+            </box-toolbar><box-body>
+                <container id="wiki-page-area">
+                    <section name="WikiPageInclude">
+                        <condition><expression>!wikiSpace?.decoratorScreenLocation</expression></condition>
+                        <actions><script>sri.baseLinkUrl(baseLinkUrl)</script></actions>
+                        <widgets><render-mode><text type="html,vuet" template="true"
+                                location="${pageLocation?:''}${versionName &amp;&amp; currentVersionName != versionName ? '#' + versionName : ''}"/></render-mode></widgets>
+                        <fail-widgets><include-screen location="${wikiSpace.decoratorScreenLocation}"/></fail-widgets>
+                    </section>
+                    <section name="ResetBaseLink"><actions><script>sri.baseLinkUrl(null)</script></actions><widgets/></section>
+                </container>
+                <!-- CONSIDER: figure out a way to make configured space root screen (wikiSpace.decoratorScreenLocation) a subscreen
+                       instead of including it explicitly as above
+                <subscreens-active id="wiki-container"/>
+                -->
+            </box-body></container-box>
+
+            <section name="WikiPageCommentSection" condition="wikiPageId"><widgets>
+                <container-box><box-header title="Comments"/><box-toolbar>
+                    <container-dialog id="AddCommentDialog" button-text="Add Comment">
+                        <form-single name="AddCommentForm" transition="addComment">
+                            <field name="wikiPageId"><default-field><hidden/></default-field></field>
+                            <field name="subject"><default-field><text-line/></default-field></field>
+                            <field name="body"><default-field title="Comment"><text-area rows="10"/></default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <section-iterate name="CommentList" list="commEventDetailList" entry="commEventDetail"><actions>
+                        <set field="uniqueExtension" from="commEventDetail_index"/>
+                        <entity-find-one entity-name="mantle.party.Person" value-field="fromPerson" cache="true">
+                            <field-map field-name="partyId" from="commEventDetail.fromPartyId"/>
+                        </entity-find-one>
+                        <entity-find entity-name="mantle.party.communication.CommunicationEvent" list="childCeList">
+                            <econdition field-name="rootCommEventId" from="commEventDetail.communicationEventId"/>
+                            <order-by field-name="entryDate"/>
+                        </entity-find>
+                    </actions><widgets>
+                        <container style="task-comment">
+                            <label text="${commEventDetail.subject}" type="strong"/>
+                            <label text="from ${fromPerson ? fromPerson.firstName + ' ' + fromPerson?.lastName : 'Unknown'}" type="span"/>
+                            <label text="at ${commEventDetail.entryDate}" type="span"/>
+                            <dynamic-dialog id="ReplyCommentContainer${uniqueExtension}" button-text="Reply" transition="wikiCommentReply">
+                                <parameter name="parentCommEventId" from="commEventDetail.communicationEventId"/></dynamic-dialog>
+
+                            <label text="${commEventDetail.body}" type="pre" encode="false"/>
+
+                            <section name="ChildNestedComments">
+                                <condition><expression>childCeList</expression></condition>
+                                <actions><set field="currentCe" from="commEventDetail"/></actions>
+                                <widgets><include-screen location="component://HiveMind/screen/HiveMindRoot/wiki/WikiCommentNested.xml"/></widgets>
+                            </section>
+                        </container>
+                    </widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
+
+        </row-col><row-col lg="2" md="3">
+
             <container-box><box-header title="Attachments"/><box-toolbar>
                 <container-dialog id="UploadAttachmentDialog" button-text="Upload">
                     <form-single name="UploadAttachment" transition="uploadAttachment">
@@ -157,14 +253,14 @@ along with this software (see the LICENSE.md file). If not, see
                 </container-dialog>
             </box-toolbar><box-body>
                 <section-iterate name="AttachmentList" list="attachmentList" entry="attachment"><widgets>
-                    <link url="downloadAttachment" text="${attachment.filename}" link-type="hidden-form-link">
+                    <link url="downloadAttachment" text="${attachment.filename}" link-type="anchor">
                         <parameter name="wikiSpaceId" from="attachment.wikiSpaceId"/>
                         <parameter name="pagePath" from="attachment.pagePath"/>
                         <parameter name="filename" from="attachment.filename"/>
                     </link>
-                    <container>
-                        <label text="${attachment.contentType} - ${ec.l10n.format(new Timestamp(attachment.lastModified), 'yyyy-MM-dd HH:mm')}" type="p"/>
-                    </container>
+                    <container><link text="Public Link" url="${ec.resource.expand(wikiSpace.publicAttachmentUrl, null, attachment, false)}" url-type="plain"
+                            link-type="anchor" target-window="_blank" condition="wikiSpace?.publicAttachmentUrl"/></container>
+                    <container><label text="${attachment.contentType} - ${ec.l10n.format(new Timestamp(attachment.lastModified), 'yyyy-MM-dd HH:mm')}"/></container>
                     <!-- TODO: add delete link; maybe just move to a _trash directory? -->
                 </widgets></section-iterate>
             </box-body></container-box>
@@ -174,7 +270,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="wikiPageId"/></entity-find>
             </actions><widgets>
                 <container-box><box-header title="Categories"/><box-toolbar>
-                    <container-dialog id="AddCategoryDialog" button-text="Add Category">
+                    <container-dialog id="AddCategoryDialog" button-text="Add">
                         <form-single name="AddCategory" transition="addCategory">
                             <field name="wikiPageId"><default-field><hidden/></default-field></field>
                             <field name="wikiPageCategoryId"><default-field title="Category"><drop-down>
@@ -277,95 +373,6 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="By ${paua.firstName?:''} ${paua.lastName?:''} (${paua.username?:'N/A'})" type="div" condition="paua"/>
                         <label text="At ${ec.l10n.format(wph.changeDateTime, 'yyyy-MM-dd HH:mm')}" type="div"/>
                     </container></widgets></section-iterate>
-                </box-body></container-box>
-            </widgets></section>
-        </row-col><row-col md="9">
-            <container id="wiki-breadcrumbs">
-                <link text="${wikiSpace?.description?:'Space Root'}" url="${baseLinkUrl}" url-type="plain" link-type="anchor"/>
-                <section-iterate name="breadcrumbs" list="breadcrumbMapList" entry="breadcrumbMap"><widgets>
-                    <label text="/"/>
-                    <link text="${breadcrumbMap.pageName}" url="${baseLinkUrl}/${breadcrumbMap.pagePath}" url-type="plain" link-type="anchor"/>
-                </widgets></section-iterate>
-            </container>
-            <container-box><box-header>
-                <label text="${pageName?:'[No Name]'} (${wikiType})${versionName ? ' version ' + versionName : ''}${publishedVersionName ? ' published ' + publishedVersionName : ''}" type="h5"/>
-                <label text="(this version published)" condition="publishedVersionName &amp;&amp; publishedVersionName == versionName" style="text-success"/>
-            </box-header><box-toolbar>
-                <link url="setPublishedVersion" text="Publish Version ${versionName}"
-                      condition="versionName &amp;&amp; versionName != publishedVersionName"
-                      parameter-map="[wikiPageId:wikiPageId, publishedVersionName:versionName]"/>
-                <link url="editPage" text="Edit Page" link-type="anchor-button" icon="glyphicon glyphicon-pencil">
-                    <parameter name="wikiSpaceId"/><parameter name="pagePath"/></link>
-                <container-dialog id="AddPageDialog" button-text="Add Page">
-                    <form-single name="AddPageForm" transition="createPage">
-                        <field name="wikiSpaceId"><default-field><hidden/></default-field></field>
-                        <field name="isCreate"><default-field><hidden default-value="true"/></default-field></field>
-                        <field name="parentPath" from="pagePath"><default-field><display/></default-field></field>
-                        <field name="wikiType"><default-field><drop-down>
-                            <list-options list="ec.resource.getTemplateRendererExtensionSet()"/>
-                        </drop-down></default-field></field>
-                        <field name="submitButton"><default-field title="Add Page"><submit/></default-field></field>
-                    </form-single>
-                </container-dialog>
-                <!--
-                <link text="Add Page" url="createPage" link-type="anchor-button" icon="glyphicon glyphicon-plus">
-                    <parameter name="wikiSpaceId"/><parameter name="parentPath" from="pagePath"/>
-                    <parameter name="isCreate" value="true"/></link>
-                -->
-            </box-toolbar><box-body>
-                <container id="wiki-page-area">
-                    <section name="WikiPageInclude">
-                        <condition><expression>!wikiSpace?.decoratorScreenLocation</expression></condition>
-                        <actions><script>sri.baseLinkUrl(baseLinkUrl)</script></actions>
-                        <widgets><render-mode><text type="html,vuet" template="true"
-                                location="${pageLocation?:''}${versionName &amp;&amp; currentVersionName != versionName ? '#' + versionName : ''}"/></render-mode></widgets>
-                        <fail-widgets><include-screen location="${wikiSpace.decoratorScreenLocation}"/></fail-widgets>
-                    </section>
-                    <section name="ResetBaseLink"><actions><script>sri.baseLinkUrl(null)</script></actions><widgets/></section>
-                </container>
-                <!-- CONSIDER: figure out a way to make configured space root screen (wikiSpace.decoratorScreenLocation) a subscreen
-                       instead of including it explicitly as above
-                <subscreens-active id="wiki-container"/>
-                -->
-            </box-body></container-box>
-
-            <section name="WikiPageCommentSection" condition="wikiPageId"><widgets>
-                <container-box><box-header title="Comments"/><box-toolbar>
-                    <container-dialog id="AddCommentDialog" button-text="Add Comment">
-                        <form-single name="AddCommentForm" transition="addComment">
-                            <field name="wikiPageId"><default-field><hidden/></default-field></field>
-                            <field name="subject"><default-field><text-line/></default-field></field>
-                            <field name="body"><default-field title="Comment"><text-area rows="10"/></default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <section-iterate name="CommentList" list="commEventDetailList" entry="commEventDetail"><actions>
-                        <set field="uniqueExtension" from="commEventDetail_index"/>
-                        <entity-find-one entity-name="mantle.party.Person" value-field="fromPerson" cache="true">
-                            <field-map field-name="partyId" from="commEventDetail.fromPartyId"/>
-                        </entity-find-one>
-                        <entity-find entity-name="mantle.party.communication.CommunicationEvent" list="childCeList">
-                            <econdition field-name="rootCommEventId" from="commEventDetail.communicationEventId"/>
-                            <order-by field-name="entryDate"/>
-                        </entity-find>
-                    </actions><widgets>
-                        <container style="task-comment">
-                            <label text="${commEventDetail.subject}" type="strong"/>
-                            <label text="from ${fromPerson ? fromPerson.firstName + ' ' + fromPerson?.lastName : 'Unknown'}" type="span"/>
-                            <label text="at ${commEventDetail.entryDate}" type="span"/>
-                            <dynamic-dialog id="ReplyCommentContainer${uniqueExtension}" button-text="Reply" transition="wikiCommentReply">
-                                <parameter name="parentCommEventId" from="commEventDetail.communicationEventId"/></dynamic-dialog>
-
-                            <label text="${commEventDetail.body}" type="pre" encode="false"/>
-
-                            <section name="ChildNestedComments">
-                                <condition><expression>childCeList</expression></condition>
-                                <actions><set field="currentCe" from="commEventDetail"/></actions>
-                                <widgets><include-screen location="component://HiveMind/screen/HiveMindRoot/wiki/WikiCommentNested.xml"/></widgets>
-                            </section>
-                        </container>
-                    </widgets></section-iterate>
                 </box-body></container-box>
             </widgets></section>
         </row-col></container-row>
