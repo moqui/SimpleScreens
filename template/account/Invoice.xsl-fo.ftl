@@ -349,11 +349,23 @@ along with this software (see the LICENSE.md file). If not, see
                 </fo:table-header>
                 <fo:table-body>
                     <#list paymentApplicationList as paymentAppl>
+                        <#assign otherInvoiceId = "">
+                        <#if paymentAppl.toInvoiceId?has_content>
+                            <#if paymentAppl.toInvoiceId == invoice.invoiceId>
+                                <#assign otherInvoiceId = paymentAppl.invoiceId>
+                                <#assign otherInvoice = paymentAppl.invoice>
+                            <#else>
+                                <#assign otherInvoiceId = paymentAppl.toInvoiceId>
+                                <#assign otherInvoice = paymentAppl.toInvoice>
+                            </#if>
+                        <#else>
+                            <#assign payment = paymentAppl.payment>
+                        </#if>
                         <fo:table-row font-size="8pt" border-bottom="thin solid black">
-                            <fo:table-cell padding="${cellPadding}"><fo:block>${paymentAppl.paymentId}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block>${paymentAppl.paymentRefNum!""}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(paymentAppl.amount!, invoice.currencyUomId)}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${ec.l10n.format(paymentAppl.effectiveDate!, dateFormat)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block><#if otherInvoiceId?has_content>Invc ${otherInvoiceId}<#else>${paymentAppl.paymentId}</#if></fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block><#if otherInvoiceId?has_content><@encodeText (otherInvoice.referenceNumber!"")/><#else><@encodeText (payment.paymentRefNum!"")/></#if></fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="right"><#if otherInvoiceId?has_content>${ec.l10n.formatCurrency(otherInvoice.invoiceTotal!, invoice.currencyUomId)}<#else>${ec.l10n.formatCurrency(payment.amount!, invoice.currencyUomId)}</#if></fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center"><#if otherInvoiceId?has_content>${ec.l10n.format(otherInvoice.invoiceDate!, dateFormat)}<#else>${ec.l10n.format(payment.effectiveDate!, dateFormat)}</#if></fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(paymentAppl.amountApplied!, invoice.currencyUomId)}</fo:block></fo:table-cell>
                         </fo:table-row>
                     </#list>
@@ -368,7 +380,7 @@ along with this software (see the LICENSE.md file). If not, see
             </fo:table>
         </#if>
 
-        <#if invoice.invoiceMessage?has_content><fo:block margin-top="0.2in">${invoice.invoiceMessage}</fo:block></#if>
+        <#if invoice.invoiceMessage?has_content><fo:block margin-top="0.2in"><@encodeText invoice.invoiceMessage/></fo:block></#if>
         </fo:flow>
     </fo:page-sequence>
 </fo:root>
