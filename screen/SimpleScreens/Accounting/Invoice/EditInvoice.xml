@@ -141,6 +141,30 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="statusId == 'InvoiceCancelled' &amp;&amp; isFromPartyOrgInternal" confirmation="Go back to In Process status?"/>
                 <link url="updateStatus" text="Uncancel" parameter-map="[invoiceId:invoiceId, statusId:'InvoiceReceived']"
                         condition="statusId == 'InvoiceCancelled' &amp;&amp; !isFromPartyOrgInternal" confirmation="Go back to Received status?"/>
+
+                <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
+                    <form-list name="AuditLogList" list="auditLogList" skip-form="true">
+                        <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
+                            <econdition field-name="changedEntityName" operator="in"
+                                    from="['mantle.account.invoice.Invoice', 'mantle.account.invoice.InvoiceItem']"/>
+                            <econdition field-name="changedFieldName" operator="not-equals" value="statusId"/>
+                            <econdition field-name="pkPrimaryValue" from="invoiceId"/>
+                            <select-field field-name="changedEntityName"/>
+                            <order-by field-name="-changedDate,pkSecondaryValue"/>
+                        </entity-find>
+
+                        <field name="changedDate"><default-field title="Date"><display/></default-field></field>
+                        <field name="changedByUserId"><default-field title="User">
+                            <display-entity text="UsernameTemplate" entity-name="mantle.party.PersonWithUserAccount"/></default-field></field>
+                        <field name="pkSecondaryValue"><default-field title="Item"><display/></default-field></field>
+                        <field name="changedFieldName"><default-field title="Field">
+                            <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedFieldName)}"/></default-field></field>
+                        <field name="oldValueText"><default-field title="From">
+                            <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, oldValueText)}"/></default-field></field>
+                        <field name="newValueText"><default-field title="To">
+                            <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
+                    </form-list>
+                </container-dialog>
             </container>
 
             <form-single name="EditInvoice" transition="${invoiceEditable ? 'updateInvoice' : 'updateInvoiceClosed'}" map="invoice">
@@ -474,29 +498,5 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body-nopad></container-box>
             </widgets></section>
         </row-col></container-row>
-
-        <container-box><box-header title="Audit Log"/><box-body>
-            <form-list name="AuditLogList" list="auditLogList" skip-form="true">
-                <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
-                    <econdition field-name="changedEntityName" operator="in"
-                            from="['mantle.account.invoice.Invoice', 'mantle.account.invoice.InvoiceItem']"/>
-                    <econdition field-name="changedFieldName" operator="not-equals" value="statusId"/>
-                    <econdition field-name="pkPrimaryValue" from="invoiceId"/>
-                    <select-field field-name="changedEntityName"/>
-                    <order-by field-name="-changedDate,pkSecondaryValue"/>
-                </entity-find>
-
-                <field name="changedDate"><default-field title="Date"><display/></default-field></field>
-                <field name="changedByUserId"><default-field title="User">
-                    <display-entity text="UsernameTemplate" entity-name="mantle.party.PersonWithUserAccount"/></default-field></field>
-                <field name="pkSecondaryValue"><default-field title="Item"><display/></default-field></field>
-                <field name="changedFieldName"><default-field title="Field">
-                    <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedFieldName)}"/></default-field></field>
-                <field name="oldValueText"><default-field title="From">
-                    <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, oldValueText)}"/></default-field></field>
-                <field name="newValueText"><default-field title="To">
-                    <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
-            </form-list>
-        </box-body></container-box>
     </widgets>
 </screen>
