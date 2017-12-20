@@ -158,16 +158,18 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:block font-weight="bold">Customer #</fo:block>
                         <fo:block>${toParty.pseudoId}</fo:block>
                     </fo:table-cell>
-                    <fo:table-cell padding="3pt" width="1.75in">
-                        <#if invoice.referenceNumber?has_content>
-                            <fo:block font-weight="bold">Ref #</fo:block>
-                            <fo:block><@encodeText invoice.referenceNumber/></fo:block>
-                        </#if>
-                        <#if invoice.otherPartyOrderId?has_content>
-                            <fo:block font-weight="bold">Your Order</fo:block>
-                            <fo:block><@encodeText invoice.otherPartyOrderId/></fo:block>
-                        </#if>
-                    </fo:table-cell>
+                    <#if invoice.referenceNumber?has_content || invoice.otherPartyOrderId?has_content>
+                        <fo:table-cell padding="3pt" width="1.75in">
+                            <#if invoice.referenceNumber?has_content>
+                                <fo:block font-weight="bold">Ref #</fo:block>
+                                <fo:block><@encodeText invoice.referenceNumber/></fo:block>
+                            </#if>
+                            <#if invoice.otherPartyOrderId?has_content>
+                                <fo:block font-weight="bold">Your Order</fo:block>
+                                <fo:block><@encodeText invoice.otherPartyOrderId/></fo:block>
+                            </#if>
+                        </fo:table-cell>
+                    </#if>
                     <fo:table-cell padding="3pt" width="2in">
                         <fo:block font-weight="bold">Invoice Date</fo:block>
                         <fo:block>${ec.l10n.format(invoice.invoiceDate, dateFormat)}</fo:block>
