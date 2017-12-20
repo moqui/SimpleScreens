@@ -46,6 +46,11 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/>
         <default-response url="."/></transition>
 
+    <transition name="sendInvoiceStoreEmail"><service-call name="mantle.account.InvoiceServices.send#InvoiceStoreEmail"/>
+        <default-response url="."/></transition>
+    <transition name="sendEmailMessage"><service-call name="org.moqui.impl.EmailServices.send#EmailMessage"/>
+        <default-response url="."/></transition>
+
     <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
     <transition name="editTimePeriod"><default-response url="../../TimePeriod/EditTimePeriod"/></transition>
 
@@ -63,6 +68,10 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
+    <transition name="EmailMessage" read-only="true"><parameter name="emailMessageId"/><actions>
+        <entity-find-one entity-name="moqui.basic.email.EmailMessage" value-field="emailMessage"/>
+        <script>ec.web.sendTextResponse(emailMessage?.body, "text/html", null)</script>
+    </actions><default-response type="none"/></transition>
     <transition name="Invoice.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Accounting/Invoice/PrintInvoice" url-type="plain">
             <parameter name="invoiceId"/><parameter name="original"/><parameter name="filename" value="Invoice${original == 'true' ? 'Original' : 'Current'}-${invoiceId}.pdf"/></default-response>
@@ -275,6 +284,48 @@ along with this software (see the LICENSE.md file). If not, see
                                 condition="paua"/></container>
                         <label text="${content.description ?: 'No Description'}" type="p"/>
                     </container></widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
+
+            <section name="EmailMessageSection"><widgets>
+                <container-box><box-header title="Email Messages"/><box-toolbar>
+                    <section name="SendFinalizedEmailSection" condition="invoice.statusId in ['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoicePmtRecvd']"><actions>
+                        <if condition="invoice.toPartyId">
+                            <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="emailInfo"
+                                    in-map="[partyId:invoice.toPartyId, emailContactMechPurposeId:'EmailBilling', defaultToPrimaryPurpose:true]"/>
+                            <set field="toAddresses" from="emailInfo.emailAddress"/>
+                        </if>
+                    </actions><widgets>
+                        <container-dialog id="SendFinalizedEmailDialog" button-text="Send Email">
+                            <form-single name="SendFinalizedEmailForm" transition="sendInvoiceStoreEmail">
+                                <field name="invoiceId"><default-field><hidden/></default-field></field>
+                                <field name="emailTypeEnumId" from="'PsetInvoiceFinalized'"><default-field><hidden/></default-field></field>
+                                <field name="toAddresses"><default-field title="To Address"><text-line size="40"/></default-field></field>
+                                <field name="submitButton"><default-field title="Send Email"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </widgets></section>
+                </box-toolbar><box-body>
+                    <form-list name="EmailMessageList" list="emailMessageList" skip-form="true">
+                        <entity-find entity-name="mantle.account.invoice.InvoiceEmailMessageDetail" list="emailMessageList">
+                            <econdition field-name="invoiceId"/><order-by field-name="sentDate,emailMessageId"/></entity-find>
+                        <field name="emailMessageId"><default-field title="ID">
+                            <link url="EmailMessage" text="${emailMessageId}" link-type="anchor" target-window="_blank"/>
+                        </default-field></field>
+                        <field name="sentDate"><default-field><display/></default-field></field>
+                        <field name="toAddresses"><default-field><display/></default-field></field>
+                        <field name="statusId"><default-field title="Status">
+                            <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                        <field name="receivedDate"><default-field><display/></default-field></field>
+                        <field name="emailTypeEnumId"><default-field title="Email Type">
+                            <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                        <!-- commented for now as relies on attachment and that isn't saved to be sent again:
+                        <field name="sendLink"><default-field title=""><link url="sendEmailMessage" text="Send"
+                                parameter-map="[emailMessageId:emailMessageId]" condition="!(statusId in ['ES_DRAFT', 'ES_CANCELLED'])"
+                                confirmation="Send this email message?"/>
+                        </default-field></field>
+                        -->
+                    </form-list>
                 </box-body></container-box>
             </widgets></section>
         </row-col><row-col lg="6">
