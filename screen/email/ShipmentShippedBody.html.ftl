@@ -54,9 +54,8 @@
             </tr>
         </#list>
     </table>
-
-    <#if shipment.handlingInstructions?has_content>
-        <strong>Shipping Instructions</strong><br/>
-        ${shipment.handlingInstructions}<br/>
-    </#if>
 </#list>
+<#if shipment.handlingInstructions?has_content>
+    <strong>Shipping Instructions</strong><br/>
+    ${shipment.handlingInstructions}<br/>
+</#if>
