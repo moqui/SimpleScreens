@@ -41,10 +41,9 @@ Tracking ${(firstCarrierDetail.organizationName)!""} ${(packageRouteSeg.tracking
 Description: ${product.productName!shipmentPackageContent.productId}
 Quantity: ${shipmentPackageContent.quantity}
 </#list>
-
+</#list>
 <#if shipment.handlingInstructions?has_content>
 Shipping Instructions
 
 ${shipment.handlingInstructions}
 </#if>
-</#list>
