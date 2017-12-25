@@ -1,5 +1,8 @@
 
 Invoice ${invoiceId}
+<#if (finalizedStatusHistoryList?size > 1)>
+AMENDED ${ec.l10n.format(finalizedStatusHistoryList.get(0).changedDate, dateFormat)} (previous ${ec.l10n.format(finalizedStatusHistoryList.get(1).changedDate, dateFormat)})
+</#if>
 <#list orderIdSet as orderId>
 For Order ${orderId}
 </#list>

@@ -34,13 +34,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
-        <if condition="glAccountId &amp;&amp; !glAccountIdList"><set field="glAccountIdList" from="glAccountId"/></if>
+        <if condition="glAccountId &amp;&amp; !glAccountIdList"><set field="glAccountIdList" from="[glAccountId]"/></if>
         <if condition="glAccountIdList instanceof String"><then>
             <set field="glAccountIdList" from="glAccountIdList.contains(',') ? (glAccountIdList.split(',') as List) : [glAccountIdList]"/>
         </then><else><set field="glAccountIdList" from="glAccountIdList as List"/></else></if>
         <if condition="timePeriodId &amp;&amp; glAccountIdList">
             <service-call name="mantle.ledger.LedgerReportServices.get#AccountLedgerInfo" out-map="context"
-                    in-map="[timePeriodId:timePeriodId, glAccountIdList:glAccountIdList]"/>
+                    in-map="[timePeriodId:timePeriodId, glAccountIdList:glAccountIdList, showReverses:showReverses]"/>
         </if>
     </actions>
     <widgets>
@@ -49,7 +49,8 @@ along with this software (see the LICENSE.md file). If not, see
                     select-columns="true" saved-finds="true" show-csv-button="true">
                 <field name="glAccountIdList">
                     <header-field title="GL Account"><drop-down allow-multiple="true">
-                        <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0" parameter-map="[glAccountId:null]"/></drop-down></header-field>
+                        <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"
+                                parameter-map="[glAccountId:null, organizationPartyId:null]"/></drop-down></header-field>
                 </field>
                 <field name="organizationPartyId">
                     <header-field title="Organization"><drop-down>
@@ -108,6 +109,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="balance" align="right"><default-field container-style="${acctgTransId ? '' : 'text-strong'}">
                     <display format="#,##0.00"/></default-field></field>
 
+                <field name="showReverses"><header-field><check><option key="true" text=" "/></check></header-field></field>
                 <field name="find"><header-field title="Find"><submit/></header-field></field>
 
                 <form-list-column><field-ref name="acctgTransId"/></form-list-column>

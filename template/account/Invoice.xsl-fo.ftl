@@ -171,6 +171,10 @@ along with this software (see the LICENSE.md file). If not, see
                         </fo:table-cell>
                     </#if>
                     <fo:table-cell padding="3pt" width="2in">
+                        <#if (finalizedStatusHistoryList?size > 1)>
+                            <fo:block font-weight="bold">AMENDED ${ec.l10n.format(finalizedStatusHistoryList.get(0).changedDate, dateFormat)}</fo:block>
+                            <fo:block>(previous ${ec.l10n.format(finalizedStatusHistoryList.get(1).changedDate, dateFormat)})</fo:block>
+                        </#if>
                         <fo:block font-weight="bold">Invoice Date</fo:block>
                         <fo:block>${ec.l10n.format(invoice.invoiceDate, dateFormat)}</fo:block>
                     </fo:table-cell>
