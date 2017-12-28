@@ -51,12 +51,8 @@ along with this software (see the LICENSE.md file). If not, see
             <date-filter/><econdition field-name="requestId"/><econdition field-name="roleTypeId" value="Assignee"/></entity-find>
         <set field="assignToRp" from="assignToRpList?.getAt(0)"/>
 
-        <entity-find entity-name="mantle.request.RequestItemOrder" list="requestItemOrderList" distinct="true">
-            <econdition field-name="requestId"/><select-field field-name="orderId"/></entity-find>
-
         <entity-find entity-name="mantle.request.RequestNote" list="requestNoteList">
             <econdition field-name="requestId"/><order-by field-name="-noteDate"/></entity-find>
-
     </actions>
     <widgets>
         <container-row><row-col md="7">
@@ -72,6 +68,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <!-- <field name="customerPartyId" from="customerRp?.partyId"><default-field title="Set Customer">
                     <text-line ac-transition="searchPartyList" ac-min-length="2" size="50" parameter-map="[roleTypeId:'Customer']"/>
                 </default-field></field> -->
+
                 <field name="productStoreId"><default-field title="Store">
                     <drop-down allow-empty="true">
                         <entity-options key="${productStoreId}" text="${storeName}">
@@ -79,20 +76,28 @@ along with this software (see the LICENSE.md file). If not, see
                                 <order-by field-name="storeName"/></entity-find></entity-options>
                     </drop-down>
                 </default-field></field>
-                <field name="facilityId"><default-field title="Facility">
+                <field name="rootWorkEffortId"><default-field title="Project">
                     <drop-down allow-empty="true">
-                        <entity-options key="${facilityId}" text="FacilityNameTemplate">
-                            <entity-find entity-name="mantle.facility.Facility" list="facilityList">
-                                <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
-                                <order-by field-name="facilityName"/></entity-find></entity-options>
-                    </drop-down></default-field></field>
+                        <entity-options key="${workEffortId}" text="WorkEffortNameTemplate">
+                            <entity-find entity-name="mantle.work.effort.WorkEffortAndParty">
+                                <date-filter/><econdition field-name="partyId" from="ec.user.userAccount.partyId"/>
+                                <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+                            </entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
+                    <entity-options key="${facilityId}" text="FacilityNameTemplate">
+                        <entity-find entity-name="mantle.facility.Facility" list="facilityList">
+                            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                            <order-by field-name="facilityName"/></entity-find></entity-options>
+                </drop-down></default-field></field>
+
                 <field name="displayAssigneeId" from="assignToRp?.partyId"><default-field title="Assignee">
                     <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
                 <field name="assignToPartyId"><default-field title="Set Assignee">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
 
-                <field name="requestName"><default-field title="Name"><text-line/></default-field></field>
                 <field name="priority"><default-field>
                     <drop-down allow-empty="true"><option key="1"/><option key="2"/><option key="3"/><option key="4"/>
                         <option key="5"/><option key="6"/><option key="7"/><option key="8"/><option key="9"/></drop-down>
@@ -102,6 +107,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="RequestType"/><set field="noCurrentSelectedKey" value="RfSupport"/></widget-template-include>
                 </default-field></field>
+
                 <field name="statusId"><default-field title="Status">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusTransitionDropDown">
                         <set field="currentDescription" from="request?.'Request#moqui.basic.StatusItem'?.description"/>
@@ -111,6 +117,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="RequestResolution"/><set field="noCurrentSelectedKey" value="RrUnresolved"/></widget-template-include>
                 </default-field></field>
+
+                <field name="requestName"><default-field title="Name"><text-line/></default-field></field>
                 <field name="description"><default-field><text-area rows="20"/></default-field></field>
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
 
@@ -119,6 +127,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-row><field-ref name="filedByPartyId"/></field-row>
                     <field-row><field-ref name="displayCustomerId"/><field-ref name="displayAssigneeId"/></field-row>
                     <field-row><field-ref name="productStoreId"/><field-ref name="assignToPartyId"/></field-row>
+                    <field-row><field-ref name="rootWorkEffortId"/><field-ref name="facilityId"/></field-row>
                     <field-row><field-ref name="priority"/><field-ref name="responseRequiredDate"/></field-row>
                     <field-row><field-ref name="requestTypeEnumId"/></field-row>
                     <field-row><field-ref name="statusId"/><field-ref name="requestResolutionEnumId"/></field-row>
