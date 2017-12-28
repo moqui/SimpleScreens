@@ -28,6 +28,19 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition name="addRequestItem"><service-call name="create#mantle.request.RequestItem" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="updateRequestItem"><service-call name="update#mantle.request.RequestItem" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="deleteRequestItem"><service-call name="delete#mantle.request.RequestItem" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="createPurchaseOrder"><service-call name="mantle.order.OrderServices.create#PurchaseRequestOrder" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="createNote"><service-call name="create#mantle.request.RequestNote"/><default-response url="."/></transition>
+    <transition name="updateNote"><service-call name="update#mantle.request.RequestNote"/><default-response url="."/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <transition name="createContent"><service-call name="mantle.request.RequestServices.create#RequestContent"/>
         <default-response url="."/></transition>
@@ -49,9 +62,29 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.request.RequestParty" list="assignToRpList">
             <date-filter/><econdition field-name="requestId"/><econdition field-name="roleTypeId" value="Assignee"/></entity-find>
         <set field="assignToRp" from="assignToRpList?.getAt(0)"/>
+
+        <entity-find entity-name="mantle.request.RequestItemOrder" list="requestItemOrderList" distinct="true">
+            <econdition field-name="requestId"/><select-field field-name="orderId"/></entity-find>
+
+        <entity-find entity-name="mantle.request.RequestNote" list="requestNoteList">
+            <econdition field-name="requestId"/><order-by field-name="-noteDate"/></entity-find>
+
     </actions>
     <widgets>
         <container-row><row-col md="7">
+
+            <label text="Request #${requestId}" type="h4"/>
+
+            <link url="createPurchaseOrder" text="Create Purchase Order" link-type="hidden-form">
+                <parameter name="customerPartyId" from="customerRp?.partyId"/></link>
+
+            <section-iterate name="OrderSection" list="requestItemOrderList" entry="item">
+                <widgets>
+                    <link url="//${appRoot}/Order/OrderDetail" text="Order ${item.orderId}">
+                        <parameter name="orderId" from="item.orderId"/></link>
+                </widgets>
+            </section-iterate>
+
             <form-single name="EditRequest" transition="updateRequest" map="request">
                 <field name="requestId"><default-field title="Request ID"><display/></default-field></field>
                 <field name="requestDate"><default-field><display/></default-field></field>
@@ -69,6 +102,13 @@ along with this software (see the LICENSE.md file). If not, see
                                 <order-by field-name="storeName"/></entity-find></entity-options>
                     </drop-down>
                 </default-field></field>
+                <field name="facilityId"><default-field title="Facility">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${facilityId}" text="FacilityNameTemplate">
+                            <entity-find entity-name="mantle.facility.Facility" list="facilityList">
+                                <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                                <order-by field-name="facilityName"/></entity-find></entity-options>
+                    </drop-down></default-field></field>
                 <field name="displayAssigneeId" from="assignToRp?.partyId"><default-field title="Assignee">
                     <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
                 <field name="assignToPartyId"><default-field title="Set Assignee">
@@ -108,6 +148,67 @@ along with this software (see the LICENSE.md file). If not, see
                     <fields-not-referenced/>
                 </field-layout>
             </form-single>
+
+
+            <section name="RequestItem">
+                <actions>
+                    <entity-find entity-name="mantle.request.RequestItem" list="requestItemList">
+                        <econdition field-name="requestId"/></entity-find>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Request Item"/>
+                        <box-toolbar>
+                            <container-dialog id="NewRequestItem" button-text="New Request Item">
+                                <form-single name="NewRequestItemForm" transition="addRequestItem">
+                                    <field name="requestId"><default-field><hidden/></default-field></field>
+                                    <field name="statusId"><default-field title="Status">
+                                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                                            <set field="statusTypeId" value="Request"/></widget-template-include>
+                                    </default-field></field>
+                                    <field name="requiredByDate"><default-field><date-time/></default-field></field>
+                                    <field name="productId"><default-field title="Product">
+                                        <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                                    </default-field></field>
+                                    <field name="quantity"><default-field><text-line size="8" default-value="1"/></default-field></field>
+                                    <field name="selectedAmount"><default-field><text-line size="8"/></default-field></field>
+                                    <field name="maximumAmount"><default-field><text-line size="8"/></default-field></field>
+                                    <field name="supplierPartyId"><default-field title="Supplier"><drop-down allow-empty="true">
+                                        <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:vendorRole]"/>
+                                    </drop-down></default-field></field>
+                                    <field name="description"><default-field><text-area/></default-field></field>
+                                    <field name="submit"><default-field><submit text="Add"/></default-field></field>
+                                </form-single>
+                            </container-dialog>
+                        </box-toolbar>
+                        <box-body>
+                            <form-list name="RequestItemListForm" list="requestItemList" transition="updateRequestItem">
+                                <field name="requestId"><default-field><display/></default-field></field>
+
+                                <field name="requestItemSeqId"><default-field><display/></default-field></field>
+                                <field name="statusId"><default-field><text-line/></default-field></field>
+                                <field name="requiredByDate"><default-field><date-time/></default-field></field>
+                                <field name="productId"><default-field>
+                                    <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                                </default-field></field>
+                                <field name="quantity"><default-field><text-line/></default-field></field>
+                                <field name="selectedAmount"><default-field><text-line/></default-field></field>
+                                <field name="maximumAmount"><default-field><text-line/></default-field></field>
+                                <field name="description"><default-field><text-line/></default-field></field>
+                                <field name="supplierPartyId"><default-field>
+                                    <drop-down allow-empty="true">
+                                        <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:vendorRole]"/>
+                                    </drop-down></default-field></field>
+                                <field name="submit">
+                                    <default-field>
+                                        <submit text="Update"/>
+                                        <link url="deleteRequestItem" text="Delete" confirmation="Delete item?"/></default-field>
+                                </field>
+                            </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
         </row-col><row-col md="5">
             <container-box><box-header title="Parties"/><box-toolbar>
                 <container-dialog id="AddPartyDialog" button-text="Add Party">
@@ -154,6 +255,35 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-list>
             </box-body-nopad></container-box>
 
+            <section name="NotesSection"><widgets>
+                <container-box><box-header title="Notes"/><box-toolbar>
+                    <container-dialog id="NewNoteDialog" button-text="Add Note">
+                        <form-single name="NewNoteForm" transition="createNote">
+                            <field name="requestId"><default-field><hidden/></default-field></field>
+                            <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
+                            <field name="submitButton"><default-field title="Add Note"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <section-iterate name="NoteIterateSection" list="requestNoteList" entry="note"><actions>
+                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                            <field-map field-name="userId" from="note.userId"/></entity-find-one>
+                    </actions><widgets>
+                        <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: note.userId}) at ${ec.l10n.format(note.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
+                        <section name="UpdateNoteSection" condition="note.userId == ec.user.userId"><widgets>
+                            <container-dialog id="UpdateNoteContainer" button-text="Edit Note">
+                                <form-single name="UpdateNoteForm" transition="updateNote" map="note">
+                                    <field name="requestId"><default-field><hidden/></default-field></field>
+                                    <field name="noteDate"><default-field><hidden/></default-field></field>
+                                    <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
+                                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                </form-single>
+                            </container-dialog>
+                        </widgets></section>
+                        <label text="${note.noteText}" type="p"/>
+                    </widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
             <section name="ContentSection"><actions>
                 <entity-find entity-name="mantle.request.RequestContent" list="contentList">
                     <econdition field-name="requestId"/><order-by field-name="-contentDate"/></entity-find>
