@@ -30,6 +30,11 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createNote"><service-call name="create#mantle.request.RequestNote"/><default-response url="."/></transition>
     <transition name="updateNote"><service-call name="update#mantle.request.RequestNote"/><default-response url="."/></transition>
 
+    <transition name="addComment"><service-call name="mantle.request.RequestServices.add#RequestComment"/>
+        <default-response url="."/></transition>
+    <transition name="deleteComment"><service-call name="mantle.request.RequestServices.delete#RequestComment"/>
+        <default-response url="."/></transition>
+
     <transition name="createContent"><service-call name="mantle.request.RequestServices.create#RequestContent"/>
         <default-response url="."/></transition>
     <transition name="updateContent"><service-call name="mantle.request.RequestServices.update#RequestContent"/>
@@ -43,6 +48,10 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="mantle.request.Request" value-field="request"/>
+
+        <!-- Comments -->
+        <entity-find entity-name="mantle.request.RequestCommEventDetail" list="commEventDetailList">
+            <econdition field-name="requestId"/><order-by field-name="entryDate"/></entity-find>
 
         <entity-find entity-name="mantle.request.RequestParty" list="customerRpList">
             <date-filter/><econdition field-name="requestId"/><econdition field-name="roleTypeId" value="Customer"/></entity-find>
@@ -134,6 +143,49 @@ along with this software (see the LICENSE.md file). If not, see
                     <fields-not-referenced/>
                 </field-layout>
             </form-single>
+
+            <container-box><box-header><label text="Comments" type="h5"/></box-header><box-toolbar>
+                <container-dialog id="AddCommentDialog" button-text="Add Comment">
+                    <form-single name="AddCommentForm" transition="addComment">
+                        <field name="requestId"><default-field><hidden/></default-field></field>
+                        <field name="subject"><default-field><text-line/></default-field></field>
+                        <field name="body"><default-field title="Comment"><text-area rows="10"/></default-field></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <section-iterate name="CommentList" list="commEventDetailList" entry="commEventDetail"><actions>
+                    <set field="uniqueExtension" from="commEventDetail_index"/>
+                    <entity-find-one entity-name="mantle.party.Person" value-field="fromPerson" cache="true">
+                        <field-map field-name="partyId" from="commEventDetail.fromPartyId"/>
+                    </entity-find-one>
+                    <entity-find entity-name="mantle.party.communication.CommunicationEvent" list="childCeList">
+                        <econdition field-name="rootCommEventId" from="commEventDetail.communicationEventId"/>
+                        <order-by field-name="entryDate"/>
+                    </entity-find>
+                </actions><widgets>
+                    <container style="task-comment">
+                        <label text="${commEventDetail.subject}" type="strong"/>
+                        <label text="from ${fromPerson ? fromPerson.firstName + ' ' + fromPerson?.lastName : 'Unknown'}" type="span"/>
+                        <label text="at ${ec.l10n.format(commEventDetail.entryDate, 'yyyy-MM-dd HH:mm')}" type="span"/>
+                        <dynamic-dialog id="ReplyCommentContainer${uniqueExtension}" button-text="Reply" transition="RequestCommentReply">
+                            <parameter name="parentCommEventId" from="commEventDetail.communicationEventId"/></dynamic-dialog>
+                        <dynamic-dialog id="EditCommentContainer${uniqueExtension}" button-text="Edit" transition="RequestCommentUpdate">
+                            <parameter name="communicationEventId" from="commEventDetail.communicationEventId"/></dynamic-dialog>
+                        <link text="Delete" url="deleteComment" parameter-map="[requestId:requestId,
+                                    communicationEventId:commEventDetail.communicationEventId]"
+                                confirmation="Delete comment ${commEventDetail.subject}?"/>
+
+                        <label text="${commEventDetail.body}" type="pre" encode="false"/>
+
+                        <section name="ChildNestedComments">
+                            <condition><expression>childCeList</expression></condition>
+                            <actions><set field="currentCe" from="commEventDetail"/></actions>
+                            <widgets><include-screen location="component://SimpleScreens/screen/SimpleScreens/Request/EditRequest/RequestCommentNested.xml"/></widgets>
+                        </section>
+                    </container>
+                </widgets></section-iterate>
+            </box-body></container-box>
         </row-col><row-col md="5">
             <container-box><box-header title="Parties"/><box-toolbar>
                 <container-dialog id="AddPartyDialog" button-text="Add Party">
