@@ -2,6 +2,9 @@
 <table border="0" cellpadding="8px" cellspacing="0" width="100%"><tr>
     <td width="50%">
         <h1>Invoice ${invoiceId}</h1><br/>
+        <#if (finalizedStatusHistoryList?size > 1)>
+            <h4>AMENDED ${ec.l10n.format(finalizedStatusHistoryList.get(0).changedDate, dateFormat)} (previous ${ec.l10n.format(finalizedStatusHistoryList.get(1).changedDate, dateFormat)})</h4>
+        </#if>
         <#if detailLinkPath?has_content>
             <#list orderIdSet as orderId>
             <strong><a href="<#if detailLinkPath?starts_with("http")>${detailLinkPath}<#else>http://${storeDomain}/${detailLinkPath}</#if>?orderId=${orderId}">For Order ${orderId}</a></strong><br/>

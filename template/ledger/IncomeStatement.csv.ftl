@@ -22,7 +22,8 @@ along with this software (see the LICENSE.md file). If not, see
 <#macro showClass classInfo depth>
     <#-- skip classes with nothing posted -->
     <#if (classInfo.totalPostedNoClosingByTimePeriod['ALL']!0) == 0><#return></#if>
-    <#t><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize(classInfo.className)/>,
+    <#assign classDesc><#list 1..depth as idx>${indentChar}</#list> ${ec.l10n.localize(classInfo.className)}</#assign>
+    <#t><@csvValue classDesc/>,
     <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(classInfo.postedNoClosingByTimePeriod['ALL']!0, numberFormat)/>,</#if>
     <#list timePeriodIdList as timePeriodId>
         <#t><@csvValue ec.l10n.format(classInfo.postedNoClosingByTimePeriod[timePeriodId]!0, numberFormat)/><#if showDiff || timePeriodId_has_next>,</#if>
@@ -30,7 +31,8 @@ along with this software (see the LICENSE.md file). If not, see
     <#t><#if showDiff><@csvValue ec.l10n.format((classInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0), numberFormat)/></#if>
     <#t>${"\n"}
     <#list classInfo.glAccountInfoList! as glAccountInfo><#if showDetail>
-        <#t>${indentChar}${indentChar}<#list 1..depth as idx>${indentChar}</#list> <#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: <@csvValue glAccountInfo.accountName/>,
+        <#assign accountDesc>${indentChar}${indentChar}<#list 1..depth as idx>${indentChar}</#list> <#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</#assign>
+        <#t><@csvValue accountDesc/>,
         <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(glAccountInfo.postedNoClosingByTimePeriod['ALL']!0, numberFormat)/>,</#if>
         <#list timePeriodIdList as timePeriodId>
             <#t><@csvValue ec.l10n.format(glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0, numberFormat)/><#if showDiff || timePeriodId_has_next>,</#if>

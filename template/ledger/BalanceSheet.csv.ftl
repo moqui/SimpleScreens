@@ -23,7 +23,8 @@ along with this software (see the LICENSE.md file). If not, see
     <#-- skip classes with no balance -->
     <#t><#if (classInfo.totalBalanceByTimePeriod['ALL']!0) == 0 && (classInfo.totalPostedByTimePeriod['ALL']!0) == 0><#return></#if>
     <#assign hasChildren = classInfo.childClassInfoList?has_content>
-    <#t><#list 1..depth as idx>${indentChar}</#list><@csvValue ec.l10n.localize(classInfo.className)/>,
+    <#assign classDesc><#list 1..depth as idx>${indentChar}</#list> ${ec.l10n.localize(classInfo.className)}</#assign>
+    <#t><@csvValue classDesc/>,
     <#t><#if showBeginningAndPosted && (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(classInfo.postedByTimePeriod['ALL']!0, numberFormat)/>,</#if>
     <#t><#list timePeriodIdList as timePeriodId>
         <#t><#if showBeginningAndPosted>
@@ -36,7 +37,8 @@ along with this software (see the LICENSE.md file). If not, see
     <#t>${"\n"}
     <#list classInfo.glAccountInfoList! as glAccountInfo>
         <#t><#if showDetail && ((glAccountInfo.balanceByTimePeriod['ALL']!0) != 0 || (glAccountInfo.postedByTimePeriod['ALL']!0) != 0)>
-            <#t>${indentChar}${indentChar}<#list 1..depth as idx>${indentChar}</#list><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: <@csvValue glAccountInfo.accountName/>,
+            <#assign accountDesc>${indentChar}${indentChar}<#list 1..depth as idx>${indentChar}</#list> <#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</#assign>
+            <#t><@csvValue accountDesc/>,
             <#t><#if showBeginningAndPosted && (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(glAccountInfo.postedByTimePeriod['ALL']!0, numberFormat)/>,</#if>
             <#list timePeriodIdList as timePeriodId>
                 <#t><#if showBeginningAndPosted>

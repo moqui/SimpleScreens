@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Items" default-menu-index="2">
+
+    <parameter name="requestId" required="true"/>
+
+    <transition name="addRequestItem"><service-call name="create#mantle.request.RequestItem" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="updateRequestItem"><service-call name="update#mantle.request.RequestItem" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="deleteRequestItem"><service-call name="delete#mantle.request.RequestItem" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="createPurchaseOrder"><service-call name="mantle.order.OrderServices.create#PurchaseRequestOrder" in-map="context"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <actions>
+        <entity-find entity-name="mantle.request.RequestItemOrder" list="requestItemOrderList" distinct="true">
+            <econdition field-name="requestId"/><select-field field-name="orderId"/></entity-find>
+    </actions>
+    <widgets>
+        <container-dialog id="NewRequestItem" button-text="New Request Item">
+            <form-single name="NewRequestItemForm" transition="addRequestItem">
+                <field name="requestId"><default-field><hidden/></default-field></field>
+                <!-- keep simple for now: <field name="statusId"><default-field title="Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="Request"/></widget-template-include>
+                </default-field></field> -->
+                <field name="requiredByDate"><default-field title="Required By"><date-time/></default-field></field>
+                <field name="productId"><default-field title="Product">
+                    <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="quantity"><default-field><text-line size="8" default-value="1"/></default-field></field>
+                <!-- not yet generally supported for orders: <field name="selectedAmount"><default-field><text-line size="8"/></default-field></field> -->
+                <field name="maximumAmount"><default-field><text-line size="8"/></default-field></field>
+                <field name="supplierPartyId"><default-field title="Supplier"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Supplier']"/>
+                </drop-down></default-field></field>
+                <field name="description"><default-field><text-area/></default-field></field>
+                <field name="submit"><default-field><submit text="Add"/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <link url="createPurchaseOrder" text="Create Purchase Order" link-type="hidden-form">
+            <parameter name="customerPartyId" from="customerRp?.partyId"/></link>
+
+        <section-iterate name="OrderSection" list="requestItemOrderList" entry="item"><widgets>
+            <link url="//${appRoot}/Order/OrderDetail" text="Order ${item.orderId}">
+                <parameter name="orderId" from="item.orderId"/></link>
+        </widgets></section-iterate>
+
+
+        <form-list name="RequestItemListForm" list="requestItemList" transition="updateRequestItem">
+            <entity-find entity-name="mantle.request.RequestItem" list="requestItemList">
+                <econdition field-name="requestId"/></entity-find>
+
+            <field name="requestId"><default-field><hidden/></default-field></field>
+            <field name="requestItemSeqId"><default-field title="Item"><display/></default-field></field>
+            <!-- keep simple for now, also needs to use status transition: <field name="statusId"><default-field title="Status">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                    <set field="statusTypeId" value="Request"/></widget-template-include>
+            </default-field></field> -->
+            <field name="requiredByDate"><default-field title="Required By"><date-time/></default-field></field>
+            <field name="productId"><default-field title="Product">
+                <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+            </default-field></field>
+            <field name="quantity"><default-field><text-line size="5"/></default-field></field>
+            <!-- not yet generally supported for orders: <field name="selectedAmount"><default-field><text-line size="6"/></default-field></field> -->
+            <field name="maximumAmount"><default-field title="Max Amt"><text-line size="5"/></default-field></field>
+            <field name="description"><default-field><text-area cols="40" rows="3"/></default-field></field>
+            <field name="supplierPartyId"><default-field title="Supplier"><drop-down allow-empty="true">
+                <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Supplier']"/>
+            </drop-down></default-field></field>
+            <field name="submit"><default-field>
+                <submit text="Update"/>
+                <link url="deleteRequestItem" text="Delete" confirmation="Delete item?"/>
+            </default-field></field>
+        </form-list>
+    </widgets>
+</screen>
