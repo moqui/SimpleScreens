@@ -107,14 +107,14 @@ along with this software (see the LICENSE.md file). If not, see
         <tr>
             <th>${ec.l10n.localize("Cash Flow Statement")}</th>
             <#if (timePeriodIdList?size > 1)>
-                <th class="text-right text-mono">${ec.l10n.localize("All Periods Posted")}</th>
-                <th class="text-right text-mono">${ec.l10n.localize("Beginning")}</th>
-                <th class="text-right text-mono">${ec.l10n.localize("Ending")}</th>
+                <th class="text-right">${ec.l10n.localize("All Periods Posted")}</th>
+                <th class="text-right">${ec.l10n.localize("Beginning")}</th>
+                <th class="text-right">${ec.l10n.localize("Ending")}</th>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <th class="text-right text-mono">${timePeriodIdMap[timePeriodId].periodName} (${ec.l10n.localize("Closed")}: ${timePeriodIdMap[timePeriodId].isClosed}) ${ec.l10n.localize("Posted")}</th>
-                <th class="text-right text-mono">${ec.l10n.localize("Beginning")}</th>
-                <th class="text-right text-mono">${ec.l10n.localize("Ending")}</th>
+                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (${ec.l10n.localize("Closed")}: ${timePeriodIdMap[timePeriodId].isClosed}) ${ec.l10n.localize("Posted")}</th>
+                <th class="text-right">${ec.l10n.localize("Beginning")}</th>
+                <th class="text-right">${ec.l10n.localize("Ending")}</th>
             </#list>
         </tr>
     </thead>

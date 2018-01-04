@@ -40,14 +40,14 @@ along with this software (see the LICENSE.md file). If not, see
         <tr>
             <th>${ec.l10n.localize("Retained Earnings Statement")}</th>
             <#if (timePeriodIdList?size > 1)>
-                <th class="text-right text-mono">All Periods Posted</th>
-                <th class="text-right text-mono">Beginning</th>
-                <th class="text-right text-mono">Ending</th>
+                <th class="text-right">All Periods Posted</th>
+                <th class="text-right">Beginning</th>
+                <th class="text-right">Ending</th>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <th class="text-right text-mono">${timePeriodIdMap[timePeriodId].periodName} (Closed: ${timePeriodIdMap[timePeriodId].isClosed}) Posted</th>
-                <th class="text-right text-mono">Beginning</th>
-                <th class="text-right text-mono">Ending</th>
+                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (Closed: ${timePeriodIdMap[timePeriodId].isClosed}) Posted</th>
+                <th class="text-right">Beginning</th>
+                <th class="text-right">Ending</th>
             </#list>
         </tr>
     </thead>

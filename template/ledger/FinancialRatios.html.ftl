@@ -36,9 +36,9 @@ along with this software (see the LICENSE.md file). If not, see
         <tr>
             <th>${ec.l10n.localize("Financial Ratios")}</th>
             <th>${ec.l10n.localize("Formula")}</th>
-            <#if (timePeriodIdList?size > 1)><th class="text-right text-mono">All Periods</th></#if>
+            <#if (timePeriodIdList?size > 1)><th class="text-right">All Periods</th></#if>
             <#list timePeriodIdList as timePeriodId>
-                <th class="text-right text-mono">${timePeriodIdMap[timePeriodId].periodName} (Closed: ${timePeriodIdMap[timePeriodId].isClosed})</th>
+                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (Closed: ${timePeriodIdMap[timePeriodId].isClosed})</th>
             </#list>
         </tr>
     </thead>
