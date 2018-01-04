@@ -112,7 +112,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <th class="text-right">${ec.l10n.localize("Ending")}</th>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (${ec.l10n.localize("Closed")}: ${timePeriodIdMap[timePeriodId].isClosed}) ${ec.l10n.localize("Posted")}</th>
+                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} ${ec.l10n.localize("Posted")}</th>
                 <th class="text-right">${ec.l10n.localize("Beginning")}</th>
                 <th class="text-right">${ec.l10n.localize("Ending")}</th>
             </#list>

@@ -88,15 +88,9 @@ along with this software (see the LICENSE.md file). If not, see
     <thead>
         <tr>
             <th>${ec.l10n.localize("Income Statement")}</th>
-            <#if (timePeriodIdList?size > 1)>
-                <th class="text-right">${ec.l10n.localize("All Periods")}</th>
-            </#if>
-            <#list timePeriodIdList as timePeriodId>
-                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (Closed: ${timePeriodIdMap[timePeriodId].isClosed})</th>
-            </#list>
-            <#if showDiff>
-                <th class="text-right">${ec.l10n.localize("Difference")}</th>
-            </#if>
+            <#if (timePeriodIdList?size > 1)><th class="text-right">${ec.l10n.localize("All Periods")}</th></#if>
+            <#list timePeriodIdList as timePeriodId><th class="text-right">${timePeriodIdMap[timePeriodId].periodName}</th></#list>
+            <#if showDiff><th class="text-right">${ec.l10n.localize("Difference")}</th></#if>
         </tr>
     </thead>
     <tbody>

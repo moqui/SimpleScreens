@@ -45,7 +45,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <th class="text-right">Ending</th>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (Closed: ${timePeriodIdMap[timePeriodId].isClosed}) Posted</th>
+                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} Posted</th>
                 <th class="text-right">Beginning</th>
                 <th class="text-right">Ending</th>
             </#list>

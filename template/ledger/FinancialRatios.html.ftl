@@ -38,7 +38,7 @@ along with this software (see the LICENSE.md file). If not, see
             <th>${ec.l10n.localize("Formula")}</th>
             <#if (timePeriodIdList?size > 1)><th class="text-right">All Periods</th></#if>
             <#list timePeriodIdList as timePeriodId>
-                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (Closed: ${timePeriodIdMap[timePeriodId].isClosed})</th>
+                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName}</th>
             </#list>
         </tr>
     </thead>

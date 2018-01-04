@@ -88,16 +88,14 @@ along with this software (see the LICENSE.md file). If not, see
     <thead>
         <tr>
             <th>${ec.l10n.localize("Balance Sheet")}</th>
-            <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-                <th class="text-right">${ec.l10n.localize("All Periods Posted")}</th>
-            </#if>
+            <#if showBeginningAndPosted && (timePeriodIdList?size > 1)><th class="text-right">${ec.l10n.localize("All Periods Posted")}</th></#if>
             <#list timePeriodIdList as timePeriodId>
                 <#if showBeginningAndPosted>
-                    <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (${ec.l10n.localize("Closed")}: ${timePeriodIdMap[timePeriodId].isClosed}) ${ec.l10n.localize("Beginning")}</th>
+                    <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} ${ec.l10n.localize("Beginning")}</th>
                     <th class="text-right">${ec.l10n.localize("Posted")}</th>
                     <th class="text-right">${ec.l10n.localize("Ending")}</th>
                 <#else>
-                    <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (${ec.l10n.localize("Closed")}: ${timePeriodIdMap[timePeriodId].isClosed}) ${ec.l10n.localize("Ending")}</th>
+                    <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} ${ec.l10n.localize("Ending")}</th>
                 </#if>
             </#list>
         </tr>
