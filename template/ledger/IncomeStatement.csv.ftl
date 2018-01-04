@@ -75,7 +75,6 @@ along with this software (see the LICENSE.md file). If not, see
 </#list>
 <#t><#if showDiff><@csvValue ec.l10n.format((grossProfitOnSalesMap[timePeriodIdList[1]]!0) - (grossProfitOnSalesMap[timePeriodIdList[0]]!0), numberFormat)/></#if>
 <#t>${"\n"}
-<#t><@showClass classInfoById.INCOME 1/>
 <#t><@showClass classInfoById.EXPENSE 1/>
 <#t>${ec.l10n.localize("Net Operating Income")},
 <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(netOperatingIncomeMap['ALL']!0, numberFormat)/>,</#if>
@@ -84,7 +83,15 @@ along with this software (see the LICENSE.md file). If not, see
 </#list>
 <#t><#if showDiff><@csvValue ec.l10n.format((netOperatingIncomeMap[timePeriodIdList[1]]!0) - (netOperatingIncomeMap[timePeriodIdList[0]]!0), numberFormat)/></#if>
 <#t>${"\n"}
+<#t><@showClass classInfoById.INCOME 1/>
 <#t><@showClass classInfoById.NON_OP_EXPENSE 1/>
+<#t>${ec.l10n.localize("Net Non-operating Income")},
+<#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(netNonOperatingIncomeMap['ALL']!0, numberFormat)/>,</#if>
+<#list timePeriodIdList as timePeriodId>
+    <#t><@csvValue ec.l10n.format(netNonOperatingIncomeMap[timePeriodId]!0, numberFormat)/><#if showDiff || timePeriodId_has_next>,</#if>
+</#list>
+<#t><#if showDiff><@csvValue ec.l10n.format((netNonOperatingIncomeMap[timePeriodIdList[1]]!0) - (netNonOperatingIncomeMap[timePeriodIdList[0]]!0), numberFormat)/></#if>
+<#t>${"\n"}
 <#t>${ec.l10n.localize("Net Income")},
 <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(netIncomeMap['ALL']!0, numberFormat)/>,</#if>
 <#list timePeriodIdList as timePeriodId>

@@ -126,7 +126,6 @@ along with this software (see the LICENSE.md file). If not, see
             </#if>
         </tr>
 
-        <@showClass classInfoById.INCOME 1/>
         <@showClass classInfoById.EXPENSE 1/>
         <tr class="text-success" style="border-bottom: solid black;">
             <td><strong>${ec.l10n.localize("Net Operating Income")}</strong></td>
@@ -141,7 +140,21 @@ along with this software (see the LICENSE.md file). If not, see
             </#if>
         </tr>
 
+        <@showClass classInfoById.INCOME 1/>
         <@showClass classInfoById.NON_OP_EXPENSE 1/>
+        <tr class="text-success" style="border-bottom: solid black;">
+            <td><strong>${ec.l10n.localize("Net Non-operating Income")}</strong></td>
+            <#if (timePeriodIdList?size > 1)>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(netNonOperatingIncomeMap['ALL']!0, currencyUomId)}</strong></td>
+            </#if>
+            <#list timePeriodIdList as timePeriodId>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency(netNonOperatingIncomeMap[timePeriodId]!0, currencyUomId)}</strong></td>
+            </#list>
+            <#if showDiff>
+                <td class="text-right"><strong>${ec.l10n.formatCurrency((netNonOperatingIncomeMap[timePeriodIdList[1]]!0) - (netNonOperatingIncomeMap[timePeriodIdList[0]]!0), currencyUomId)}</strong></td>
+            </#if>
+        </tr>
+
         <tr class="text-success" style="border-bottom: solid black;">
             <td><strong>${ec.l10n.localize("Net Income")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
