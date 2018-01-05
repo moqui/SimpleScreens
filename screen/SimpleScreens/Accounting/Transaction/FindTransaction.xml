@@ -85,8 +85,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display/></default-field></field>
             <field name="acctgTransId"><header-field show-order-by="true" title="TX ID"><text-find hide-options="true" default-operator="begins"/></header-field>
                 <default-field><link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
-            <field name="glJournalId"><header-field title="Journal"><text-find size="20" hide-options="true"/></header-field>
-                <default-field><display/></default-field></field>
 
             <field name="acctgTransTypeEnumId">
                 <header-field title="TX Type" show-order-by="true">
@@ -96,6 +94,19 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
+            <field name="glJournalId">
+                <header-field title="Journal">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${glJournalId}" text="${glJournalName}">
+                            <entity-find entity-name="mantle.ledger.transaction.GlJournal">
+                                <econdition field-name="isPosted" operator="not-equals" value="Y" or-null="true"/>
+                                <order-by field-name="glJournalName"/></entity-find>
+                        </entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.ledger.transaction.GlJournal" text="${glJournalId}: ${glJournalName}"/></default-field>
+            </field>
+
             <field name="organizationPartyId">
                 <header-field title="Organization"><drop-down allow-empty="true">
                     <entity-options key="${partyId}" text="PartyNameTemplate"><entity-find entity-name="mantle.party.PartyDetailAndRole">

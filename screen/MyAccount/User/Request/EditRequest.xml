@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Request" default-menu-index="1">
+
+    <parameter name="requestId" required="true"/>
+
+    <always-actions>
+        <entity-find entity-name="mantle.request.RequestParty" list="checkRpList">
+            <date-filter/><econdition field-name="requestId"/><econdition field-name="partyId" from="ec.user.userAccount.partyId"/></entity-find>
+        <if condition="!checkRpList"><return error="true" message="You are not a party to request ${requestId}"/></if>
+    </always-actions>
+
+    <transition name="updateRequest"><service-call name="mantle.request.RequestServices.update#Request"/><default-response url="."/></transition>
+    <transition name="updateStatus"><service-call name="mantle.request.RequestServices.update#Request"/><default-response url="."/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <transition name="addComment"><service-call name="mantle.request.RequestServices.add#RequestComment"/>
+        <default-response url="."/></transition>
+    <transition name="deleteComment"><service-call name="mantle.request.RequestServices.delete#RequestComment"/>
+        <default-response url="."/></transition>
+
+    <transition name="createContent"><service-call name="mantle.request.RequestServices.create#RequestContent"/>
+        <default-response url="."/></transition>
+    <transition name="updateContent"><service-call name="mantle.request.RequestServices.update#RequestContent"/>
+        <default-response url="."/></transition>
+    <transition name="downloadContent" read-only="true">
+        <parameter name="requestContentId"/>
+        <actions><entity-find-one entity-name="mantle.request.RequestContent" value-field="requestContent"/>
+            <script>ec.web.sendResourceResponse(requestContent?.contentLocation)</script></actions>
+        <default-response type="none"/>
+    </transition>
+
+    <subscreens>
+        <subscreens-item name="RequestCommentNested" location="component://SimpleScreens/screen/SimpleScreens/Request/EditRequest/RequestCommentNested.xml"/>
+        <subscreens-item name="RequestCommentReply" location="component://SimpleScreens/screen/SimpleScreens/Request/EditRequest/RequestCommentReply.xml"/>
+        <subscreens-item name="RequestCommentUpdate" location="component://SimpleScreens/screen/SimpleScreens/Request/EditRequest/RequestCommentUpdate.xml"/>
+    </subscreens>
+
+    <actions>
+        <entity-find-one entity-name="mantle.request.Request" value-field="request"/>
+        <set field="statusId" from="request.statusId"/>
+        <set field="changedEntityName" value="mantle.request.Request"/>
+        <set field="pkPrimaryValue" from="requestId"/>
+
+        <entity-find entity-name="mantle.request.RequestParty" list="customerRpList">
+            <date-filter/><econdition field-name="requestId"/><econdition field-name="roleTypeId" value="Customer"/></entity-find>
+        <set field="customerRp" from="customerRpList?.getAt(0)"/>
+        <entity-find entity-name="mantle.request.RequestParty" list="assignToRpList">
+            <date-filter/><econdition field-name="requestId"/><econdition field-name="roleTypeId" value="Assignee"/></entity-find>
+        <set field="assignToRp" from="assignToRpList?.getAt(0)"/>
+
+        <entity-find entity-name="mantle.request.RequestNote" list="requestNoteList">
+            <econdition field-name="requestId"/><order-by field-name="-noteDate"/></entity-find>
+    </actions>
+    <widgets>
+        <container-row><row-col md="7">
+            <label text="Request #${requestId}" type="h4"/>
+
+            <form-single name="EditRequest" transition="updateRequest" map="request"
+                    extends="component://SimpleScreens/screen/SimpleScreens/Request/EditRequest.xml#EditRequest">
+                <field name="facilityId"><default-field><ignored/></default-field></field>
+                <field name="assignToPartyId"><default-field><ignored/></default-field></field>
+
+                <field-layout>
+                    <field-row><field-ref name="requestId"/><field-ref name="requestDate"/></field-row>
+                    <field-row><field-ref name="filedByPartyId"/></field-row>
+                    <field-row><field-ref name="displayCustomerId"/><field-ref name="displayAssigneeId"/></field-row>
+                    <field-row><field-ref name="rootWorkEffortId"/><field-ref name="productStoreId"/></field-row>
+                    <field-row><field-ref name="priority"/><field-ref name="responseRequiredDate"/></field-row>
+                    <field-row><field-ref name="requestTypeEnumId"/><field-ref name="requestResolutionEnumId"/></field-row>
+                    <fields-not-referenced/>
+                </field-layout>
+            </form-single>
+
+            <section-include name="CommentsSection" location="component://SimpleScreens/screen/SimpleScreens/Request/EditRequest.xml"/>
+        </row-col><row-col md="5">
+            <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+            <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+            <container-box><box-header title="Parties"/><box-body-nopad>
+                <form-list name="UpdatePartyForm" list="rpapList" skip-form="true">
+                    <entity-find entity-name="mantle.request.RequestParty" list="rpapList">
+                        <date-filter/><econdition field-name="requestId"/><order-by field-name="roleTypeId"/></entity-find>
+
+                    <field name="roleTypeId"><default-field title="Role">
+                        <display-entity entity-name="mantle.party.RoleType"/></default-field>
+                    </field>
+                    <field name="partyId"><default-field title="Name">
+                        <link url="editParty" text="PartyNameTemplate" entity-name="mantle.party.PartyDetail" link-type="anchor"/>
+                        <display text=""/>
+                    </default-field></field>
+                    <!-- <field name="receiveNotifications"><default-field title="Notify"><display/></default-field></field> -->
+                </form-list>
+            </box-body-nopad></container-box>
+
+            <section name="NotesSection"><widgets>
+                <container-box><box-header title="Notes"/><box-body>
+                    <section-iterate name="NoteIterateSection" list="requestNoteList" entry="note"><actions>
+                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                            <field-map field-name="userId" from="note.userId"/></entity-find-one>
+                    </actions><widgets>
+                        <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: note.userId}) at ${ec.l10n.format(note.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
+                        <label text="${note.noteText}" type="p"/>
+                    </widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
+
+            <section-include name="ContentSection" location="component://SimpleScreens/screen/SimpleScreens/Request/EditRequest.xml"/>
+        </row-col></container-row>
+    </widgets>
+</screen>

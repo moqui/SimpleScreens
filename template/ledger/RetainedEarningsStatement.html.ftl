@@ -14,6 +14,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#-- See the mantle.ledger.LedgerReportServices.run#RetainedEarningsStatement service for data preparation -->
 
 <#assign showDetail = (detail! == "true")>
+<#assign currencyFormat = currencyFormat!"#,##0.00">
 <#assign retainedEarningsInfo = classInfoById.RETAINED_EARNINGS!>
 
 <#macro showClassTotals classInfo>
@@ -21,15 +22,15 @@ along with this software (see the LICENSE.md file). If not, see
         <td style="padding-left: 0.3em;"><strong>${ec.l10n.localize(classInfo.className)}</strong></td>
         <#if (timePeriodIdList?size > 1)>
             <#assign beginningClassBalance = (classInfo.totalBalanceByTimePeriod['ALL']!0) - (classInfo.totalPostedByTimePeriod['ALL']!0)>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedByTimePeriod['ALL']!0, currencyUomId)}</strong></td>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency(beginningClassBalance, currencyUomId)}</strong></td>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalBalanceByTimePeriod['ALL']!0, currencyUomId)}</strong></td>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(classInfo.totalPostedByTimePeriod['ALL']!0, currencyFormat)}</strong></td>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(beginningClassBalance, currencyFormat)}</strong></td>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(classInfo.totalBalanceByTimePeriod['ALL']!0, currencyFormat)}</strong></td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
             <#assign beginningClassBalance = (classInfo.totalBalanceByTimePeriod[timePeriodId]!0) - (classInfo.totalPostedByTimePeriod[timePeriodId]!0)>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalPostedByTimePeriod[timePeriodId]!0, currencyUomId)}</strong></td>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency(beginningClassBalance, currencyUomId)}</strong></td>
-            <td class="text-right"><strong>${ec.l10n.formatCurrency(classInfo.totalBalanceByTimePeriod[timePeriodId]!0, currencyUomId)}</strong></td>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(classInfo.totalPostedByTimePeriod[timePeriodId]!0, currencyFormat)}</strong></td>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(beginningClassBalance, currencyFormat)}</strong></td>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(classInfo.totalBalanceByTimePeriod[timePeriodId]!0, currencyFormat)}</strong></td>
         </#list>
     </tr>
 </#macro>
@@ -44,7 +45,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <th class="text-right">Ending</th>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} (Closed: ${timePeriodIdMap[timePeriodId].isClosed}) Posted</th>
+                <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} Posted</th>
                 <th class="text-right">Beginning</th>
                 <th class="text-right">Ending</th>
             </#list>
@@ -56,12 +57,12 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-info">
             <td><strong>${ec.l10n.localize("Net Income")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeMap['ALL']!0, currencyUomId)}</strong></td>
-                <td class="text-right"><strong> </strong></td><td class="text-right"><strong> </strong></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(netIncomeMap['ALL']!0, currencyFormat)}</strong></td>
+                <td class="text-right text-mono"><strong> </strong></td><td class="text-right text-mono"><strong> </strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(netIncomeMap[timePeriodId]!0, currencyUomId)}</strong></td>
-                <td class="text-right"><strong> </strong></td><td class="text-right"><strong> </strong></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(netIncomeMap[timePeriodId]!0, currencyFormat)}</strong></td>
+                <td class="text-right text-mono"><strong> </strong></td><td class="text-right text-mono"><strong> </strong></td>
             </#list>
         </tr>
 
@@ -70,27 +71,27 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-success">
             <td><strong>${ec.l10n.localize("Net Earnings")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency((netIncomeMap['ALL']!0) + (classInfoById.DISTRIBUTION.totalPostedByTimePeriod['ALL']!0), currencyUomId)}</strong></td>
-                <td class="text-right"> </td><td class="text-right"> </td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format((netIncomeMap['ALL']!0) + (classInfoById.DISTRIBUTION.totalPostedByTimePeriod['ALL']!0), currencyFormat)}</strong></td>
+                <td class="text-right text-mono"> </td><td class="text-right text-mono"> </td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency((netIncomeMap[timePeriodId]!0) + (classInfoById.DISTRIBUTION.totalPostedByTimePeriod[timePeriodId]!0), currencyUomId)}</strong></td>
-                <td class="text-right"> </td><td class="text-right"> </td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format((netIncomeMap[timePeriodId]!0) + (classInfoById.DISTRIBUTION.totalPostedByTimePeriod[timePeriodId]!0), currencyFormat)}</strong></td>
+                <td class="text-right text-mono"> </td><td class="text-right text-mono"> </td>
             </#list>
         </tr>
         <tr class="text-success">
             <td><strong>${ec.l10n.localize("Calculated Retained Earnings")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
                 <#assign beginningClassBalance = (retainedEarningsInfo.totalBalanceByTimePeriod['ALL']!0) - (retainedEarningsInfo.totalPostedByTimePeriod['ALL']!0)>
-                <td class="text-right"><strong> </strong></td>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(beginningClassBalance, currencyUomId)}</strong></td>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(beginningClassBalance + (netIncomeMap['ALL']!0) + (classInfoById.DISTRIBUTION.totalPostedByTimePeriod['ALL']!0), currencyUomId)}</strong></td>
+                <td class="text-right text-mono"><strong> </strong></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(beginningClassBalance, currencyFormat)}</strong></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(beginningClassBalance + (netIncomeMap['ALL']!0) + (classInfoById.DISTRIBUTION.totalPostedByTimePeriod['ALL']!0), currencyFormat)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
                 <#assign beginningClassBalance = (retainedEarningsInfo.totalBalanceByTimePeriod[timePeriodId]!0) - (retainedEarningsInfo.totalPostedByTimePeriod[timePeriodId]!0)>
-                <td class="text-right"><strong> </strong></td>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(beginningClassBalance, currencyUomId)}</strong></td>
-                <td class="text-right"><strong>${ec.l10n.formatCurrency(beginningClassBalance + (netIncomeMap[timePeriodId]!0) + (classInfoById.DISTRIBUTION.totalPostedByTimePeriod[timePeriodId]!0), currencyUomId)}</strong></td>
+                <td class="text-right text-mono"><strong> </strong></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(beginningClassBalance, currencyFormat)}</strong></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(beginningClassBalance + (netIncomeMap[timePeriodId]!0) + (classInfoById.DISTRIBUTION.totalPostedByTimePeriod[timePeriodId]!0), currencyFormat)}</strong></td>
             </#list>
         </tr>
     </tbody>

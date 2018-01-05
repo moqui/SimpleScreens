@@ -21,6 +21,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createRequest"><service-call name="mantle.request.RequestServices.create#Request"/>
         <default-response url="."/></transition>
 
+    <transition name="projectSummary"><default-response url="//${appRoot}/Project/ProjectSummary"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
@@ -40,6 +43,20 @@ along with this software (see the LICENSE.md file). If not, see
                                 <order-by field-name="storeName"/></entity-find></entity-options>
                     </drop-down>
                 </default-field></field>
+                <field name="rootWorkEffortId"><default-field title="Project">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${workEffortId}" text="WorkEffortNameTemplate">
+                            <entity-find entity-name="mantle.work.effort.WorkEffortAndParty">
+                                <econditions combine="or">
+                                    <econdition field-name="visibilityEnumId" operator="in" value="WevGeneral,WevAllUsers"/>
+                                    <econditions><date-filter/><econdition field-name="partyId" from="ec.user.userAccount.partyId"/></econditions>
+                                </econditions>
+                                <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+                                <order-by field-name="workEffortId"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </default-field></field>
                 <field name="facilityId"><default-field title="Facility">
                     <drop-down allow-empty="true">
                         <entity-options key="${facilityId}" text="FacilityNameTemplate">
@@ -53,7 +70,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <text-line ac-transition="searchPartyList" ac-min-length="2" size="50"/>
                 </default-field></field>
 
-                <field name="requestName"><default-field title="Request Name"><text-line size="60"/></default-field></field>
                 <field name="priority"><default-field>
                     <drop-down no-current-selected-key="5"><option key="1"/><option key="2"/><option key="3"/><option key="4"/>
                         <option key="5"/><option key="6"/><option key="7"/><option key="8"/><option key="9"/></drop-down>
@@ -69,6 +85,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
                         <set field="statusTypeId" value="Request"/><set field="noCurrentSelectedKey" value="ReqSubmitted"/></widget-template-include>
                 </default-field></field>
+
+                <field name="requestName"><default-field title="Request Name"><text-line size="60"/></default-field></field>
                 <field name="description"><default-field title="Description"><text-area rows="10"/></default-field></field>
 
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
@@ -108,9 +126,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="Name" show-order-by="true"><text-find size="30"/></header-field>
                 <default-field><link url="editRequest" text="${requestName}" link-type="anchor"/></default-field>
             </field>
-            <field name="customerPartyId" from="customerRp?.partyId"><default-field title="Customer">
-                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
-            </default-field></field>
             <field name="productStoreId">
                 <header-field title="Store">
                     <drop-down allow-empty="true">
@@ -121,9 +136,30 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="mantle.product.store.ProductStore" text="${storeName}"/></default-field>
             </field>
-            <field name="assignToPartyId" from="assigneeRp?.partyId"><default-field title="Assigned To">
-                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
-            </default-field></field>
+            <field name="rootWorkEffortId">
+                <header-field title="Project"><drop-down allow-empty="true">
+                    <entity-options key="${workEffortId}" text="WorkEffortNameTemplate">
+                        <entity-find entity-name="mantle.work.effort.WorkEffortAndParty">
+                            <econditions combine="or">
+                                <econdition field-name="visibilityEnumId" operator="in" value="WevGeneral,WevAllUsers"/>
+                                <econditions><date-filter/><econdition field-name="partyId" from="ec.user.userAccount.partyId"/></econditions>
+                            </econditions>
+                            <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+                            <order-by field-name="workEffortId"/>
+                        </entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><link url="projectSummary" entity-name="mantle.work.effort.WorkEffort" text="WorkEffortNameTemplate" link-type="anchor"/></default-field>
+            </field>
+            <field name="facilityId">
+                <header-field title="Facility"><drop-down allow-empty="true">
+                    <entity-options key="${facilityId}" text="FacilityNameTemplate">
+                        <entity-find entity-name="mantle.facility.Facility" list="facilityList">
+                            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                            <order-by field-name="facilityName"/></entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
+
             <field name="requestTypeEnumId">
                 <header-field title="Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -156,15 +192,23 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="Due Date" show-order-by="true"><date-period allow-empty="true"/></header-field>
                 <default-field><display/></default-field>
             </field>
+
+            <field name="customerPartyId" from="customerRp?.partyId"><default-field title="Customer">
+                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
+            </default-field></field>
+            <field name="assignToPartyId" from="assigneeRp?.partyId"><default-field title="Assigned To">
+                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
+            </default-field></field>
+
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="priority"/></form-list-column>
             <form-list-column><field-ref name="requestDate"/><field-ref name="responseRequiredDate"/></form-list-column>
             <form-list-column><field-ref name="requestName"/><field-ref name="requestId"/></form-list-column>
-            <form-list-column><field-ref name="customerPartyId"/><field-ref name="productStoreId"/></form-list-column>
+            <form-list-column><field-ref name="productStoreId"/><field-ref name="rootWorkEffortId"/><field-ref name="facilityId"/></form-list-column>
             <form-list-column><field-ref name="requestTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="requestResolutionEnumId"/></form-list-column>
-            <form-list-column><field-ref name="assignToPartyId"/></form-list-column>
+            <form-list-column><field-ref name="customerPartyId"/><field-ref name="assignToPartyId"/></form-list-column>
         </form-list>
     </widgets>
 </screen>

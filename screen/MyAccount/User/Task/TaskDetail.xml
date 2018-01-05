@@ -17,6 +17,12 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="workEffortId" required="true"/>
 
+    <always-actions>
+        <entity-find entity-name="mantle.work.effort.WorkEffortParty" list="checkWepList">
+            <date-filter/><econdition field-name="workEffortId"/><econdition field-name="partyId" from="ec.user.userAccount.partyId"/></entity-find>
+        <if condition="!checkWepList"><return error="true" message="You are not a party to task ${workEffortId}"/></if>
+    </always-actions>
+
     <transition name="timeEntries"><default-response url="../../TimeEntries"/></transition>
 
     <transition name="updateTask"><service-call name="update#mantle.work.effort.WorkEffort"/><default-response url="."/></transition>
