@@ -38,7 +38,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#t><#if showPercents>
             <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
             <#assign currentAmt = classInfo.balanceByTimePeriod[timePeriodId]!0>
-            <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+            <#t><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
         </#if>
     </#list>
     <#t>${"\n"}
@@ -57,7 +57,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <#t><#if showPercents>
                     <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                     <#assign currentAmt = glAccountInfo.balanceByTimePeriod[timePeriodId]!0>
-                    <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+                    <#t><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
                 </#if>
             </#list>
             <#t>${"\n"}
@@ -77,7 +77,7 @@ along with this software (see the LICENSE.md file). If not, see
             <#t><#if showPercents>
                 <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                 <#assign currentAmt = classInfo.totalBalanceByTimePeriod[timePeriodId]!0>
-                <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+                <#t><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
             </#if>
         </#list>
         <#t>${"\n"}
@@ -128,7 +128,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#t><#if showPercents>
             <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
             <#assign currentAmt = equityTotalMap.totalBalance[timePeriodId]!0>
-            <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+            <#t><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
         </#if>
     </#list>
     <#t>${"\n"}
@@ -145,7 +145,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#t><#if showPercents>
             <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
             <#assign currentAmt = liabilityEquityTotalMap.totalBalance[timePeriodId]!0>
-            <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+            <#t><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
         </#if>
     </#list>
     <#t>${"\n"}
@@ -161,7 +161,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#t><#if showPercents>
         <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
         <#assign currentAmt = netIncomeOut.totalBalance[timePeriodId]!0>
-        <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+        <#t><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
     </#if>
 </#list>
 <#t>${"\n"}
@@ -178,7 +178,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#t><#if showPercents>
         <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
         <#assign currentAmt = (liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0)>
-        <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+        <#t><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
     </#if>
 </#list>
 <#t>${"\n"}

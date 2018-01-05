@@ -39,7 +39,7 @@ along with this software (see the LICENSE.md file). If not, see
             <#if showPercents>
                 <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                 <#assign currentAmt = classInfo.balanceByTimePeriod[timePeriodId]!0>
-                <td class="text-right text-mono">${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</td>
+                <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
             </#if>
         </#list>
     </tr>
@@ -67,7 +67,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <#if showPercents>
                         <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                         <#assign currentAmt = glAccountInfo.balanceByTimePeriod[timePeriodId]!0>
-                        <td class="text-right text-mono">${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</td>
+                        <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
                     </#if>
                 </#list>
             </tr>
@@ -94,7 +94,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <#if showPercents>
                     <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                     <#assign currentAmt = classInfo.totalBalanceByTimePeriod[timePeriodId]!0>
-                    <td class="text-right text-mono">${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</td>
+                    <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
                 </#if>
             </#list>
         </tr>
@@ -160,7 +160,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <#if showPercents>
                         <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                         <#assign currentAmt = equityTotalMap.totalBalance[timePeriodId]!0>
-                        <td class="text-right text-mono">${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</td>
+                        <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
                     </#if>
                 </#list>
             </tr>
@@ -180,7 +180,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <#if showPercents>
                     <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                     <#assign currentAmt = liabilityEquityTotalMap.totalBalance[timePeriodId]!0>
-                    <td class="text-right text-mono">${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</td>
+                    <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
                 </#if>
             </#list>
         </tr>
@@ -200,7 +200,7 @@ along with this software (see the LICENSE.md file). If not, see
             <#if showPercents>
                 <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                 <#assign currentAmt = netIncomeOut.totalBalance[timePeriodId]!0>
-                <td class="text-right text-mono">${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</td>
+                <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
             </#if>
         </#list>
         </tr>
@@ -219,7 +219,7 @@ along with this software (see the LICENSE.md file). If not, see
             <#if showPercents>
                 <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                 <#assign currentAmt = (liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0)>
-                <td class="text-right text-mono">${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</td>
+                <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
             </#if>
         </#list>
         </tr>

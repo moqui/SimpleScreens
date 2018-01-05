@@ -33,7 +33,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#t><#if showPercents>
             <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
             <#assign currentAmt = (classInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
-            <#t>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}<#if showDiff || timePeriodId_has_next>,</#if>
+            <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
         </#if>
     </#list>
     <#t><#if showDiff><@csvValue ec.l10n.format(((classInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)/></#if>
@@ -47,7 +47,7 @@ along with this software (see the LICENSE.md file). If not, see
             <#t><#if showPercents>
                 <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
                 <#assign currentAmt = (glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
-                <#t>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}<#if showDiff || timePeriodId_has_next>,</#if>
+                <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
             </#if>
         </#list>
         <#t><#if showDiff><@csvValue ec.l10n.format(((glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)/></#if>
@@ -63,7 +63,7 @@ along with this software (see the LICENSE.md file). If not, see
             <#t><#if showPercents>
                 <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
                 <#assign currentAmt = (classInfo.totalPostedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
-                <#t>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}<#if showDiff || timePeriodId_has_next>,</#if>
+                <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
             </#if>
         </#list>
         <#t><#if showDiff><@csvValue ec.l10n.format(((classInfo.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)/></#if>
@@ -98,7 +98,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#t><#if showPercents>
         <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
         <#assign currentAmt = grossProfitOnSalesMap[timePeriodId]!0>
-        <#t>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}<#if showDiff || timePeriodId_has_next>,</#if>
+        <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
     </#if>
 </#list>
 <#t><#if showDiff><@csvValue ec.l10n.format((grossProfitOnSalesMap[timePeriodIdList[1]]!0) - (grossProfitOnSalesMap[timePeriodIdList[0]]!0), currencyFormat)/></#if>
@@ -111,7 +111,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#t><#if showPercents>
         <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
         <#assign currentAmt = netOperatingIncomeMap[timePeriodId]!0>
-        <#t>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}<#if showDiff || timePeriodId_has_next>,</#if>
+        <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
     </#if>
 </#list>
 <#t><#if showDiff><@csvValue ec.l10n.format((netOperatingIncomeMap[timePeriodIdList[1]]!0) - (netOperatingIncomeMap[timePeriodIdList[0]]!0), currencyFormat)/></#if>
@@ -125,7 +125,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#t><#if showPercents>
         <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
         <#assign currentAmt = netNonOperatingIncomeMap[timePeriodId]!0>
-        <#t>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}<#if showDiff || timePeriodId_has_next>,</#if>
+        <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
     </#if>
 </#list>
 <#t><#if showDiff><@csvValue ec.l10n.format((netNonOperatingIncomeMap[timePeriodIdList[1]]!0) - (netNonOperatingIncomeMap[timePeriodIdList[0]]!0), currencyFormat)/></#if>
@@ -137,7 +137,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#t><#if showPercents>
         <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
         <#assign currentAmt = netIncomeMap[timePeriodId]!0>
-        <#t>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}<#if showDiff || timePeriodId_has_next>,</#if>
+        <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
     </#if>
 </#list>
 <#t><#if showDiff><@csvValue ec.l10n.format((netIncomeMap[timePeriodIdList[1]]!0) - (netIncomeMap[timePeriodIdList[0]]!0), currencyFormat)/></#if>
