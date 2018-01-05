@@ -107,7 +107,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <td class="text-right text-mono"><strong>${ec.l10n.format((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0), currencyFormat)}</strong></td>
             </#list>
             <#if showDiff>
-                <td class="text-righ text-monot"><strong>${ec.l10n.format((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0) - (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0), currencyFormat)}</strong></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0) - (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0), currencyFormat)}</strong></td>
             </#if>
         </tr>
 
@@ -129,7 +129,7 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-success" style="border-bottom: solid black;">
             <td><strong>${ec.l10n.localize("Net Operating Income")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-righ text-monot"><strong>${ec.l10n.format(netOperatingIncomeMap['ALL']!0, currencyFormat)}</strong></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(netOperatingIncomeMap['ALL']!0, currencyFormat)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
                 <td class="text-right text-mono"><strong>${ec.l10n.format(netOperatingIncomeMap[timePeriodId]!0, currencyFormat)}</strong></td>
