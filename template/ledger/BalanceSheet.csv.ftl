@@ -35,7 +35,11 @@ along with this software (see the LICENSE.md file). If not, see
             <#t><@csvValue ec.l10n.format(classInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)/>,
         </#if><#t>
         <#t><@csvValue ec.l10n.format(classInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
-        <#t><#if showPercents><#-- TODO --><#if timePeriodId_has_next>,</#if></#if>
+        <#t><#if showPercents>
+            <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
+            <#assign currentAmt = classInfo.balanceByTimePeriod[timePeriodId]!0>
+            <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+        </#if>
     </#list>
     <#t>${"\n"}
     <#list classInfo.glAccountInfoList! as glAccountInfo>
@@ -50,7 +54,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <#t><@csvValue ec.l10n.format(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)/>,
                 </#if><#t>
                 <#t><@csvValue ec.l10n.format(glAccountInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
-                <#t><#if showPercents><#-- TODO --><#if timePeriodId_has_next>,</#if></#if>
+                <#t><#if showPercents>
+                    <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
+                    <#assign currentAmt = glAccountInfo.balanceByTimePeriod[timePeriodId]!0>
+                    <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+                </#if>
             </#list>
             <#t>${"\n"}
         </#if>
@@ -66,7 +74,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <#t><@csvValue ec.l10n.format(classInfo.totalPostedByTimePeriod[timePeriodId]!0, currencyFormat)/>,
             </#if><#t>
             <#t><@csvValue ec.l10n.format(classInfo.totalBalanceByTimePeriod[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
-            <#t><#if showPercents><#-- TODO --><#if timePeriodId_has_next>,</#if></#if>
+            <#t><#if showPercents>
+                <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
+                <#assign currentAmt = classInfo.totalBalanceByTimePeriod[timePeriodId]!0>
+                <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+            </#if>
         </#list>
         <#t>${"\n"}
     </#if>
@@ -94,7 +106,9 @@ along with this software (see the LICENSE.md file). If not, see
             <#t><@csvValue ec.l10n.format(netAssetTotalMap.totalPosted[timePeriodId]!0, currencyFormat)/>,
         </#if><#t>
         <#t><@csvValue ec.l10n.format(netAssetTotalMap.totalBalance[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
-        <#t><#if showPercents><#-- TODO --><#if timePeriodId_has_next>,</#if></#if>
+        <#t><#if showPercents>
+            <#t>${ec.l10n.format(1, percentFormat)}<#if timePeriodId_has_next>,</#if>
+        </#if>
     </#list>
     <#t>${"\n"}
 </#if>
@@ -111,7 +125,11 @@ along with this software (see the LICENSE.md file). If not, see
             <#t><@csvValue ec.l10n.format(equityTotalMap.totalPosted[timePeriodId]!0, currencyFormat)/>,
         </#if><#t>
         <#t><@csvValue ec.l10n.format(equityTotalMap.totalBalance[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
-        <#t><#if showPercents><#-- TODO --><#if timePeriodId_has_next>,</#if></#if>
+        <#t><#if showPercents>
+            <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
+            <#assign currentAmt = equityTotalMap.totalBalance[timePeriodId]!0>
+            <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+        </#if>
     </#list>
     <#t>${"\n"}
 </#if>
@@ -124,7 +142,11 @@ along with this software (see the LICENSE.md file). If not, see
             <#t><@csvValue ec.l10n.format(liabilityEquityTotalMap.totalPosted[timePeriodId]!0, currencyFormat)/>,
         </#if><#t>
         <#t><@csvValue ec.l10n.format(liabilityEquityTotalMap.totalBalance[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
-        <#t><#if showPercents><#-- TODO --><#if timePeriodId_has_next>,</#if></#if>
+        <#t><#if showPercents>
+            <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
+            <#assign currentAmt = liabilityEquityTotalMap.totalBalance[timePeriodId]!0>
+            <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+        </#if>
     </#list>
     <#t>${"\n"}
 </#if>
@@ -136,18 +158,27 @@ along with this software (see the LICENSE.md file). If not, see
         <#t><@csvValue ec.l10n.format(netIncomeOut.totalPosted[timePeriodId]!0, currencyFormat)/>,
     </#if><#t>
     <#t><@csvValue ec.l10n.format(netIncomeOut.totalBalance[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
-    <#t><#if showPercents><#-- TODO --><#if timePeriodId_has_next>,</#if></#if>
+    <#t><#if showPercents>
+        <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
+        <#assign currentAmt = netIncomeOut.totalBalance[timePeriodId]!0>
+        <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+    </#if>
 </#list>
 <#t>${"\n"}
 <#t>${ec.l10n.localize("Liability + Equity + Unbooked Net Income")},
 <#t><#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-    <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalPosted['ALL']!0) + (netIncomeOut.totalPosted['ALL']!0), currencyFormat)/>,</#if>
+    <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalPosted['ALL']!0) + (netIncomeOut.totalPosted['ALL']!0), currencyFormat)/>,
+</#if>
 <#list timePeriodIdList as timePeriodId>
     <#t><#if showBeginningAndPosted>
         <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) - (liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0) - (netIncomeOut.totalPosted[timePeriodId]!0), currencyFormat)/>,
         <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalPosted[timePeriodId]!0), currencyFormat)/>,
     </#if><#t>
     <#t><@csvValue ec.l10n.format((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0), currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
-    <#t><#if showPercents><#-- TODO --><#if timePeriodId_has_next>,</#if></#if>
+    <#t><#if showPercents>
+        <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
+        <#assign currentAmt = (liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0)>
+        <#t>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}<#if timePeriodId_has_next>,</#if>
+    </#if>
 </#list>
 <#t>${"\n"}
