@@ -17,24 +17,25 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign showDiff = (timePeriodIdList?size == 2)>
 <#assign showCharts = (charts! == "true")>
 <#assign currencyFormat = currencyFormat!"#,##0.00">
+<#assign currencyFormatNeg = currencyFormat!"-#,##0.00;#,##0.00">
 <#assign backgroundColors = ['rgba(92, 184, 92, 0.5)','rgba(91, 192, 222, 0.5)','rgba(240, 173, 78, 0.5)','rgba(217, 83, 79, 0.5)',
 'rgba(60, 118, 61, 0.5)','rgba(49, 112, 143, 0.5)','rgba(138, 109, 59, 0.5)','rgba(169, 68, 66, 0.5)',
 'rgba(223, 240, 216, 0.6)','rgba(217, 237, 247, 0.6)','rgba(252, 248, 227, 0.6)','rgba(242, 222, 222, 0.6)']>
 
-<#macro showClass classInfo depth>
+<#macro showClass classInfo depth showLess=false>
     <#-- skip classes with nothing posted -->
     <#if (classInfo.totalPostedNoClosingByTimePeriod['ALL']!0) == 0><#return></#if>
-
+    <#if showLess><#assign negMult = -1><#else><#assign negMult = 1></#if>
     <tr>
-        <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}</td>
+        <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}<#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></td>
         <#if (timePeriodIdList?size > 1)>
-            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(classInfo.postedNoClosingByTimePeriod['ALL']!0, currencyFormat)}</td>
+            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format((classInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
-            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(classInfo.postedNoClosingByTimePeriod[timePeriodId]!0, currencyFormat)}</td>
+            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format((classInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)}</td>
         </#list>
         <#if showDiff>
-            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format((classInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0), currencyFormat)}</td>
+            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(((classInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)}</td>
         </#if>
     </tr>
     <#list classInfo.glAccountInfoList! as glAccountInfo>
@@ -42,20 +43,20 @@ along with this software (see the LICENSE.md file). If not, see
             <tr>
                 <td style="padding-left: ${(depth-1) * 2 + 3}.3em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
                 <#if (timePeriodIdList?size > 1)>
-                    <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format(glAccountInfo.postedNoClosingByTimePeriod['ALL']!0, currencyFormat)}</td>
+                    <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</td>
                 </#if>
                 <#list timePeriodIdList as timePeriodId>
                     <td class="text-right text-mono" style="padding-right:${depth+2}em;">
                         <#if findEntryUrl??>
                             <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                            <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0, currencyFormat)}</a>
+                            <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)}</a>
                         <#else>
-                            ${ec.l10n.format(glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0, currencyFormat)}
+                            ${ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)}
                         </#if>
                     </td>
                 </#list>
                 <#if showDiff>
-                    <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0), currencyFormat)}</td>
+                    <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format(((glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)}</td>
                 </#if>
             </tr>
         <#else>
@@ -63,22 +64,22 @@ along with this software (see the LICENSE.md file). If not, see
         </#if>
     </#list>
     <#list classInfo.childClassInfoList as childClassInfo>
-        <@showClass childClassInfo depth + 1/>
+        <@showClass childClassInfo depth+1 showLess/>
     </#list>
     <#if classInfo.childClassInfoList?has_content>
         <tr<#if depth == 1> class="text-info"</#if>>
-            <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize(classInfo.className + " Total")}</strong></td>
+            <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize(classInfo.className + " Total")}</strong><#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></td>
             <#if (timePeriodIdList?size > 1)>
                 <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>
-                    ${ec.l10n.format(classInfo.totalPostedNoClosingByTimePeriod['ALL']!0, currencyFormat)}</strong></td>
+                    ${ec.l10n.format((classInfo.totalPostedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
                 <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>
-                    ${ec.l10n.format(classInfo.totalPostedNoClosingByTimePeriod[timePeriodId]!0, currencyFormat)}</strong></td>
+                    ${ec.l10n.format((classInfo.totalPostedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)}</strong></td>
             </#list>
             <#if showDiff>
                 <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>
-                    ${ec.l10n.format((classInfo.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0), currencyFormat)}</strong></td>
+                    ${ec.l10n.format(((classInfo.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)}</strong></td>
             </#if>
         </tr>
     </#if>
@@ -96,9 +97,9 @@ along with this software (see the LICENSE.md file). If not, see
     <tbody>
 
         <@showClass classInfoById.REVENUE 1/>
-        <@showClass classInfoById.CONTRA_REVENUE 1/>
-        <tr class="text-info">
-            <td><strong>${ec.l10n.localize("Net Revenue")}</strong> (${ec.l10n.localize("Revenue")} + ${ec.l10n.localize("Contra Revenue")})</td>
+        <@showClass classInfoById.CONTRA_REVENUE 1 true/>
+        <tr class="text-success">
+            <td><strong>${ec.l10n.localize("Net Revenue")}</strong> (${ec.l10n.localize("Revenue")} - ${ec.l10n.localize("Contra Revenue")})</td>
             <#if (timePeriodIdList?size > 1)>
                 <td class="text-right text-mono"><strong>${ec.l10n.format((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod['ALL']!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod['ALL']!0), currencyFormat)}</strong></td>
             </#if>
@@ -110,9 +111,9 @@ along with this software (see the LICENSE.md file). If not, see
             </#if>
         </tr>
 
-        <@showClass classInfoById.COST_OF_SALES 1/>
+        <@showClass classInfoById.COST_OF_SALES 1 true/>
         <tr class="text-success" style="border-bottom: solid black;">
-            <td><strong>${ec.l10n.localize("Gross Profit On Sales")}</strong> (${ec.l10n.localize("Net Revenue")} + ${ec.l10n.localize("Cost of Sales")})</td>
+            <td><strong>${ec.l10n.localize("Gross Profit On Sales")}</strong> (${ec.l10n.localize("Net Revenue")} - ${ec.l10n.localize("Cost of Sales")})</td>
             <#if (timePeriodIdList?size > 1)>
                 <td class="text-right text-mono"><strong>${ec.l10n.format(grossProfitOnSalesMap['ALL']!0, currencyFormat)}</strong></td>
             </#if>
@@ -124,7 +125,7 @@ along with this software (see the LICENSE.md file). If not, see
             </#if>
         </tr>
 
-        <@showClass classInfoById.EXPENSE 1/>
+        <@showClass classInfoById.EXPENSE 1 true/>
         <tr class="text-success" style="border-bottom: solid black;">
             <td><strong>${ec.l10n.localize("Net Operating Income")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
@@ -139,7 +140,7 @@ along with this software (see the LICENSE.md file). If not, see
         </tr>
 
         <@showClass classInfoById.INCOME 1/>
-        <@showClass classInfoById.NON_OP_EXPENSE 1/>
+        <@showClass classInfoById.NON_OP_EXPENSE 1 true/>
         <tr class="text-success" style="border-bottom: solid black;">
             <td><strong>${ec.l10n.localize("Net Non-operating Income")}</strong></td>
             <#if (timePeriodIdList?size > 1)>
