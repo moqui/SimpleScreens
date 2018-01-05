@@ -15,7 +15,9 @@ along with this software (see the LICENSE.md file). If not, see
 
 <#assign showDetail = (detail! == "true")>
 <#assign showBeginningAndPosted = (beginningAndPosted! == "true")>
+<#assign showPercents = (percents! == "true")>
 <#assign currencyFormat = currencyFormat!"#,##0.00">
+<#assign percentFormat = percentFormat!"0.0%">
 
 <#macro showClass classInfo depth>
     <#-- skip classes with no balance -->
@@ -34,6 +36,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(classInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}</td>
             </#if>
             <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(classInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)}</td>
+            <#if showPercents><td class="text-right text-mono"><#-- TODO --></td></#if>
         </#list>
     </tr>
     <#list classInfo.glAccountInfoList! as glAccountInfo>
@@ -57,6 +60,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </td>
                     </#if>
                     <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format(glAccountInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)}</td>
+                    <#if showPercents><td class="text-right text-mono"><#-- TODO --></td></#if>
                 </#list>
             </tr>
         <#else>
@@ -79,6 +83,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>${ec.l10n.format(classInfo.totalPostedByTimePeriod[timePeriodId]!0, currencyFormat)}</strong></td>
                 </#if>
                 <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>${ec.l10n.format(classInfo.totalBalanceByTimePeriod[timePeriodId]!0, currencyFormat)}</strong></td>
+                <#if showPercents><td class="text-right text-mono"><#-- TODO --></td></#if>
             </#list>
         </tr>
     </#if>
@@ -95,8 +100,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <th class="text-right">${ec.l10n.localize("Posted")}</th>
                     <th class="text-right">${ec.l10n.localize("Ending")}</th>
                 <#else>
-                    <th class="text-right">${timePeriodIdMap[timePeriodId].periodName} ${ec.l10n.localize("Ending")}</th>
+                    <th class="text-right">${timePeriodIdMap[timePeriodId].periodName}</th>
                 </#if>
+                <#if showPercents><th class="text-right">${ec.l10n.localize("% of Assets")}</th></#if>
             </#list>
         </tr>
     </thead>
@@ -115,6 +121,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <td class="text-right text-mono"><strong>${ec.l10n.format(netAssetTotalMap.totalPosted[timePeriodId]!0, currencyFormat)}</strong></td>
                     </#if>
                     <td class="text-right text-mono"><strong>${ec.l10n.format(netAssetTotalMap.totalBalance[timePeriodId]!0, currencyFormat)}</strong></td>
+                    <#if showPercents><td class="text-right text-mono"><#-- TODO --></td></#if>
                 </#list>
             </tr>
         </#if>
@@ -136,6 +143,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <td class="text-right text-mono"><strong>${ec.l10n.format(equityTotalMap.totalPosted[timePeriodId]!0, currencyFormat)}</strong></td>
                     </#if>
                     <td class="text-right text-mono"><strong>${ec.l10n.format(equityTotalMap.totalBalance[timePeriodId]!0, currencyFormat)}</strong></td>
+                    <#if showPercents><td class="text-right text-mono"><#-- TODO --></td></#if>
                 </#list>
             </tr>
         </#if>
@@ -151,6 +159,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <td class="text-right text-mono"><strong>${ec.l10n.format(liabilityEquityTotalMap.totalPosted[timePeriodId]!0, currencyFormat)}</strong></td>
                 </#if>
                 <td class="text-right text-mono"><strong>${ec.l10n.format(liabilityEquityTotalMap.totalBalance[timePeriodId]!0, currencyFormat)}</strong></td>
+                <#if showPercents><td class="text-right text-mono"><#-- TODO --></td></#if>
             </#list>
         </tr>
         </#if>
@@ -167,6 +176,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <td class="text-right text-mono"><strong>${ec.l10n.format(netIncomeOut.totalPosted[timePeriodId]!0, currencyFormat)}</strong></td>
             </#if>
             <td class="text-right text-mono"><strong>${ec.l10n.format(netIncomeOut.totalBalance[timePeriodId]!0, currencyFormat)}</strong></td>
+            <#if showPercents><td class="text-right text-mono"><#-- TODO --></td></#if>
         </#list>
         </tr>
 
@@ -181,6 +191,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <td class="text-right text-mono"><strong>${ec.l10n.format((liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalPosted[timePeriodId]!0), currencyFormat)}</strong></td>
             </#if>
             <td class="text-right text-mono"><strong>${ec.l10n.format((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0), currencyFormat)}</strong></td>
+            <#if showPercents><td class="text-right text-mono"><#-- TODO --></td></#if>
         </#list>
         </tr>
     </tbody>
