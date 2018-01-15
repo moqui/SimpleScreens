@@ -29,19 +29,19 @@ along with this software (see the LICENSE.md file). If not, see
     <#t><@csvValue classDesc/>,
     <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format((classInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)/>,</#if>
     <#list timePeriodIdList as timePeriodId>
-        <#t><@csvValue ec.l10n.format((classInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)/><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
+        <#assign classPerAmount = (classInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
+        <#t><#if classPerAmount != 0><@csvValue ec.l10n.format(classPerAmount, currencyFormat)/></#if><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
         <#t><#if showPercents>
             <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
-            <#assign currentAmt = (classInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
-            <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
+            <#t><#if classPerAmount != 0 && netRevenueAmt != 0>${ec.l10n.format(classPerAmount/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
         </#if>
     </#list>
     <#t><#if showDiff><@csvValue ec.l10n.format(((classInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)/></#if>
     <#t>${"\n"}
-    <#list classInfo.glAccountInfoList! as glAccountInfo><#if showDetail>
+    <#list classInfo.glAccountInfoList! as glAccountInfo><#assign glAccountAllAmt = (glAccountInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult><#if showDetail && glAccountAllAmt != 0>
         <#assign accountDesc>${indentChar}${indentChar}<#list 1..depth as idx>${indentChar}</#list> <#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</#assign>
         <#t><@csvValue accountDesc/>,
-        <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)/>,</#if>
+        <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(glAccountAllAmt, currencyFormat)/>,</#if>
         <#list timePeriodIdList as timePeriodId>
             <#t><@csvValue ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)/><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
             <#t><#if showPercents>
@@ -55,7 +55,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#if></#list>
     <#list classInfo.childClassInfoList as childClassInfo><@showClass childClassInfo depth+1 showLess/></#list>
     <#if classInfo.childClassInfoList?has_content>
-        <#assign classDesc><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize(classInfo.className + " Total")/><#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></#assign>
+        <#assign classDesc><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize("Total " + classInfo.className)/><#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></#assign>
         <#t><@csvValue classDesc/>,
         <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format((classInfo.totalPostedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)/>,</#if>
         <#list timePeriodIdList as timePeriodId>

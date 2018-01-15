@@ -34,11 +34,11 @@ along with this software (see the LICENSE.md file). If not, see
             <#t><@csvValue ec.l10n.format(beginningClassBalance, currencyFormat)/>,
             <#t><@csvValue ec.l10n.format(classInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)/>,
         </#if><#t>
-        <#t><@csvValue ec.l10n.format(classInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
+        <#assign classPerAmount = classInfo.balanceByTimePeriod[timePeriodId]!0>
+        <#t><#if classPerAmount != 0><@csvValue ec.l10n.format(classPerAmount, currencyFormat)/></#if><#if showPercents || timePeriodId_has_next>,</#if>
         <#t><#if showPercents>
             <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-            <#assign currentAmt = classInfo.balanceByTimePeriod[timePeriodId]!0>
-            <#t><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
+            <#t><#if classPerAmount != 0 && assetTotalAmt != 0>${ec.l10n.format(classPerAmount/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
         </#if>
     </#list>
     <#t>${"\n"}
@@ -65,7 +65,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#list>
     <#t><#if hasChildren>
         <#list classInfo.childClassInfoList as childClassInfo><@showClass childClassInfo depth + 1/></#list>
-        <#t><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize(classInfo.className + " Total")/>,
+        <#t><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize("Total " + classInfo.className)/>,
         <#t><#if showBeginningAndPosted && (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(classInfo.totalPostedByTimePeriod['ALL']!0, currencyFormat)/>,</#if>
         <#list timePeriodIdList as timePeriodId>
             <#t><#if showBeginningAndPosted>
