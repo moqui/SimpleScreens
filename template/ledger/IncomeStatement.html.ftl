@@ -30,10 +30,10 @@ along with this software (see the LICENSE.md file). If not, see
     <tr>
         <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}<#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></td>
         <#if (timePeriodIdList?size > 1)>
-            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format((classInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</td>
+            <td class="text-right text-mono">${ec.l10n.format((classInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
-            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format((classInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)}</td>
+            <td class="text-right text-mono">${ec.l10n.format((classInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)}</td>
             <#if showPercents>
                 <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
                 <#assign currentAmt = (classInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
@@ -41,7 +41,7 @@ along with this software (see the LICENSE.md file). If not, see
             </#if>
         </#list>
         <#if showDiff>
-            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(((classInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)}</td>
+            <td class="text-right text-mono">${ec.l10n.format(((classInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)}</td>
         </#if>
     </tr>
     <#list classInfo.glAccountInfoList! as glAccountInfo>
@@ -49,10 +49,10 @@ along with this software (see the LICENSE.md file). If not, see
             <tr>
                 <td style="padding-left: ${(depth-1) * 2 + 3}.3em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
                 <#if (timePeriodIdList?size > 1)>
-                    <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</td>
+                    <td class="text-right text-mono">${ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</td>
                 </#if>
                 <#list timePeriodIdList as timePeriodId>
-                    <td class="text-right text-mono" style="padding-right:${depth+2}em;">
+                    <td class="text-right text-mono">
                         <#if findEntryUrl??>
                             <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
                             <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)}</a>
@@ -67,7 +67,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </#if>
                 </#list>
                 <#if showDiff>
-                    <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format(((glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)}</td>
+                    <td class="text-right text-mono">${ec.l10n.format(((glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (glAccountInfo.postedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)}</td>
                 </#if>
             </tr>
         <#else>
@@ -81,11 +81,11 @@ along with this software (see the LICENSE.md file). If not, see
         <tr<#if depth == 1> class="text-info"</#if>>
             <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize(classInfo.className + " Total")}</strong><#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></td>
             <#if (timePeriodIdList?size > 1)>
-                <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>
+                <td class="text-right text-mono"><strong>
                     ${ec.l10n.format((classInfo.totalPostedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</strong></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
-                <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>
+                <td class="text-right text-mono"><strong>
                     ${ec.l10n.format((classInfo.totalPostedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)}</strong></td>
                 <#if showPercents>
                     <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
@@ -94,7 +94,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </#if>
             </#list>
             <#if showDiff>
-                <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>
+                <td class="text-right text-mono"><strong>
                     ${ec.l10n.format(((classInfo.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfo.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0))*negMult, currencyFormat)}</strong></td>
             </#if>
         </tr>
