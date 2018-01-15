@@ -105,7 +105,7 @@ along with this software (see the LICENSE.md file). If not, see
 <table class="table table-striped table-hover table-condensed">
     <thead>
         <tr>
-            <th>${ec.l10n.localize("Income Statement")}</th>
+            <th>${organizationName!""} - ${ec.l10n.localize("Income Statement")} <small>(${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')})</small></th>
             <#if (timePeriodIdList?size > 1)><th class="text-right">${ec.l10n.localize("All Periods")}</th></#if>
             <#list timePeriodIdList as timePeriodId>
                 <th class="text-right">${timePeriodIdMap[timePeriodId].periodName}</th>

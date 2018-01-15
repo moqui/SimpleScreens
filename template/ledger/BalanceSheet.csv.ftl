@@ -83,7 +83,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#t>${"\n"}
     </#if>
 </#macro>
-<#t>${ec.l10n.localize("Balance Sheet")},
+<#t><@csvValue organizationName!""/> - ${ec.l10n.localize("Balance Sheet")} (${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')}),
 <#t><#if showBeginningAndPosted && (timePeriodIdList?size > 1)>${ec.l10n.localize("All Periods Posted")},</#if>
 <#list timePeriodIdList as timePeriodId>
     <#t><#if showBeginningAndPosted>

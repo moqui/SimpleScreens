@@ -70,7 +70,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#t>${"\n"}
     </#if>
 </#macro>
-<#t>${ec.l10n.localize("Income Statement")},
+<#t><@csvValue organizationName!""/> - ${ec.l10n.localize("Income Statement")} (${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')}),
 <#t><#if (timePeriodIdList?size > 1)>${ec.l10n.localize("All Periods")},</#if>
 <#list timePeriodIdList as timePeriodId>
     <#t><@csvValue timePeriodIdMap[timePeriodId].periodName/><#if showPercents || showDiff || timePeriodId_has_next>,</#if>

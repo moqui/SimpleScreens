@@ -104,7 +104,7 @@ along with this software (see the LICENSE.md file). If not, see
 <table class="table table-striped table-hover table-condensed">
     <thead>
         <tr>
-            <th>${ec.l10n.localize("Balance Sheet")}</th>
+            <th>${organizationName!""} - ${ec.l10n.localize("Balance Sheet")} <small>(${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')})</small></th>
             <#if showBeginningAndPosted && (timePeriodIdList?size > 1)><th class="text-right">${ec.l10n.localize("All Periods Posted")}</th></#if>
             <#list timePeriodIdList as timePeriodId>
                 <#if showBeginningAndPosted>
