@@ -35,11 +35,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <td class="text-right text-mono">${ec.l10n.format(beginningClassBalance, currencyFormat)}</td>
                 <td class="text-right text-mono">${ec.l10n.format(classInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}</td>
             </#if>
-            <td class="text-right text-mono">${ec.l10n.format(classInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)}</td>
+            <#assign classPerAmount = classInfo.balanceByTimePeriod[timePeriodId]!0>
+            <td class="text-right text-mono"><#if classPerAmount != 0>${ec.l10n.format(classInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)}<#else>&nbsp;</#if></td>
             <#if showPercents>
                 <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-                <#assign currentAmt = classInfo.balanceByTimePeriod[timePeriodId]!0>
-                <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
+                <td class="text-right text-mono"><#if classPerAmount != 0 && assetTotalAmt != 0>${ec.l10n.format(classPerAmount/assetTotalAmt, percentFormat)}<#else>&nbsp;</#if></td>
             </#if>
         </#list>
     </tr>
@@ -80,7 +80,7 @@ along with this software (see the LICENSE.md file). If not, see
             <@showClass childClassInfo depth + 1/>
         </#list>
         <tr<#if depth == 1> class="text-info"</#if>>
-            <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize(classInfo.className + " Total")}</strong></td>
+            <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize("Total " + classInfo.className)}</strong></td>
             <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
                 <td class="text-right text-mono"><strong>${ec.l10n.format(classInfo.totalPostedByTimePeriod['ALL']!0, currencyFormat)}</strong></td>
             </#if>
