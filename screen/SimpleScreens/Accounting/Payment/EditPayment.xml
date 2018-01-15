@@ -30,6 +30,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="repostPaymentAndApplications"><service-call name="mantle.ledger.PaymentAutoPostServices.repost#PaymentAndApplications"/>
         <default-response url="."/></transition>
+    <transition name="createRefundPayment"><service-call name="mantle.account.PaymentServices.create#RefundPayment"/>
+        <default-response url="."/></transition>
 
     <transition name="gatewayAuthorize"><service-call name="mantle.account.PaymentServices.authorize#SinglePayment"/>
         <default-response url="."/></transition>
@@ -86,7 +88,7 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="payment == null"><return error="true" message="Payment ${paymentId} not found"/></if>
         <set field="statusId" from="payment?.statusId"/>
         <set field="paymentEditable" from="statusId in ['PmntProposed', 'PmntPromised', 'PmntAuthorized']"/>
-        <!-- <set field="paymentVoid" from="statusId in ['PmntCancelled', 'PmntVoid', 'PmntRefunded']"/> -->
+        <!-- <set field="paymentVoid" from="statusId in ['PmntCancelled', 'PmntVoid']"/> -->
         <set field="paymentDelivered" from="statusId in ['PmntDelivered', 'PmntConfirmed']"/>
         <set field="isInvoicePayment" from="payment?.paymentTypeEnumId == 'PtInvoicePayment' || payment?.type?.parentEnumId == 'PtInvoicePayment'"/>
         <set field="isCheck" from="payment.paymentInstrumentEnumId in ['PiPersonalCheck', 'PiCompanyCheck']"/>
@@ -106,6 +108,42 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="PaymentCheck.pdf" text="Check PDF" condition="isCheck &amp;&amp; isFromPartyOrgInternal"/>
                 <link url="PaymentDetail.pdf" text="Detail PDF" condition="isCheck &amp;&amp; isFromPartyOrgInternal"/>
 
+                <container-dialog id="RefundDialog" button-text="Create Refund" condition="paymentDelivered">
+                    <form-single name="RefundPaymentForm" transition="createRefundPayment">
+                        <field name="paymentId"><default-field title="Original Payment"><display/></default-field></field>
+                        <field name="statusId" from="paymentStatusId"><default-field title="Status">
+                            <drop-down no-current-selected-key="PmntPromised">
+                                <option key="PmntProposed" text="Proposed"/>
+                                <option key="PmntPromised" text="Promised"/>
+                                <option key="PmntAuthorized" text="Authorized"/>
+                                <option key="PmntDelivered" text="Delivered"/>
+                            </drop-down>
+                        </default-field></field>
+                        <field name="amountUomId" from="payment.amountUomId"><default-field title="Currency">
+                            <display-entity entity-name="moqui.basic.Uom"/></default-field></field>
+                        <field name="amount"><default-field>
+                            <text-line size="10" default-value="${ec.l10n.format(unappliedTotal, '#,##0.00')}"/>
+                        </default-field></field>
+                        <field name="paymentInstrumentEnumId"><default-field title="Payment Instrument">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                <set field="enumTypeId" value="PaymentInstrument"/>
+                                <set field="noCurrentSelectedKey" value="PiCompanyCheck"/></widget-template-include>
+                        </default-field></field>
+                        <field name="paymentMethodId"><default-field title="From Payment Method">
+                            <drop-down allow-empty="true"><entity-options key="${paymentMethodId}" text="PaymentMethodAndTypeTemplate">
+                                <entity-find entity-name="mantle.account.method.PaymentMethodAndType">
+                                    <econdition field-name="ownerPartyId" from="payment.toPartyId"/>
+                                    <order-by field-name="typeDescription,description"/>
+                                </entity-find>
+                            </entity-options></drop-down>
+                        </default-field></field>
+                        <field name="effectiveDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                        <field name="paymentRefNum"><default-field title="Ref/Check Number"><text-line size="10"/></default-field></field>
+                        <field name="memo"><default-field><text-line size="30"/></default-field></field>
+                        <field name="comments"><default-field><text-area cols="60" rows="4"/></default-field></field>
+                        <field name="submitButton"><default-field title="Create Refund Payment"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
                 <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
                     <form-list name="AuditLogList" list="auditLogList" skip-form="true">
                         <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
@@ -305,7 +343,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </field-layout>
             </form-single>
         </row-col><row-col lg="6">
-            <section name="PaymentGatewayActionsSection" condition="payment.paymentGatewayConfigId || payment.paymentInstrumentEnumId == 'PiFinancialAccount'"><widgets>
+            <section name="PaymentGatewayActionsSection" condition="payment.paymentMethodId &amp;&amp; (payment.paymentGatewayConfigId || payment.paymentInstrumentEnumId == 'PiFinancialAccount')"><widgets>
                 <container-dialog id="GatewayAuthorizeDialog" button-text="Gateway Authorize" condition="payment.statusId in ['PmntPromised', 'PmntProposed']">
                     <form-single name="GatewayAuthorizeForm" map="payment" transition="gatewayAuthorize">
                         <field name="paymentId"><default-field><hidden/></default-field></field>
@@ -321,10 +359,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-single>
                 </container-dialog>
                 <link url="gatewayRelease" text="Gateway Release Auth" condition="payment.statusId == 'PmntAuthorized'" parameter-map="[payment:null]"/>
-                <container-dialog id="GatewayRefundDialog" button-text="Gateway Refund" condition="payment.statusId == 'PmntDelivered'">
+                <container-dialog id="GatewayRefundDialog" button-text="Gateway Refund" condition="paymentDelivered">
                     <form-single name="GatewayRefundForm" map="payment" transition="gatewayRefund">
                         <field name="paymentId"><default-field><hidden/></default-field></field>
-                        <field name="amount"><default-field><text-line size="10"/></default-field></field>
+                        <field name="amount" from="unappliedTotal"><default-field><text-line size="10"/></default-field></field>
                         <field name="submitButton"><default-field title="Refund"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
