@@ -19,6 +19,8 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign showCharts = (charts! == "true")>
 <#assign currencyFormat = currencyFormat!"#,##0.00">
 <#assign percentFormat = percentFormat!"0.0%">
+<#assign indentMult = indentMult!1>
+
 <#assign backgroundColors = ['rgba(92, 184, 92, 0.5)','rgba(91, 192, 222, 0.5)','rgba(240, 173, 78, 0.5)','rgba(217, 83, 79, 0.5)',
 'rgba(60, 118, 61, 0.5)','rgba(49, 112, 143, 0.5)','rgba(138, 109, 59, 0.5)','rgba(169, 68, 66, 0.5)',
 'rgba(223, 240, 216, 0.6)','rgba(217, 237, 247, 0.6)','rgba(252, 248, 227, 0.6)','rgba(242, 222, 222, 0.6)']>
@@ -28,7 +30,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#if (classInfo.totalPostedNoClosingByTimePeriod['ALL']!0) == 0><#return></#if>
     <#if showLess><#assign negMult = -1><#else><#assign negMult = 1></#if>
     <tr>
-        <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}<#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></td>
+        <td style="padding-left: ${((depth-1) * indentMult) + 0.3}em;">${ec.l10n.localize(classInfo.className)}<#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></td>
         <#if (timePeriodIdList?size > 1)>
             <td class="text-right text-mono">${ec.l10n.format((classInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</td>
         </#if>
@@ -48,7 +50,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#assign glAccountAllAmt = (glAccountInfo.postedNoClosingByTimePeriod['ALL']!0)*negMult>
         <#if showDetail && glAccountAllAmt != 0>
             <tr>
-                <td style="padding-left: ${(depth-1) * 2 + 3}.3em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
+                <td style="padding-left: ${(depth-1) * indentMult + (indentMult * 1.5) + 0.3}em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
                 <#if (timePeriodIdList?size > 1)>
                     <td class="text-right text-mono">${ec.l10n.format(glAccountAllAmt, currencyFormat)}</td>
                 </#if>
@@ -80,7 +82,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#list>
     <#if classInfo.childClassInfoList?has_content>
         <tr<#if depth == 1> class="text-info"</#if>>
-            <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize("Total " + classInfo.className)}</strong><#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></td>
+            <td style="padding-left: ${((depth-1) * indentMult) + 0.3}em;"><strong>${ec.l10n.localize("Total " + classInfo.className)}</strong><#if showLess && depth == 1> (${ec.l10n.localize("less")})</#if></td>
             <#if (timePeriodIdList?size > 1)>
                 <td class="text-right text-mono"><strong>
                     ${ec.l10n.format((classInfo.totalPostedNoClosingByTimePeriod['ALL']!0)*negMult, currencyFormat)}</strong></td>

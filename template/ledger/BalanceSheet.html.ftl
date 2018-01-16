@@ -18,6 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign showPercents = (percents! == "true")>
 <#assign currencyFormat = currencyFormat!"#,##0.00">
 <#assign percentFormat = percentFormat!"0.0%">
+<#assign indentMult = indentMult!1>
 
 <#macro showClass classInfo depth>
     <#-- skip classes with no balance -->
@@ -25,7 +26,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <#assign hasChildren = classInfo.childClassInfoList?has_content>
     <tr>
-        <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}</td>
+        <td style="padding-left: ${((depth-1) * indentMult) + 0.3}em;">${ec.l10n.localize(classInfo.className)}</td>
         <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
             <td class="text-right text-mono">${ec.l10n.format(classInfo.postedByTimePeriod['ALL']!0, currencyFormat)}</td>
         </#if>
@@ -46,7 +47,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#list classInfo.glAccountInfoList! as glAccountInfo>
         <#if showDetail && ((glAccountInfo.balanceByTimePeriod['ALL']!0) != 0 || (glAccountInfo.postedByTimePeriod['ALL']!0) != 0)>
             <tr>
-                <td style="padding-left: ${(depth-1) * 2 + 3}.3em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
+                <td style="padding-left: ${(depth-1) * indentMult + (indentMult * 1.5) + 0.3}em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
                 <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
                     <td class="text-right text-mono">${ec.l10n.format(glAccountInfo.postedByTimePeriod['ALL']!0, currencyFormat)}</td>
                 </#if>
@@ -80,7 +81,7 @@ along with this software (see the LICENSE.md file). If not, see
             <@showClass childClassInfo depth + 1/>
         </#list>
         <tr<#if depth == 1> class="text-info"</#if>>
-            <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize("Total " + classInfo.className)}</strong></td>
+            <td style="padding-left: ${((depth-1) * indentMult) + 0.3}em;"><strong>${ec.l10n.localize("Total " + classInfo.className)}</strong></td>
             <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
                 <td class="text-right text-mono"><strong>${ec.l10n.format(classInfo.totalPostedByTimePeriod['ALL']!0, currencyFormat)}</strong></td>
             </#if>
