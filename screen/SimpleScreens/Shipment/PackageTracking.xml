@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Package Tracking" default-menu-include="false">
+
+    <transition name="shipmentDetail"><default-response url="../ShipmentDetail"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <actions>
+        <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="outgoingTypeOut"
+                in-map="[parentEnumId:'ShpTpOutgoing']"/>
+        <set field="shipmentTypeSet" from="outgoingTypeOut.enumIdSet"/>
+
+        <set field="defaultFacilityId" from="ec.user.getPreference('FacilityGeneralDefault')"/>
+
+        <set field="daysSincePacked" from="daysSincePacked ?: '5'"/>
+        <set field="daysSincePackedInt" from="daysSincePacked as int"/>
+        <if condition="daysSincePackedInt > 0">
+            <set field="packedLookBack" from="new Timestamp(java.time.ZonedDateTime.now().minusDays(daysSincePackedInt).withHour(0).withMinute(0).withSecond(0).toInstant().toEpochMilli())"/>
+        </if>
+    </actions>
+    <widgets>
+        <label text="Packages Past ETA${packedLookBack ? ' or Packed before ' + ec.l10n.format(packedLookBack, null) : ''}" type="h5"/>
+        <form-list name="EtaPackageList" list="packageList" skip-form="true" header-dialog="true" saved-finds="true">
+            <entity-find entity-name="mantle.shipment.ShipmentPackageFindView" list="packageList">
+                <search-form-inputs default-order-by="-packedDate,-shipmentId">
+                    <default-parameters trackingStatusEnumId_op="in"
+                            trackingStatusEnumId="ShTsUnknown,ShTsTransit,ShTsReturned,ShTsFailure"/></search-form-inputs>
+                <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
+                <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
+                <econditions combine="or">
+                    <econdition field-name="trackingEta" operator="less" from="ec.user.nowTimestamp"/>
+                    <econdition field-name="trackingOrigEta" operator="less" from="ec.user.nowTimestamp"/>
+                    <econdition field-name="packedDate" operator="less" from="packedLookBack" ignore-if-empty="true"/>
+                </econditions>
+                <select-field field-name="trackingUrl"/>
+            </entity-find>
+            <row-actions>
+                <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
+                    <date-filter/><econdition field-name="partyId" from="toPartyId"/>
+                    <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
+            </row-actions>
+
+            <field name="daysSincePacked"><header-field><text-line size="4"/><label text="Set to 0 for past ETA only"/></header-field></field>
+
+            <field name="shipmentId">
+                <header-field title="Shipment" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="packedDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="trackingStatusEnumId">
+                <header-field title="Track Status" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentTrackingStatus"/><set field="allowEmpty" value="true"/>
+                        <set field="allowMultiple" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="shipmentTypeEnumId">
+                <header-field title="Type" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentType"/><set field="allowEmpty" value="true"/>
+                        <set field="allowMultiple" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+
+            <field name="trackingEta"><header-field title="ETA" show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="trackingOrigEta"><header-field title="Orig. ETA" show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field><default-field>
+                <link url="${trackingUrl}" text="${trackingCode}" url-type="plain" link-type="anchor" target-window="_blank"/></default-field></field>
+            <field name="trackingStatusDate"><header-field title="Last Track" show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="estimatedArrivalDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="estimatedReadyDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="customerClassificationId"><header-field title="Customer Class">
+                <drop-down allow-empty="true">
+                    <entity-options key="${partyClassificationId}" text="${description}">
+                        <entity-find entity-name="mantle.party.PartyClassification">
+                            <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/>
+                            <order-by field-name="description"/></entity-find></entity-options>
+                </drop-down>
+            </header-field></field>
+            <field name="toPartyId">
+                <header-field title="To Party" show-order-by="true">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                </header-field>
+                <default-field>
+                    <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                            link-type="anchor" parameter-map="[partyId:toPartyId]"/>
+                    <label text=" - ${custPcaaList*.description.join(', ')}" condition="custPcaaList"/>
+                </default-field>
+            </field>
+            <field name="originFacilityId">
+                <header-field title="Origin Facility">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
+                </header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate"
+                        link-type="anchor" parameter-map="[facilityId:originFacilityId]"/></default-field>
+            </field>
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="shipmentId"/><field-ref name="packedDate"/></form-list-column>
+            <form-list-column><field-ref name="trackingStatusEnumId"/><field-ref name="shipmentTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="trackingEta"/><field-ref name="trackingOrigEta"/></form-list-column>
+            <form-list-column><field-ref name="trackingCode"/><field-ref name="trackingStatusDate"/></form-list-column>
+            <form-list-column><field-ref name="estimatedArrivalDate"/><field-ref name="estimatedReadyDate"/></form-list-column>
+            <form-list-column><field-ref name="toPartyId"/><field-ref name="originFacilityId"/></form-list-column>
+        </form-list>
+    </widgets>
+</screen>
