@@ -33,6 +33,11 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="cloneOrder"><service-call name="mantle.order.OrderServices.clone#Order"/>
         <default-response url="."/></transition>
+
+    <transition name="addOrderPromoCode"><service-call name="mantle.product.PromotionServices.add#OrderPromoCode"/>
+        <default-response url="."/></transition>
+    <transition name="removeOrderPromoCode"><service-call name="mantle.product.PromotionServices.remove#OrderPromoCode"/>
+        <default-response url="."/></transition>
     <transition name="sendOrderStoreEmail"><service-call name="mantle.order.OrderInfoServices.send#OrderStoreEmail"/>
         <default-response url="."/></transition>
     <transition name="sendEmailMessage"><service-call name="org.moqui.impl.EmailServices.send#EmailMessage"/>
@@ -263,6 +268,49 @@ along with this software (see the LICENSE.md file). If not, see
                         <field-ref name="submitButton"/>
                     </field-layout>
                 </form-single>
+
+                <section name="OrderPromoCodeSection"><actions>
+                    <entity-find entity-name="mantle.product.store.PartyPromoCodeDetail" list="partyPromoCodeDetailList">
+                        <date-filter valid-date="orderHeader.placedDate"/>
+                        <date-filter from-field-name="promoFromDate" thru-field-name="promoThruDate" valid-date="orderHeader.placedDate"/>
+                        <econdition field-name="partyId" from="firstPart.customerPartyId"/>
+                        <econdition field-name="productStoreId" from="orderHeader.productStoreId" ignore-if-empty="true"/>
+                    </entity-find>
+                </actions><widgets>
+                    <container-box><box-header title="Promo Codes"/><box-toolbar>
+                        <container-dialog id="AddPromoCodeDialog" button-text="Add Promo Code">
+                            <form-single name="AddPromoCode" transition="addOrderPromoCode">
+                                <field name="orderId"><default-field><hidden/></default-field></field>
+                                <field name="promoCode"><default-field title="Any Promo Code"><text-line size="8"/></default-field></field>
+                                <field name="addButton"><default-field title=""><submit text="Add Code"/></default-field></field>
+                                <field-layout><field-row-big><field-ref name="promoCode"/><field-ref name="addButton"/></field-row-big></field-layout>
+                            </form-single>
+                            <section name="AddPartyPromoCodeSection" condition="partyPromoCodeDetailList"><widgets>
+                                <form-single name="AddPartyPromoCode" transition="addOrderPromoCode">
+                                    <field name="orderId"><default-field><hidden/></default-field></field>
+                                    <field name="promoCode"><default-field title="Customer Promo Code"><drop-down>
+                                        <list-options list="partyPromoCodeDetailList" key="${promoCode}" text="${promoCode} - ${itemDescription ?: '[' + storePromotionId + ']'}"/>
+                                    </drop-down></default-field></field>
+                                    <field name="addButton"><default-field title=""><submit text="Add Code"/></default-field></field>
+                                    <field-layout><field-row-big><field-ref name="promoCode"/><field-ref name="addButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </widgets></section>
+                        </container-dialog>
+                    </box-toolbar><box-body-nopad>
+                        <form-list name="OrderPromoCodeList" list="orderPromoCodeDetailList" transition="removeOrderPromoCode">
+                            <field name="orderId"><default-field><hidden/></default-field></field>
+                            <field name="promoCodeId"><default-field><hidden/></default-field></field>
+                            <field name="promoCode"><default-field><display/></default-field></field>
+                            <field name="itemDescription"><default-field title="Promotion">
+                                <!-- TODO: change to link to edit promotion screen once exists -->
+                                <display text="${itemDescription ?: '[' + storePromotionId + ']'}"/></default-field></field>
+                            <field name="thruDate"><default-field title="Code Expires"><display/></default-field></field>
+                            <field name="promoThruDate"><default-field title="Promo Expires"><display/></default-field></field>
+                            <field name="promoThruDate"><default-field title="Promo Expires"><display/></default-field></field>
+                            <field name="removeButton"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
+                        </form-list>
+                    </box-body-nopad></container-box>
+                </widgets></section>
             </row-col><row-col lg="6">
                 <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
