@@ -153,7 +153,7 @@ along with this software (see the LICENSE.md file). If not, see
             </tr>
         </#if>
         <#if liabilityEquityTotalMap??>
-        <tr class="text-success" style="border-bottom:solid black;border-top:solid black;">
+        <tr class="text-success" style="border-bottom:solid black;">
             <td><strong>${ec.l10n.localize("Grand Total Liability + Equity")}</strong></td>
             <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
                 <#assign currentAmt = liabilityEquityTotalMap.totalPosted['ALL']!0>
@@ -198,7 +198,7 @@ along with this software (see the LICENSE.md file). If not, see
         </#list>
         </tr>
 
-        <tr class="text-success" style="border-bottom:solid black;border-top:solid black;">
+        <tr class="text-success" style="border-bottom:solid black;">
             <td><strong>${ec.l10n.localize("Liability + Equity + Unbooked Net Income")}</strong></td>
         <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
             <#assign currentAmt = (liabilityEquityTotalMap.totalPosted['ALL']!0) + (netIncomeOut.totalPosted['ALL']!0)>

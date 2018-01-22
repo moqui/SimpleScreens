@@ -57,34 +57,35 @@
 ## Balance Sheet Classes
 
 - Debit
-    - **Asset**
-        - Current Asset
+    - **Assets**
+        - Current Assets
             - Cash and Equivalent
-            - Inventory Asset
+            - Inventory Assets
             - Accounts Receivable
             - Loans Receivable
             - Prepaid Expense (paid, not yet incurred)
             - Prepaid Inventory (paid, not yet billed)
             - Accrued Revenue (earned, not yet received)
             - Allowance For Bad Debts (contra)
-        - Long Term Asset
+        - Long Term Assets
             - Land and Building
             - Equipment
             - Accumulated Depreciation (contra)
+        - Other Assets
+            - Intangible Assets
             - Accumulated Amortization (contra)
-        - Other Asset
     - **Equity Distribution**
         - Return of Capital
         - Dividends
 - Credit
-    - **Liability**
-        - Current Liability
+    - **Liabilities**
+        - Current Liabilities
             - Accounts Payable
             - Loans Payable
             - Accrued Expenses (incurred, not yet paid)
             - Unearned Revenue (received, not yet earned)
             - Third-Party Holdings
-        - Long Term Liability
+        - Long Term Liabilities
     - **Equity**
         - Owners Equity
         - Retained Earnings
