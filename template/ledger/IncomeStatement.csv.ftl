@@ -32,7 +32,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#assign classPerAmount = (classInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
         <#t><#if classPerAmount != 0><@csvValue ec.l10n.format(classPerAmount, currencyFormat)/></#if><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
         <#t><#if showPercents>
-            <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
+            <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
             <#t><#if classPerAmount != 0 && netRevenueAmt != 0>${ec.l10n.format(classPerAmount/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
         </#if>
     </#list>
@@ -45,7 +45,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#list timePeriodIdList as timePeriodId>
             <#t><@csvValue ec.l10n.format((glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)/><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
             <#t><#if showPercents>
-                <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
+                <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
                 <#assign currentAmt = (glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
                 <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
             </#if>
@@ -61,7 +61,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#list timePeriodIdList as timePeriodId>
             <#t><@csvValue ec.l10n.format((classInfo.totalPostedNoClosingByTimePeriod[timePeriodId]!0)*negMult, currencyFormat)/><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
             <#t><#if showPercents>
-                <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
+                <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
                 <#assign currentAmt = (classInfo.totalPostedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
                 <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
             </#if>
@@ -79,7 +79,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#t><#if showDiff>${ec.l10n.localize("Difference")}</#if>
 <#t>${"\n"}
 <#t><@showClass classInfoById.REVENUE 1/>
-<#t><@showClass classInfoById.CONTRA_REVENUE 1 true/>
+<#--
 <#t>${ec.l10n.localize("Net Revenue")} (${ec.l10n.localize("Revenue")} - ${ec.l10n.localize("Contra Revenue")}),
 <#t><#if (timePeriodIdList?size > 1)><@csvValue ec.l10n.format((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod['ALL']!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod['ALL']!0), currencyFormat)/>,</#if>
 <#list timePeriodIdList as timePeriodId>
@@ -89,6 +89,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#if>
 </#list>
 <#t><#if showDiff><@csvValue ec.l10n.format((classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[1]]!0) - (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0) - (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodIdList[0]]!0), currencyFormat)/></#if>
+-->
 <#t>${"\n"}
 <@showClass classInfoById.COST_OF_SALES 1 true/>
 <#t>${ec.l10n.localize("Gross Profit On Sales")} (${ec.l10n.localize("Net Revenue")} - ${ec.l10n.localize("Cost of Sales")}),
@@ -96,7 +97,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#list timePeriodIdList as timePeriodId>
     <#t><@csvValue ec.l10n.format(grossProfitOnSalesMap[timePeriodId]!0, currencyFormat)/><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
     <#t><#if showPercents>
-        <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
+        <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
         <#assign currentAmt = grossProfitOnSalesMap[timePeriodId]!0>
         <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
     </#if>
@@ -109,7 +110,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#list timePeriodIdList as timePeriodId>
     <#t><@csvValue ec.l10n.format(netOperatingIncomeMap[timePeriodId]!0, currencyFormat)/><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
     <#t><#if showPercents>
-        <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
+        <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
         <#assign currentAmt = netOperatingIncomeMap[timePeriodId]!0>
         <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
     </#if>
@@ -123,7 +124,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#list timePeriodIdList as timePeriodId>
     <#t><@csvValue ec.l10n.format(netNonOperatingIncomeMap[timePeriodId]!0, currencyFormat)/><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
     <#t><#if showPercents>
-        <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
+        <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
         <#assign currentAmt = netNonOperatingIncomeMap[timePeriodId]!0>
         <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
     </#if>
@@ -135,7 +136,7 @@ along with this software (see the LICENSE.md file). If not, see
 <#list timePeriodIdList as timePeriodId>
     <#t><@csvValue ec.l10n.format(netIncomeMap[timePeriodId]!0, currencyFormat)/><#if showPercents || showDiff || timePeriodId_has_next>,</#if>
     <#t><#if showPercents>
-        <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0) + (classInfoById.CONTRA_REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
+        <#assign netRevenueAmt = (classInfoById.REVENUE.totalPostedNoClosingByTimePeriod[timePeriodId]!0)>
         <#assign currentAmt = netIncomeMap[timePeriodId]!0>
         <#t><#if netRevenueAmt != 0>${ec.l10n.format(currentAmt/netRevenueAmt, percentFormat)}</#if><#if showDiff || timePeriodId_has_next>,</#if>
     </#if>

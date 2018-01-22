@@ -121,34 +121,13 @@ along with this software (see the LICENSE.md file). If not, see
     </thead>
     <tbody>
         <#if classInfoById.ASSET??><@showClass classInfoById.ASSET 1/></#if>
-        <#if classInfoById.CONTRA_ASSET??><@showClass classInfoById.CONTRA_ASSET 1/></#if>
-        <#if netAssetTotalMap??>
-            <tr class="text-success" style="border-bottom: solid black;border-top:solid black;">
-                <td><strong>${ec.l10n.localize("Net Asset Total")}</strong></td>
-                <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-                    <td class="text-right text-mono"><strong>${ec.l10n.format(netAssetTotalMap.totalPosted['ALL']!0, currencyFormat)}</strong></td>
-                </#if>
-                <#list timePeriodIdList as timePeriodId>
-                    <#if showBeginningAndPosted>
-                        <td class="text-right text-mono"><strong>${ec.l10n.format((netAssetTotalMap.totalBalance[timePeriodId]!0) - (netAssetTotalMap.totalPosted[timePeriodId]!0), currencyFormat)}</strong></td>
-                        <td class="text-right text-mono"><strong>${ec.l10n.format(netAssetTotalMap.totalPosted[timePeriodId]!0, currencyFormat)}</strong></td>
-                    </#if>
-                    <td class="text-right text-mono"><strong>${ec.l10n.format(netAssetTotalMap.totalBalance[timePeriodId]!0, currencyFormat)}</strong></td>
-                    <#if showPercents>
-                        <td class="text-right text-mono">${ec.l10n.format(1, percentFormat)}</td>
-                    </#if>
-                </#list>
-            </tr>
-        </#if>
-
         <#if classInfoById.LIABILITY??><@showClass classInfoById.LIABILITY 1/></#if>
 
         <#if classInfoById.EQUITY??><@showClass classInfoById.EQUITY 1/></#if>
-        <#if classInfoById.CONTRA_EQUITY??><@showClass classInfoById.CONTRA_EQUITY 1/></#if>
         <#if classInfoById.DISTRIBUTION??><@showClass classInfoById.DISTRIBUTION 1/></#if>
         <#if equityTotalMap??>
             <tr class="text-info">
-                <td><strong>${ec.l10n.localize("Equity + Contra Equity + Distribution Total")}</strong></td>
+                <td><strong>${ec.l10n.localize("Total Equity + Distribution")}</strong></td>
                 <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
                     <td class="text-right text-mono"><strong>${ec.l10n.format(equityTotalMap.totalPosted['ALL']!0, currencyFormat)}</strong></td>
                 </#if>
@@ -168,7 +147,7 @@ along with this software (see the LICENSE.md file). If not, see
         </#if>
         <#if liabilityEquityTotalMap??>
         <tr class="text-success" style="border-bottom:solid black;border-top:solid black;">
-            <td><strong>${ec.l10n.localize("Liability + Equity Grand Total")}</strong></td>
+            <td><strong>${ec.l10n.localize("Grand Total Liability + Equity")}</strong></td>
             <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
                 <td class="text-right text-mono"><strong>${ec.l10n.format(liabilityEquityTotalMap.totalPosted['ALL']!0, currencyFormat)}</strong></td>
             </#if>
