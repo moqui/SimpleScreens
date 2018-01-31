@@ -93,7 +93,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell padding="3pt" width="2in">
                             <#if orderPartInfo.shipmentMethodEnum?has_content>
                                 <fo:block font-weight="bold">Ship By</fo:block>
-                                <fo:block>${orderPartInfo.shipmentMethodEnum.description}</fo:block>
+                                <fo:block><@encodeText orderPartInfo.shipmentMethodEnum.description/></fo:block>
                             </#if>
                             <fo:block font-weight="bold">Ship Before</fo:block>
                             <fo:block>${ec.l10n.format(orderPart.shipBeforeDate, "")}</fo:block>
@@ -107,11 +107,11 @@ along with this software (see the LICENSE.md file). If not, see
                                     <#if contactInfo.postalAddress.toName?has_content><fo:block font-weight="bold">To: <@encodeText contactInfo.postalAddress.toName/></fo:block></#if>
                                     <#if contactInfo.postalAddress.attnName?has_content><fo:block font-weight="bold">Attn: <@encodeText contactInfo.postalAddress.attnName/></fo:block></#if>
                                 <#else>
-                                    <fo:block font-weight="bold">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(orderPartInfo.customerDetail.organizationName!"", false))!""} ${(orderPartInfo.customerDetail.firstName)!""} ${(orderPartInfo.customerDetail.middleName)!""} ${(orderPartInfo.customerDetail.lastName)!""}</fo:block>
+                                    <fo:block font-weight="bold"><@encodeText orderPartInfo.customerDetail.organizationName!""/> <@encodeText (orderPartInfo.customerDetail.firstName)!""/> <@encodeText (orderPartInfo.customerDetail.middleName)!""/> <@encodeText (orderPartInfo.customerDetail.lastName)!""/></fo:block>
                                 </#if>
-                                <fo:block>${(contactInfo.postalAddress.address1)!""}<#if contactInfo.postalAddress.unitNumber?has_content> #${contactInfo.postalAddress.unitNumber}</#if></fo:block>
-                                <#if contactInfo.postalAddress.address2?has_content><fo:block>${contactInfo.postalAddress.address2}</fo:block></#if>
-                                <fo:block>${contactInfo.postalAddress.city!""}, ${(contactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${contactInfo.postalAddress.postalCode!""}<#if contactInfo.postalAddress.postalCodeExt?has_content>-${contactInfo.postalAddress.postalCodeExt}</#if><#if contactInfo.postalAddress.countryGeoId?has_content> ${contactInfo.postalAddress.countryGeoId}</#if></fo:block>
+                                <fo:block><@encodeText (contactInfo.postalAddress.address1)!""/><#if contactInfo.postalAddress.unitNumber?has_content> #<@encodeText contactInfo.postalAddress.unitNumber/></#if></fo:block>
+                                <#if contactInfo.postalAddress.address2?has_content><fo:block><@encodeText contactInfo.postalAddress.address2/></fo:block></#if>
+                                <fo:block><@encodeText contactInfo.postalAddress.city!""/>, ${(contactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${contactInfo.postalAddress.postalCode!""}<#if contactInfo.postalAddress.postalCodeExt?has_content>-${contactInfo.postalAddress.postalCodeExt}</#if><#if contactInfo.postalAddress.countryGeoId?has_content> ${contactInfo.postalAddress.countryGeoId}</#if></fo:block>
                             </#if>
                             <#if contactInfo.telecomNumber?has_content>
                                 <fo:block><#if contactInfo.telecomNumber.countryCode?has_content>${contactInfo.telecomNumber.countryCode}-</#if><#if contactInfo.telecomNumber.areaCode?has_content>${contactInfo.telecomNumber.areaCode}-</#if>${contactInfo.telecomNumber.contactNumber!""}</fo:block>
@@ -121,7 +121,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </#if>
                             <#--
                             <#if orderPartInfo.facility?has_content>
-                                <fo:block>${ec.resource.expand("FacilityNameTemplate", "", orderPartInfo.facility)}</fo:block>
+                                <fo:block><@encodeText ec.resource.expand("FacilityNameTemplate", "", orderPartInfo.facility)/></fo:block>
                             </#if>
                             -->
                         </fo:table-cell>
@@ -144,18 +144,18 @@ along with this software (see the LICENSE.md file). If not, see
                             <#assign orderItemTotalOut = ec.service.sync().name("mantle.order.OrderServices.get#OrderItemTotal").parameter("orderItem", orderItem).call()>
                             <fo:table-row font-size="8pt" border-bottom="thin solid black">
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${orderItem.orderItemSeqId}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block>${(itemTypeEnum.description)!""}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block><@encodeText (itemTypeEnum.description)!""/></fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block>${ec.l10n.format(orderItem.requiredByDate, "dd MMM yyyy")}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}">
                                     <fo:block><@encodeText orderItem.itemDescription!""/></fo:block>
                                     <#if orderItem.productId?has_content>
                                         <#assign product = ec.entity.find("mantle.product.Product").condition("productId", orderItem.productId).useCache(true).one()>
-                                        <fo:block>${ec.resource.expand("ProductNameTemplate", "", product)}</fo:block>
+                                        <fo:block><@encodeText ec.resource.expand("ProductNameTemplate", "", product)/></fo:block>
                                     </#if>
                                 </fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${orderItem.quantity!"1"}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(orderItem.unitAmount!0, orderHeader.currencyUomId, 3)}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(orderItemTotalOut.itemTotal, orderHeader.currencyUomId, 3)}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(orderItem.unitAmount!0, orderHeader.currencyUomId, 2)}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(orderItemTotalOut.itemTotal, orderHeader.currencyUomId, 2)}</fo:block></fo:table-cell>
                             </fo:table-row>
                         </#list>
                         <fo:table-row font-size="9pt" border-top="solid black">

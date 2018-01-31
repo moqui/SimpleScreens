@@ -95,9 +95,9 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:block-container absolute-position="absolute" top="0in" right="2.0in" width="2.5in">
                 <fo:block text-align="left" font-size="9pt">
                 <#if fromContactInfo.postalAddress?has_content>
-                    <fo:block>${(fromContactInfo.postalAddress.address1)!""}<#if fromContactInfo.postalAddress.unitNumber?has_content> #${fromContactInfo.postalAddress.unitNumber}</#if></fo:block>
-                    <#if fromContactInfo.postalAddress.address2?has_content><fo:block>${fromContactInfo.postalAddress.address2}</fo:block></#if>
-                    <fo:block>${fromContactInfo.postalAddress.city!""}, ${(fromContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${fromContactInfo.postalAddress.postalCode!""}<#if fromContactInfo.postalAddress.postalCodeExt?has_content>-${fromContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                    <fo:block><@encodeText (fromContactInfo.postalAddress.address1)!""/><#if fromContactInfo.postalAddress.unitNumber?has_content> #<@encodeText fromContactInfo.postalAddress.unitNumber/></#if></fo:block>
+                    <#if fromContactInfo.postalAddress.address2?has_content><fo:block><@encodeText fromContactInfo.postalAddress.address2/></fo:block></#if>
+                    <fo:block><@encodeText fromContactInfo.postalAddress.city!""/>, ${(fromContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${fromContactInfo.postalAddress.postalCode!""}<#if fromContactInfo.postalAddress.postalCodeExt?has_content>-${fromContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
                     <#if fromContactInfo.postalAddress.countryGeoId?has_content><fo:block>${fromContactInfo.postalAddress.countryGeoId}</fo:block></#if>
                 </#if>
                 </fo:block>

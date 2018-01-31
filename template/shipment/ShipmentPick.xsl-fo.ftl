@@ -102,9 +102,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-cell padding="3pt" width="3in">
                         <fo:block><@encodeText toPartyDetail.organizationName!""/> <@encodeText toPartyDetail.firstName!""/> <@encodeText toPartyDetail.lastName!""/></fo:block>
                         <#if toContactInfo.postalAddress?has_content>
-                            <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
-                            <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>
-                            <fo:block font-size="8pt">${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                            <fo:block font-size="8pt"><@encodeText (toContactInfo.postalAddress.address1)!""/><#if toContactInfo.postalAddress.unitNumber?has_content> #<@encodeText toContactInfo.postalAddress.unitNumber/></#if></fo:block>
+                            <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt"><@encodeText toContactInfo.postalAddress.address2/></fo:block></#if>
+                            <fo:block font-size="8pt"><@encodeText toContactInfo.postalAddress.city!""/>, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
                             <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
                         </#if>
                         <#if toContactInfo.telecomNumber?has_content>
@@ -165,7 +165,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <#if productInfo.reservedLocationInfoList?has_content><#list productInfo.reservedLocationInfoList as locationInfo>
                             <fo:table-row font-size="9pt" border-top="thin solid black">
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">Res</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${locationInfo.description!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><@encodeText locationInfo.description!" "/></fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
@@ -186,7 +186,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <#if productInfo.otherLocationInfoList?has_content><#list productInfo.otherLocationInfoList as locationInfo>
                             <fo:table-row font-size="9pt" border-top="thin solid black">
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">Alt</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${locationInfo.description!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><@encodeText locationInfo.description!" "/></fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
@@ -233,7 +233,7 @@ along with this software (see the LICENSE.md file). If not, see
     <fo:table-body>
     <#list locationInfoList as locationInfo>
         <fo:table-row font-size="9pt" border-top="solid black">
-            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${locationInfo.description!" "}</fo:block></fo:table-cell>
+            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><@encodeText locationInfo.description!" "/></fo:block></fo:table-cell>
             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
