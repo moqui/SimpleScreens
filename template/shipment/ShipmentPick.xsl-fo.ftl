@@ -78,11 +78,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:block>${shipmentId}</fo:block>
                         <#if originFacility?has_content>
                             <fo:block font-weight="bold">Origin Facility</fo:block>
-                            <fo:block>${ec.resource.expand("FacilityNameTemplate", "", originFacility)}</fo:block>
+                            <fo:block><@encodeText ec.resource.expand("FacilityNameTemplate", "", originFacility)/></fo:block>
                         </#if>
                         <#if destinationFacility?has_content>
                             <fo:block font-weight="bold">Destination Facility</fo:block>
-                            <fo:block>${ec.resource.expand("FacilityNameTemplate", "", destinationFacility)}</fo:block>
+                            <fo:block><@encodeText ec.resource.expand("FacilityNameTemplate", "", destinationFacility)/></fo:block>
                         </#if>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="1.5in">
