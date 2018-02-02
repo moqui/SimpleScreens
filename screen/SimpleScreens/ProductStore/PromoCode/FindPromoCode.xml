@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Edit Promo Code" default-menu-index="2">
+
+    <parameter name="productStoreId" required="true"/>
+    <parameter name="storePromotionId" required="true"/>
+
+    <transition name="editPromoCode">
+        <default-response url="../EditPromoCode"/>
+    </transition>
+    <transition name="createPromoCode">
+        <service-call name="create#mantle.product.store.ProductStorePromoCode"/>
+        <default-response url="../EditPromoCode"/>
+    </transition>
+
+    <actions>
+        <entity-find entity-name="mantle.product.store.ProductStorePromoCode" list="promoCodeList">
+            <search-form-inputs default-order-by="promoCodeId"/>
+            <econdition field-name="storePromotionId" />
+        </entity-find>
+    </actions>
+
+    <widgets>
+        <container-dialog id="NewPromoCodeDialog" button-text="New Promo Code">
+            <form-single name="NewPromoCodeForm" transition="createPromoCode">
+                <field name="storePromotionId">
+                    <default-field title="Store Promotion Id">
+                        <text-line value="${storePromotionId}" disabled="disabled"/>
+                    </default-field>
+                </field>
+                <field name="promoCodeId">
+                    <default-field title="Promo Code Id">
+                        <text-line value="${promoCodeId}" disabled="disabled"/>
+                    </default-field>
+                </field>
+                <field name="promoCode">
+                    <default-field title="Promo Code">
+                        <text-line size="30"/>
+                    </default-field>
+                </field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="PromoCodeForm" list="promoCodeList" skip-form="true" header-dialog="true" select-columns="true"
+                   saved-finds="true" show-csv-button="true">
+            <field name="promoCodeId">
+                <header-field title="ID" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${promoCodeId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="promoCode">
+                <header-field title="Promo Code" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${promoCode}" link-type="anchor"/></default-field>
+            </field>
+            <field name="storePromotionId">
+                <header-field title="Store Promotion ID" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${storePromotionId}" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="fromDate">
+                <header-field title="From Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${fromDate}" link-type="anchor"/></default-field>
+            </field>
+            <field name="thruDate">
+                <header-field title="Thru Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${thruDate}" link-type="anchor"/></default-field>
+            </field>
+            <field name="useLimitPerCode">
+                <header-field title="Use Limit Per Code" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${useLimitPerCode}" link-type="anchor"/></default-field>
+            </field>
+            <field name="useLimitPerCustomer">
+                <header-field title="User Limit Per Customer" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${useLimitPerCustomer}" link-type="anchor"/></default-field>
+            </field>
+            <field name="useLimitPerOrder">
+                <header-field title="Use Limit Per Order" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${useLimitPerOrder}" link-type="anchor"/></default-field>
+            </field>
+            <field name="userEntered">
+                <header-field title="User Entered" show-order-by="case-insensitive"><text-find size="1" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${userEntered}" link-type="anchor"/></default-field>
+            </field>
+            <field name="requireParty">
+                <header-field title="Require Party" show-order-by="case-insensitive"><text-find size="1" hide-options="true"/></header-field>
+                <default-field><link url="editPromoCode" text="${requireParty}" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <default-field><display text=" "/></default-field>
+            </field>
+        </form-list>
+
+
+        <render-mode><text type="html,vuet"><![CDATA[
+            <div>Icons made by <a href="https://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+        ]]></text></render-mode>
+    </widgets>
+
+</screen>

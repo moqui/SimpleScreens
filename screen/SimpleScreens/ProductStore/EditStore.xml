@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Product Store" default-menu-index="1">
+
+    <parameter name="productStoreId" required="true"/>
+
+    <transition name="editStore"><default-response url="."/></transition>
+    <transition name="updateStore">
+        <service-call name="mantle.product.StoreServices.update#ProductStore"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createShippingOption">
+        <service-call name="create#mantle.product.store.ProductStoreShipOption"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createShippingGateway">
+        <service-call name="create#mantle.product.store.ProductStoreShippingGateway"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createPaymentGateway">
+        <service-call name="create#mantle.product.store.ProductStorePaymentGateway"/>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <service-call name="mantle.product.StoreServices.get#ProductStore" in-map="context" out-map="store"/>
+        <set field="localeStringList" from="[]"/>
+        <iterate list="Locale.getAvailableLocales()" entry="lcl">
+            <script>if (lcl.toString()) localeStringList.add([locale:lcl.toString(), name:lcl.getDisplayName(ec.user.locale)])</script></iterate>
+        <order-map-list list="localeStringList"><order-by field-name="name"/></order-map-list>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="7">
+            <form-single name="EditStoreForm" map="store" transition="updateStore">
+                <field name="productStoreId">
+                    <default-field title="Product Store ID">
+                        <display text="${productStoreId}"/>
+                    </default-field>
+                </field>
+                <field name="storeName"><default-field title="Name"><text-line size="30"/></default-field></field>
+                <field name="organizationPartyId">
+                    <default-field title="Organization Party ID">
+                        <drop-down allow-empty="true">
+                            <entity-options key="${partyId}" text="${partyId}">
+                                <entity-find entity-name="mantle.party.Organization">
+                                    <order-by field-name="partyId"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="inventoryFacilityId">
+                    <default-field title="Inventory Facility ID">
+                        <drop-down allow-empty="true">
+                            <entity-options key="${facilityId}" text="${facilityName} [${facilityId}]">
+                                <entity-find entity-name="mantle.facility.Facility">
+                                    <order-by field-name="facilityId"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="reservationOrderEnumId">
+                    <default-field title="Reservation Order Enum ID">
+                        <drop-down allow-empty="true">
+                            <entity-options key="${enumId}" text="${description ?: ''} [${enumId}]">
+                                <entity-find entity-name="moqui.basic.Enumeration">
+                                    <econdition field-name="enumTypeId" value="AssetReservationOrder"/>
+                                    <order-by field-name="enumId"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="requirementMethodEnumId">
+                    <default-field title="Reservation Order Enum ID">
+                        <drop-down allow-empty="true">
+                            <entity-options key="${enumId}" text="${description ?: ''} [${enumId}]">
+                                <entity-find entity-name="moqui.basic.Enumeration">
+                                    <econdition field-name="enumTypeId" value="RequirementMethod"/>
+                                    <order-by field-name="enumId"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="storeDomain"><default-field title="Store Domain"><text-line size="30"/></default-field></field>
+                <field name="profileUrlPath"><default-field title="Profile Url Path"><text-line size="30"/></default-field></field>
+                <field name="wikiSpaceId">
+                    <default-field title="Wiki Space ID">
+                        <drop-down allow-empty="true">
+                            <entity-options key="${wikiSpaceId}" text="${description ?: ''} [${wikiSpaceId}]">
+                                <entity-find entity-name="moqui.resource.wiki.WikiSpace">
+                                    <order-by field-name="wikiSpaceId"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="defaultLocale">
+                    <default-field title="Default Locale">
+                        <drop-down allow-empty="true">
+                            <list-options list="localeStringList" key="${locale}" text="${name}"/>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="defaultCurrencyUomId">
+                    <default-field title="Default Currency Uom ID">
+                        <drop-down allow-empty="true">
+                            <entity-options key="${uomId}" text="${description ?: ''} [${uomId}]">
+                                <entity-find entity-name="moqui.basic.Uom">
+                                    <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
+                                    <order-by field-name="description"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="defaultSalesChannelEnumId">
+                    <default-field title="Default Sales Channel Enum ID">
+                        <drop-down allow-empty="true">
+                            <entity-options key="${enumId}" text="${description ?: ''} [${enumId}]">
+                                <entity-find entity-name="moqui.basic.Enumeration">
+                                    <econdition field-name="enumTypeId" value="SalesChannel"/>
+                                    <order-by field-name="enumId"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="requireCustomerRole">
+                    <default-field title="Require Customer Role">
+                        <drop-down allow-empty="true">
+                            <option key="Y"/>
+                            <option key="N"/>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="taxGatewayConfigId">
+                    <default-field title="Tax Gateway Config ID">
+                        <drop-down allow-empty="true">
+                            <entity-options key="${taxGatewayConfigId}" text="${description ?: ''} [${taxGatewayConfigId}]">
+                                <entity-find entity-name="mantle.other.tax.TaxGatewayConfig">
+                                    <order-by field-name="taxGatewayConfigId"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field>
+                </field>
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col>
+        <row-col lg="5">
+            <section name="ShippingOptionsSection">
+                <actions>
+                    <entity-find entity-name="mantle.product.store.ProductStoreShipOption" list="storeShippingOptions">
+                        <econdition field-name="productStoreId" value="${productStoreId}" />
+                        <order-by field-name="sequenceNum"/>
+                    </entity-find>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Shipping Options"/>
+                            <box-toolbar>
+                                <container-dialog id="NewShippingOptionDialog" button-text="Add Shipping Option">
+                                    <form-single name="NewShippingOptionForm" transition="createShippingOption">
+                                        <field name="productStoreId">
+                                            <default-field title="Product Store Id">
+                                                <text-line value="${productStoreId}" disabled="disabled"/>
+                                            </default-field>
+                                        </field>
+                                        <field name="carrierPartyId">
+                                            <default-field title="Carrier Party ID">
+                                                <drop-down>
+                                                    <entity-options key="${partyId}" text="${pseudoId}">
+                                                        <entity-find entity-name="mantle.party.Party">
+                                                            <order-by field-name="partyId"/>
+                                                        </entity-find>
+                                                    </entity-options>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="shipmentMethodEnumId">
+                                            <default-field title="Shipment Method Enum ID">
+                                                <drop-down>
+                                                    <entity-options key="${enumId}" text="${description ?: ''} [${enumId}]">
+                                                        <entity-find entity-name="moqui.basic.Enumeration">
+                                                            <econdition field-name="enumTypeId" value="ShipmentMethod"/>
+                                                            <order-by field-name="enumId"/>
+                                                        </entity-find>
+                                                    </entity-options>
+                                                </drop-down>
+                                            </default-field>
+                                        </field>
+                                        <field name="sequenceNum"><default-field><text-line size="4" format="#"/></default-field></field>
+                                        <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                                    </form-single>
+                                </container-dialog>
+                            </box-toolbar>
+                            <box-body>
+                                <form-list name="StoresForm" list="storeShippingOptions" skip-form="true" header-dialog="false" select-columns="false"
+                                           saved-finds="false" show-csv-button="false">
+                                    <field name="carrierPartyId">
+                                        <header-field title="Carrier" show-order-by="case-insensitive"/>
+                                        <default-field><label text="${carrierPartyId}"/></default-field>
+                                    </field>
+                                    <field name="shipmentMethodEnumId">
+                                        <header-field title="Shipment Method" show-order-by="case-insensitive"/>
+                                        <default-field><label text="${shipmentMethodEnumId}"/></default-field>
+                                    </field>
+                                    <field name="sequenceNum">
+                                        <header-field title="Sequence Num" show-order-by="case-insensitive"/>
+                                        <default-field><label text="${sequenceNum}"/></default-field>
+                                    </field>
+                                </form-list>
+                            </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+
+            <section name="ShippingGatewaysSection">
+                <actions>
+                    <entity-find entity-name="mantle.product.store.ProductStoreShippingGateway" list="storeShippingGateway">
+                        <econdition field-name="productStoreId" value="${productStoreId}" />
+                    </entity-find>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Shipping Gateways"/>
+                        <box-toolbar>
+                            <container-dialog id="NewShippingGatewayDialog" button-text="Add Shipping Gateway">
+                                <form-single name="NewShippingGatewayForm" transition="createShippingGateway">
+                                    <field name="productStoreId">
+                                        <default-field title="Product Store Id">
+                                            <text-line value="${productStoreId}" disabled="disabled"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="carrierPartyId">
+                                        <default-field title="Carrier Party ID">
+                                            <drop-down>
+                                                <entity-options key="${partyId}" text="${pseudoId}">
+                                                    <entity-find entity-name="mantle.party.Party">
+                                                        <order-by field-name="partyId"/>
+                                                    </entity-find>
+                                                </entity-options>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="shippingGatewayConfigId">
+                                        <default-field title="Shipment Gateway Config ID">
+                                            <drop-down>
+                                                <entity-options key="${shippingGatewayConfigId}" text="${description ?: ''} [${shippingGatewayConfigId}]">
+                                                    <entity-find entity-name="mantle.shipment.carrier.ShippingGatewayConfig">
+                                                        <order-by field-name="shippingGatewayConfigId"/>
+                                                    </entity-find>
+                                                </entity-options>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                                </form-single>
+                            </container-dialog>
+                        </box-toolbar>
+                        <box-body>
+                            <form-list name="StoresGatewayForm" list="storeShippingGateway" skip-form="true" header-dialog="false" select-columns="false"
+                                       saved-finds="false" show-csv-button="false">
+                                <field name="carrierPartyId">
+                                    <header-field title="Carrier" show-order-by="case-insensitive"/>
+                                    <default-field><label text="${carrierPartyId}"/></default-field>
+                                </field>
+                                <field name="shippingGatewayConfigId">
+                                    <header-field title="Shipment Gateway" show-order-by="case-insensitive"/>
+                                    <default-field><label text="${shippingGatewayConfigId}"/></default-field>
+                                </field>
+                            </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+
+            <section name="PaymentGatewaysSection">
+                <actions>
+                    <entity-find entity-name="mantle.product.store.ProductStorePaymentGateway" list="storePaymentGateway">
+                        <econdition field-name="productStoreId" value="${productStoreId}" />
+                    </entity-find>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Payment Gateways"/>
+                        <box-toolbar>
+                            <container-dialog id="NewPaymentGatewayDialog" button-text="Add Payment Gateway">
+                                <form-single name="NewPaymentGatewayForm" transition="createPaymentGateway">
+                                    <field name="productStoreId">
+                                        <default-field title="Product Store Id">
+                                            <text-line value="${productStoreId}" disabled="disabled"/>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentInstrumentEnumId">
+                                        <default-field title="Payment Instrument Enum Id">
+                                            <drop-down>
+                                                <entity-options key="${enumId}" text="${description ?: ''} [${enumId}]">
+                                                    <entity-find entity-name="moqui.basic.Enumeration">
+                                                        <econdition field-name="enumTypeId" value="PaymentInstrument"/>
+                                                        <order-by field-name="enumId"/>
+                                                    </entity-find>
+                                                </entity-options>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="paymentGatewayConfigId">
+                                        <default-field title="Payment Gateway Config ID">
+                                            <drop-down>
+                                                <entity-options key="${paymentGatewayConfigId}" text="${description ?: ''} [${paymentGatewayConfigId}]">
+                                                    <entity-find entity-name="mantle.account.method.PaymentGatewayConfig">
+                                                        <order-by field-name="paymentGatewayConfigId"/>
+                                                    </entity-find>
+                                                </entity-options>
+                                            </drop-down>
+                                        </default-field>
+                                    </field>
+                                    <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                                </form-single>
+                            </container-dialog>
+                        </box-toolbar>
+                        <box-body>
+                            <form-list name="PaymentGatewayForm" list="storePaymentGateway" skip-form="true" header-dialog="false" select-columns="false"
+                                       saved-finds="false" show-csv-button="false">
+                                <field name="paymentInstrumentEnumId">
+                                    <header-field title="Payment Instrument" show-order-by="case-insensitive"/>
+                                    <default-field><label text="${paymentInstrumentEnumId}"/></default-field>
+                                </field>
+                                <field name="paymentGatewayConfigId">
+                                    <header-field title="Payment Gateway" show-order-by="case-insensitive"/>
+                                    <default-field><label text="${paymentGatewayConfigId}"/></default-field>
+                                </field>
+                            </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+
+
+        </row-col></container-row>
+
+
+    </widgets>
+</screen>

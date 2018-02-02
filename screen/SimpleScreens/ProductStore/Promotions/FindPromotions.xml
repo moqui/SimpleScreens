@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Promotions" default-menu-index="2">
+
+    <parameter name="productStoreId" required="true"/>
+
+    <transition name="editPromotion">
+        <default-response url="../EditPromotion"/>
+    </transition>
+    <transition name="createPromotion">
+        <service-call name="create#mantle.product.store.ProductStorePromotion"/>
+        <default-response url="../EditPromotion"/>
+    </transition>
+
+    <actions>
+        <entity-find entity-name="mantle.product.store.ProductStorePromotion" list="promotionList">
+            <search-form-inputs default-order-by="storePromotionId"/>
+            <econdition field-name="productStoreId" />
+        </entity-find>
+    </actions>
+
+    <widgets>
+        <container-dialog id="NewPromotionDialog" button-text="New Promotion">
+            <form-single name="NewPromotionForm" transition="createPromotion">
+                <field name="productStoreId">
+                    <default-field title="Product Store Id">
+                        <text-line value="${productStoreId}" disabled="disabled"/>
+                    </default-field>
+                </field>
+                <field name="storePromotionId">
+                    <default-field title="Store Promotion ID">
+                        <text-line size="30"/>
+                    </default-field>
+                </field>
+                <field name="itemDescription">
+                    <default-field>
+                        <text-line size="50"/>
+                    </default-field>
+                </field>
+                <field name="serviceRegisterId">
+                    <default-field title="Service Register ID">
+                        <drop-down>
+                            <entity-options key="${serviceRegisterId}" text="${description} [${serviceRegisterId}]">
+                                <entity-find entity-name="moqui.service.ServiceRegister">
+                                    <order-by field-name="serviceRegisterId"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="PromotionsForm" list="promotionList" skip-form="true" header-dialog="true" select-columns="true"
+                   saved-finds="true" show-csv-button="true">
+            <field name="storePromotionId">
+                <header-field title="ID" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${storePromotionId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="productStoreId">
+                <header-field title="Name" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${productStoreId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="itemDescription">
+                <header-field title="Item Description" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${itemDescription}" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="serviceRegisterId">
+                <header-field title="Service Register ID" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${serviceRegisterId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="fromDate">
+                <header-field title="From Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${fromDate}" link-type="anchor"/></default-field>
+            </field>
+            <field name="thruDate">
+                <header-field title="Thru Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${thruDate}" link-type="anchor"/></default-field>
+            </field>
+            <field name="sequenceNum">
+                <header-field title="Sequence Num" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${sequenceNum}" link-type="anchor"/></default-field>
+            </field>
+            <field name="requireCode">
+                <header-field title="Require Code" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${requireCode}" link-type="anchor"/></default-field>
+            </field>
+            <field name="useLimitPerOrder">
+                <header-field title="Use Limit Per Order" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${useLimitPerOrder}" link-type="anchor"/></default-field>
+            </field>
+            <field name="useLimitPerCustomer">
+                <header-field title="Use Limit Per Customer" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${useLimitPerCustomer}" link-type="anchor"/></default-field>
+            </field>
+            <field name="useLimitPerPromotion">
+                <header-field title="Use Limit Per Promotion" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPromotion" text="${useLimitPerPromotion}" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <default-field><display text=" "/></default-field>
+            </field>
+        </form-list>
+
+
+        <render-mode><text type="html,vuet"><![CDATA[
+            <div>Icons made by <a href="https://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+        ]]></text></render-mode>
+    </widgets>
+
+</screen>
