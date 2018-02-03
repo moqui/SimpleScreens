@@ -65,9 +65,7 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="itemTypeEnumId" from="productItemTypeEgms*.enumId.join(',')"/>
         </if>
 
-        <if condition="'sales'.equalsIgnoreCase(orderType)"><then><set field="vendorRoleTypeId" value="OrgInternal"/></then>
-            <else-if condition="'purchase'.equalsIgnoreCase(orderType)"><set field="customerRoleTypeId" value="OrgInternal"/></else-if></if>
-
+        <set field="orderType" from="orderType ?: 'Any'"/>
         <set field="vendorRole" value="Supplier,Vendor,VendorBillFrom"/>
         <set field="customerRole" value="Customer,CustomerBillTo"/>
 
@@ -132,12 +130,12 @@ along with this software (see the LICENSE.md file). If not, see
                 show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
                 <search-form-inputs default-order-by="-entryDate,-orderId,orderPartSeqId"
-                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId">
+                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType">
                     <default-parameters statusId="OrderOpen,OrderPlaced,OrderApproved,OrderHold" statusId_op="in"
-                            entryDate_poffset="-3" entryDate_period="30d" orderType="Any"/></search-form-inputs>
+                            entryDate_poffset="-3" entryDate_period="30d"/></search-form-inputs>
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
-                <econdition field-name="vendorRoleTypeId" ignore-if-empty="true"/>
-                <econdition field-name="customerRoleTypeId" ignore-if-empty="true"/>
+                <econdition field-name="vendorRoleTypeId" value="OrgInternal" ignore="!'sales'.equalsIgnoreCase(orderType)"/>
+                <econdition field-name="customerRoleTypeId" value="OrgInternal" ignore="!'purchase'.equalsIgnoreCase(orderType)"/>
                 <econdition field-name="customerClassificationId" ignore-if-empty="true"/>
                 <econdition field-name="itemTypeEnumId" operator="in" ignore-if-empty="true" or-null="true"/>
                 <econdition field-name="productId" operator="in" from="findProductId" ignore-if-empty="true"/>
