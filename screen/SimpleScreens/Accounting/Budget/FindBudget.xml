@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" default-menu-title="Budgets">
+
+    <transition name="editBudget"><default-response url="../EditBudget"/></transition>
+    <transition name="createBudget"><service-call name="mantle.other.BudgetServices.create#Budget"/>
+        <default-response url="../EditBudget"/><error-response url="."/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+
+    <transition-include name="getOrgFiscalPeriods" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
+
+    <widgets>
+        <container-box><box-header title="Budgets"/><box-toolbar>
+            <container-dialog id="NewBudgetDialog" button-text="New Budget">
+                <form-single name="NewBudgetForm" transition="createBudget">
+                    <field name="budgetTypeEnumId"><default-field title="Type">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="BudgetType"/><set field="noCurrentSelectedKey" value="BudgetOperating"/></widget-template-include>
+                    </default-field></field>
+                    <field name="organizationPartyId"><default-field title="Organization">
+                        <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName,firstName,lastName"/></entity-find>
+                        </entity-options></drop-down>
+                    </default-field></field>
+                    <field name="timePeriodId"><default-field title="Time Period"><drop-down>
+                        <dynamic-options transition="getOrgFiscalPeriods" value-field="timePeriodId" label-field="periodName"
+                                parameter-map="[timePeriodTypeId:'FiscalYear']">
+                            <depends-on field="organizationPartyId"/></dynamic-options>
+                    </drop-down></default-field></field>
+                    <field name="subTimePeriodTypeId"><default-field title="Sub Period Type">
+                        <drop-down allow-empty="true" no-current-selected-key="FiscalMonth"><option key="FiscalMonth" text="Month"/>
+                            <option key="FiscalQuarter" text="Quarter"/></drop-down>
+                    </default-field></field>
+                    <field name="description"><default-field><text-line size="50"/></default-field></field>
+
+                    <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+        </box-toolbar><box-body-nopad>
+            <form-list name="BudgetList" list="budgetList" skip-form="true" header-dialog="true">
+                <entity-find entity-name="mantle.other.budget.BudgetAndTimePeriod" list="budgetList">
+                    <search-form-inputs default-order-by="-thruDate"/></entity-find>
+
+                <field name="budgetId"><header-field title="Budget" show-order-by="true"><text-line size="6"/></header-field>
+                    <default-field><link url="editBudget" text="${budgetId}" link-type="anchor"/></default-field></field>
+                <field name="description"><header-field show-order-by="true"><text-find/></header-field>
+                    <default-field><link url="editBudget" text="${description}" link-type="anchor"/></default-field></field>
+                <field name="budgetTypeEnumId">
+                    <header-field title="Type" show-order-by="true">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="BudgetType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                    </header-field>
+                    <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                </field>
+                <field name="partyId">
+                    <header-field title="Organization">
+                        <drop-down allow-empty="true"><entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName,firstName,lastName"/></entity-find>
+                        </entity-options></drop-down>
+                    </header-field>
+                    <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"/></default-field>
+                </field>
+                <field name="periodName"><default-field><display/></default-field></field>
+
+                <field name="fromDate"><header-field show-order-by="true"><date-period/></header-field>
+                    <default-field><display/></default-field></field>
+                <field name="thruDate"><header-field show-order-by="true"><date-period/></header-field>
+                    <default-field><display/></default-field></field>
+                <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
+    </widgets>
+</screen>
