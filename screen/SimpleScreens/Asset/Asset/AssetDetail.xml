@@ -72,12 +72,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="containerId"><default-field title="Container">
                         <link url="editContainer" text="${containerId}" link-type="anchor"/></default-field></field>
 
-                    <field name="acquireShipmentId"><default-field title="From Shipment">
+                    <field name="acquireShipmentId"><conditional-field title="From Shipment" condition="acquireShipmentId">
                         <link url="shipmentDetail" text="${asset.acquireShipmentId}" link-type="anchor" condition="asset.acquireShipmentId"
-                                parameter-map="[shipmentId:asset.acquireShipmentId]"/></default-field></field>
-                    <field name="acquireWorkEffortId"><default-field title="From Run">
+                                parameter-map="[shipmentId:asset.acquireShipmentId]"/></conditional-field></field>
+                    <field name="acquireWorkEffortId"><conditional-field title="From Run" condition="acquireWorkEffortId">
                         <link url="productionRun" text="${asset.acquireWorkEffortId}" link-type="anchor" condition="asset.acquireWorkEffortId"
-                                parameter-map="[workEffortId:asset.acquireWorkEffortId]"/></default-field></field>
+                                parameter-map="[workEffortId:asset.acquireWorkEffortId]"/></conditional-field></field>
 
                     <field name="classEnumId"><default-field title="Class">
                         <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -92,85 +92,89 @@ along with this software (see the LICENSE.md file). If not, see
                     </default-field></field>
                     <field name="acquiredDate"><default-field><date-time/></default-field></field>
                     <field name="manufacturedDate"><default-field><date-time/></default-field></field>
-                    <field name="expectedEndOfLife"><default-field><date-time type="date"/></default-field></field>
 
                     <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
                         <dynamic-options transition="getLotList" server-search="true" min-length="2"/></drop-down></default-field></field>
 
-                    <field name="depreciationTypeEnumId"><default-field title="Depreciation Type">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                            <set field="enumTypeId" value="DepreciationType"/><set field="allowEmpty" value="true"/></widget-template-include>
-                    </default-field></field>
                     <!-- <field name="acquireCostUomId"><default-field title="Cost Unit"><display-entity entity-name="moqui.basic.Uom"/></default-field></field> -->
                     <field name="acquireCost"><default-field>
                         <display currency-unit-field="acquireCostUomId"/>
                         <link url="orderDetail" text="PO #${asset.acquireOrderId?:'N/A'}" parameter-map="[orderId:asset.acquireOrderId]"
                               link-type="anchor" condition="asset.acquireOrderId"/>
                     </default-field></field>
-                    <field name="salvageValue"><default-field><text-line size="8" format="#,##0.00"/></default-field></field>
-                    <field name="depreciation"><default-field><display currency-unit-field="acquireCostUomId"/></default-field></field>
-                    <field name="yearBeginDepreciation"><default-field><display currency-unit-field="acquireCostUomId"/></default-field></field>
+
+                    <field name="assetName"><conditional-field title="Name" condition="isFixedAsset">
+                        <text-line size="60"/></conditional-field></field>
+                    <field name="depreciationTypeEnumId"><conditional-field title="Depreciation Type" condition="isFixedAsset">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="DepreciationType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                    </conditional-field></field>
+
+                    <field name="expectedEndOfLife"><conditional-field condition="isFixedAsset">
+                        <date-time type="date"/></conditional-field></field>
+                    <field name="salvageValue"><conditional-field condition="isFixedAsset">
+                        <text-line size="8" format="#,##0.00"/></conditional-field></field>
+                    <field name="depreciation"><conditional-field condition="isFixedAsset">
+                        <display currency-unit-field="acquireCostUomId"/></conditional-field></field>
+                    <field name="yearBeginDepreciation"><conditional-field condition="isFixedAsset">
+                        <display currency-unit-field="acquireCostUomId"/></conditional-field></field>
 
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                 </form-single>
-                <section name="AssetDepreciation" condition="asset.depreciationTypeEnumId">
-                    <actions>
-                        <service-call name="mantle.ledger.AssetAutoPostServices.calculate#FixedAssetDepreciation"
-                                in-map="[assetId:assetId]" out-map="curDepOut"/>
-                        <entity-find entity-name="mantle.product.asset.AssetDepreciation" list="assetDepreciationList">
-                            <econdition field-name="assetId"/></entity-find>
-                    </actions>
-                    <widgets>
-                        <container-box>
-                            <box-header title="Depreciation"/>
-                            <box-body>
-                                <label text="Current Depreciation" type="h5"/>
-                                <container-row>
-                                    <row-col lg="3"><label text="Useful Years" type="strong"/></row-col>
-                                    <row-col lg="1"><label text="${curDepOut.usefulLifeYears}"/></row-col>
-                                    <row-col lg="3"><label text="Remaining" type="strong"/></row-col>
-                                    <row-col lg="1"><label text="${curDepOut.yearsRemaining}"/></row-col>
-                                    <row-col lg="3"><label text="Last Year Period?" type="strong"/></row-col>
-                                    <row-col lg="1"><label text="${curDepOut.isLastYearPeriod ? 'Y' : 'N'}"/></row-col>
-                                </container-row>
-                                <container-row>
-                                    <row-col lg="3"><label text="Annual Depr." type="strong"/></row-col>
-                                    <row-col lg="3"><label text="${ec.l10n.formatCurrency(curDepOut.annualDepreciation, asset.acquireCostUomId)}"/></row-col>
-                                    <row-col lg="3"><label text="Monthly Depr." type="strong"/></row-col>
-                                    <row-col lg="3"><label text="${ec.l10n.formatCurrency(curDepOut.monthlyDepreciation, asset.acquireCostUomId)}"/></row-col>
-                                </container-row>
-                                <container-row>
-                                    <row-col lg="3"><label text="Net Book Value" type="strong"/></row-col>
-                                    <row-col lg="3"><label text="${ec.l10n.formatCurrency(curDepOut.netBookValue, asset.acquireCostUomId)}"/></row-col>
-                                    <row-col lg="3"><label text="Year Begin Net Book" type="strong"/></row-col>
-                                    <row-col lg="3"><label text="${ec.l10n.formatCurrency(curDepOut.yearBeginNetBookValue, asset.acquireCostUomId)}"/></row-col>
-                                </container-row>
+                <section name="AssetDepreciation" condition="asset.depreciationTypeEnumId"><actions>
+                    <service-call name="mantle.ledger.AssetAutoPostServices.calculate#FixedAssetDepreciation"
+                            in-map="[assetId:assetId]" out-map="curDepOut"/>
+                    <entity-find entity-name="mantle.product.asset.AssetDepreciation" list="assetDepreciationList">
+                        <econdition field-name="assetId"/></entity-find>
+                </actions>
+                <widgets>
+                    <container-box><box-header title="Depreciation"/><box-body>
+                        <label text="Current Depreciation" type="h5"/>
+                        <container-row>
+                            <row-col lg="3"><label text="Useful Years" type="strong"/></row-col>
+                            <row-col lg="1"><label text="${curDepOut.usefulLifeYears}"/></row-col>
+                            <row-col lg="3"><label text="Remaining" type="strong"/></row-col>
+                            <row-col lg="1"><label text="${curDepOut.yearsRemaining}"/></row-col>
+                            <row-col lg="3"><label text="Last Year Period?" type="strong"/></row-col>
+                            <row-col lg="1"><label text="${curDepOut.isLastYearPeriod ? 'Y' : 'N'}"/></row-col>
+                        </container-row>
+                        <container-row>
+                            <row-col lg="3"><label text="Annual Depr." type="strong"/></row-col>
+                            <row-col lg="3"><label text="${ec.l10n.formatCurrency(curDepOut.annualDepreciation, asset.acquireCostUomId)}"/></row-col>
+                            <row-col lg="3"><label text="Monthly Depr." type="strong"/></row-col>
+                            <row-col lg="3"><label text="${ec.l10n.formatCurrency(curDepOut.monthlyDepreciation, asset.acquireCostUomId)}"/></row-col>
+                        </container-row>
+                        <container-row>
+                            <row-col lg="3"><label text="Net Book Value" type="strong"/></row-col>
+                            <row-col lg="3"><label text="${ec.l10n.formatCurrency(curDepOut.netBookValue, asset.acquireCostUomId)}"/></row-col>
+                            <row-col lg="3"><label text="Year Begin Net Book" type="strong"/></row-col>
+                            <row-col lg="3"><label text="${ec.l10n.formatCurrency(curDepOut.yearBeginNetBookValue, asset.acquireCostUomId)}"/></row-col>
+                        </container-row>
 
-                                <label text="Depreciation History" type="h5"/>
-                                <form-list name="AssetDepreciationList" list="assetDepreciationList">
-                                    <field name="timePeriodId"><default-field title="Period">
-                                        <display-entity entity-name="mantle.party.time.TimePeriod" text="${periodName}"/>
-                                    </default-field></field>
-                                    <field name="usefulLifeYears"><default-field title="Useful Years"><display/></default-field></field>
-                                    <field name="yearsRemaining"><default-field title="Remaining"><display/></default-field></field>
-                                    <field name="isLastYearPeriod"><default-field title="Last Year Period"><display/></default-field></field>
-                                    <field name="monthlyDepreciation"><default-field title="Monthly">
-                                        <display currency-unit-field="asset.acquireCostUomId"/></default-field></field>
-                                    <field name="annualDepreciation"><default-field title="Annual">
-                                        <display currency-unit-field="asset.acquireCostUomId"/></default-field></field>
-                                    <field name="yearBeginDepreciation"><default-field title="Year Begin">
-                                        <display currency-unit-field="asset.acquireCostUomId"/></default-field></field>
-                                    <field name="acctgTransId"><default-field title="TX"><link url="editTransaction"
-                                            text="${acctgTransId}" link-type="anchor" parameter-map="[acctgTransId:acctgTransId]"/></default-field></field>
-                                    <form-list-column><field-ref name="timePeriodId"/></form-list-column>
-                                    <form-list-column><field-ref name="usefulLifeYears"/><field-ref name="yearsRemaining"/></form-list-column>
-                                    <form-list-column><field-ref name="monthlyDepreciation"/><field-ref name="annualDepreciation"/></form-list-column>
-                                    <form-list-column><field-ref name="yearBeginDepreciation"/><field-ref name="acctgTransId"/></form-list-column>
-                                </form-list>
-                            </box-body>
-                        </container-box>
-                    </widgets>
-                </section>
+                        <label text="Depreciation History" type="h5"/>
+                    </box-body><box-body-nopad>
+                        <form-list name="AssetDepreciationList" list="assetDepreciationList">
+                            <field name="timePeriodId"><default-field title="Period">
+                                <display-entity entity-name="mantle.party.time.TimePeriod" text="${periodName}"/>
+                            </default-field></field>
+                            <field name="usefulLifeYears"><default-field title="Useful Years"><display/></default-field></field>
+                            <field name="yearsRemaining"><default-field title="Remaining"><display/></default-field></field>
+                            <field name="isLastYearPeriod"><default-field title="Last Year Period"><display/></default-field></field>
+                            <field name="monthlyDepreciation"><default-field title="Monthly">
+                                <display currency-unit-field="asset.acquireCostUomId"/></default-field></field>
+                            <field name="annualDepreciation"><default-field title="Annual">
+                                <display currency-unit-field="asset.acquireCostUomId"/></default-field></field>
+                            <field name="yearBeginDepreciation"><default-field title="Year Begin">
+                                <display currency-unit-field="asset.acquireCostUomId"/></default-field></field>
+                            <field name="acctgTransId"><default-field title="TX"><link url="editTransaction"
+                                    text="${acctgTransId}" link-type="anchor" parameter-map="[acctgTransId:acctgTransId]"/></default-field></field>
+                            <form-list-column><field-ref name="timePeriodId"/></form-list-column>
+                            <form-list-column><field-ref name="usefulLifeYears"/><field-ref name="yearsRemaining"/></form-list-column>
+                            <form-list-column><field-ref name="monthlyDepreciation"/><field-ref name="annualDepreciation"/></form-list-column>
+                            <form-list-column><field-ref name="yearBeginDepreciation"/><field-ref name="acctgTransId"/></form-list-column>
+                        </form-list>
+                    </box-body-nopad></container-box>
+                </widgets></section>
             </row-col>
             <row-col lg="7">
                 <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
