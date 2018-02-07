@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="workEffortId" required="true"/>
+    <parameter name="productId" required="true"/>
+    <parameter name="inventoryFacilityId" required="true"/>
+
+    <transition name="receiveAsset"><service-call name="mantle.product.AssetServices.receive#Asset"/>
+        <default-response url=".."/></transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
+    </actions>
+    <widgets>
+        <form-single name="ReceiveAssetForm" transition="receiveAsset"
+                extends="component://SimpleScreens/screen/SimpleScreens/Manufacturing/Run/RunProduced.xml#ReceiveAssetForm">
+            <field name="productId"><default-field title="Product">
+                <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+            <field name="defaultProductId"><default-field><ignored/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>
