@@ -13,17 +13,24 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
-        default-menu-title="Edit Promo Code" default-menu-index="2">
+        default-menu-title="Find Store Emails" default-menu-index="2">
+
 
     <parameter name="productStoreId" required="true"/>
 
-    <transition name="editStoreEmail">
-        <default-response url="../EditStoreEmail"/>
+    <transition name="updateStoreEmail">
+        <service-call name="update#mantle.product.store.ProductStoreEmail"/>
+        <default-response url="."/>
     </transition>
     <transition name="createStoreEmail">
         <service-call name="create#mantle.product.store.ProductStoreEmail"/>
-        <default-response url="../EditPromoCode"/>
+        <default-response url="."/>
     </transition>
+    <transition name="deleteStoreEmail">
+        <service-call name="delete#mantle.product.store.ProductStoreEmail"/>
+        <default-response url="."/>
+    </transition>
+
 
     <actions>
         <entity-find entity-name="mantle.product.store.ProductStoreEmail" list="storeEmails">
@@ -61,54 +68,44 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <form-list name="PromoCodeForm" list="promoCodeList" skip-form="true" header-dialog="true" select-columns="true"
-                   saved-finds="true" show-csv-button="true">
-            <field name="promoCodeId">
-                <header-field title="ID" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${promoCodeId}" link-type="anchor"/></default-field>
-            </field>
-            <field name="promoCode">
-                <header-field title="Promo Code" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${promoCode}" link-type="anchor"/></default-field>
-            </field>
-            <field name="storePromotionId">
-                <header-field title="Store Promotion ID" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${storePromotionId}" link-type="anchor"/></default-field>
-            </field>
+        <form-list name="StoreEmailsForm" list="storeEmails" header-dialog="true" transition="updateStoreEmail">
+            <field name="productStoreId"><default-field><hidden/></default-field></field>
 
+            <field name="emailTypeEnumId">
+                <header-field title="Email Type" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
             <field name="fromDate">
-                <header-field title="From Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${fromDate}" link-type="anchor"/></default-field>
+                <header-field title="From Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
+                <default-field><display/></default-field>
             </field>
             <field name="thruDate">
                 <header-field title="Thru Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${thruDate}" link-type="anchor"/></default-field>
-            </field>
-            <field name="useLimitPerCode">
-                <header-field title="Per Code" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${useLimitPerCode}" link-type="anchor"/></default-field>
-            </field>
-            <field name="useLimitPerCustomer">
-                <header-field title="Per Customer" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${useLimitPerCustomer}" link-type="anchor"/></default-field>
-            </field>
-            <field name="useLimitPerOrder">
-                <header-field title="Per Order" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${useLimitPerOrder}" link-type="anchor"/></default-field>
-            </field>
-            <field name="userEntered">
-                <header-field title="User Entered" show-order-by="case-insensitive"><text-find size="1" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${userEntered}" link-type="anchor"/></default-field>
-            </field>
-            <field name="requireParty">
-                <header-field title="Require Party" show-order-by="case-insensitive"><text-find size="1" hide-options="true"/></header-field>
-                <default-field><link url="editPromoCode" text="${requireParty}" link-type="anchor"/></default-field>
+                <default-field><date-time type="date-time"/></default-field>
             </field>
 
-            <field name="submitButton">
-                <header-field title="Find"><submit/></header-field>
-                <default-field><display text=" "/></default-field>
+            <field name="emailTemplateId">
+                <header-field title="Email Template Id" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><drop-down><entity-options key="${emailTemplateId}" text="${description}">
+                    <entity-find entity-name="moqui.basic.email.EmailTemplate">
+                        <order-by field-name="emailTemplateId"/>
+                    </entity-find>
+                </entity-options></drop-down></default-field>
             </field>
+            <field name="headerImagePath">
+                <header-field title="header Image Path" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><text-line size="30"/></default-field>
+            </field>
+            <field name="detailLinkPath">
+                <header-field title="Detail Link Path" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><text-line size="30"/></default-field>
+            </field>
+            <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
+            <field name="delete"><default-field title=""><link url="deleteStoreEmail" text=""
+                   icon="glyphicon glyphicon-trash" confirmation="Delete record of Store Email?"
+                   parameter-map="[productStoreId:productStoreId, emailTypeEnumId:emailTypeEnumId, fromDate:fromDate]"/>
+            </default-field></field>
+
         </form-list>
 
 
