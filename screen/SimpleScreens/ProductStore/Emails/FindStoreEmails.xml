@@ -16,41 +16,47 @@ along with this software (see the LICENSE.md file). If not, see
         default-menu-title="Edit Promo Code" default-menu-index="2">
 
     <parameter name="productStoreId" required="true"/>
-    <parameter name="storePromotionId" required="true"/>
 
-    <transition name="editPromoCode">
-        <default-response url="../EditPromoCode"/>
+    <transition name="editStoreEmail">
+        <default-response url="../EditStoreEmail"/>
     </transition>
-    <transition name="createPromoCode">
-        <service-call name="create#mantle.product.store.ProductStorePromoCode"/>
+    <transition name="createStoreEmail">
+        <service-call name="create#mantle.product.store.ProductStoreEmail"/>
         <default-response url="../EditPromoCode"/>
     </transition>
 
     <actions>
-        <entity-find entity-name="mantle.product.store.ProductStorePromoCode" list="promoCodeList">
-            <search-form-inputs default-order-by="promoCodeId"/>
-            <econdition field-name="storePromotionId" />
+        <entity-find entity-name="mantle.product.store.ProductStoreEmail" list="storeEmails">
+            <search-form-inputs default-order-by="emailTypeEnumId"/>
+            <econdition field-name="productStoreId" />
         </entity-find>
     </actions>
 
     <widgets>
-        <container-dialog id="NewPromoCodeDialog" button-text="New Promo Code">
-            <form-single name="NewPromoCodeForm" transition="createPromoCode">
-                <field name="storePromotionId">
-                    <default-field title="Store Promotion Id">
-                        <text-line value="${storePromotionId}" disabled="disabled"/>
-                    </default-field>
-                </field>
-                <field name="promoCodeId">
-                    <default-field title="Promo Code Id">
-                        <text-line value="${promoCodeId}" disabled="disabled"/>
-                    </default-field>
-                </field>
-                <field name="promoCode">
-                    <default-field title="Promo Code">
-                        <text-line size="30"/>
-                    </default-field>
-                </field>
+        <container-dialog id="NewStoreEmailDialog" button-text="New Store Email">
+            <form-single name="NewStoreEmailForm" transition="createStoreEmail">
+                <field name="productStoreId"><default-field title="Store Promotion">
+                    <display-entity entity-name="mantle.product.store.ProductStore" text="ProductStoreNameTemplate"/>
+                </default-field></field>
+                <field name="emailTypeEnumId"><default-field title="Email Type">
+                    <drop-down><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="ProductStoreEmailType"/>
+                            <order-by field-name="enumId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="fromDate"> <default-field><date-time type="date-time"/></default-field> </field>
+                <field name="thruDate"> <default-field><date-time type="date-time"/></default-field> </field>
+                <field name="emailTemplateId"><default-field title="Email Template">
+                    <drop-down><entity-options key="${enumId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.email.EmailTemplate">
+                            <order-by field-name="emailTemplateId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="headerImagePath"><default-field title="Header Image Path"><text-line size="30"/></default-field></field>
+                <field name="detailLinkPath"><default-field title="Detail Link Path"><text-line size="30"/></default-field></field>
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
             </form-single>
         </container-dialog>
@@ -79,15 +85,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editPromoCode" text="${thruDate}" link-type="anchor"/></default-field>
             </field>
             <field name="useLimitPerCode">
-                <header-field title="Use Limit Per Code" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <header-field title="Per Code" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
                 <default-field><link url="editPromoCode" text="${useLimitPerCode}" link-type="anchor"/></default-field>
             </field>
             <field name="useLimitPerCustomer">
-                <header-field title="User Limit Per Customer" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <header-field title="Per Customer" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
                 <default-field><link url="editPromoCode" text="${useLimitPerCustomer}" link-type="anchor"/></default-field>
             </field>
             <field name="useLimitPerOrder">
-                <header-field title="Use Limit Per Order" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <header-field title="Per Order" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
                 <default-field><link url="editPromoCode" text="${useLimitPerOrder}" link-type="anchor"/></default-field>
             </field>
             <field name="userEntered">
