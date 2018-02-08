@@ -519,7 +519,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </widgets></section-iterate>
 
                     <section name="EditPartSection" condition="orderPartInfo.partEditable"><widgets>
-                        <container-dialog id="EditPartDialog" button-text="Edit Part ${orderPart.orderPartSeqId}">
+                        <container-dialog id="EditPartDialog" button-text="Edit Part ${orderPart.orderPartSeqId}" width="960">
                             <form-single name="EditPartForm" transition="updateOrderPart" map="orderPart">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
                                 <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
@@ -539,9 +539,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     </entity-find></entity-options></drop-down>
                                 </default-field></field>
                                 <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
-                                <field name="estimatedDeliveryDate"><default-field title="Delivery Date"><date-time/></default-field></field>
+                                <field name="estimatedShipDate"><default-field title="Estimated Ship"><date-time/></default-field></field>
+                                <field name="estimatedDeliveryDate"><default-field title="Estimated Delivery"><date-time/></default-field></field>
                                 <field name="otherPartyOrderId"><default-field title="Their Order"><text-line size="40"/></default-field></field>
-                                <field name="shippingInstructions"><default-field><text-area rows="3" cols="60"/></default-field></field>
+                                <field name="shippingInstructions"><default-field><text-area rows="6" cols="120"/></default-field></field>
                                 <field name="isGift"><default-field>
                                     <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
                                 <field name="giftMessage"><default-field><text-area rows="3" cols="60"/></default-field></field>
@@ -555,13 +556,15 @@ along with this software (see the LICENSE.md file). If not, see
                             </form-single>
                         </container-dialog>
                     </widgets><fail-widgets>
-                        <container-dialog id="EditPartNonEdDialog" button-text="Edit Part ${orderPart.orderPartSeqId}">
+                        <container-dialog id="EditPartNonEdDialog" button-text="Edit Part ${orderPart.orderPartSeqId}" width="960">
                             <form-single name="EditPartNonEdForm" transition="updateOrderPart" map="orderPart">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
                                 <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
+                                <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
+                                <field name="estimatedShipDate"><default-field title="Estimated Ship"><date-time/></default-field></field>
                                 <field name="estimatedDeliveryDate"><default-field title="Delivery Date"><date-time/></default-field></field>
                                 <field name="otherPartyOrderId"><default-field title="Their Order"><text-line size="40"/></default-field></field>
-                                <field name="shippingInstructions"><default-field><text-area rows="3" cols="80"/></default-field></field>
+                                <field name="shippingInstructions"><default-field><text-area rows="6" cols="120"/></default-field></field>
                                 <field name="isGift"><default-field>
                                     <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
                                 <field name="giftMessage"><default-field><text-area rows="3" cols="80"/></default-field></field>
@@ -836,8 +839,16 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
                         <field name="updateExisting"><default-field><hidden default-value="false"/></default-field></field>
 
+                        <field name="assetClassEnumId"><default-field title="Asset Class">
+                            <drop-down allow-empty="true" no-current-selected-key="AsClsInventoryFin">
+                                <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                                    <econdition field-name="parentEnumId" value="AsClsInventory"/><order-by field-name="sequenceNum,description"/>
+                                </entity-find></entity-options>
+                            </drop-down>
+                        </default-field></field>
                         <field name="productId"><default-field title="Product">
-                            <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                            <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0">
+                                <depends-on field="assetClassEnumId"/></dynamic-options></drop-down>
                         </default-field></field>
                         <field name="quantity"><default-field><text-line size="8" default-value="1"/></default-field></field>
                         <field name="unitAmount"><default-field title="Price" tooltip="Leave empty to use Calc Price">

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Assets Consumed" default-menu-index="3">
+
+    <parameter name="workEffortId" required="true"/>
+
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="findAsset"><default-response url="//${appRoot}/Asset/Asset/FindAsset"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/Asset/AssetDetail"/></transition>
+
+    <transition name="issueAssetToWorkEffort"><service-call name="mantle.product.AssetServices.issue#AssetToWorkEffort"/>
+        <default-response url="."/></transition>
+    <transition name="issueAnyAssetToWorkEffort"><service-call name="mantle.product.AssetServices.issue#AnyAssetToWorkEffort"/>
+        <default-response url=".."/></transition>
+    <transition name="receiveAsset"><service-call name="mantle.product.AssetServices.receive#Asset"/><default-response url="."/></transition>
+
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getAssetAvailableToPromiseTotal" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <actions>
+        <service-call name="mantle.work.ManufacturingServices.get#ProductionRunDisplayInfo" in-map="context" out-map="context"/>
+
+        <entity-find entity-name="mantle.product.issuance.AssetIssuanceDetail" list="assetIssuanceDetailList">
+            <search-form-inputs default-order-by="pseudoId,productName,assetId,-issuedDate"/>
+            <econdition field-name="workEffortId"/></entity-find>
+        <set field="aidTotal" from="[:]"/>
+        <iterate list="assetIssuanceDetailList" entry="aid"><script>
+            if (aidTotal[aid.assetId]) aidTotal[aid.assetId] += aid.quantity
+            else aidTotal[aid.assetId] = aid.quantity
+        </script></iterate>
+
+        <entity-find entity-name="mantle.product.receipt.AssetReceipt" list="assetReceiptList">
+            <econdition field-name="workEffortId"/></entity-find>
+        <set field="arTotal" from="[:]"/>
+        <iterate list="assetReceiptList" entry="ar"><script>
+            if (arTotal[ar.assetId]) arTotal[ar.assetId] += ar.quantityAccepted
+            else arTotal[ar.assetId] = ar.quantityAccepted
+        </script></iterate>
+    </actions>
+    <widgets>
+        <container-dialog id="IssueAssetDialog" button-text="Consume Asset">
+            <form-single name="IssueAssetForm" transition="issueAssetToWorkEffort"
+                    extends="component://SimpleScreens/screen/SimpleScreens/Manufacturing/Run/RunProducts/ConsumeAsset.xml#ConsumeAssetForm"/>
+        </container-dialog>
+        <container-dialog id="IssueProductAssetDialog" button-text="Consume by Product">
+            <form-single name="ConsumeAssetForm" transition="issueAnyAssetToWorkEffort"
+                    extends="component://SimpleScreens/screen/SimpleScreens/Manufacturing/Run/RunProducts/ConsumeProduct.xml#ConsumeAssetForm"/>
+        </container-dialog>
+        <link url="findAsset" text="Warehouse Assets" parameter-map="[facilityId:inventoryFacilityId]" target-window="_blank"/>
+
+        <form-list name="IssuedAssetForm" list="assetIssuanceDetailList" skip-form="true">
+            <row-actions>
+                <set field="receiveQuantityBackToInventory" from="quantity"/>
+                <if condition="arTotal[assetId]"><script>
+                    if (receiveQuantityBackToInventory &gt; (aidTotal[assetId] - arTotal[assetId]))
+                        receiveQuantityBackToInventory = aidTotal[assetId] - arTotal[assetId]
+                    aidTotal[assetId] -= receiveQuantityBackToInventory
+                </script></if>
+            </row-actions>
+            <field name="pseudoId"><header-field title="Product" show-order-by="true"/>
+                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field></field>
+            <field name="productName"><default-field title=""><display/></default-field></field>
+            <field name="quantity" align="right"><default-field><display/></default-field></field>
+            <field name="assetClassEnumId"><default-field><hidden/></default-field></field> <!-- For ProductAmountNameTemplate -->
+            <field name="amountUomId"><default-field title="UOM" container-style="text-nowrap">
+                <display-entity entity-name="moqui.basic.Uom" text="ProductAmountNameTemplate"/></default-field></field>
+
+            <field name="assetId"><default-field title="Asset"><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+            <field name="availableToPromiseTotal" align="right"><default-field title="ATP"><display/></default-field></field>
+            <field name="quantityOnHandTotal" align="right"><default-field title="QOH"><display/></default-field></field>
+            <field name="assetIssuanceId"><default-field title="Issuance"><display/></default-field></field>
+
+            <field name="receiveButton">
+                <conditional-field title="" condition="receiveQuantityBackToInventory &lt;= 0">
+                    <display text="Received Back to Inventory"/></conditional-field>
+                <default-field title="">
+                    <link url="receiveAsset" text="Receive ${ec.l10n.format(receiveQuantityBackToInventory, '#,##0')} Back to Inventory"
+                            parameter-map="[workEffortId:workEffortId, productId:productId, assetId:assetId, facilityId:inventoryFacilityId,
+                                ownerPartyId:ownerPartyId, quantity:receiveQuantityBackToInventory, noProduceProduct:'ignore']"/>
+                </default-field>
+            </field>
+        </form-list>
+    </widgets>
+</screen>

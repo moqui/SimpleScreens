@@ -17,6 +17,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="getProductList">
         <parameter name="term"/>
         <parameter name="productFeatureIds"/>
+        <parameter name="productTypeEnumId"/>
+        <parameter name="productClassEnumId"/>
+        <parameter name="assetTypeEnumId"/>
+        <parameter name="assetClassEnumId"/>
         <parameter name="indexName"/>
         <parameter name="documentType"/>
         <parameter name="pageIndex"/>
@@ -48,6 +52,10 @@ along with this software (see the LICENSE.md file). If not, see
                         }
                         if (productFeatureIdList.size() > 1) termSb.append(')')
                     }
+                    if (productTypeEnumId) termSb.append(' AND productTypeEnumId:').append(productTypeEnumId)
+                    if (productClassEnumId) termSb.append(' AND productClassEnumId:').append(productClassEnumId)
+                    if (assetTypeEnumId) termSb.append(' AND assetTypeEnumId:').append(assetTypeEnumId)
+                    if (assetClassEnumId) termSb.append(' AND assetClassEnumId:').append(assetClassEnumId)
                 ]]></script>
                 <!-- <log level="warn" message="Doing product search with queryString [${termSb.toString()}], indexName:${indexName}, documentType:${documentType}"/> -->
                 <set field="orderByFields" from="term ? null : ['pseudoId']"/>
@@ -93,14 +101,12 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="productId" required="true"/>
         <actions>
             <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
-            <if condition="product">
-                <script>
-                    uom = product.amountUom
-                    pantMap = product.getMap()
-                    if (uom != null) pantMap.putAll(uom)
-                    ec.web.sendTextResponse(ec.resource.expand("ProductAmountNameTemplate", '', pantMap))
-                </script>
-            </if>
+            <if condition="product"><script>
+                uom = product.amountUom
+                pantMap = product.getMap()
+                if (uom != null) pantMap.putAll(uom)
+                ec.web.sendTextResponse(ec.resource.expand('ProductAmountNameTemplate', '', pantMap))
+            </script></if>
         </actions>
         <default-response type="none"/>
     </transition>

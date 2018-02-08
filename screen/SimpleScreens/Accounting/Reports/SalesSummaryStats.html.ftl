@@ -44,7 +44,7 @@ along with this software (see the LICENSE.md file). If not, see
         </div>
     </div></div>
     <#if chartList?has_content>
-        <#assign chartId = title?replace(" ", "_") + "_Chart">
+        <#assign chartId = title?replace(" ", "_")?replace("-", "_") + "_Chart">
         <div class="chart-container" style="position:relative; height:90px; width:100%;"><canvas id="${chartId}"></canvas></div>
         <script>
             var ${chartId} = new Chart(document.getElementById("${chartId}"), { type: 'line',
@@ -94,6 +94,9 @@ along with this software (see the LICENSE.md file). If not, see
 </div><div class="${statsPanelColStyle}">
 <@statsPanel "Paid Percent", '0.0%', ((invoicesThis.paidPercent)!0.0), ((invoicesLast.paidPercent)!0.0),
     ((invoicesPrior.paidPercent)!0.0), ((invoicesAverage.paidPercent)!0.0), invoicePaidPercentList/>
+</div><div class="${statsPanelColStyle}">
+<@statsPanel "Pre-Paid Percent", '0.0%', ((invoicesThis.prePaidPercent)!0.0), ((invoicesLast.prePaidPercent)!0.0),
+    ((invoicesPrior.prePaidPercent)!0.0), ((invoicesAverage.prePaidPercent)!0.0), invoicePrePaidPercentList/>
 </div><div class="${statsPanelColStyle}">
 <@statsPanel "Invoice Cost Percent", '0.0%', ((invoicesThis.costPercent)!0.0), ((invoicesLast.costPercent)!0.0),
     ((invoicesPrior.costPercent)!0.0), ((invoicesAverage.costPercent)!0.0), invoiceCostPercentList/>

@@ -78,11 +78,11 @@ along with this software (see the LICENSE.md file). If not, see
                     </#if>
                     <#if originFacility?has_content>
                         <fo:block font-weight="bold">Origin Facility</fo:block>
-                        <fo:block>${ec.resource.expand("FacilityNameTemplate", "", originFacility)}</fo:block>
+                        <fo:block><@encodeText ec.resource.expand("FacilityNameTemplate", "", originFacility)/></fo:block>
                     </#if>
                     <#if destinationFacility?has_content>
                         <fo:block font-weight="bold">Destination Facility</fo:block>
-                        <fo:block>${ec.resource.expand("FacilityNameTemplate", "", destinationFacility)}</fo:block>
+                        <fo:block><@encodeText ec.resource.expand("FacilityNameTemplate", "", destinationFacility)/></fo:block>
                     </#if>
                 </fo:table-cell>
                 <fo:table-cell padding="3pt" width="1.5in">
@@ -111,9 +111,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <#else>
                         <fo:block font-weight="bold"><@encodeText (toPartyDetail.organizationName)!""/> <@encodeText (toPartyDetail.firstName)!""/> <@encodeText (toPartyDetail.middleName)!""/> <@encodeText (toPartyDetail.lastName)!""/></fo:block>
                     </#if>
-                    <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
-                    <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>
-                    <fo:block font-size="8pt">${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                    <fo:block font-size="8pt"><@encodeText (toContactInfo.postalAddress.address1)!""/><#if toContactInfo.postalAddress.unitNumber?has_content> #<@encodeText toContactInfo.postalAddress.unitNumber/></#if></fo:block>
+                    <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt"><@encodeText toContactInfo.postalAddress.address2/></fo:block></#if>
+                    <fo:block font-size="8pt"><@encodeText toContactInfo.postalAddress.city!""/>, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
                     <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
                 </#if>
                 <#if toContactInfo.telecomNumber?has_content>

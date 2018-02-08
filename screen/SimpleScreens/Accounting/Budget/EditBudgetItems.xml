@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-index="3" default-menu-title="Items List">
+
+    <parameter name="budgetId" from="budgetId ?: budgetId_0" required="true"/>
+
+    <transition name="createBudgetItem"><service-call name="create#mantle.other.budget.BudgetItem"/><default-response url="."/></transition>
+    <transition name="updateBudgetItem"><service-call name="update#mantle.other.budget.BudgetItem"/><default-response url="."/></transition>
+    <transition name="deleteBudgetItem"><service-call name="delete#mantle.other.budget.BudgetItem"/><default-response url="."/></transition>
+    <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.other.budget.Budget" value-field="budget"/>
+        <set field="timePeriod" from="budget.timePeriod"/>
+        <if condition="budget.timePeriodId &amp;&amp; budget.subTimePeriodTypeId">
+            <service-call name="mantle.party.TimeServices.get#DescendantPeriods" out-map="subPeriodOut"
+                    in-map="[parentPeriodId:budget.timePeriodId, timePeriodTypeId:budget.subTimePeriodTypeId, createMissing:true]"/>
+            <set field="subTimePeriodList" from="subPeriodOut.timePeriodList"/>
+        </if>
+    </actions>
+    <widgets>
+        <container-box><box-header title="Items for Budget #${budgetId}"/><box-toolbar>
+            <container-dialog id="AddItemDialog" button-text="Add Item">
+                <form-single name="AddItemForm" transition="createBudgetItem">
+                    <field name="budgetId"><default-field><hidden/></default-field></field>
+
+                    <field name="glAccountId"><default-field title="GL Account"><drop-down allow-empty="true">
+                        <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"
+                                parameter-map="[organizationPartyId:timePeriod?.partyId]"/></drop-down></default-field></field>
+                    <field name="amount"><default-field><text-line size="12"/></default-field></field>
+
+                    <field name="subTimePeriodId">
+                        <conditional-field condition="subTimePeriodList" title="Sub-Period"><drop-down allow-empty="true">
+                            <list-options list="subTimePeriodList" key="${timePeriodId}" text="${periodNum} - ${periodName}"/>
+                        </drop-down></conditional-field>
+                        <default-field><ignored/></default-field>
+                    </field>
+                    <field name="purpose"><default-field><text-line size="50"/></default-field></field>
+
+                    <field name="submitButton"><default-field title="Add Item"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+        </box-toolbar><box-body>
+            <form-list name="BudgetItemList" list="budgetItemList" transition="updateBudgetItem" header-dialog="true"
+                       saved-finds="true" show-csv-button="true">
+                <entity-find entity-name="mantle.other.budget.BudgetItem" list="budgetItemList">
+                    <search-form-inputs default-order-by="budgetItemSeqId"/>
+                    <econdition field-name="budgetId"/>
+                </entity-find>
+
+                <field name="budgetId"><header-field><hidden/></header-field><default-field><hidden/></default-field></field>
+                <field name="budgetItemSeqId"><header-field title="Item" show-order-by="true"/>
+                    <default-field><link url="../BudgetItemDetail" text="${budgetItemSeqId}" link-type="anchor"/></default-field></field>
+                <field name="glAccountId">
+                    <header-field title="GL Account"><drop-down allow-empty="true">
+                        <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"
+                                parameter-map="[organizationPartyId:timePeriod?.partyId]"/></drop-down></header-field>
+                    <default-field><display-entity entity-name="mantle.ledger.account.GlAccount" text="GlAccountNameTemplate"/></default-field>
+                </field>
+
+                <field name="amount" align="right"><header-field show-order-by="true"><range-find size="12"/></header-field>
+                    <default-field><display currency-unit-field="budget.currencyUomId"/></default-field></field>
+
+                <field name="subTimePeriodId">
+                    <header-field title="Sub-Period"><drop-down allow-empty="true" allow-multiple="true">
+                        <list-options list="subTimePeriodList" key="${timePeriodId}" text="${periodNum} - ${periodName}"/>
+                    </drop-down></header-field>
+                <default-field><display-entity entity-name="mantle.party.time.TimePeriod" text="${periodNum} - ${periodName}"/></default-field></field>
+                <field name="purpose"><header-field show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+                    <default-field><display/></default-field></field>
+
+                <field name="deleteButton"><default-field title=""><link url="deleteBudgetItem" text="X" confirmation="Really delete?"
+                        parameter-map="[budgetId:budgetId, budgetItemSeqId:budgetItemSeqId]"/></default-field></field>
+            </form-list>
+        </box-body></container-box>
+    </widgets>
+</screen>

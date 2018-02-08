@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-index="1" default-menu-title="Budget">
+
+    <parameter name="budgetId" required="true"/>
+
+    <transition name="updateBudget"><service-call name="update#mantle.other.budget.Budget"/>
+        <default-response url="."/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+
+    <transition-include name="getOrgFiscalPeriods" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.other.budget.BudgetAndTimePeriod" value-field="budget"/>
+    </actions>
+    <widgets>
+        <container-box><box-header title="Budget #${budgetId}"/><box-toolbar>
+        </box-toolbar><box-body>
+            <form-single name="UpdateBudgetForm" transition="updateBudget" map="budget">
+                <field name="budgetTypeEnumId"><default-field title="Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="BudgetType"/><set field="noCurrentSelectedKey" value="BudgetOperating"/></widget-template-include>
+                </default-field></field>
+                <field name="partyId"><default-field title="Organization">
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+                <field name="timePeriodId"><default-field title="Time Period"><drop-down>
+                    <dynamic-options transition="getOrgFiscalPeriods" value-field="timePeriodId" label-field="periodName"
+                            parameter-map="[organizationPartyId:partyId, timePeriodTypeId:'FiscalYear']"/>
+                </drop-down></default-field></field>
+                <field name="subTimePeriodTypeId"><default-field title="Sub Period Type">
+                    <display-entity entity-name="mantle.party.time.TimePeriodType"/></default-field></field>
+
+                <field name="description"><default-field><text-line size="60"/></default-field></field>
+                <field name="comments"><default-field><text-area cols="100" rows="6"/></default-field></field>
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </box-body></container-box>
+    </widgets>
+</screen>

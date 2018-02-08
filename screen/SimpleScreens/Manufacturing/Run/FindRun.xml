@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Production Runs" default-menu-include="false">
+
+    <parameter name="parentFacilityId"/>
+
+    <transition name="createProductionRun"><service-call name="mantle.work.ManufacturingServices.create#ProductionRun"/>
+        <default-response url="../EditRun"/></transition>
+    <transition name="runDetail"><default-response url="../EditRun"/></transition>
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getProductAmount" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <actions>
+        <if condition="parentFacilityId"><entity-find-one entity-name="mantle.facility.Facility" value-field="warehouseFacility">
+            <field-map field-name="facilityId" from="parentFacilityId"/></entity-find-one></if>
+    </actions>
+    <widgets>
+        <container-box>
+            <box-header title="Runs"/>
+            <box-toolbar>
+                <container-dialog id="NewRunContainer" button-text="New Production Run">
+                    <label text="Warehouse: ${warehouseFacility?.facilityName ?: ''}" condition="warehouseFacility" type="strong"/>
+                    <form-single name="NewRunForm" transition="createProductionRun">
+                        <field name="workEffortName"><default-field title="Name"><text-line size="60"/></default-field></field>
+                        <field name="facilityId"><default-field title="WH/Line">
+                            <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                                    parameter-map="[facilityTypeEnumId:'FcTpLine,FcTpPlant,FcTpWarehouse', parentFacilityId:parentFacilityId]"/></drop-down>
+                        </default-field></field>
+                        <field name="estimatedStartDate"><default-field title="Run Date"><date-time/></default-field></field>
+                        <field name="estimatedWorkDuration"><default-field title="Est. Hours"><text-line size="8"/></default-field></field>
+                        <field name="produceProductId"><default-field title="Product to Produce"><drop-down allow-empty="true">
+                            <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></default-field></field>
+                        <field name="produceEstimatedQuantity"><default-field title="Est. Quantity"><text-line size="10"/></default-field></field>
+                        <field name="produceEstimatedAmount"><default-field title=""><display dynamic-transition="getProductAmount">
+                            <depends-on field="produceProductId" parameter="productId"/></display></default-field></field>
+                        <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar>
+            <box-body-nopad>
+                <form-list name="RunList" list="runList" skip-form="true" header-dialog="true" saved-finds="true" select-columns="true">
+                    <entity-find entity-name="mantle.work.effort.WorkEffortProductionRunFind" list="runList" distinct="true">
+                        <search-form-inputs default-order-by="estimatedStartDate,workEffortId">
+                            <default-parameters statusId="WeInPlanning,WeApproved,WeInProgress,WeOnHold" statusId_op="in"/></search-form-inputs>
+                        <econdition field-name="purposeEnumId" value="WepProductionRun"/>
+                        <econdition field-name="consumeTypeEnumId" value="WeptConsume" ignore="!consumeProductId"/>
+                        <econdition field-name="produceTypeEnumId" value="WeptProduce" ignore="!produceProductId"/>
+                        <select-field field-name="workEffortName"/>
+                    </entity-find>
+                    <row-actions>
+                        <entity-find entity-name="mantle.work.effort.WorkEffortProductDetail" list="allProdList">
+                            <date-filter/><econdition field-name="workEffortId"/><order-by field-name="pseudoId,productName"/></entity-find>
+                        <filter-map-list list="allProdList" to-list="consumeList"><field-map field-name="typeEnumId" value="WeptConsume"/></filter-map-list>
+                        <order-map-list list="consumeList"><order-by field-name="pseudoId"/></order-map-list>
+                        <filter-map-list list="allProdList" to-list="produceList"><field-map field-name="typeEnumId" value="WeptProduce"/></filter-map-list>
+                        <order-map-list list="produceList"><order-by field-name="pseudoId"/></order-map-list>
+                    </row-actions>
+
+                    <field name="workEffortId">
+                        <header-field title="Run ID" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
+                        <default-field><link url="runDetail" text="WorkEffortNameTemplate" link-type="anchor"/></default-field>
+                    </field>
+                    <field name="facilityId">
+                        <header-field title="WH/Line" show-order-by="true"><drop-down allow-empty="true">
+                            <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpLine,FcTpPlant,FcTpWarehouse']"/>
+                        </drop-down></header-field>
+                        <default-field><link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"/></default-field>
+                    </field>
+
+                    <field name="statusId">
+                        <header-field title="Status" show-order-by="true">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                                <set field="statusTypeId" value="WorkEffort"/><set field="allowEmpty" value="true"/>
+                                <set field="allowMultiple" value="true"/></widget-template-include>
+                        </header-field>
+                        <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+                    </field>
+                    <field name="estimatedStartDate"><header-field title="Start Date" show-order-by="true"><date-period/></header-field>
+                        <default-field><display/></default-field></field>
+
+                    <field name="produceProductId">
+                        <header-field title="Produce"><drop-down allow-empty="true">
+                            <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
+                        <default-field>
+                            <section-iterate name="ProduceList" list="produceList" entry="product"><widgets>
+                                <link url="editProduct" text="${product.pseudoId}" link-type="anchor" parameter-map="[productId:product.productId]"/>
+                                <label text="${product.productName}" type="p" style="no-margin"/>
+                                <label text="${ec.l10n.format(product.estimatedQuantity, null)} ${ec.resource.expand('ProductAmountNameTemplate', '', product)}" type="p"/>
+                            </widgets></section-iterate>
+                        </default-field>
+                    </field>
+                    <field name="consumeProductId">
+                        <header-field title="Consume"><drop-down allow-empty="true">
+                            <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
+                        <default-field>
+                            <section-iterate name="ConsumeList" list="consumeList" entry="product"><widgets>
+                                <link url="editProduct" text="${product.pseudoId}" link-type="anchor" parameter-map="[productId:product.productId]"/>
+                                <label text="${product.productName}" type="p" style="no-margin"/>
+                                <label text="${ec.l10n.format(product.estimatedQuantity, null)} ${ec.resource.expand('ProductAmountNameTemplate', '', product)}" type="p"/>
+                            </widgets></section-iterate>
+                        </default-field>
+                    </field>
+
+                    <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+                </form-list>
+            </box-body-nopad>
+        </container-box>
+    </widgets>
+</screen>

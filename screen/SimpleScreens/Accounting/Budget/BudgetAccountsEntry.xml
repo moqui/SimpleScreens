@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-index="2" default-menu-title="Accounts Entry">
+
+    <parameter name="budgetId" from="budgetId ?: budgetId_0" required="true"/>
+
+    <transition name="storeBudgetItem"><service-call name="mantle.other.BudgetServices.store#BudgetItemsSubPeriods"/>
+        <default-response url="."/></transition>
+    <transition name="budgetAccountDetail"><default-response url="../BudgetAccountDetail"/></transition>
+
+    <transition-include name="getGlAccountList" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
+
+    <actions>
+        <set field="pageSize" from="pageSize ?: '30'"/>
+        <service-call name="mantle.other.BudgetServices.get#BudgetItemsAccountsSubPeriods" in-map="context" out-map="context"/>
+    </actions>
+    <widgets>
+        <form-list name="GlAccountBudgetList" list="glAccountList" transition="storeBudgetItem" multi="true" header-dialog="true">
+            <entity-find entity-name="mantle.ledger.account.GlAccountAndOrganization" list="glAccountList">
+                <search-form-inputs default-order-by="accountCode"/>
+                <econdition field-name="organizationPartyId" from="timePeriod?.partyId" ignore-if-empty="true"/>
+                <econdition field-name="glAccountClassEnumId" operator="in" from="expenseClassEnumIds"/>
+                <select-field field-name="glAccountId,accountCode,accountName"/>
+            </entity-find>
+            <row-actions>
+                <set field="curBiList" from="budgetItemsByGlId.get(glAccountId)"/>
+                <set field="amountMain" from="curBiList?.get(0)?.amount"/>
+                <set field="subPerTotal" from="0.0"/>
+                <script><![CDATA[if (curBiList) for (int i = 1; i < 13; i++) subPerTotal += (curBiList.get(i)?.amount ?: BigDecimal.ZERO)]]></script>
+            </row-actions>
+            <hidden-parameters><parameter name="budgetId"/></hidden-parameters>
+
+            <field name="glAccountId"><default-field><hidden/></default-field></field>
+            <field name="accountCode">
+                <header-field title="GL Code" show-order-by="true"><text-find size="12" hide-options="true"/></header-field>
+                <default-field><display text="${accountCodeFormatter != null ? accountCodeFormatter.valueToString(accountCode) : accountCode}"/></default-field>
+            </field>
+            <field name="accountName"><header-field title="Account Name" show-order-by="true"><text-find hide-options="true"/></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="amountMain" align="right"><default-field title="Main">
+                <text-line size="9"/><label text="Periods: ${ec.l10n.format(subPerTotal, '')}" condition="amountMain &amp;&amp; subPerTotal &amp;&amp; amountMain != subPerTotal" style="text-warning"/></default-field></field>
+
+            <field name="amountPer1" from="curBiList?.get(1)?.amount" align="right">
+                <default-field title="Per 1"><text-line size="6"/></default-field></field>
+            <field name="amountPer2" from="curBiList?.get(2)?.amount" align="right" hide="subTimePeriodSize &lt; 2">
+                <default-field title="Per 2"><text-line size="6"/></default-field></field>
+            <field name="amountPer3" from="curBiList?.get(3)?.amount" align="right" hide="subTimePeriodSize &lt; 3">
+                <default-field title="Per 3"><text-line size="6"/></default-field></field>
+
+            <field name="amountPer4" from="curBiList?.get(4)?.amount" align="right" hide="subTimePeriodSize &lt; 4">
+                <default-field title="Per 4"><text-line size="6"/></default-field></field>
+            <field name="amountPer5" from="curBiList?.get(5)?.amount" align="right" hide="subTimePeriodSize &lt; 5">
+                <default-field title="Per 5"><text-line size="6"/></default-field></field>
+            <field name="amountPer6" from="curBiList?.get(6)?.amount" align="right" hide="subTimePeriodSize &lt; 6">
+                <default-field title="Per 6"><text-line size="6"/></default-field></field>
+
+            <field name="amountPer7" from="curBiList?.get(7)?.amount" align="right" hide="subTimePeriodSize &lt; 7">
+                <default-field title="Per 7"><text-line size="6"/></default-field></field>
+            <field name="amountPer8" from="curBiList?.get(8)?.amount" align="right" hide="subTimePeriodSize &lt; 8">
+                <default-field title="Per 8"><text-line size="6"/></default-field></field>
+            <field name="amountPer9" from="curBiList?.get(9)?.amount" align="right" hide="subTimePeriodSize &lt; 9">
+                <default-field title="Per 9"><text-line size="6"/></default-field></field>
+
+            <field name="amountPer10" from="curBiList?.get(10)?.amount" align="right" hide="subTimePeriodSize &lt; 10">
+                <default-field title="Per 10"><text-line size="6"/></default-field></field>
+            <field name="amountPer11" from="curBiList?.get(11)?.amount" align="right" hide="subTimePeriodSize &lt; 11">
+                <default-field title="Per 11"><text-line size="6"/></default-field></field>
+            <field name="amountPer12" from="curBiList?.get(12)?.amount" align="right" hide="subTimePeriodSize &lt; 12">
+                <default-field title="Per 12"><text-line size="6"/></default-field></field>
+
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>

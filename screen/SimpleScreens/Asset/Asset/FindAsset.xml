@@ -18,6 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
@@ -25,33 +26,44 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
-        <entity-find entity-name="mantle.product.asset.AssetFindView" list="assetList">
-            <search-form-inputs default-order-by="-receivedDate,-assetId"/>
-            <!-- unlike Asset/FindSummary show all asset history here:
-            <econditions combine="or">
-                <econdition field-name="availableToPromiseTotal" operator="not-equals" from="0.0"/>
-                <econdition field-name="quantityOnHandTotal" operator="not-equals" from="0.0"/>
-            </econditions>
-            -->
-            <!-- NOTE: at some point consider separate inventory and equipment/supplies screens, filtering here by type -->
-        </entity-find>
-
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/><order-by field-name="facilityName"/></entity-find>
     </actions>
     <widgets>
         <link url="../FindSummary" text="Asset Summary Find"/>
-        <link url="../EditLots" text="Lots"/>
+        <link url="../../EditLots" text="Lots"/>
 
         <form-list name="ListAssets" list="assetList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true" show-csv-button="true">
+            <entity-find entity-name="mantle.product.asset.AssetFindView" list="assetList">
+                <search-form-inputs default-order-by="-receivedDate,-assetId"/>
+                <econditions combine="or">
+                    <econdition field-name="acquireCost" operator="is-null" ignore="onlyNoAcquireCost != 'true'"/>
+                    <econdition field-name="acquireCost" to-field-name="acquireUnitAmount" ignore="onlyAcquireMatchPo != 'true'"/>
+                </econditions>
+                <!-- unlike Asset/FindSummary show all asset history here:
+                <econditions combine="or">
+                    <econdition field-name="availableToPromiseTotal" operator="not-equals" from="0.0"/>
+                    <econdition field-name="quantityOnHandTotal" operator="not-equals" from="0.0"/>
+                </econditions>
+                -->
+                <!-- NOTE: at some point consider separate inventory and equipment/supplies screens, filtering here by type -->
+                <select-field field-name="pseudoId,productName"/>
+            </entity-find>
             <row-actions>
                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true"/>
                 <entity-find-one entity-name="moqui.basic.Uom" value-field="amountUom" cache="true">
                     <field-map field-name="uomId" from="amountUomId"/></entity-find-one>
             </row-actions>
+
             <field name="assetId">
                 <header-field title="Asset ID" show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
                 <default-field><link url="assetDetail" text="${assetId}" link-type="anchor" condition="assetId"/></default-field>
+            </field>
+            <field name="productId">
+                <header-field title="Product" show-order-by="case-insensitive"><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="2"/></drop-down>
+                </header-field>
+                <default-field><link url="editProduct" text="ProductNameTemplate" link-type="anchor" condition="productId"/></default-field>
             </field>
             <field name="ownerPartyId">
                 <header-field title="Owner Party"><drop-down allow-empty="true">
@@ -83,15 +95,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
-
-            <field name="productId">
-                <header-field title="Product" show-order-by="case-insensitive"><drop-down allow-empty="true">
-                    <dynamic-options transition="getProductList" server-search="true" min-length="2"/></drop-down>
-                </header-field>
-                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
+            <field name="acquireOrderId"><header-field><text-find hide-options="true" default-operator="begins"/></header-field>
+                <default-field><link url="orderDetail" text="PO ${acquireOrderId}" link-type="anchor" condition="acquireOrderId"
+                        parameter-map="[orderId:acquireOrderId]"/></default-field>
             </field>
-            <field name="productName"><header-field show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
-                <default-field><display/></default-field></field>
 
             <field name="facilityId"><header-field title="Facility" show-order-by="case-insensitive">
                 <drop-down allow-empty="true"><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
@@ -100,7 +107,7 @@ along with this software (see the LICENSE.md file). If not, see
                         parameter-map="[facilityId:facilityId]"/>
             </default-field></field>
             <field name="locationSeqId">
-                <header-field title="Location" show-order-by="case-insensitive"><drop-down allow-empty="true">
+                <header-field title="Location" show-order-by="true"><drop-down allow-empty="true">
                     <dynamic-options transition="getLocationList" server-search="true" min-length="0" depends-optional="true">
                         <depends-on field="facilityId"/></dynamic-options>
                 </drop-down></header-field>
@@ -122,13 +129,18 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="availableToPromiseTotal" show-total="true" align="right"><header-field title="Available" show-order-by="true"/>
                 <default-field><display text="${ec.l10n.format(availableToPromiseTotal, null)} (${amountUom?.description?:'each'})"/></default-field></field>
 
+            <field name="onlyNoAcquireCost"><header-field title="No Acquire Cost">
+                <check><option key="true" text=" "/></check></header-field></field>
+            <field name="onlyAcquireMatchPo"><header-field title="Acquire Cost Matches PO">
+                <check><option key="true" text=" "/></check></header-field></field>
+
             <field name="submitButton"><header-field title="Find"><submit/></header-field>
                 <default-field><link url="assetDetail" text="Detail" link-type="anchor-button" condition="assetId"/></default-field></field>
 
             <form-list-column><field-ref name="submitButton"/></form-list-column>
-            <form-list-column><field-ref name="assetId"/><field-ref name="ownerPartyId"/></form-list-column>
-            <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/><field-ref name="statusId"/></form-list-column>
-            <form-list-column><field-ref name="productId"/><field-ref name="productName"/></form-list-column>
+            <form-list-column><field-ref name="assetId"/><field-ref name="productId"/><field-ref name="ownerPartyId"/></form-list-column>
+            <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/><field-ref name="statusId"/>
+                <field-ref name="acquireOrderId"/></form-list-column>
             <form-list-column><field-ref name="facilityId"/><field-ref name="locationSeqId"/><field-ref name="lotId"/></form-list-column>
             <form-list-column><field-ref name="receivedDate"/><field-ref name="manufacturedDate"/>
                 <field-ref name="quantityOnHandTotal"/><field-ref name="availableToPromiseTotal"/></form-list-column>
