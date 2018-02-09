@@ -15,40 +15,67 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-include="false">
 
-    <transition name="editStore">
-        <default-response url="../EditStore"/>
+    <transition name="editPaymentGateway">
+        <default-response url="../EditPaymentGateways"/>
     </transition>
-    <transition name="createStore">
-        <service-call name="create#mantle.product.store.ProductStore"/>
-        <default-response url="../EditStore"/>
+    <transition name="createPaymentGateway">
+        <service-call name="create#mantle.account.method.PaymentGatewayConfig"/>
+        <default-response url="../EditPaymentGateways"/>
     </transition>
 
     <actions>
-        <entity-find entity-name="mantle.product.store.ProductStore" list="storeList">
-            <search-form-inputs default-order-by="storeName"/></entity-find>
+        <set field="knownServiceNames" from="ec.service.knownServiceNames"/>
+        <entity-find entity-name="mantle.account.method.PaymentGatewayConfig" list="paymentGatewayList">
+            <search-form-inputs default-order-by="paymentGatewayConfigId"/></entity-find>
     </actions>
 
     <widgets>
-        <container-dialog id="NewStoreDialog" button-text="New Store">
-            <form-single name="NewStoreForm" transition="createStore">
-                <field name="productStoreId">
-                    <default-field title="Product Store ID">
+        <container-dialog id="NewPaymentGatewayDialog" button-text="New Payment Gateway">
+            <form-single name="NewPaymentGatewayForm" transition="createPaymentGateway">
+                <field name="paymentGatewayConfigId">
+                    <default-field title="Payment Gateway Config ID">
                         <text-line size="30"/>
                     </default-field>
                 </field>
-                <field name="storeName">
-                    <default-field>
+                <field name="paymentGatewayTypeEnumId"><default-field title="Payment Gateway Type Enum ID">
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="PaymentGatewayType"/>
+                            <order-by field-name="enumId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+
+                <field name="description">
+                    <default-field title="Description">
                         <text-line size="30"/>
                     </default-field>
                 </field>
-                <field name="organizationPartyId">
-                    <default-field title="Organization Party ID">
-                        <drop-down no-current-selected-key="">
-                            <entity-options key="${partyId}" text="${partyId}">
-                                <entity-find entity-name="mantle.party.Organization">
-                                    <order-by field-name="partyId"/>
-                                </entity-find>
-                            </entity-options>
+                <field name="authorizeServiceName">
+                    <default-field title="Authorize Service Name">
+                        <drop-down allow-empty="true" current="selected">
+                            <list-options list="knownServiceNames" key="${entry}"/>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="captureServiceName">
+                    <default-field title="Capture Service Name">
+                        <drop-down allow-empty="true" current="selected">
+                            <list-options list="knownServiceNames" key="${entry}"/>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="releaseServiceName">
+                    <default-field title="Release Service Name">
+                        <drop-down allow-empty="true" current="selected">
+                            <list-options list="knownServiceNames" key="${entry}"/>
+                        </drop-down>
+                    </default-field>
+                </field>
+                <field name="refundServiceName">
+                    <default-field title="Refund Service Name">
+                        <drop-down allow-empty="true" current="selected">
+                            <list-options list="knownServiceNames" key="${entry}"/>
                         </drop-down>
                     </default-field>
                 </field>
@@ -56,19 +83,19 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <form-list name="StoresForm" list="storeList" skip-form="true" header-dialog="true" select-columns="true"
+        <form-list name="PaymentGatewaysForm" list="paymentGatewayList" skip-form="true" header-dialog="true" select-columns="true"
                    saved-finds="true" show-csv-button="true">
-            <field name="productStoreId">
+            <field name="paymentGatewayConfigId">
                 <header-field title="ID" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><link url="editStore" text="${productStoreId}" link-type="anchor"/></default-field>
+                <default-field><link url="editPaymentGateway" text="${paymentGatewayConfigId}" link-type="anchor"/></default-field>
             </field>
-            <field name="storeName">
-                <header-field title="Name" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editStore" text="${storeName}" link-type="anchor"/></default-field>
+            <field name="paymentGatewayTypeEnumId">
+                <header-field title="Gateway Type Enum ID" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPaymentGateway" text="${paymentGatewayTypeEnumId}" link-type="anchor"/></default-field>
             </field>
-            <field name="organizationPartyId">
-                <header-field title="Organization" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editStore" text="${organizationPartyId}" link-type="anchor"/></default-field>
+            <field name="description">
+                <header-field title="Description" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editPaymentGateway" text="${description}" link-type="anchor"/></default-field>
             </field>
             <field name="submitButton">
                 <header-field title="Find"><submit/></header-field>

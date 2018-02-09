@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Payment Gateway" default-menu-index="1">
+
+    <parameter name="paymentGatewayConfigId" required="true"/>
+
+    <transition name="updatePaymentGatewayConfig">
+        <service-call name="update#mantle.account.method.PaymentGatewayConfig"/>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <set field="knownServiceNames" from="ec.service.knownServiceNames"/>
+        <entity-find-one entity-name="mantle.account.method.PaymentGatewayConfig" value-field="paymentGatewayConfig">
+            <field-map field-name="paymentGatewayConfigId" from="paymentGatewayConfigId"/>
+        </entity-find-one>
+        <set field="localeStringList" from="[]"/>
+        <iterate list="Locale.getAvailableLocales()" entry="lcl">
+            <script>if (lcl.toString()) localeStringList.add([locale:lcl.toString(), name:lcl.getDisplayName(ec.user.locale)])</script></iterate>
+        <order-map-list list="localeStringList"><order-by field-name="name"/></order-map-list>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="7">
+            <form-single name="EditPaymentGatewayForm" map="paymentGatewayConfig" transition="updatePaymentGatewayConfig">
+                <field name="paymentGatewayConfigId"><default-field title="Product Store ID">
+                    <display text="${paymentGatewayConfigId}"/>
+                </default-field></field>
+                <field name="paymentGatewayTypeEnumId"><default-field title="Payment Gateway Type Enum ID"><text-line size="30"/></default-field></field>
+                <field name="description"><default-field title="Description"><text-line size="30"/></default-field></field>
+
+                <field name="authorizeServiceName"><default-field title="Authorize Service Name">
+                    <drop-down allow-empty="true" current="selected">
+                        <list-options list="knownServiceNames" key="${entry}"/>
+                    </drop-down>
+                </default-field></field>
+
+                <field name="authorizeServiceName"><default-field title="Authorize Service Name">
+                    <drop-down allow-empty="true" current="selected">
+                        <list-options list="knownServiceNames" key="${entry}"/>
+                    </drop-down>
+                </default-field></field>
+
+                <field name="captureServiceName"><default-field title="Capture Service Name">
+                    <drop-down allow-empty="true" current="selected">
+                        <list-options list="knownServiceNames" key="${entry}"/>
+                    </drop-down>
+                </default-field></field>
+
+                <field name="releaseServiceName"><default-field title="Release Service Name">
+                    <drop-down allow-empty="true" current="selected">
+                        <list-options list="knownServiceNames" key="${entry}"/>
+                    </drop-down>
+                </default-field></field>
+
+                <field name="refundServiceName"><default-field title="Refund Service Name">
+                    <drop-down allow-empty="true" current="selected">
+                        <list-options list="knownServiceNames" key="${entry}"/>
+                    </drop-down>
+                </default-field></field>
+
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col></container-row>
+
+
+    </widgets>
+</screen>
