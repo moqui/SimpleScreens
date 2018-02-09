@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Edit Maintenance" default-menu-index="1">
+
+    <parameter name="assetId" required="true"/>
+    <parameter name="assetMaintenanceId" required="true"/>
+
+    <transition name="updateAssetMaintenance"><service-call name="update#mantle.product.maintenance.AssetMaintenance"/>
+        <default-response url="."/></transition>
+
+    <transition name="createContent"><service-call name="mantle.product.EquipmentServices.create#AssetMaintenanceContent"/>
+        <default-response url="."/></transition>
+    <transition name="updateContent"><service-call name="mantle.product.EquipmentServices.update#AssetMaintenanceContent"/>
+        <default-response url="."/></transition>
+    <transition name="downloadContent">
+        <parameter name="contentDate"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.maintenance.AssetMaintenanceContent" value-field="curContent"/>
+            <script>ec.web.sendResourceResponse(curContent.contentLocation)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset"/>
+        <entity-find-one entity-name="mantle.product.maintenance.AssetMaintenance" value-field="assetMaintenance"/>
+
+        <set field="statusId" from="assetMaintenance?.statusId"/>
+        <set field="statusChangeTransition" value="updateAssetMaintenance"/>
+        <entity-find entity-name="moqui.entity.EntityAuditLog" list="statusHistoryList">
+            <econdition field-name="changedEntityName" value="mantle.product.maintenance.AssetMaintenance"/>
+            <econdition field-name="changedFieldName" value="statusId"/>
+            <econdition field-name="pkPrimaryValue" from="assetMaintenanceId"/>
+            <order-by field-name="changedDate"/>
+        </entity-find>
+
+        <entity-find entity-name="mantle.product.maintenance.AssetMaintenanceContent" list="contentList">
+            <econdition field-name="assetMaintenanceId"/><order-by field-name="-contentDate"/></entity-find>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="6">
+            <form-single name="UpdateMaintenanceForm" map="assetMaintenance" transition="updateAssetMaintenance">
+                <field name="assetId"><default-field><hidden/></default-field></field>
+                <field name="assetMaintenanceId"><default-field title="Maint ID"><display/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="AssetMaintenance"/><set field="noCurrentSelectKey" value="AsMntCreated"/></widget-template-include>
+                </default-field></field>
+                <field name="maintenanceDate"><default-field title="Maint Date"><date-time type="date"/></default-field></field>
+
+                <field name="maintenanceTypeEnumId"><default-field title="Maint Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="MaintenanceType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </default-field></field>
+
+                <field name="productMaintenanceId"><default-field title="Planned Maint"><drop-down allow-empty="true">
+                    <entity-options key="${productMaintenanceId}" text="${description ?: maintTypeDescription ?: ''} - ${ec.l10n.format(intervalQuantity, null)} ${uomDescription ?: meterUomDescription ?: 'N/A'}">
+                        <entity-find entity-name="mantle.product.maintenance.ProductMaintenanceDetail">
+                            <econdition field-name="productId" from="asset.productId"/></entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+
+                <field name="intervalProductMeterId"><default-field title="Interval Meter"><drop-down allow-empty="true">
+                    <entity-options key="${productMeterId}" text="${meterName} - ${description ?: ''}">
+                        <entity-find entity-name="mantle.product.maintenance.ProductMeterAndUom">
+                            <econdition field-name="productId" from="asset.productId"/><order-by field-name="meterName"/></entity-find></entity-options>
+                </drop-down></default-field></field>
+                <field name="intervalQuantity"><default-field><text-line size="10"/></default-field></field>
+                <field name="intervalUomId"><default-field title="Interval UOM"><drop-down allow-empty="true">
+                    <entity-options key="${uomId}" text="${description}"><entity-find entity-name="moqui.basic.Uom">
+                        <econdition field-name="uomTypeEnumId" operator="in" value="UT_LENGTH_MEASURE,UT_TIME_FREQ_MEASURE"/>
+                        <order-by field-name="description"/>
+                    </entity-find></entity-options>
+                </drop-down></default-field></field>
+
+
+                <!-- TODO taskWorkEffortId, purchaseOrderId -->
+
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </row-col><row-col lg="6">
+            <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+            <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+            <container-box><box-header title="Attachments"/><box-toolbar>
+                <container-dialog id="NewContentDialog" button-text="Add Attachment">
+                    <form-single name="NewContentForm" transition="createContent">
+                        <field name="assetId"><default-field><hidden/></default-field></field>
+                        <field name="assetMaintenanceId"><default-field><hidden/></default-field></field>
+                        <field name="contentFile"><default-field><file/></default-field></field>
+                        <field name="description"><default-field><text-area/></default-field></field>
+                        <field name="submitButton"><default-field title="Add Attachment"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <section-iterate name="ContentIterateSection" list="contentList" entry="content"><actions>
+                    <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                        <field-map field-name="userId" from="content.userId"/></entity-find-one>
+                </actions><widgets>
+                    <container>
+                        <link url="downloadContent" condition="content.contentLocation" parameter-map="[contentDate:content.contentDate]"
+                                text="Download ${content.contentLocation.substring(content.contentLocation.lastIndexOf('/')+1)}"/>
+                        <container-dialog id="UpdateContentContainer" button-text="Edit Attachment">
+                            <form-single name="UpdateContentForm" transition="updateContent" map="content">
+                                <field name="assetId"><default-field><hidden/></default-field></field>
+                                <field name="assetMaintenanceId"><default-field><hidden/></default-field></field>
+                                <field name="contentDate"><default-field><display/></default-field></field>
+                                <field name="contentFile"><default-field><file/></default-field></field>
+                                <field name="description"><default-field><text-area/></default-field></field>
+                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                        <container><label text="By ${ec.resource.expand('UsernameTemplate','',paua+[userId:content.userId])} at ${ec.l10n.format(content.contentDate, 'yyyy-MM-dd HH:mm')}" condition="paua"/></container>
+                        <label text="${content.description ?: 'No Description'}" type="p"/>
+                    </container>
+                </widgets></section-iterate>
+            </box-body></container-box>
+        </row-col></container-row>
+    </widgets>
+</screen>

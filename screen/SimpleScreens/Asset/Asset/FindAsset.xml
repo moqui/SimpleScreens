@@ -20,18 +20,44 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
+    <transition name="createEquipment"><service-call name="mantle.product.EquipmentServices.create#Equipment"/>
+        <default-response url="../AssetDetail"/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
-    <actions>
-        <entity-find entity-name="mantle.facility.Facility" list="facilityList">
-            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/><order-by field-name="facilityName"/></entity-find>
-    </actions>
     <widgets>
         <link url="../FindSummary" text="Asset Summary Find"/>
         <link url="../../EditLots" text="Lots"/>
+
+        <container-dialog id="NewEquipmentDialog" button-text="New Equipment">
+            <label text="NOTE: for accounting and other traceability record equipment purchase using a purchase order, incoming shipment, and payable invoice; this form is for existing or third party equipment" type="p"/>
+            <label text="Use the Asset screen after create for depreciation and other settings." type="p"/>
+            <form-single name="CreateEquipment" transition="createEquipment">
+                <field name="assetName"><default-field><text-line size="40"/></default-field></field>
+                <field name="classEnumId"><default-field title="Asset Class">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="AssetClass"/></widget-template-include>
+                </default-field></field>
+                <field name="productId"><default-field title="Model Product"><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></default-field></field>
+                <field name="statusId"><default-field title="Initial Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstInUse"/></widget-template-include>
+                </default-field></field>
+
+                <field name="ownerPartyId"><default-field title="Owner Party"><drop-down>
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></default-field></field>
+                <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></default-field></field>
+                <field name="acquiredDate"><default-field><date-time/></default-field></field>
+
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
 
         <form-list name="ListAssets" list="assetList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true" show-csv-button="true">
             <entity-find entity-name="mantle.product.asset.AssetFindView" list="assetList">
@@ -101,7 +127,7 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <field name="facilityId"><header-field title="Facility" show-order-by="case-insensitive">
-                <drop-down allow-empty="true"><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
             </header-field><default-field>
                 <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"
                         parameter-map="[facilityId:facilityId]"/>

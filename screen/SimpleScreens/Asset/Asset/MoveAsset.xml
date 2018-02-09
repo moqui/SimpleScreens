@@ -17,11 +17,13 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="assetId" required="true"/>
 
-    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition name="completeMove"><service-call name="mantle.product.AssetServices.move#Asset"/>
         <default-response url="../SelectAsset"/><error-response url="."/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
         <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset"/>
@@ -55,7 +57,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-single name="ScanMoveAssetForm" transition="completeMove" focus-field="locationSeqId">
                 <field name="assetId"><default-field><hidden/></default-field></field>
                 <field name="facilityId"><default-field title="Facility">
-                    <drop-down allow-empty="true"><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
                 <field name="locationSeqId"><default-field title="Scan New Location"><text-line size="20"/></default-field></field>
                 <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
@@ -66,7 +68,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-single name="EnterMoveAssetForm" transition="completeMove">
                 <field name="assetId"><default-field><hidden/></default-field></field>
                 <field name="facilityId"><default-field title="Facility">
-                    <drop-down allow-empty="true"><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
                 <field name="locationSeqId"><default-field title="Enter New Location"><drop-down allow-empty="true">
                     <dynamic-options transition="getLocationList" server-search="true" min-length="0"><depends-on field="facilityId"/></dynamic-options>

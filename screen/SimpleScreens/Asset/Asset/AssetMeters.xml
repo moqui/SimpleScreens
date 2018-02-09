@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Meter Readings" default-menu-index="4">
+
+    <parameter name="assetId" required="true"/>
+
+    <transition name="createAssetMeter"><service-call name="create#mantle.product.maintenance.AssetMeter"/>
+        <default-response url="."/></transition>
+    <transition name="updateAssetMeter"><service-call name="update#mantle.product.maintenance.AssetMeter"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset"/>
+    </actions>
+    <widgets>
+        <container-dialog id="NewMeterDialog" button-text="New Meter Reading">
+            <form-single name="NewMeterForm" transition="createAssetMeter">
+                <field name="assetId"><default-field><hidden/></default-field></field>
+
+                <field name="readingDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                <field name="productMeterId"><default-field title="Meter"><drop-down>
+                    <entity-options key="${productMeterId}" text="${meterName} - ${description}">
+                        <entity-find entity-name="mantle.product.maintenance.ProductMeterAndUom">
+                            <econdition field-name="productId" from="asset.productId"/></entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+                <field name="meterValue"><default-field><text-line size="10"/></default-field></field>
+
+                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="MeterListForm" list="meterList" transition="updateAssetMeter" header-dialog="true">
+            <entity-find entity-name="mantle.product.maintenance.AssetMeter" list="meterList">
+                <search-form-inputs default-order-by="-readingDate"/>
+                <econdition field-name="assetId"/>
+            </entity-find>
+
+            <field name="assetId"><header-field><hidden/></header-field><default-field><hidden/></default-field></field>
+            <field name="readingDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="productMeterId">
+                <header-field title="Meter" show-order-by="true"><drop-down allow-empty="true">
+                    <entity-options key="${productMeterId}" text="${meterName} - ${description ?: ''}">
+                        <entity-find entity-name="mantle.product.maintenance.ProductMeterAndUom">
+                            <econdition field-name="productId" from="asset.productId"/><order-by field-name="meterName"/></entity-find>
+                    </entity-options>
+                </drop-down></header-field>
+                <default-field><drop-down>
+                    <entity-options key="${productMeterId}" text="${meterName} - ${description ?: ''}">
+                        <entity-find entity-name="mantle.product.maintenance.ProductMeterAndUom">
+                            <econdition field-name="productId" from="asset.productId"/><order-by field-name="meterName"/></entity-find>
+                    </entity-options>
+                </drop-down></default-field>
+            </field>
+            <field name="meterValue"><header-field><range-find/></header-field>
+                <default-field><text-line size="10"/></default-field></field>
+
+            <field name="userId"><default-field title="Read By">
+                <display-entity entity-name="mantle.party.PersonAndUserAccount" text="UsernameTemplate"/></default-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field>
+                <default-field title="Update"><submit/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>
