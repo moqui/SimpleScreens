@@ -45,6 +45,7 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-row><row-col lg="7">
             <form-single name="EditPromoCodeForm" map="storePromoCode" transition="updatePromoCode">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
                 <field name="storePromotionId"><default-field title="Store Promotion Id">
                         <display-entity entity-name="mantle.product.store.ProductStorePromotion" text="${itemDescription}"/>
                     </default-field></field>
@@ -80,6 +81,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <box-header title="Promo Code Party"/>
                         <box-toolbar><container-dialog id="NewPromoCodePartyDialog" button-text="Add Promo Code Party">
                             <form-single name="NewPromoCodePartyForm" transition="createPromoCodeParty">
+                                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                                <field name="storePromotionId"><default-field><hidden/></default-field></field>
                                 <field name="promoCodeId"><default-field title="Promo Code Id">
                                     <display text="${promoCodeId}" />
                                 </default-field></field>
@@ -96,9 +99,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <box-body>
                             <form-list name="PromoCodePartyForm" list="storePromoCodeParty" skip-form="true" header-dialog="false" select-columns="false"
                                        saved-finds="false" show-csv-button="false">
+                                <row-actions>
+                                    <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail"/>
+                                </row-actions>
                                 <field name="partyId">
                                     <header-field title="Party" show-order-by="case-insensitive"/>
-                                    <default-field><label text="${partyId}"/></default-field>
+                                    <default-field><label text-map="partyDetail" text="PartyNameTemplate"/></default-field>
                                 </field>
                                 <field name="deleteButton" align="right"><default-field title="">
                                     <link url="deletePromoCodeParty" icon="glyphicon glyphicon-trash"
