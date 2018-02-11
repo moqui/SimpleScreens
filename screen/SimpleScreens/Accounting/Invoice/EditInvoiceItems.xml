@@ -12,12 +12,10 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Items" default-menu-index="2">
 
-    <parameter name="invoiceId" required="true" from="invoiceId ?: invoiceId_0"/>
-    <parameter name="invoiceId_0"/>
+    <parameter name="invoiceId" required="true"/>
 
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
@@ -113,7 +111,8 @@ along with this software (see the LICENSE.md file). If not, see
 
         <label text="Invoice Total: ${ec.l10n.formatCurrency(invoice.invoiceTotal, invoice.currencyUomId)}, Unpaid: ${ec.l10n.formatCurrency(invoice.unpaidTotal, invoice.currencyUomId)}"/>
         <form-list name="EditInvoiceItems" list="invoiceItemList" transition="${invoiceEditable ? 'updateInvoiceItem' : 'updateInvoiceItemClosed'}" multi="true">
-            <field name="invoiceId"><default-field><hidden/></default-field></field>
+            <hidden-parameters><parameter name="invoiceId"/></hidden-parameters>
+
             <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
             <field name="parentItemSeqId" align="center">
                 <conditional-field condition="productId || itemWithChildrenSet.contains(invoiceItemSeqId)">
