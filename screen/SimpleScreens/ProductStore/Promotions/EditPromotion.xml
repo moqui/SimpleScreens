@@ -21,7 +21,14 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editPromotion"><default-response url="."/></transition>
     <transition name="updatePromotion"><service-call name="update#mantle.product.store.ProductStorePromotion"/>
         <default-response url="."/></transition>
-
+    <transition name="createPromoParam">
+        <service-call name="create#mantle.product.store.ProductStorePromoParameter"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="deletePromoParam">
+        <service-call name="delete#mantle.product.store.ProductStorePromoParameter"/>
+        <default-response url="."/>
+    </transition>
     <actions>
         <entity-find-one entity-name="mantle.product.store.ProductStorePromotion" value-field="storePromotion">
             <field-map field-name="productStoreId" from="productStoreId"/>
@@ -32,10 +39,8 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-row><row-col lg="7">
             <form-single name="EditPromotionForm" map="storePromotion" transition="updatePromotion">
-                <field name="productStoreId"><default-field title="Product Store">
-                    <display-entity entity-name="mantle.product.store.ProductStore" text="ProductStoreNameTemplate"/>
-                </default-field></field>
-                <field name="storePromotionId"><default-field title="Store Promotion ID">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                <field name="storePromotionId"><default-field title="ID">
                     <display-entity entity-name="mantle.product.store.ProductStorePromotion" text="${storePromotionId}"/>
                 </default-field>
                 </field>
@@ -68,7 +73,44 @@ along with this software (see the LICENSE.md file). If not, see
         </row-col>
 
         <row-col lg="5">
-
+            <section name="ProductStorePromoParameterSection">
+                <actions>
+                    <entity-find entity-name="mantle.product.store.ProductStorePromoParameter" list="promoParameterList">
+                        <econdition field-name="storePromotionId" value="${storePromotionId}" />
+                    </entity-find>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Parameters"/>
+                        <box-toolbar><container-dialog id="NewPromoParameterDialog" button-text="Add Promo Parameter">
+                            <form-single name="NewPromoParameterForm" transition="createPromoParam">
+                                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                                <field name="storePromotionId"><default-field><hidden/></default-field></field>
+                                <field name="parameterName"><default-field title="Name"><text-line size="30" /></default-field></field>
+                                <field name="parameterValue"><default-field title="Value"><text-line size="60" /></default-field></field>
+                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog></box-toolbar>
+                        <box-body>
+                            <form-list name="promoParameterFormList" list="promoParameterList" skip-form="true" >
+                                <field name="parameterName">
+                                    <header-field title="Name" show-order-by="case-insensitive"/>
+                                    <default-field><display text="${parameterName}" /></default-field>
+                                </field>
+                                <field name="parameterValue">
+                                    <header-field title="Value" show-order-by="case-insensitive"/>
+                                    <default-field><display text="${parameterValue}" /></default-field>
+                                </field>
+                                <field name="deleteButton" align="right"><default-field title="">
+                                    <link url="deletePromoParam" icon="glyphicon glyphicon-trash"
+                                          parameter-map="[storePromotionId:storePromotionId, parameterName:parameterName]"
+                                          confirmation="Are you sure you want to remove this Promo Param?"/>
+                                </default-field></field>
+                            </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
         </row-col></container-row>
 
 

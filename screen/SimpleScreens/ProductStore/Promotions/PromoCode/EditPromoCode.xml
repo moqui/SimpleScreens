@@ -18,7 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="productStoreId" required="true"/>
     <parameter name="storePromotionId" required="true"/>
     <parameter name="promoCodeId" required="true"/>
-
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition name="editPromoCode">
         <default-response url="."/>
     </transition>
@@ -83,9 +83,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <form-single name="NewPromoCodePartyForm" transition="createPromoCodeParty">
                                 <field name="productStoreId"><default-field><hidden/></default-field></field>
                                 <field name="storePromotionId"><default-field><hidden/></default-field></field>
-                                <field name="promoCodeId"><default-field title="Promo Code Id">
-                                    <display text="${promoCodeId}" />
-                                </default-field></field>
+                                <field name="promoCodeId"><default-field><hidden/></default-field></field>
                                 <field name="partyId"><default-field title="Party">
                                     <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
                                         <entity-find entity-name="mantle.party.PartyDetail">
@@ -97,14 +95,10 @@ along with this software (see the LICENSE.md file). If not, see
                             </form-single>
                         </container-dialog></box-toolbar>
                         <box-body>
-                            <form-list name="PromoCodePartyForm" list="storePromoCodeParty" skip-form="true" header-dialog="false" select-columns="false"
-                                       saved-finds="false" show-csv-button="false">
-                                <row-actions>
-                                    <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail"/>
-                                </row-actions>
+                            <form-list name="PromoCodePartyForm" list="storePromoCodeParty" skip-form="true" >
                                 <field name="partyId">
                                     <header-field title="Party" show-order-by="case-insensitive"/>
-                                    <default-field><label text-map="partyDetail" text="PartyNameTemplate"/></default-field>
+                                    <default-field><link url="editParty" text="PartyNameTemplate" entity-name="mantle.party.PartyDetail" parameter-map="[partyId:carrierPartyId]" link-type="anchor"/></default-field>
                                 </field>
                                 <field name="deleteButton" align="right"><default-field title="">
                                     <link url="deletePromoCodeParty" icon="glyphicon glyphicon-trash"
