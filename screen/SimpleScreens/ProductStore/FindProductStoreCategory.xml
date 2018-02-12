@@ -17,7 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
 
 
     <parameter name="productStoreId" required="true"/>
-
+    <transition name="editCategory"><default-response url="//${appRoot}/Catalog/Category/EditCategory"/></transition>
     <transition name="updateStoreCategory">
         <service-call name="update#mantle.product.store.ProductStoreCategory"/>
         <default-response url="."/>
@@ -40,18 +40,16 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
 
     <widgets>
-        <container-dialog id="NewStoreCategoryDialog" button-text="New Category">
+        <container-dialog id="NewStoreCategoryDialog" button-text="Add Store Category">
             <form-single name="NewStoreCategoryForm" transition="createStoreCategory">
-                <field name="productStoreId"><default-field title="Store Promotion">
-                    <display-entity entity-name="mantle.product.store.ProductStore" text="ProductStoreNameTemplate"/>
-                </default-field></field>
-                <field name="productCategoryId"><default-field title="Product Category">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                <field name="productCategoryId"><default-field title="Category">
                     <drop-down><entity-options key="${productCategoryId}" text="${pseudoId}: ${categoryName} (${typeDescription})">
                         <entity-find entity-name="mantle.product.category.ProductCategoryAndType" limit="200">
                             <order-by field-name="pseudoId"/><order-by field-name="categoryName"/></entity-find>
                     </entity-options></drop-down>
                 </default-field></field>
-                <field name="storeCategoryTypeEnumId"><default-field title="Store Category Type">
+                <field name="storeCategoryTypeEnumId"><default-field title="Category Type">
                     <drop-down><entity-options key="${enumId}" text="${enumId}: ${description ?: ''}">
                         <entity-find entity-name="moqui.basic.Enumeration">
                             <econdition field-name="enumTypeId" value="ProductStoreCategoryType"/>
@@ -66,23 +64,23 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <form-list name="StoreCategoriesForm" list="storeCategories" header-dialog="true" transition="updateStoreCategory">
+        <form-list name="StoreCategoriesForm" list="storeCategories" header-dialog="true" transition="updateStoreCategory"  multi="true">
             <field name="productStoreId"><default-field><hidden/></default-field></field>
 
             <field name="productCategoryId">
                 <header-field title="Product Category" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><display/></default-field>
+                <default-field><link url="editCategory" entity-name="mantle.product.category.ProductCategory" text="${categoryName}" link-type="anchor"/></default-field>
             </field>
             <field name="storeCategoryTypeEnumId">
-                <header-field title="Store Category Type" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><display/></default-field>
+                <header-field title="Store Category Type" show-order-by="case-insensitive"></header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
             <field name="fromDate">
-                <header-field title="From Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
-                <default-field><display/></default-field>
+                <header-field title="From Date" show-order-by="case-insensitive" />
+                <default-field><date-time type="date-time"/></default-field>
             </field>
             <field name="thruDate">
-                <header-field title="Thru Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <header-field title="Thru Date" show-order-by="case-insensitive" />
                 <default-field><date-time type="date-time"/></default-field>
             </field>
             <field name="sequenceNum"><header-field show-order-by="true"/>
@@ -94,13 +92,7 @@ along with this software (see the LICENSE.md file). If not, see
                    parameter-map="[productStoreId:productStoreId, productCategoryId:productCategoryId,
                    storeCategoryTypeEnumId:storeCategoryTypeEnumId, fromDate:fromDate]"/>
             </default-field></field>
-
         </form-list>
 
-
-        <render-mode><text type="html,vuet"><![CDATA[
-            <div>Icons made by <a href="https://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-        ]]></text></render-mode>
     </widgets>
-
 </screen>

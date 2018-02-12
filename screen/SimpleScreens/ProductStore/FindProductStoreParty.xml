@@ -17,7 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
 
 
     <parameter name="productStoreId" required="true"/>
-
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition name="updateProductStoreParty">
         <service-call name="update#mantle.product.store.ProductStoreParty"/>
         <default-response url="."/>
@@ -33,18 +33,16 @@ along with this software (see the LICENSE.md file). If not, see
 
 
     <actions>
-        <entity-find entity-name="mantle.product.store.ProductStoreParty" list="storeParties">
+        <entity-find entity-name="mantle.product.store.ProductStoreParty" list="storePartyList">
             <search-form-inputs default-order-by="partyId"/>
             <econdition field-name="productStoreId" />
         </entity-find>
     </actions>
 
     <widgets>
-        <container-dialog id="NewStorePartyDialog" button-text="New Party">
+        <container-dialog id="NewStorePartyDialog" button-text="New Store Party">
             <form-single name="NewStorePartyForm" transition="createProductStoreParty">
-                <field name="productStoreId"><default-field title="Product Store Id">
-                    <display-entity entity-name="mantle.product.store.ProductStore" text="ProductStoreNameTemplate"/>
-                </default-field></field>
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
                 <field name="partyId"><default-field title="Party Id">
                     <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
                         <entity-find entity-name="mantle.party.PartyDetail">
@@ -66,26 +64,26 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <form-list name="StorePartiesForm" list="storeParties" header-dialog="true" transition="updateProductStoreParty">
+        <form-list name="StorePartyFormList" list="storePartyList" header-dialog="true" multi="true" >
             <field name="productStoreId"><default-field><hidden/></default-field></field>
             <field name="partyId">
-                <header-field title="Party Id" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><display/></default-field>
+                <header-field title="Party" show-order-by="case-insensitive"></header-field>
+                <default-field><link url="editParty" text="PartyNameTemplate" entity-name="mantle.party.PartyDetail" link-type="anchor"/></default-field>
             </field>
             <field name="roleTypeId">
-                <header-field title="Role Type Id" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><display/></default-field>
+                <header-field title="Role Type" show-order-by="case-insensitive"></header-field>
+                <default-field><display-entity entity-name="mantle.party.RoleType" text="${description}" /></default-field>
             </field>
             <field name="fromDate">
-                <header-field title="From Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
+                <header-field title="From Date" show-order-by="case-insensitive"></header-field>
                 <default-field><display/></default-field>
             </field>
             <field name="thruDate">
-                <header-field title="Thru Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <header-field title="Thru Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
                 <default-field><date-time type="date-time"/></default-field>
             </field>
             <field name="sequenceNum">
-                <header-field title="Sequence Num" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <header-field title="Sequence Num" show-order-by="case-insensitive"></header-field>
                 <default-field><text-line size="4" format="#"/></default-field>
             </field>
             <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
@@ -95,11 +93,5 @@ along with this software (see the LICENSE.md file). If not, see
             </default-field></field>
 
         </form-list>
-
-
-        <render-mode><text type="html,vuet"><![CDATA[
-            <div>Icons made by <a href="https://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-        ]]></text></render-mode>
     </widgets>
-
 </screen>
