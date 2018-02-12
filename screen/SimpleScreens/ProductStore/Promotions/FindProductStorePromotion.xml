@@ -22,6 +22,10 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="create#mantle.product.store.ProductStorePromotion"/>
         <default-response url="../EditPromotion"/>
     </transition>
+    <transition name="updatePromotion">
+        <service-call name="update#mantle.product.store.ProductStorePromotion"/>
+        <default-response url="."/>
+    </transition>
 
     <actions>
         <entity-find entity-name="mantle.product.store.ProductStorePromotion" list="promotionList">
@@ -43,14 +47,20 @@ along with this software (see the LICENSE.md file). If not, see
                         </entity-find>
                     </entity-options></drop-down>
                 </default-field></field>
+                <field name="fromDate">
+                    <default-field><date-time type="date-time"/></default-field>
+                </field>
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
             </form-single>
         </container-dialog>
 
-        <form-list name="PromotionsForm" list="promotionList" header-dialog="true" >
+        <form-list name="PromotionsForm" list="promotionList" header-dialog="true" transition="updatePromotion">
+            <field name="productStoreId"><default-field><hidden/></default-field></field>
             <field name="storePromotionId">
                 <header-field title="Store Promotion Id" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><link url="editPromotion" text="${storePromotionId}" link-type="anchor"/></default-field>
+                <default-field>
+                    <display text=" "/><link url="editPromotion" text="${storePromotionId}" link-type="anchor"/>
+                </default-field>
             </field>
             <field name="itemDescription">
                 <header-field title="Item Description" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
@@ -61,38 +71,18 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.service.ServiceRegister" text="${description}" /></default-field>
             </field>
             <field name="fromDate">
-                <header-field title="From Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromotion" text="${fromDate}" link-type="anchor"/></default-field>
+                <header-field title="From Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
+                <default-field><display/></default-field>
             </field>
             <field name="thruDate">
-                <header-field title="Thru Date" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromotion" text="${thruDate}" link-type="anchor"/></default-field>
+                <header-field title="Thru Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
+                <default-field><date-time type="date-time"/></default-field>
             </field>
             <field name="sequenceNum">
-                <header-field title="Seq" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromotion" text="${sequenceNum}" link-type="anchor"/></default-field>
+                <header-field title="Seq" show-order-by="case-insensitive"><text-find size="3" hide-options="true"/></header-field>
+                <default-field><text-line format="#" size="3"/></default-field>
             </field>
-            <field name="requireCode">
-                <header-field title="Require Code" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromotion" text="${requireCode}" link-type="anchor"/></default-field>
-            </field>
-            <field name="useLimitPerOrder">
-                <header-field title="Per Order" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromotion" text="${useLimitPerOrder}" link-type="anchor"/></default-field>
-            </field>
-            <field name="useLimitPerCustomer">
-                <header-field title="Per Customer" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromotion" text="${useLimitPerCustomer}" link-type="anchor"/></default-field>
-            </field>
-            <field name="useLimitPerPromotion">
-                <header-field title="Per Promotion" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
-                <default-field><link url="editPromotion" text="${useLimitPerPromotion}" link-type="anchor"/></default-field>
-            </field>
-
-            <field name="submitButton">
-                <header-field title="Find"><submit/></header-field>
-                <default-field><display text=" "/></default-field>
-            </field>
+            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
         </form-list>
     </widgets>
 
