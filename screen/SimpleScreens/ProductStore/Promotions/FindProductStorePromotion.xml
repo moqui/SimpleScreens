@@ -93,6 +93,36 @@ along with this software (see the LICENSE.md file). If not, see
                       confirmation="Are you sure you want to remove this Promotion?"/>
             </default-field></field>
         </form-list>
+
+        <container-row><row-col lg="5"><section name="OrderPromotionCountsChart"><actions>
+            <service-call name="mantle.order.OrderInfoServices.get#OrdersPromotionCounts" out-map="ordersPromotionCounts"/>
+            <script>
+                promotionsTitle = ordersPromotionCounts['totalOrdersByPromotion'].keySet()
+                promotionsValue = ordersPromotionCounts['totalOrdersByPromotion'].values()
+            </script>
+        </actions><widgets>
+            <container-box><box-header title="Promotion Stats"/><box-toolbar>
+            </box-toolbar><box-body>
+                <render-mode><text type="html,vuet"><![CDATA[
+                <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="OrderPromotionCountsChart"></canvas></div>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js" type="text/javascript"></script>
+                <script>
+                var orderPromotionCountsChart = new Chart(document.getElementById("OrderPromotionCountsChart"), {
+                    type: 'bar',
+                    data: {
+                        labels: ${Static["groovy.json.JsonOutput"].toJson(promotionsTitle!"")},
+                        datasets: [{
+                            label: 'Number of purchases per promotion',
+                            data: ${Static["groovy.json.JsonOutput"].toJson(promotionsValue!"")}
+                        }]
+                    },
+                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                });
+                </script>
+                ]]></text></render-mode>
+            </box-body></container-box>
+        </widgets></section></row-col></container-row>
+
     </widgets>
 
 </screen>
