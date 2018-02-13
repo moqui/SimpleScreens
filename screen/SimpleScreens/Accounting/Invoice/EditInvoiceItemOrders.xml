@@ -19,6 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/Asset/AssetDetail"/></transition>
 
     <transition name="applyInvoiceToOrder"><service-call name="mantle.account.InvoiceServices.apply#InvoiceToOrder"/>
         <default-response url="."/></transition>
@@ -30,6 +31,9 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
         <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
+            <econdition field-name="invoiceId"/></entity-find>
+
+        <entity-find entity-name="mantle.order.OrderItemBillingDetail" list="allBillingList">
             <econdition field-name="invoiceId"/></entity-find>
     </actions>
     <widgets>
@@ -45,8 +49,8 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
         <section-iterate name="ItemListSection" list="invoiceItemList" entry="invoiceItem"><actions>
-            <entity-find entity-name="mantle.order.OrderItemBillingDetail" list="itemBillingList">
-                <econdition field-name="invoiceId"/><econdition field-name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"/></entity-find>
+            <filter-map-list list="allBillingList" to-list="itemBillingList">
+                <field-map field-name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"/></filter-map-list>
             <set field="billingQuantity" from="0"/>
             <iterate list="itemBillingList" entry="itemBilling"><set field="billingQuantity" from="billingQuantity + (itemBilling.quantity ?: 0)"/></iterate>
         </actions><widgets>
@@ -86,6 +90,10 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <field name="shipmentId"><default-field title="Shipment">
                         <link url="shipmentDetail" link-type="anchor" text="${shipmentId}"/></default-field></field>
+                    <field name="assetId" from="receiptAssetId ?: issuanceAssetId"><default-field title="Asset">
+                        <link url="assetDetail" link-type="anchor" condition="assetId"
+                                text="${assetId} (${assetReceiptId ? 'Receipt ' + assetReceiptId : 'Issuance ' + assetIssuanceId})"/>
+                    </default-field></field>
 
                     <field name="quantity" align="right"><default-field title="Applied Qty"><display/></default-field></field>
                     <field name="amountApplied" from="(quantity ?: 0) * (invoiceItem.amount ?: 0)" align="right"><default-field title="Applied Total">
