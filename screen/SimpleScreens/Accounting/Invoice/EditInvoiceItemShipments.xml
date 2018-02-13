@@ -32,6 +32,10 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
         <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
             <econdition field-name="invoiceId"/></entity-find>
+
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
     </actions>
     <widgets>
         <container-dialog id="ApplyToShipmentDialog" button-text="Apply Invoice to Shipment">
@@ -50,7 +54,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="invoiceId"/><econdition field-name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"/></entity-find>
             <set field="sourceQuantity" from="0"/>
             <iterate list="itemSourceList" entry="itemSource"><set field="sourceQuantity" from="sourceQuantity + (itemSource.quantity ?: 0)"/></iterate>
-        </actions><widgets>
+        </actions><widgets><section name="ItemListInner" condition="invoiceItem.itemTypeEnumId in productItemTypes"><widgets>
             <container-box><box-header title="Item ${invoiceItem.invoiceItemSeqId}: ${invoiceItem.description}"/><box-toolbar>
                 <container-dialog id="ApplyItemToShipmentDialog" button-text="Apply Item to Shipment">
                     <form-single name="ApplyItemToShipment" transition="applyInvoiceItemToShipment">
@@ -90,16 +94,16 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="returnId"><default-field title="Return Item">
                         <link url="editReturn" link-type="anchor" text="${returnId}:${returnItemSeqId}" condition="returnId"/></default-field></field>
 
-                    <field name="quantity" align="right"><default-field><display/></default-field></field>
-                    <field name="amount" from="(quantity ?: 0) * (invoiceItem.amount ?: 0)" align="right"><default-field>
+                    <field name="quantity" align="right"><default-field title="Applied Qty"><display/></default-field></field>
+                    <field name="amountApplied" from="(quantity ?: 0) * (invoiceItem.amount ?: 0)" align="right"><default-field title="Applied Total">
                         <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
 
                     <field name="deleteButton" align="right"><default-field title="">
                         <link url="unapplyInvoiceItemFromShipment" text="" icon="glyphicon glyphicon-trash" confirmation="Unapply item from Shipment?"
-                              parameter-map="[invoiceId:invoiceId, shipmentItemSourceId:shipmentItemSourceId]"/>
+                                parameter-map="[invoiceId:invoiceId, shipmentItemSourceId:shipmentItemSourceId]"/>
                     </default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
-        </widgets></section-iterate>
+        </widgets></section></widgets></section-iterate>
     </widgets>
 </screen>

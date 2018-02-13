@@ -45,7 +45,7 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
         <section-iterate name="ItemListSection" list="invoiceItemList" entry="invoiceItem"><actions>
-            <entity-find entity-name="mantle.order.OrderItemBilling" list="itemBillingList">
+            <entity-find entity-name="mantle.order.OrderItemBillingDetail" list="itemBillingList">
                 <econdition field-name="invoiceId"/><econdition field-name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"/></entity-find>
             <set field="billingQuantity" from="0"/>
             <iterate list="itemBillingList" entry="itemBilling"><set field="billingQuantity" from="billingQuantity + (itemBilling.quantity ?: 0)"/></iterate>
@@ -87,8 +87,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="shipmentId"><default-field title="Shipment">
                         <link url="shipmentDetail" link-type="anchor" text="${shipmentId}"/></default-field></field>
 
-                    <field name="quantity" align="right"><default-field><display/></default-field></field>
-                    <field name="amount" from="(quantity ?: 0) * (invoiceItem.amount ?: 0)" align="right"><default-field>
+                    <field name="quantity" align="right"><default-field title="Applied Qty"><display/></default-field></field>
+                    <field name="amountApplied" from="(quantity ?: 0) * (invoiceItem.amount ?: 0)" align="right"><default-field title="Applied Total">
+                        <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+
+                    <field name="itemQuantity" align="right"><default-field title="Order Qty"><display/></default-field></field>
+                    <field name="unitAmount" align="right"><default-field title="Order Amt"
+                            container-style="${unitAmount == invoiceItem.amount ? 'text-success' : 'text-danger'}">
                         <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
 
                     <field name="deleteButton" align="right"><default-field title="">
