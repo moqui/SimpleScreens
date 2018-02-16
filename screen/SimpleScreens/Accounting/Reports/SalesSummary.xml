@@ -15,11 +15,15 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Sales Summary" default-menu-include="false">
 
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
     <actions>
         <service-call name="mantle.sales.SalesReportServices.get#SalesOrderSummary" out-map="context"
-                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
+                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, maPeriods:maPeriods,
+                    customerClassificationIds:customerClassificationIds, productIds:productIds]"/>
         <service-call name="mantle.sales.SalesReportServices.get#SalesInvoiceSummary" out-map="context"
-                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
+                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, maPeriods:maPeriods,
+                    customerClassificationIds:customerClassificationIds, productIds:productIds]"/>
 
         <service-call name="mantle.sales.SalesReportServices.get#SalesTopProduct" out-map="context"
                 in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, topLimit:(topLimit?:15)]"/>
@@ -87,17 +91,53 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="statsPanelColStyle" value="col-lg-3 col-md-4 col-sm-4 col-xs-6"/>
         <set field="statsChartColStyle" value="col-md-6 col-sm-6"/>
+
+        <if condition="customerClassificationIds">
+            <set field="customerClassificationIdList" from="customerClassificationIds instanceof List ? customerClassificationIds : (customerClassificationIds.split(',') as List)"/>
+            <entity-find entity-name="mantle.party.PartyClassification" list="selectedClassificationList">
+                <econdition field-name="partyClassificationId" operator="in" from="customerClassificationIdList"/>
+                <order-by field-name="description"/>
+            </entity-find>
+        </if>
+        <if condition="productIds">
+            <set field="productIdList" from="productIds instanceof List ? productIds : (productIds.split(',') as List)"/>
+            <entity-find entity-name="mantle.product.Product" list="selectedProductList">
+                <econdition field-name="productId" operator="in" from="productIdList"/>
+                <order-by field-name="pseudoId"/>
+            </entity-find>
+        </if>
     </actions>
     <widgets>
-        <form-single name="SummaryOptions">
-            <field name="interval"><default-field><drop-down><option key="w" text="Week"/><option key="M" text="Month"/>
-                <option key="q" text="Quarter"/><option key="y" text="Year"/></drop-down></default-field></field>
-            <field name="intervalCount"><default-field title="Periods"><text-line size="2" default-value="13"/></default-field></field>
-            <field name="thruDate"><default-field><date-time type="date"/></default-field></field>
-            <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
-            <field-layout><field-row-big><field-ref name="interval"/><field-ref name="intervalCount"/>
-                <field-ref name="thruDate"/><field-ref name="submitButton"/></field-row-big></field-layout>
-        </form-single>
+        <container-dialog id="SummaryOptionsDialog" button-text="Summary Options">
+            <form-single name="SummaryOptions">
+                <field name="interval"><default-field><drop-down><option key="w" text="Week"/><option key="M" text="Month"/>
+                    <option key="q" text="Quarter"/><option key="y" text="Year"/></drop-down></default-field></field>
+                <field name="intervalCount"><default-field title="Periods"><text-line size="2" default-value="13"/></default-field></field>
+                <field name="thruDate"><default-field><date-time type="date"/></default-field></field>
+                <field name="maPeriods"><default-field title="MA Periods" tooltip="Moving Average look back periods, set to 0 to disable">
+                    <text-line size="2" default-value="0"/></default-field></field>
+                <field name="customerClassificationIds"><default-field title="Customer Classes">
+                    <drop-down allow-multiple="true">
+                        <entity-options key="${partyClassificationId}" text="${description}">
+                            <entity-find entity-name="mantle.party.PartyClassification">
+                                <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/>
+                                <order-by field-name="description"/></entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="productIds"><default-field title="Products"><drop-down allow-multiple="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0" parameter-map="[assetClassEnumId:'AsClsInventoryFin']"/>
+                </drop-down></default-field></field>
+                <field name="productNote"><default-field title="">
+                    <label text="NOTE: Invoice level stats (total, pre-paid, paid, etc) are not available by Product and will show as having no data"/>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container>
+            <label text="Sales Summary for ${intervalCount?:13} ${[w:'Weeks', M:'Months', q:'Quarters', y:'Years'].get(interval?:'w')}${thruDate ? ' thru ' + ec.l10n.format(thruDate, 'dd MMM yyyy') : ''}${maPeriods &amp;&amp; maPeriods != '0' ? ' with ' + maPeriods + ' Period MA' : ''}" type="h3"/>
+            <label text="Customer Classes: ${selectedClassificationList*.description.join(', ')}" condition="selectedClassificationList" type="h5"/>
+            <label text="Products: ${selectedProductList.collect({ it.pseudoId + ': ' + it.productName }).join(', ')}" condition="selectedProductList" type="h5"/>
+        </container>
 
         <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryStats.html.ftl"/></render-mode>
         <container-row><row-col md="8">
