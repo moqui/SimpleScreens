@@ -10,12 +10,12 @@ You should have received a copy of the CC0 Public Domain Dedication
 along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
-<#macro statsPanel title mainFormat valThis valLast valPrior valAvg chartList="">
+<#macro statsPanel title mainFormat valThis valLast valPrior valAvg chartList="" chartMaList="">
     <#assign modalId = title?replace(" ", "_")?replace("-", "_") + "_Modal">
     <#assign modalTitle = title + " Detail">
     <div class="panel panel-default"><div class="panel-body" onclick="$('#${modalId}').modal('show');">
         <h5 class="text-center" style="margin-top:0;">${title}</h5>
-        <@statsPanelContent title mainFormat valThis valLast valPrior valAvg false chartList/>
+        <@statsPanelContent title mainFormat valThis valLast valPrior valAvg false chartList chartMaList/>
     </div></div>
     <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg" role="document"><div class="modal-content">
@@ -24,12 +24,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <h4 class="modal-title">${title}</h4>
             </div>
             <div class="modal-body">
-                <@statsPanelContent modalTitle mainFormat valThis valLast valPrior valAvg true chartList/>
+                <@statsPanelContent modalTitle mainFormat valThis valLast valPrior valAvg true chartList chartMaList/>
             </div>
         </div></div>
     </div>
 </#macro>
-<#macro statsPanelContent title mainFormat valThis valLast valPrior valAvg chartBig chartList="">
+<#macro statsPanelContent title mainFormat valThis valLast valPrior valAvg chartBig chartList="" chartMaList="">
     <#assign chartId = title?replace(" ", "_")?replace("-", "_") + "_Chart">
     <div class="row"><div class="col-xs-5 text-right">
         <div class="small text-muted">this</div>
@@ -65,9 +65,10 @@ along with this software (see the LICENSE.md file). If not, see
         <div class="chart-container" style="position:relative; height:<#if chartBig>500px<#else>90px</#if>; width:100%;"><canvas id="${chartId}"></canvas></div>
         <script>
             var ${chartId} = new Chart(document.getElementById("${chartId}"), { type: 'line',
-                data: { labels:${Static["groovy.json.JsonOutput"].toJson(orderLabelList)},
-                    datasets:[{backgroundColor: "rgba(49, 112, 143, 0.5)", borderColor: "rgba(49, 112, 143, 0.5)", fill: false,
-                        data: ${Static["groovy.json.JsonOutput"].toJson(chartList)} }] },
+                data: { labels:${Static["groovy.json.JsonOutput"].toJson(orderLabelList)}, datasets:[
+                    { backgroundColor: "rgba(49, 112, 143, 0.9)", borderColor: "rgba(49, 112, 143, 0.9)", fill: false, data: ${Static["groovy.json.JsonOutput"].toJson(chartList)} }
+                    <#if chartMaList?has_content>, { backgroundColor: null, borderColor: "rgba(240, 173, 78, 0.5)", fill: false, data: ${Static["groovy.json.JsonOutput"].toJson(chartMaList)} }</#if>
+                ] },
                 options: { legend:{display:false}, scales:{ xAxes:[{display:<#if chartBig>true<#else>false</#if>}] }, maintainAspectRatio:false }
             });
         </script>
@@ -79,25 +80,25 @@ along with this software (see the LICENSE.md file). If not, see
 <div class="row">
     <div class="${statsPanelColStyle}">
     <@statsPanel "Order Count", '#,##0', (ordersThis.orderCount)!0.0, (ordersLast.orderCount)!0.0, (ordersPrior.orderCount)!0.0,
-        (ordersAverage.orderCount)!0.0, ec.resource.expression("orderSummaryNoTotals*.orderCount", "")/>
+        (ordersAverage.orderCount)!0.0, ec.resource.expression("orderSummaryNoTotals*.orderCount", ""), ec.resource.expression("orderSummaryNoTotals*.orderCountMa", "")/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "New Customer Count", '#,##0', (ordersThis.newCustomerOrderCount)!0.0, (ordersLast.newCustomerOrderCount)!0.0, (ordersPrior.newCustomerOrderCount)!0.0,
-        (ordersAverage.newCustomerOrderCount)!0.0, ec.resource.expression("orderSummaryNoTotals*.newCustomerOrderCount", "")/>
+        (ordersAverage.newCustomerOrderCount)!0.0, ec.resource.expression("orderSummaryNoTotals*.newCustomerOrderCount", ""), ec.resource.expression("orderSummaryNoTotals*.newCustomerOrderCountMa", "")/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "New Customer Percent", '0.0%', ((ordersThis.newCustomerPercent)!0.0), ((ordersLast.newCustomerPercent)!0.0),
-        ((ordersPrior.newCustomerPercent)!0.0), ((ordersAverage.newCustomerPercent)!0.0), newCustomerPercentList/>
+        ((ordersPrior.newCustomerPercent)!0.0), ((ordersAverage.newCustomerPercent)!0.0), newCustomerPercentList, newCustomerPercentMaList/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Order Quantity", '#,##0', (ordersThis.productQuantityTotal)!0.0, (ordersLast.productQuantityTotal)!0.0,
-        (ordersPrior.productQuantityTotal)!0.0, (ordersAverage.productQuantityTotal)!0.0, ec.resource.expression("orderSummaryNoTotals*.productQuantityTotal", "")/>
+        (ordersPrior.productQuantityTotal)!0.0, (ordersAverage.productQuantityTotal)!0.0, ec.resource.expression("orderSummaryNoTotals*.productQuantityTotal", ""), ec.resource.expression("orderSummaryNoTotals*.productQuantityTotalMa", "")/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Order Product Sales", '$#,##0', (ordersThis.productSaleTotal)!0.0, (ordersLast.productSaleTotal)!0.0,
-        (ordersPrior.productSaleTotal)!0.0, (ordersAverage.productSaleTotal)!0.0, orderProductSaleTotalList/>
+        (ordersPrior.productSaleTotal)!0.0, (ordersAverage.productSaleTotal)!0.0, orderProductSaleTotalList, ec.resource.expression("orderSummaryNoTotals*.productSaleTotalMa", "")/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Order Discount Percent", '0.0%', ((ordersThis.discountPercent)!0.0), ((ordersLast.discountPercent)!0.0),
-        ((ordersPrior.discountPercent)!0.0), ((ordersAverage.discountPercent)!0.0), orderDiscountPercentList/>
+        ((ordersPrior.discountPercent)!0.0), ((ordersAverage.discountPercent)!0.0), orderDiscountPercentList, orderDiscountPercentMaList/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Order Net Product", '$#,##0', (ordersThis.netSales)!0.0, (ordersLast.netSales)!0.0,
-        (ordersPrior.netSales)!0.0, (ordersAverage.netSales)!0.0, orderNetSalesList/>
+        (ordersPrior.netSales)!0.0, (ordersAverage.netSales)!0.0, orderNetSalesList, ec.resource.expression("orderSummaryNoTotals*.netSalesMa", "")/>
 
     </div>
 </div>
@@ -105,24 +106,24 @@ along with this software (see the LICENSE.md file). If not, see
 <div class="row">
     <div class="${statsPanelColStyle}">
     <@statsPanel "Invoice Count", '#,##0', (invoicesThis.invoiceCount)!0.0, (invoicesLast.invoiceCount)!0.0,
-        (invoicesPrior.invoiceCount)!0.0, (invoicesAverage.invoiceCount)!0.0, ec.resource.expression("invoiceSummaryNoTotals*.invoiceCount", "")/>
+        (invoicesPrior.invoiceCount)!0.0, (invoicesAverage.invoiceCount)!0.0, ec.resource.expression("invoiceSummaryNoTotals*.invoiceCount", ""), ec.resource.expression("invoiceSummaryNoTotals*.invoiceCountMa", "")/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Invoiced Quantity", '#,##0', (invoicesThis.productQuantityTotal)!0.0, (invoicesLast.productQuantityTotal)!0.0,
-        (invoicesPrior.productQuantityTotal)!0.0, (invoicesAverage.productQuantityTotal)!0.0, ec.resource.expression("invoiceSummaryNoTotals*.productQuantityTotal", "")/>
+        (invoicesPrior.productQuantityTotal)!0.0, (invoicesAverage.productQuantityTotal)!0.0, ec.resource.expression("invoiceSummaryNoTotals*.productQuantityTotal", ""), ec.resource.expression("invoiceSummaryNoTotals*.productQuantityTotalMa", "")/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Invoices Total", '$#,##0', (invoicesThis.invoiceTotal)!0.0, (invoicesLast.invoiceTotal)!0.0,
-        (invoicesPrior.invoiceTotal)!0.0, (invoicesAverage.invoiceTotal)!0.0, invoiceTotalList/>
+        (invoicesPrior.invoiceTotal)!0.0, (invoicesAverage.invoiceTotal)!0.0, invoiceTotalList, invoiceTotalMaList/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Paid Percent", '0.0%', ((invoicesThis.paidPercent)!0.0), ((invoicesLast.paidPercent)!0.0),
-        ((invoicesPrior.paidPercent)!0.0), ((invoicesAverage.paidPercent)!0.0), invoicePaidPercentList/>
+        ((invoicesPrior.paidPercent)!0.0), ((invoicesAverage.paidPercent)!0.0), invoicePaidPercentList, invoicePaidPercentMaList/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Pre-Paid Percent", '0.0%', ((invoicesThis.prePaidPercent)!0.0), ((invoicesLast.prePaidPercent)!0.0),
-        ((invoicesPrior.prePaidPercent)!0.0), ((invoicesAverage.prePaidPercent)!0.0), invoicePrePaidPercentList/>
+        ((invoicesPrior.prePaidPercent)!0.0), ((invoicesAverage.prePaidPercent)!0.0), invoicePrePaidPercentList, invoicePrePaidPercentMaList/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Invoice Cost Percent", '0.0%', ((invoicesThis.costPercent)!0.0), ((invoicesLast.costPercent)!0.0),
-        ((invoicesPrior.costPercent)!0.0), ((invoicesAverage.costPercent)!0.0), invoiceCostPercentList/>
+        ((invoicesPrior.costPercent)!0.0), ((invoicesAverage.costPercent)!0.0), invoiceCostPercentList, invoiceCostPercentMaList/>
     </div><div class="${statsPanelColStyle}">
     <@statsPanel "Invoice Discount Percent", '0.0%', ((invoicesThis.discountPercent)!0.0), ((invoicesLast.discountPercent)!0.0),
-        ((invoicesPrior.discountPercent)!0.0), ((invoicesAverage.discountPercent)!0.0), invoiceDiscountPercentList/>
+        ((invoicesPrior.discountPercent)!0.0), ((invoicesAverage.discountPercent)!0.0), invoiceDiscountPercentList, invoiceDiscountPercentMaList/>
     </div>
 </div>
