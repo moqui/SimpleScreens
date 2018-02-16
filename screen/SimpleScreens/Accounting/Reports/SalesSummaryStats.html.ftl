@@ -67,7 +67,7 @@ along with this software (see the LICENSE.md file). If not, see
             var ${chartId} = new Chart(document.getElementById("${chartId}"), { type: 'line',
                 data: { labels:${Static["groovy.json.JsonOutput"].toJson(orderLabelList)}, datasets:[
                     { backgroundColor: "rgba(49, 112, 143, 0.9)", borderColor: "rgba(49, 112, 143, 0.9)", fill: false, data: ${Static["groovy.json.JsonOutput"].toJson(chartList)} }
-                    <#if chartMaList?has_content>, { backgroundColor: null, borderColor: "rgba(240, 173, 78, 0.5)", fill: false, data: ${Static["groovy.json.JsonOutput"].toJson(chartMaList)} }</#if>
+                    <#if (maPeriods > 0) && chartMaList?has_content>, { backgroundColor: null, borderColor: "rgba(240, 173, 78, 0.5)", fill: false, data: ${Static["groovy.json.JsonOutput"].toJson(chartMaList)} }</#if>
                 ] },
                 options: { legend:{display:false}, scales:{ xAxes:[{display:<#if chartBig>true<#else>false</#if>}] }, maintainAspectRatio:false }
             });

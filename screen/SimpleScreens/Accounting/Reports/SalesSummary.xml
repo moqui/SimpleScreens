@@ -18,6 +18,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
+        <set field="maPeriods" from="(maPeriods ?: '0') as Integer"/>
+
         <service-call name="mantle.sales.SalesReportServices.get#SalesOrderSummary" out-map="context"
                 in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, maPeriods:maPeriods,
                     customerClassificationIds:customerClassificationIds, productIds:productIds]"/>
@@ -141,7 +143,7 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
         <container>
-            <label text="Sales Summary for ${intervalCount?:13} ${[w:'Weeks', M:'Months', q:'Quarters', y:'Years'].get(interval?:'w')}${thruDate ? ' thru ' + ec.l10n.format(thruDate, 'dd MMM yyyy') : ''}${maPeriods &amp;&amp; maPeriods != '0' ? ' with ' + maPeriods + ' Period MA' : ''}" type="h3"/>
+            <label text="Sales Summary for ${intervalCount?:13} ${[w:'Weeks', M:'Months', q:'Quarters', y:'Years'].get(interval?:'w')}${thruDate ? ' thru ' + ec.l10n.format(thruDate, 'dd MMM yyyy') : ''}${maPeriods ? ' with ' + maPeriods + ' Period MA' : ''}" type="h3"/>
             <label text="Customer Classes: ${selectedClassificationList*.description.join(', ')}" condition="selectedClassificationList" type="h5"/>
             <label text="Products: ${selectedProductList.collect({ it.pseudoId + ': ' + it.productName }).join(', ')}" condition="selectedProductList" type="h5"/>
         </container>
