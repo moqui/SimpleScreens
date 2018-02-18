@@ -29,31 +29,67 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="delete#mantle.product.store.ProductStorePromoParameter"/>
         <default-response url="."/>
     </transition>
+    <!--
+    <transition name="getPromoServiceParams">
+        <parameter name="serviceRegisterId"/>
+        <entity-find-one entity-name="moqui.service.ServiceRegister" value-field="promoService">
+            <field-map field-name="serviceRegisterId" from="serviceRegisterId" />
+        </entity-find-one>
+        <set field="defaultSD" from="ec.service.getServiceDefinition('mantle.product.PromotionServices.apply#Promotion')"/>
+        <set field="defaultParameterNames" from="defaultSD.getInParameterNames()"/>
+
+        <set field="sd" from="ec.service.getServiceDefinition(promoService.serviceName)"/>
+        <set field="inParameterNames" from="sd.getInParameterNames()"/>
+        <script>
+            def paramList = []
+            for (def name in inParameterNames) {
+                if(!defaultParameterNames.contains(name)) {
+                    def description = sd.getInParameter(name).first("description")?.text
+                    paramList.add([value:name, label:description])
+                }
+            }
+            ec.web.sendJsonResponse(paramList)
+        </script>
+    </transition>
+-->
     <actions>
         <entity-find-one entity-name="mantle.product.store.ProductStorePromotion" value-field="storePromotion">
             <field-map field-name="productStoreId" from="productStoreId"/>
             <field-map field-name="storePromotionId" from="storePromotionId"/>
         </entity-find-one>
-    </actions>
+        
+        <entity-find-one entity-name="moqui.service.ServiceRegister" value-field="promoService">
+            <field-map field-name="serviceRegisterId" from="storePromotion.serviceRegisterId" />
+        </entity-find-one>
 
+        <set field="defaultSD" from="ec.service.getServiceDefinition('mantle.product.PromotionServices.apply#Promotion')"/>
+        <set field="defaultParameterNames" from="defaultSD.getInParameterNames()"/>
+
+        <set field="sd" from="ec.service.getServiceDefinition(promoService.serviceName)"/>
+        <set field="inParameterNames" from="sd.getInParameterNames()"/>
+        <set field="paramMap" from="new HashMap()"/>
+        <set field="paramList" from="new ArrayList()"/>
+        <script>
+            for (def name in inParameterNames) {
+                if(!defaultParameterNames.contains(name)) {
+                    def description = sd.getInParameter(name).first("description")?.text
+                    paramMap.put(name, description)
+                    paramList.add(name)
+                }
+            }
+        </script>
+    </actions>
     <widgets>
         <container-row><row-col lg="7">
             <form-single name="EditPromotionForm" map="storePromotion" transition="updatePromotion">
                 <field name="productStoreId"><default-field><hidden/></default-field></field>
                 <field name="storePromotionId"><default-field title="ID">
                     <display-entity entity-name="mantle.product.store.ProductStorePromotion" text="${storePromotionId}"/>
-                </default-field>
-                </field>
+                </default-field></field>
+                <field ><default-field title="Service">
+                    <display text="${promoService.description}"/>
+                </default-field></field>
                 <field name="itemDescription"><default-field title="Item Description"><text-line size="50"/></default-field></field>
-                <field name="serviceRegisterId">
-                    <default-field title="Service">
-                        <drop-down><entity-options key="${serviceRegisterId}" text="${description}">
-                            <entity-find entity-name="moqui.service.ServiceRegister">
-                                <order-by field-name="serviceRegisterId"/>
-                            </entity-find>
-                        </entity-options></drop-down>
-                    </default-field>
-                </field>
                 <field name="requireCode"><default-field title="Require Code">
                     <drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></default-field></field>
                 <field name="useLimitPerOrder"><default-field title="Per Order">
@@ -68,7 +104,7 @@ along with this software (see the LICENSE.md file). If not, see
         </row-col>
 
         <row-col lg="5">
-            <section name="ProductStorePromoParameterSection">
+            <section name="PromoParameterSection">
                 <actions>
                     <entity-find entity-name="mantle.product.store.ProductStorePromoParameter" list="promoParameterList">
                         <econdition field-name="storePromotionId" value="${storePromotionId}" />
@@ -81,18 +117,24 @@ along with this software (see the LICENSE.md file). If not, see
                             <form-single name="NewPromoParameterForm" transition="createPromoParam">
                                 <field name="productStoreId"><default-field><hidden/></default-field></field>
                                 <field name="storePromotionId"><default-field><hidden/></default-field></field>
-                                <field name="parameterName"><default-field title="Name"><text-line size="30" /></default-field></field>
+                                <field name="parameterName"><default-field title="Name">
+                                    <drop-down><list-options list="paramList" /></drop-down>
+                                </default-field></field>
                                 <field name="parameterValue"><default-field title="Value"><text-line size="60" /></default-field></field>
                                 <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                             </form-single>
                         </container-dialog></box-toolbar>
                         <box-body>
                             <form-list name="PromoParameterForm" list="promoParameterList" skip-form="true" >
-                                <field name="parameterName">
+                                <field name="name">
                                     <header-field title="Name" show-order-by="case-insensitive"/>
                                     <default-field><display text="${parameterName}" /></default-field>
                                 </field>
-                                <field name="parameterValue">
+                                <field name="description">
+                                    <header-field title="Description" show-order-by="case-insensitive"/>
+                                    <default-field><display text="${paramMap.get(parameterName)}" /></default-field>
+                                </field>
+                                <field name="value">
                                     <header-field title="Value" show-order-by="case-insensitive"/>
                                     <default-field><display text="${parameterValue}" /></default-field>
                                 </field>
