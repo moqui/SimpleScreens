@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Product Store" default-menu-index="1">
+
+    <parameter name="productStoreId" required="true"/>
+
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="updateStore">
+        <service-call name="mantle.product.StoreServices.update#ProductStore"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createShippingOption">
+        <service-call name="create#mantle.product.store.ProductStoreShipOption"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createShippingGateway">
+        <service-call name="create#mantle.product.store.ProductStoreShippingGateway"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createPaymentGateway">
+        <service-call name="create#mantle.product.store.ProductStorePaymentGateway"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="deleteShippingOption">
+        <service-call name="delete#mantle.product.store.ProductStoreShipOption"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="deleteShippingGateway">
+        <service-call name="delete#mantle.product.store.ProductStoreShippingGateway"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="editPaymentGateway"><default-response url="//${appRoot}/Gateways/EditPaymentGateway"/></transition>
+    <transition name="deletePaymentGateway">
+        <service-call name="delete#mantle.product.store.ProductStorePaymentGateway"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="updateShippingOption">
+        <service-call name="update#mantle.product.store.ProductStoreShipOption" multi="true" in-map="context"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="editShippingGateway"><default-response url="//${appRoot}/Gateways/EditShippingGateway"/></transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.store.ProductStore" value-field="store">
+            <field-map field-name="productStoreId" from="productStoreId"/>
+        </entity-find-one>
+        <set field="localeStringList" from="[]"/>
+        <iterate list="Locale.getAvailableLocales()" entry="lcl">
+            <script>if (lcl.toString()) localeStringList.add([locale:lcl.toString(), name:lcl.getDisplayName(ec.user.locale)])</script></iterate>
+        <order-map-list list="localeStringList"><order-by field-name="name"/></order-map-list>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="7">
+            <form-single name="EditStoreForm" map="store" transition="updateStore">
+                <field name="productStoreId"><default-field title="Product Store ID">
+                    <display text="${productStoreId}"/>
+                </default-field></field>
+                <field name="storeName"><default-field title="Name"><text-line size="30"/></default-field></field>
+                <field name="organizationPartyId"><default-field title="Organization">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${partyId}" text="${partyId}: ${organizationName}">
+                            <entity-find entity-name="mantle.party.Organization">
+                                <order-by field-name="partyId"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="inventoryFacilityId"><default-field title="Facility">
+                    <drop-down allow-empty="true"><entity-options key="${facilityId}" text="FacilityNameTemplate">
+                        <entity-find entity-name="mantle.facility.Facility">
+                            <order-by field-name="facilityId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="reservationOrderEnumId"><default-field title="Reservation Order">
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="AssetReservationOrder"/>
+                            <order-by field-name="enumId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="requirementMethodEnumId"><default-field title="Requirement Method">
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="RequirementMethod"/>
+                            <order-by field-name="enumId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="storeDomain"><default-field title="Store Domain"><text-line size="30"/></default-field></field>
+                <field name="profileUrlPath"><default-field title="Profile Url Path"><text-line size="30"/></default-field></field>
+                <field name="wikiSpaceId"><default-field title="Wiki Space ID">
+                    <drop-down allow-empty="true"><entity-options key="${wikiSpaceId}" text="${wikiSpaceId}: ${description ?: ''}">
+                        <entity-find entity-name="moqui.resource.wiki.WikiSpace">
+                            <order-by field-name="wikiSpaceId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="defaultLocale"><default-field title="Default Locale">
+                    <drop-down allow-empty="true"><list-options list="localeStringList" key="${locale}" text="${name}"/></drop-down>
+                </default-field></field>
+                <field name="defaultCurrencyUomId"><default-field title="Default Currency">
+                    <drop-down allow-empty="true"><entity-options key="${uomId}" text="UomNameTemplate">
+                        <entity-find entity-name="moqui.basic.Uom">
+                            <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="defaultSalesChannelEnumId"><default-field title="Default Sales Channel">
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="SalesChannel"/>
+                            <order-by field-name="enumId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="requireCustomerRole"><default-field title="Require Customer Role">
+                    <drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down>
+                </default-field></field>
+                <field name="taxGatewayConfigId"><default-field title="Tax Gateway">
+                    <drop-down allow-empty="true"><entity-options key="${taxGatewayConfigId}" text="${description ?: ''} [${taxGatewayConfigId}]">
+                        <entity-find entity-name="mantle.other.tax.TaxGatewayConfig">
+                            <order-by field-name="taxGatewayConfigId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col>
+
+        <row-col lg="5">
+            <section name="ShippingOptionsSection">
+                <actions>
+                    <entity-find entity-name="mantle.product.store.ProductStoreShipOption" list="shipOptionsList">
+                        <econdition field-name="productStoreId" value="${productStoreId}" />
+                        <order-by field-name="sequenceNum"/>
+                    </entity-find>
+                </actions>
+                <widgets>
+                    <container-box><box-header title="Shipping Options"/><box-toolbar>
+                        <container-dialog id="NewShippingOptionDialog" button-text="Add Shipping Option">
+                            <form-single name="NewShippingOptionForm" transition="createShippingOption">
+                                <field name="productStoreId"><default-field title="Product Store">
+                                    <hidden/>
+                                </default-field></field>
+                                <field name="carrierPartyId"><default-field title="Carrier">
+                                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                                        <entity-find entity-name="mantle.party.PartyDetail">
+                                            <order-by field-name="partyId"/>
+                                        </entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="shipmentMethodEnumId"><default-field title="Shipment Method">
+                                    <drop-down><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                                        <entity-find entity-name="moqui.basic.Enumeration">
+                                            <econdition field-name="enumTypeId" value="ShipmentMethod"/>
+                                            <order-by field-name="enumId"/>
+                                        </entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="sequenceNum"><default-field><text-line size="4" format="#"/></default-field></field>
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar>
+                    <box-body>
+                        <form-list name="ShipOptionsForm" list="shipOptionsList" multi="true" transition="updateShippingOption">
+                            <field name="carrierPartyId">
+                                <header-field title="Carrier" />
+                                <default-field>
+                                    <display text=" "/>
+                                    <link url="editParty" text="PartyNameTemplate" entity-name="mantle.party.PartyDetail" parameter-map="[partyId:carrierPartyId]" link-type="anchor" condition="carrierPartyId"/>
+                                </default-field>
+                            </field>
+                            <field name="shipmentMethodEnumId">
+                                <header-field title="Shipment Method" />
+                                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                            </field>
+                            <field name="sequenceNum">
+                                <header-field title="Seq." />
+                                <default-field><text-line size="3" format="#"/></default-field>
+                            </field>
+                            <field name="deleteButton" align="right"><default-field title="">
+                                <link url="deleteShippingOption" icon="glyphicon glyphicon-trash"
+                                      parameter-map="[productStoreId:productStoreId, carrierPartyId:carrierPartyId, shipmentMethodEnumId:shipmentMethodEnumId]"
+                                      confirmation="Are you sure you want to remove this Shipping Option?"/>
+                            </default-field></field>
+                            <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
+                        </form-list>
+                    </box-body></container-box>
+                </widgets>
+            </section>
+
+            <section name="ShippingGatewaysSection">
+                <actions>
+                    <entity-find entity-name="mantle.product.store.ProductStoreShippingGateway" list="shippingGatewayList">
+                        <econdition field-name="productStoreId" value="${productStoreId}" />
+                    </entity-find>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Shipping Gateways"/>
+                        <box-toolbar><container-dialog id="NewShippingGatewayDialog" button-text="Add Shipping Gateway">
+                            <form-single name="NewShippingGatewayForm" transition="createShippingGateway">
+                                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                                <field name="carrierPartyId"><default-field title="Carrier Party">
+                                    <drop-down><entity-options key="${partyId}" text="${pseudoId}">
+                                        <entity-find entity-name="mantle.party.Party">
+                                            <order-by field-name="partyId"/>
+                                        </entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="shippingGatewayConfigId"><default-field title="Gateway Config">
+                                    <drop-down><entity-options key="${shippingGatewayConfigId}" text="${description ?: ''} [${shippingGatewayConfigId}]">
+                                        <entity-find entity-name="mantle.shipment.carrier.ShippingGatewayConfig">
+                                            <order-by field-name="shippingGatewayConfigId"/>
+                                        </entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog></box-toolbar>
+                        <box-body>
+                            <form-list name="ShippingGatewaysForm" list="shippingGatewayList" >
+                                <field name="carrierPartyId">
+                                    <header-field title="Carrier" />
+                                    <default-field>
+                                        <link url="editParty" text="PartyNameTemplate" entity-name="mantle.party.PartyDetail" parameter-map="[partyId:carrierPartyId]" link-type="anchor"/>
+                                    </default-field>
+                                </field>
+                                <field name="shippingGatewayConfigId">
+                                    <header-field title="Shipment Gateway" />
+                                    <default-field><link url="editShippingGateway" entity-name="mantle.shipment.carrier.ShippingGatewayConfig" text="${description}" link-type="anchor"/></default-field>
+                                </field>
+                                <field name="deleteButton" align="right"><default-field title="">
+                                    <link url="deleteShippingGateway" icon="glyphicon glyphicon-trash"
+                                          parameter-map="[productStoreId:productStoreId, carrierPartyId:carrierPartyId, shippingGatewayConfigId:shippingGatewayConfigId]"
+                                          confirmation="Are you sure you want to remove this Shipping Gateway?"/>
+                                </default-field></field>
+                            </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+
+            <section name="PaymentGatewaysSection">
+                <actions>
+                    <entity-find entity-name="mantle.product.store.ProductStorePaymentGateway" list="storePaymentGateway">
+                        <econdition field-name="productStoreId" value="${productStoreId}" />
+                    </entity-find>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Payment Gateways"/>
+                        <box-toolbar><container-dialog id="NewPaymentGatewayDialog" button-text="Add Payment Gateway">
+                            <form-single name="NewPaymentGatewayForm" transition="createPaymentGateway">
+                                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                                <field name="paymentInstrumentEnumId"><default-field title="Instrument">
+                                    <drop-down><entity-options key="${enumId}" text="${enumId}: ${description ?: ''}">
+                                        <entity-find entity-name="moqui.basic.Enumeration">
+                                            <econdition field-name="enumTypeId" value="PaymentInstrument"/>
+                                            <order-by field-name="enumId"/>
+                                        </entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="paymentGatewayConfigId"><default-field title="Gateway Config">
+                                    <drop-down><entity-options key="${paymentGatewayConfigId}" text="${description ?: ''} [${paymentGatewayConfigId}]">
+                                        <entity-find entity-name="mantle.account.method.PaymentGatewayConfig">
+                                            <order-by field-name="paymentGatewayConfigId"/>
+                                        </entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog></box-toolbar>
+                        <box-body>
+                            <form-list name="PaymentGatewayForm" list="storePaymentGateway" skip-form="true" header-dialog="false" select-columns="false" saved-finds="false" show-csv-button="false">
+                                <field name="paymentInstrumentEnumId"><default-field title="Instrument">
+                                    <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+                                <field name="paymentGatewayConfigId">
+                                    <header-field title="Gateway Config" />
+                                    <default-field><link url="editPaymentGateway" entity-name="mantle.account.method.PaymentGatewayConfig" text="${description}" link-type="anchor"/></default-field>
+                                </field>
+                                <field name="deleteButton" align="right"><default-field title="">
+                                    <link url="deletePaymentGateway" icon="glyphicon glyphicon-trash"
+                                          parameter-map="[productStoreId:productStoreId, paymentInstrumentEnumId:paymentInstrumentEnumId, paymentGatewayConfigId:paymentGatewayConfigId]"
+                                          confirmation="Are you sure you want to remove this Payment Gateway?"/>
+                                </default-field></field>
+                            </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+
+
+        </row-col></container-row>
+
+
+    </widgets>
+</screen>
