@@ -29,29 +29,6 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="delete#mantle.product.store.ProductStorePromoParameter"/>
         <default-response url="."/>
     </transition>
-    <!--
-    <transition name="getPromoServiceParams">
-        <parameter name="serviceRegisterId"/>
-        <entity-find-one entity-name="moqui.service.ServiceRegister" value-field="promoService">
-            <field-map field-name="serviceRegisterId" from="serviceRegisterId" />
-        </entity-find-one>
-        <set field="defaultSD" from="ec.service.getServiceDefinition('mantle.product.PromotionServices.apply#Promotion')"/>
-        <set field="defaultParameterNames" from="defaultSD.getInParameterNames()"/>
-
-        <set field="sd" from="ec.service.getServiceDefinition(promoService.serviceName)"/>
-        <set field="inParameterNames" from="sd.getInParameterNames()"/>
-        <script>
-            def paramList = []
-            for (def name in inParameterNames) {
-                if(!defaultParameterNames.contains(name)) {
-                    def description = sd.getInParameter(name).first("description")?.text
-                    paramList.add([value:name, label:description])
-                }
-            }
-            ec.web.sendJsonResponse(paramList)
-        </script>
-    </transition>
--->
     <actions>
         <entity-find-one entity-name="mantle.product.store.ProductStorePromotion" value-field="storePromotion">
             <field-map field-name="productStoreId" from="productStoreId"/>
@@ -144,6 +121,38 @@ along with this software (see the LICENSE.md file). If not, see
                                           confirmation="Are you sure you want to remove this Promo Param?"/>
                                 </default-field></field>
                             </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+        </row-col>
+
+        <row-col lg="5">
+            <section name="PromoCodeStatistics">
+                <actions>
+                    <set field="openStatusIdList" from="['OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderSent', 'OrderCompleted', 'OrderHold']"/>
+                    <entity-find entity-name="mantle.order.OrderItemAndPartSummary" list="promoSummaryList">
+                        <econdition field-name="statusId" operator="in" from="openStatusIdList"/>
+                        <econdition field-name="storePromotionId" from="storePromotionId"/>
+                    </entity-find>
+                    <set field="promoTimesUsed" from="promoSummaryList?.first?.promoQuantity ?: 0"/>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Promo Code Stats"/>
+                        <box-body>
+                            <container-row>
+                                <row-col sm="4"><label text="Times Used" type="strong"/></row-col>
+                                <row-col sm="4"><label text="Sum of Discounts" type="strong"/></row-col>
+                            </container-row>
+                            <container-row>
+                                <row-col sm="4">
+                                    <display text="${promoTimesUsed}" />
+                                </row-col>
+                                <row-col sm="4">
+                                    <display text="12" />
+                                </row-col>
+                            </container-row>
                         </box-body>
                     </container-box>
                 </widgets>
