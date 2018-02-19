@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false">
+
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editStore"><default-response url="../EditProductStore"/></transition>
+    <transition name="createStore">
+        <service-call name="create#mantle.product.store.ProductStore"/>
+        <default-response url="../EditProductStore"/>
+    </transition>
+
+    <actions>
+        <entity-find entity-name="mantle.product.store.ProductStore" list="storeList">
+            <search-form-inputs default-order-by="storeName"/></entity-find>
+    </actions>
+
+    <widgets>
+        <container-dialog id="NewStoreDialog" button-text="New Store">
+            <form-single name="NewStoreForm" transition="createStore">
+                <field name="productStoreId"><default-field title="ID"><text-line size="30"/></default-field></field>
+                <field name="storeName"><default-field title="Name"><text-line size="30"/></default-field></field>
+                <field name="organizationPartyId">
+                    <default-field title="Organization Party"><drop-down no-current-selected-key="">
+                        <entity-options key="${partyId}" text="${partyId}"><entity-find entity-name="mantle.party.Organization">
+                            <order-by field-name="partyId"/>
+                        </entity-find></entity-options>
+                    </drop-down></default-field>
+                </field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <link url="//${appRoot}/Gateway" text="Gateways"/>
+
+        <form-list name="StoresForm" list="storeList" skip-form="true" header-dialog="true" select-columns="true"
+                   saved-finds="true" show-csv-button="true">
+            <field name="productStoreId">
+                <header-field title="ID" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><link url="editStore" text="${productStoreId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="storeName">
+                <header-field title="Name" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editStore" text="${storeName}" link-type="anchor"/></default-field>
+            </field>
+            <field name="organizationPartyId">
+                <header-field title="Organization" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editParty" text="PartyNameTemplate" entity-name="mantle.party.PartyDetail" parameter-map="[partyId:organizationPartyId]" link-type="anchor"/></default-field>
+            </field>
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <default-field><display text=" "/></default-field>
+            </field>
+        </form-list>
+
+        <render-mode><text type="html,vuet"><![CDATA[
+            <div>Icons made by <a href="https://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+        ]]></text></render-mode>
+    </widgets>
+
+</screen>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Promotion" default-menu-index="1">
+
+    <parameter name="productStoreId" required="true"/>
+    <parameter name="storePromotionId" required="true"/>
+
+    <transition name="editPromotion"><default-response url="."/></transition>
+    <transition name="updatePromotion"><service-call name="update#mantle.product.store.ProductStorePromotion"/>
+        <default-response url="."/></transition>
+    <transition name="createPromoParam">
+        <service-call name="create#mantle.product.store.ProductStorePromoParameter"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="deletePromoParam">
+        <service-call name="delete#mantle.product.store.ProductStorePromoParameter"/>
+        <default-response url="."/>
+    </transition>
+    <actions>
+        <entity-find-one entity-name="mantle.product.store.ProductStorePromotion" value-field="storePromotion">
+            <field-map field-name="productStoreId" from="productStoreId"/>
+            <field-map field-name="storePromotionId" from="storePromotionId"/>
+        </entity-find-one>
+        
+        <entity-find-one entity-name="moqui.service.ServiceRegister" value-field="promoService">
+            <field-map field-name="serviceRegisterId" from="storePromotion.serviceRegisterId" />
+        </entity-find-one>
+
+        <set field="defaultSD" from="ec.service.getServiceDefinition('mantle.product.PromotionServices.apply#Promotion')"/>
+        <set field="defaultParameterNames" from="defaultSD.getInParameterNames()"/>
+
+        <set field="sd" from="ec.service.getServiceDefinition(promoService.serviceName)"/>
+        <set field="inParameterNames" from="sd.getInParameterNames()"/>
+        <set field="paramMap" from="new HashMap()"/>
+        <set field="paramList" from="new ArrayList()"/>
+        <script>
+            for (def name in inParameterNames) {
+                if(!defaultParameterNames.contains(name)) {
+                    def description = sd.getInParameter(name).first("description")?.text
+                    paramMap.put(name, description)
+                    paramList.add(name)
+                }
+            }
+        </script>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="7">
+            <form-single name="EditPromotionForm" map="storePromotion" transition="updatePromotion">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                <field name="storePromotionId"><default-field title="ID">
+                    <display-entity entity-name="mantle.product.store.ProductStorePromotion" text="${storePromotionId}"/>
+                </default-field></field>
+                <field ><default-field title="Service">
+                    <display text="${promoService.description}"/>
+                </default-field></field>
+                <field name="itemDescription"><default-field title="Item Description"><text-line size="50"/></default-field></field>
+                <field name="requireCode"><default-field title="Require Code">
+                    <drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></default-field></field>
+                <field name="useLimitPerOrder"><default-field title="Per Order">
+                    <text-line size="20" format="#"/></default-field></field>
+                <field name="useLimitPerCustomer"><default-field title="Per Customer">
+                    <text-line size="20" format="#"/></default-field></field>
+                <field name="useLimitPerPromotion"><default-field title="Per Promotion">
+                    <text-line size="20" format="#"/></default-field></field>
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col>
+
+        <row-col lg="5">
+            <section name="PromoParameterSection">
+                <actions>
+                    <entity-find entity-name="mantle.product.store.ProductStorePromoParameter" list="promoParameterList">
+                        <econdition field-name="storePromotionId" value="${storePromotionId}" />
+                    </entity-find>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Parameters"/>
+                        <box-toolbar><container-dialog id="NewPromoParameterDialog" button-text="Add Promo Parameter">
+                            <form-single name="NewPromoParameterForm" transition="createPromoParam">
+                                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                                <field name="storePromotionId"><default-field><hidden/></default-field></field>
+                                <field name="parameterName"><default-field title="Name">
+                                    <drop-down><list-options list="paramList" /></drop-down>
+                                </default-field></field>
+                                <field name="parameterValue"><default-field title="Value"><text-line size="60" /></default-field></field>
+                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog></box-toolbar>
+                        <box-body>
+                            <form-list name="PromoParameterForm" list="promoParameterList" skip-form="true" >
+                                <field name="name">
+                                    <header-field title="Name" show-order-by="case-insensitive"/>
+                                    <default-field><display text="${parameterName}" /></default-field>
+                                </field>
+                                <field name="description">
+                                    <header-field title="Description" show-order-by="case-insensitive"/>
+                                    <default-field><display text="${paramMap.get(parameterName)}" /></default-field>
+                                </field>
+                                <field name="value">
+                                    <header-field title="Value" show-order-by="case-insensitive"/>
+                                    <default-field><display text="${parameterValue}" /></default-field>
+                                </field>
+                                <field name="deleteButton" align="right"><default-field title="">
+                                    <link url="deletePromoParam" icon="glyphicon glyphicon-trash"
+                                          parameter-map="[storePromotionId:storePromotionId, parameterName:parameterName]"
+                                          confirmation="Are you sure you want to remove this Promo Param?"/>
+                                </default-field></field>
+                            </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+        </row-col>
+
+        <row-col lg="5">
+            <section name="PromoCodeStatistics">
+                <actions>
+                    <set field="openStatusIdList" from="['OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderSent', 'OrderCompleted', 'OrderHold']"/>
+                    <entity-find entity-name="mantle.order.OrderItemAndPartSummary" list="promoSummaryList">
+                        <econdition field-name="statusId" operator="in" from="openStatusIdList"/>
+                        <econdition field-name="storePromotionId" from="storePromotionId"/>
+                    </entity-find>
+                    <set field="promoTimesUsed" from="promoSummaryList?.first?.promoQuantity ?: 0"/>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Promo Code Stats"/>
+                        <box-body>
+                            <container-row>
+                                <row-col sm="4"><label text="Times Used" type="strong"/></row-col>
+                                <row-col sm="4"><label text="Sum of Discounts" type="strong"/></row-col>
+                            </container-row>
+                            <container-row>
+                                <row-col sm="4">
+                                    <display text="${promoTimesUsed}" />
+                                </row-col>
+                                <row-col sm="4">
+                                    <display text="12" />
+                                </row-col>
+                            </container-row>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+        </row-col></container-row>
+
+
+    </widgets>
+
+</screen>

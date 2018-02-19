@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd" default-menu-title="Emails" default-menu-index="2">
+
+
+    <parameter name="productStoreId" required="true"/>
+
+    <transition name="updateStoreEmail">
+        <service-call name="update#mantle.product.store.ProductStoreEmail"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createStoreEmail">
+        <service-call name="create#mantle.product.store.ProductStoreEmail"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="deleteStoreEmail">
+        <service-call name="delete#mantle.product.store.ProductStoreEmail"/>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <entity-find entity-name="mantle.product.store.ProductStoreEmail" list="storeEmails">
+            <search-form-inputs default-order-by="emailTypeEnumId"/>
+            <econdition field-name="productStoreId" />
+        </entity-find>
+    </actions>
+
+    <widgets>
+        <container-dialog id="NewStoreEmailDialog" button-text="New Store Email">
+            <form-single name="NewStoreEmailForm" transition="createStoreEmail">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                <field name="emailTypeEnumId"><default-field title="Email Type">
+                    <drop-down><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="ProductStoreEmailType"/>
+                            <order-by field-name="enumId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="fromDate"> <default-field><date-time type="date-time"/></default-field> </field>
+                <field name="emailTemplateId"><default-field title="Template">
+                    <drop-down><entity-options key="${enumId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.email.EmailTemplate">
+                            <order-by field-name="emailTemplateId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="StoreEmailsForm" list="storeEmails" header-dialog="true" transition="updateStoreEmail">
+            <field name="productStoreId"><default-field><hidden/></default-field></field>
+
+            <field name="emailTypeEnumId">
+                <header-field title="Email Type" show-order-by="case-insensitive"></header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="emailTemplateId">
+                <header-field title="Email Template" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><display-entity entity-name="moqui.basic.email.EmailTemplate"/></default-field>
+            </field>
+            <field name="fromDate">
+                <header-field title="From Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="thruDate">
+                <header-field title="Thru Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
+                <default-field><date-time type="date-time"/></default-field>
+            </field>
+            <field name="headerImagePath">
+                <header-field title="header Image Path" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><text-line size="30"/></default-field>
+            </field>
+            <field name="detailLinkPath">
+                <header-field title="Detail Link Path" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><text-line size="30"/></default-field>
+            </field>
+            <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
+            <field name="deleteButton" align="right"><default-field title="">
+                <link url="deleteStoreEmail" icon="glyphicon glyphicon-trash"
+                      parameter-map="[productStoreId:productStoreId, emailTypeEnumId:emailTypeEnumId, fromDate:fromDate]"
+                      confirmation="Are you sure you want to remove this Email?"/>
+            </default-field></field>
+        </form-list>
+    </widgets>
+</screen>
