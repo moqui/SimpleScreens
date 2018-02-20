@@ -38,23 +38,6 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="moqui.service.ServiceRegister" value-field="promoService">
             <field-map field-name="serviceRegisterId" from="storePromotion.serviceRegisterId" />
         </entity-find-one>
-
-        <set field="defaultSD" from="ec.service.getServiceDefinition('mantle.product.PromotionServices.apply#Promotion')"/>
-        <set field="defaultParameterNames" from="defaultSD.getInParameterNames()"/>
-
-        <set field="sd" from="ec.service.getServiceDefinition(promoService.serviceName)"/>
-        <set field="inParameterNames" from="sd.getInParameterNames()"/>
-        <set field="paramMap" from="new HashMap()"/>
-        <set field="paramList" from="new ArrayList()"/>
-        <script>
-            for (def name in inParameterNames) {
-                if(!defaultParameterNames.contains(name)) {
-                    def description = sd.getInParameter(name).first("description")?.text
-                    paramMap.put(name, description)
-                    paramList.add(name)
-                }
-            }
-        </script>
     </actions>
     <widgets>
         <container-row><row-col lg="7">
@@ -82,34 +65,38 @@ along with this software (see the LICENSE.md file). If not, see
                 <actions>
                     <entity-find entity-name="mantle.product.store.ProductStorePromoParameter" list="promoParameterList">
                         <econdition field-name="storePromotionId"/><order-by field-name="parameterName"/></entity-find>
+
+                    <set field="defaultSD" from="ec.service.getServiceDefinition('mantle.product.PromotionServices.apply#Promotion')"/>
+                    <set field="sd" from="ec.service.getServiceDefinition(promoService.serviceName)"/>
+                    <set field="paramList" from="new ArrayList()"/>
+                    <script>
+                        def defaultParameterNames = defaultSD.getInParameterNames();
+                        def inParameterNames = sd.getInParameterNames();
+                        for (def name in inParameterNames) {
+                            if(!defaultParameterNames.contains(name)) {
+                                def description = sd.getInParameter(name).first("description")?.text ?: ""
+                                paramList.add([parameterName:name, parameterDescription:description, parameterValue:'0'])
+                            }
+                        }
+                    </script>
                 </actions>
                 <widgets>
                     <container-box>
                         <box-header title="Parameters"/>
-                        <box-toolbar><container-dialog id="NewPromoParameterDialog" button-text="Add Promo Parameter">
-                            <form-single name="NewPromoParameterForm" transition="createPromoParam">
-                                <field name="productStoreId"><default-field><hidden/></default-field></field>
-                                <field name="storePromotionId"><default-field><hidden/></default-field></field>
-                                <field name="parameterName"><default-field title="Name">
-                                    <drop-down><list-options list="paramList" key="${entry}" text="${org.moqui.util.StringUtilities.camelCaseToPretty(entry)}"/></drop-down>
-                                </default-field></field>
-                                <field name="parameterValue"><default-field title="Value"><text-line size="60"/></default-field></field>
-                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                            </form-single>
-                        </container-dialog></box-toolbar>
                         <box-body>
-                            <form-list name="PromoParameterForm" list="promoParameterList" skip-form="true">
+                            <form-list name="PromoParameterForm" list="paramList" multi="true" transition="updatePromoParameters">
                                 <field name="parameterName"><default-field title="Name">
                                     <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(parameterName)}"/></default-field></field>
-                                <field name="description"><default-field title="Description">
-                                    <display text="${paramMap.get(parameterName) ?: ''}" /></default-field></field>
+                                <field name="parameterDescription"><default-field title="Description">
+                                    <display /></default-field></field>
                                 <field name="parameterValue"><default-field title="Value">
-                                    <display text="${parameterValue}"/></default-field></field>
+                                    <text-line size="3" format="#"/></default-field></field>
                                 <field name="deleteButton" align="right"><default-field title="">
                                     <link url="deletePromoParam" icon="glyphicon glyphicon-trash"
                                           parameter-map="[storePromotionId:storePromotionId, parameterName:parameterName]"
                                           confirmation="Are you sure you want to remove this Promo Param?"/>
                                 </default-field></field>
+                                <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
                             </form-list>
                         </box-body>
                     </container-box>
