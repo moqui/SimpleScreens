@@ -21,8 +21,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editPromotion"><default-response url="."/></transition>
     <transition name="updatePromotion"><service-call name="update#mantle.product.store.ProductStorePromotion"/>
         <default-response url="."/></transition>
-    <transition name="createPromoParam">
-        <service-call name="create#mantle.product.store.ProductStorePromoParameter"/>
+    <transition name="updatePromoParameters">
+        <service-call name="store#mantle.product.store.ProductStorePromoParameter" multi="true"/>
         <default-response url="."/>
     </transition>
     <transition name="deletePromoParam">
@@ -63,9 +63,6 @@ along with this software (see the LICENSE.md file). If not, see
         <row-col lg="5">
             <section name="PromoParameterSection">
                 <actions>
-                    <entity-find entity-name="mantle.product.store.ProductStorePromoParameter" list="promoParameterList">
-                        <econdition field-name="storePromotionId"/><order-by field-name="parameterName"/></entity-find>
-
                     <set field="defaultSD" from="ec.service.getServiceDefinition('mantle.product.PromotionServices.apply#Promotion')"/>
                     <set field="sd" from="ec.service.getServiceDefinition(promoService.serviceName)"/>
                     <set field="paramList" from="new ArrayList()"/>
@@ -74,8 +71,10 @@ along with this software (see the LICENSE.md file). If not, see
                         def inParameterNames = sd.getInParameterNames();
                         for (def name in inParameterNames) {
                             if(!defaultParameterNames.contains(name)) {
-                                def description = sd.getInParameter(name).first("description")?.text ?: ""
-                                paramList.add([parameterName:name, parameterDescription:description, parameterValue:'0'])
+                                def param = sd.getInParameter(name)
+                                def description = param.first("description")?.text ?: ""
+                                def type = param.attribute("type")
+                                paramList.add([parameterName:name, parameterDescription:description, parameterType:type])
                             }
                         }
                     </script>
@@ -85,12 +84,22 @@ along with this software (see the LICENSE.md file). If not, see
                         <box-header title="Parameters"/>
                         <box-body>
                             <form-list name="PromoParameterForm" list="paramList" multi="true" transition="updatePromoParameters">
+                                <row-actions>
+                                    <entity-find-one entity-name="mantle.product.store.ProductStorePromoParameter" value-field="promoParameter">
+                                        <econdition field-name="storePromotionId"/>
+                                        <econdition field-name="parameterName"/>
+                                    </entity-find-one>
+                                    <set field="parameterValue" from="promoParameter?.parameterValue"/>
+                                </row-actions>
                                 <field name="parameterName"><default-field title="Name">
                                     <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(parameterName)}"/></default-field></field>
                                 <field name="parameterDescription"><default-field title="Description">
                                     <display /></default-field></field>
-                                <field name="parameterValue"><default-field title="Value">
-                                    <text-line size="3" format="#"/></default-field></field>
+                                <field name="parameterValue">
+                                    <conditional-field condition="parameterType == 'Boolean'">
+                                        <check ><option key="true" text=" "/></check></conditional-field>
+                                    <default-field title="Value"><text-line size="3" format="#"/></default-field>
+                                </field>
                                 <field name="deleteButton" align="right"><default-field title="">
                                     <link url="deletePromoParam" icon="glyphicon glyphicon-trash"
                                           parameter-map="[storePromotionId:storePromotionId, parameterName:parameterName]"
