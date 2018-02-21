@@ -41,6 +41,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="gatewayRefund"><service-call name="mantle.account.PaymentServices.refund#SinglePayment"/>
         <default-response url="."/></transition>
+    <transition name="gatewayDetails"><service-call name="mantle.account.PaymentServices.get#SinglePaymentGatewayDetails"/>
+        <default-response url="."/></transition>
 
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
         <default-response url="."/></transition>
@@ -366,6 +368,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Refund"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
+                <link url="gatewayDetails" text="Get Gateway Status" parameter-map="[payment:null]"/>
             </widgets></section>
 
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
@@ -595,6 +598,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="responseCode"><default-field title="Resp Code"><display/></default-field></field>
                         <field name="reasonCode"><default-field title="Reason" tooltip="${reasonMessage}"><display/></default-field></field>
                         <field name="reasonMessage"><default-field title="Message"><display/></default-field></field>
+                        <field name="transactionStatus"><default-field title="Status"><display/></default-field></field>
+
                         <field name="resultSuccess"><default-field title="Success"><display/></default-field></field>
                         <field name="resultDeclined"><default-field title="Decline"><display/></default-field></field>
                         <field name="resultError"><default-field title="Error"><display/></default-field></field>
@@ -607,7 +612,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <form-list-column><field-ref name="paymentGatewayConfigId"/><field-ref name="paymentOperationEnumId"/>
                             <field-ref name="amount"/><field-ref name="transactionDate"/><field-ref name="reasonMessage"/></form-list-column>
                         <form-list-column><field-ref name="referenceNum"/><field-ref name="approvalCode"/>
-                            <field-ref name="responseCode"/><field-ref name="reasonCode"/></form-list-column>
+                            <field-ref name="responseCode"/><field-ref name="reasonCode"/><field-ref name="transactionStatus"/></form-list-column>
                         <form-list-column><field-ref name="resultSuccess"/><field-ref name="resultDeclined"/><field-ref name="resultError"/></form-list-column>
                         <form-list-column><field-ref name="avsResult"/><field-ref name="cvResult"/></form-list-column>
                         <form-list-column><field-ref name="resultNsf"/><field-ref name="resultBadExpire"/><field-ref name="resultBadCardNumber"/></form-list-column>
