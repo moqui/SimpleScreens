@@ -24,14 +24,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/>
     </transition>
     <transition name="createShippingOption">
-        <actions>
-            <script>
-                System.out.println("########createShippingOption########")
-            </script>
-        </actions>
-        <!-- service-call name="create#mantle.product.store.ProductStoreShipOption"/ -->
-        <service-call name="mantle.product.StoreServices.create#StoreShippingOptions"/>
-
+        <service-call name="mantle.product.StoreServices.create#StoreShippingOption"/>
         <default-response url="."/>
     </transition>
     <transition name="createShippingGateway">
@@ -152,12 +145,6 @@ along with this software (see the LICENSE.md file). If not, see
 
         <row-col lg="5">
             <section name="ShippingOptionsSection">
-                <actions>
-                    <entity-find entity-name="mantle.product.store.ProductStoreShipOptionDetail" list="shipOptionsList">
-                        <econdition field-name="productStoreId" value="${productStoreId}" />
-                        <order-by field-name="sequenceNum"/>
-                    </entity-find>
-                </actions>
                 <widgets>
                     <container-box><box-header title="Shipping Options"/><box-toolbar>
                         <container-dialog id="NewShippingOptionDialog" button-text="Add Shipping Option">
@@ -166,9 +153,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <hidden/>
                                 </default-field></field>
                                 <field name="carrierAndShipmentMethod"><default-field title="Shipment Method">
-                                    <drop-down><entity-options key="${carrierPartyId}:${shipmentMethodEnumId}" text="${description ?: shipmentMethodEnumId}">
-                                        <entity-find entity-name="mantle.shipment.carrier.CarrierShipmentMethod" list="carrierShipmentMethods">
-                                        <order-by field-name="description"/></entity-find>
+                                    <drop-down><entity-options key="${carrierPartyId}:${shipmentMethodEnumId}"
+                                            text="${description ? description : (carrierPartyId != '_NA_' ? (carrierPseudoId + ' - ') : '') + shipmentMethodDescription}">
+                                        <entity-find entity-name="mantle.shipment.carrier.CarrierShipmentMethodDetail">
+                                            <order-by field-name="description,carrierPseudoId,shipmentMethodDescription"/></entity-find>
                                     </entity-options></drop-down>
                                 </default-field></field>
                                 <field name="sequenceNum"><default-field><text-line size="4" format="#"/></default-field></field>
@@ -178,21 +166,18 @@ along with this software (see the LICENSE.md file). If not, see
                     </box-toolbar>
                     <box-body>
                         <form-list name="ShipOptionsForm" list="shipOptionsList" multi="true" transition="updateShippingOption">
-                            <field name="carrierPartyId">
-                                <header-field title="Carrier" />
-                                <default-field>
-                                    <display text=" "/>
-                                    <link url="editParty" text="PartyNameTemplate" entity-name="mantle.party.PartyDetail" parameter-map="[partyId:carrierPartyId]" link-type="anchor" condition="carrierPartyId"/>
-                                </default-field>
-                            </field>
-                            <field name="shipmentMethodEnumId">
-                                <header-field title="Shipment Method" />
-                                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
-                            </field>
-                            <field name="sequenceNum">
-                                <header-field title="Seq." />
-                                <default-field><text-line size="3" format="#"/></default-field>
-                            </field>
+                            <entity-find entity-name="mantle.product.store.ProductStoreShipOptionDetail" list="shipOptionsList">
+                                <econdition field-name="productStoreId"/>
+                                <select-field field-name="carrierPseudoId,shipmentMethodDescription"/>
+                                <order-by field-name="sequenceNum,description,carrierPseudoId"/>
+                            </entity-find>
+                            <field name="productStoreId"><default-field><hidden/></default-field></field>
+                            <field name="carrierPartyId"><default-field><hidden/></default-field></field>
+                            <field name="shipmentMethodEnumId"><default-field><hidden/></default-field></field>
+                            <field name="description"><default-field title="Shipment Method">
+                                <display text="${description ? description : (carrierPartyId != '_NA_' ? (carrierPseudoId + ' - ') : '') + shipmentMethodDescription}"/>
+                            </default-field></field>
+                            <field name="sequenceNum"><default-field title="Seq"><text-line size="3" format="#"/></default-field></field>
                             <field name="deleteButton" align="right"><default-field title="">
                                 <link url="deleteShippingOption" icon="glyphicon glyphicon-trash"
                                       parameter-map="[productStoreId:productStoreId, carrierPartyId:carrierPartyId, shipmentMethodEnumId:shipmentMethodEnumId]"
