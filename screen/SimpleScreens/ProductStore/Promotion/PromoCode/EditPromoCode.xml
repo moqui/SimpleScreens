@@ -18,10 +18,8 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="productStoreId" required="true"/>
     <parameter name="storePromotionId" required="true"/>
     <parameter name="promoCodeId" required="true"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml" />
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
-    <transition name="editPromoCode">
-        <default-response url="."/>
-    </transition>
     <transition name="updatePromoCode">
         <service-call name="update#mantle.product.store.ProductStorePromoCode"/>
         <default-response url="."/>
@@ -46,14 +44,8 @@ along with this software (see the LICENSE.md file). If not, see
         <container-row><row-col lg="7">
             <form-single name="EditPromoCodeForm" map="storePromoCode" transition="updatePromoCode">
                 <field name="productStoreId"><default-field><hidden/></default-field></field>
-                <field name="storePromotionId"><default-field title="Store Promotion Id">
-                        <display-entity entity-name="mantle.product.store.ProductStorePromotion" text="${itemDescription}"/>
-                    </default-field></field>
-                <field name="promoCodeId">
-                    <default-field title="Promo Code Id">
-                        <display-entity entity-name="mantle.product.store.ProductStorePromoCode" text="${promoCodeId}"/>
-                    </default-field>
-                </field>
+                <field name="storePromotionId"><default-field><hidden/></default-field></field>
+                <field name="promoCodeId"><default-field title="ID"><display/></default-field></field>
                 <field name="promoCode"><default-field title="Promo Code"><text-line size="30"/></default-field></field>
                 <field name="useLimitPerCode"><default-field title="Limit Per Code"><text-line size="5" format="#"/></default-field></field>
                 <field name="useLimitPerCustomer"><default-field title="Per Customer"><text-line size="5" format="#"/></default-field></field>
@@ -83,11 +75,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="storePromotionId"><default-field><hidden/></default-field></field>
                                 <field name="promoCodeId"><default-field><hidden/></default-field></field>
                                 <field name="partyId"><default-field title="Party">
-                                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
-                                        <entity-find entity-name="mantle.party.PartyDetail">
-                                            <order-by field-name="partyId"/>
-                                        </entity-find>
-                                    </entity-options></drop-down>
+                                    <drop-down><dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Customer']"/></drop-down>
                                 </default-field></field>
                                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
                             </form-single>

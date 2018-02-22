@@ -18,12 +18,20 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="productStoreId" required="true"/>
 
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition name="updateStore">
-        <service-call name="mantle.product.StoreServices.update#ProductStore"/>
+        <service-call name="update#mantle.product.store.ProductStore"/>
         <default-response url="."/>
     </transition>
     <transition name="createShippingOption">
-        <service-call name="create#mantle.product.store.ProductStoreShipOption"/>
+        <actions>
+            <script>
+                System.out.println("########createShippingOption########")
+            </script>
+        </actions>
+        <!-- service-call name="create#mantle.product.store.ProductStoreShipOption"/ -->
+        <service-call name="mantle.product.StoreServices.create#StoreShippingOptions"/>
+
         <default-response url="."/>
     </transition>
     <transition name="createShippingGateway">
@@ -71,19 +79,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="storeName"><default-field title="Name"><text-line size="30"/></default-field></field>
                 <field name="organizationPartyId"><default-field title="Organization">
                     <drop-down allow-empty="true">
-                        <entity-options key="${partyId}" text="${partyId}: ${organizationName}">
-                            <entity-find entity-name="mantle.party.Organization">
-                                <order-by field-name="partyId"/>
-                            </entity-find>
-                        </entity-options>
+                        <entity-options key="${partyId}" text="PartyNameTemplate"><entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find></entity-options>
                     </drop-down>
                 </default-field></field>
                 <field name="inventoryFacilityId"><default-field title="Facility">
-                    <drop-down allow-empty="true"><entity-options key="${facilityId}" text="FacilityNameTemplate">
-                        <entity-find entity-name="mantle.facility.Facility">
-                            <order-by field-name="facilityId"/>
-                        </entity-find>
-                    </entity-options></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
                 <!-- these are not yet fully supported so best not included in the screen:
                 <field name="reservationOrderEnumId"><default-field title="Reservation Order">
@@ -149,7 +153,7 @@ along with this software (see the LICENSE.md file). If not, see
         <row-col lg="5">
             <section name="ShippingOptionsSection">
                 <actions>
-                    <entity-find entity-name="mantle.product.store.ProductStoreShipOption" list="shipOptionsList">
+                    <entity-find entity-name="mantle.product.store.ProductStoreShipOptionDetail" list="shipOptionsList">
                         <econdition field-name="productStoreId" value="${productStoreId}" />
                         <order-by field-name="sequenceNum"/>
                     </entity-find>
@@ -161,19 +165,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="productStoreId"><default-field title="Product Store">
                                     <hidden/>
                                 </default-field></field>
-                                <field name="carrierPartyId"><default-field title="Carrier">
-                                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
-                                        <entity-find entity-name="mantle.party.PartyDetail">
-                                            <order-by field-name="partyId"/>
-                                        </entity-find>
-                                    </entity-options></drop-down>
-                                </default-field></field>
-                                <field name="shipmentMethodEnumId"><default-field title="Shipment Method">
-                                    <drop-down><entity-options key="${enumId}" text="EnumerationNameTemplate">
-                                        <entity-find entity-name="moqui.basic.Enumeration">
-                                            <econdition field-name="enumTypeId" value="ShipmentMethod"/>
-                                            <order-by field-name="enumId"/>
-                                        </entity-find>
+                                <field name="carrierAndShipmentMethod"><default-field title="Shipment Method">
+                                    <drop-down><entity-options key="${carrierPartyId}:${shipmentMethodEnumId}" text="${description ?: shipmentMethodEnumId}">
+                                        <entity-find entity-name="mantle.shipment.carrier.CarrierShipmentMethod" list="carrierShipmentMethods">
+                                        <order-by field-name="description"/></entity-find>
                                     </entity-options></drop-down>
                                 </default-field></field>
                                 <field name="sequenceNum"><default-field><text-line size="4" format="#"/></default-field></field>
@@ -221,12 +216,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <box-toolbar><container-dialog id="NewShippingGatewayDialog" button-text="Add Shipping Gateway">
                             <form-single name="NewShippingGatewayForm" transition="createShippingGateway">
                                 <field name="productStoreId"><default-field><hidden/></default-field></field>
-                                <field name="carrierPartyId"><default-field title="Carrier Party">
-                                    <drop-down><entity-options key="${partyId}" text="${pseudoId}">
-                                        <entity-find entity-name="mantle.party.Party">
-                                            <order-by field-name="partyId"/>
-                                        </entity-find>
-                                    </entity-options></drop-down>
+                                <field name="carrierPartyId"><default-field title="Carrier">
+                                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate"><entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                        <econdition field-name="roleTypeId" value="Carrier"/>
+                                        <econdition field-name="disabled" value="N" or-null="true"/>
+                                        <order-by field-name="organizationName"/>
+                                    </entity-find></entity-options></drop-down>
                                 </default-field></field>
                                 <field name="shippingGatewayConfigId"><default-field title="Gateway Config">
                                     <drop-down><entity-options key="${shippingGatewayConfigId}" text="${description ?: ''} [${shippingGatewayConfigId}]">
