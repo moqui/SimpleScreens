@@ -45,7 +45,7 @@ define({
     },
     mounted: function() {
         this.updateCounts();
-        this.updateInterval = setInterval(this.updateCounts, 5*60*1000); /* update every 5 minutes */
+        this.updateInterval = setInterval(this.updateCounts, 2*60*1000); /* update every 2 minutes */
         $('.my-account-nav [data-toggle="tooltip"]').tooltip({ placement:'bottom', trigger:'hover' });
         this.$root.notificationClient.registerListener("ALL", this.notificationListener);
     }
