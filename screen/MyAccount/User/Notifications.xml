@@ -38,17 +38,20 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container-dialog id="TopicUserDialog" button-text="Topic Subscriptions">
-            <form-list name="NotificationTopicList" list="notificationTopicList" transition="topicSubscriptions"
-                    skip-header="true" multi="true">
+            <form-list name="NotificationTopicList" list="notificationTopicList" transition="topicSubscriptions" multi="true">
                 <row-actions>
                     <entity-find-one entity-name="moqui.security.user.NotificationTopicUser" value-field="notTopicUser">
                         <field-map field-name="topic"/><field-map field-name="userId" from="ec.user.userId"/></entity-find-one>
                 </row-actions>
                 <field name="topic"><default-field><hidden/></default-field></field>
                 <field name="description"><default-field><display/></default-field></field>
-                <field name="receiveNotifications" from="notTopicUser?.receiveNotifications ?: receiveNotifications ?: 'Y'"><default-field>
+                <field name="receiveNotifications" from="notTopicUser?.receiveNotifications ?: receiveNotifications ?: 'Y'"><default-field title="Receive">
                     <radio><option key="Y"/><option key="N"/></radio>
                 </default-field></field>
+                <field name="emailNotifications" from="notTopicUser?.emailNotifications ?: 'N'">
+                    <conditional-field condition="emailTemplateId"><radio><option key="Y"/><option key="N"/></radio></conditional-field>
+                    <default-field title="Email"><display text=""/></default-field>
+                </field>
                 <field name="submitButton"><default-field><submit text="Update"/></default-field></field>
             </form-list>
         </container-dialog>
