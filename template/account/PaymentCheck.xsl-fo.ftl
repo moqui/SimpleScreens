@@ -47,7 +47,7 @@ along with this software (see the LICENSE.md file). If not, see
 
 <#macro checkBody paymentInfo>
     <#-- Check number, if populated -->
-    <#if checkNumber?? && paymentInfo.payment.paymentRefNum?has_content>
+    <#if checkNumber?has_content && paymentInfo.payment.paymentRefNum?has_content>
     <fo:block-container absolute-position="absolute" top="0.25in" right="0.5in" width="1.5in">
         <fo:block text-align="right" font-size="12pt" font-family="Courier, monospace">${paymentInfo.payment.paymentRefNum!" "}</fo:block>
     </fo:block-container>
