@@ -171,7 +171,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-body>
                         <#list packageInfo.contentInfoList as contentInfo>
                             <fo:table-row font-size="10pt">
-                                <fo:table-cell padding="2pt"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", contentInfo.productInfo)}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="2pt"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", contentInfo.productInfo)}</fo:block>
+                                    <#if contentInfo.otherPartyProductId?has_content><fo:block>Your Product: ${contentInfo.otherPartyProductId}</fo:block></#if></fo:table-cell>
                                 <fo:table-cell padding="2pt"><fo:block text-align="center" font-weight="bold">${contentInfo.quantityOrdered!""}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="2pt"><fo:block text-align="center" font-weight="bold">${contentInfo.packageContent.quantity}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="2pt"><fo:block text-align="center" font-weight="bold">${contentInfo.quantityShipped!""}</fo:block></fo:table-cell>
