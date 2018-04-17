@@ -711,9 +711,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="packageContentTotal" from="(packageContentList*.quantity).sum() ?: 0.0"/>
                 <set field="quantityNotInPackage" from="((BigDecimal) sid.quantity ?: 0.0) - packageContentTotal"/>
             </actions><widgets>
-                <container-box type="success"><box-header title="${ec.resource.expand('ProductNameTemplate', '', sid)} Qty ${ec.l10n.format(sid.quantity ?: 0, '#.##')}"/><box-toolbar>
+                <container-box type="info"><box-header title="${ec.resource.expand('ProductNameTemplate', '', sid)} (Qty ${ec.l10n.format(sid.quantity ?: 0, '#.##')})"/><box-toolbar>
                     <section name="PackItemSection" condition="allowPack"><widgets>
-                        <container-dialog id="PackItemContainer" button-text="Pack Item">
+                        <container-dialog id="PackItemContainer" button-text="Pack/Issue Item" type="success">
                             <form-single name="PackItemForm" transition="packItem" map="sid">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
                                 <field name="productId"><default-field><hidden/></default-field></field>
@@ -732,9 +732,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-dialog>
                     </widgets></section>
                     <section name="ReceiveItemSection" condition="allowReceive"><widgets>
-                        <!-- TODO: for isTransfer ShipmentItemSource based sisList quantityNotHandled gets updated on pack so can't use on receipt-->
-                        <!-- TODO: for isTransfer on receipt somehow get lotId and acquireCost from original Asset record -->
-                        <dynamic-dialog id="ReceiveProductContainer" button-text="Receive Product" transition="ReceiveItem" width="800">
+                        <dynamic-dialog id="ReceiveProductContainer" button-text="Receive Product" transition="ReceiveItem" width="800" type="success">
                             <parameter name="shipmentId"/><parameter name="productId" from="sid.productId"/>
                             <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
                     </widgets></section>
@@ -872,8 +870,19 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-list>
                     </widgets></section>
                     <!-- Receipt -->
-                    <section name="ItemAssetReceiptSection" condition="isIncoming || isTransfer"><widgets>
+                    <section name="ItemAssetReceiptSection" condition="isIncoming || (isTransfer &amp;&amp; shipment.statusId in ['ShipShipped', 'ShipDelivered', 'ShipCancelled'])"><widgets>
                         <form-list name="ItemSourceReceiptList" list="sisList" skip-form="true">
+                            <row-actions>
+                                <if condition="isTransfer">
+                                    <!-- for isTransfer ShipmentItemSource based sisList quantityNotHandled gets updated on pack so can't use on receipt-->
+                                    <set field="quantityNotHandled" from="quantity"/>
+                                    <entity-find entity-name="mantle.product.receipt.AssetReceipt" list="assetReceiptList">
+                                        <econdition field-name="shipmentItemSourceId"/></entity-find>
+                                    <iterate list="assetReceiptList" entry="assetReceipt">
+                                        <set field="quantityNotHandled" from="quantityNotHandled - (assetReceipt.quantityAccepted ?: 0.0) - (assetReceipt.quantityRejected ?: 0.0)"/>
+                                    </iterate>
+                                </if>
+                            </row-actions>
                             <field name="orderId"><default-field title="Order">
                                 <link url="orderDetail" text="${orderId?:''}" link-type="anchor"/></default-field></field>
                             <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>

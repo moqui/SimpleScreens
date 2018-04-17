@@ -30,14 +30,20 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="org.moqui.impl.BasicServices.find#Enumeration" in-map="[enumTypeId:'RejectionReason']" out-map="reasonOut"/>
         <set field="facilityId" from="shipmentRouteSegmentList ? shipmentRouteSegmentList[shipmentRouteSegmentList.size()-1].destinationFacilityId : null"/>
 
-        <!-- get quantityNotHandled total for quantityAccepted, try to get the default acquireCost -->
-        <set field="quantityAccepted" from="0.0"/>
+        <!-- populate quantityAccepted from item quantity minus AssetReceipt quantityAccepted + quantityRejected -->
+        <set field="quantityAccepted" from="shipmentItem.quantity"/>
+        <entity-find entity-name="mantle.product.receipt.AssetReceipt" list="assetReceiptList">
+            <econdition field-name="shipmentId"/><econdition field-name="productId"/></entity-find>
+        <iterate list="assetReceiptList" entry="assetReceipt">
+            <set field="quantityAccepted" from="quantityAccepted - (assetReceipt.quantityAccepted ?: 0.0) - (assetReceipt.quantityRejected ?: 0.0)"/>
+        </iterate>
+
+        <!-- try to get the default acquireCost from order items -->
         <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="shipmentItemSourceList">
             <econdition field-name="shipmentId"/><econdition field-name="productId"/>
-            <econdition field-name="quantityNotHandled" operator="greater" from="0.0"/>
+            <econdition field-name="orderId" operator="is-not-null"/><econdition field-name="orderItemSeqId" operator="is-not-null"/>
         </entity-find>
         <iterate list="shipmentItemSourceList" entry="shipmentItemSource">
-            <set field="quantityAccepted" from="quantityAccepted + shipmentItemSource.quantityNotHandled"/>
             <if condition="!acquireCost &amp;&amp; shipmentItemSource.orderId &amp;&amp; shipmentItemSource.orderItemSeqId">
                 <entity-find-one entity-name="mantle.order.OrderItem" value-field="orderItem">
                     <field-map field-name="orderId" from="shipmentItemSource.orderId"/>
@@ -45,6 +51,15 @@ along with this software (see the LICENSE.md file). If not, see
                 </entity-find-one>
                 <set field="acquireCost" from="orderItem?.standardCost ?: orderItem?.unitAmount"/>
             </if>
+        </iterate>
+
+        <!-- special case for transfer shipments with AssetIssuance before receipt -->
+        <entity-find entity-name="mantle.product.issuance.AssetIssuance" list="assetIssuanceList">
+            <econdition field-name="shipmentId"/><econdition field-name="productId"/></entity-find>
+        <iterate list="assetIssuanceList" entry="assetIssuance">
+            <set field="asset" from="assetIssuance.asset"/>
+            <if condition="!lotId &amp;&amp; asset?.lotId"><set field="lotId" from="asset.lotId"/></if>
+            <if condition="!acquireCost &amp;&amp; asset?.acquireCost"><set field="acquireCost" from="asset.acquireCost"/></if>
         </iterate>
     </actions>
     <widgets>
