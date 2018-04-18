@@ -222,6 +222,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-map field-name="partyId" from="firstRouteSegment.carrierPartyId"/></entity-find-one>
             <entity-find-one entity-name="moqui.basic.Enumeration" value-field="curShipmentMethodEnum">
                 <field-map field-name="enumId" from="firstRouteSegment.shipmentMethodEnumId"/></entity-find-one>
+            <entity-find-one entity-name="mantle.shipment.carrier.CarrierShipmentMethod" value-field="curCarrierShipmentMethod">
+                <field-map field-name="carrierPartyId" from="firstRouteSegment.carrierPartyId"/>
+                <field-map field-name="shipmentMethodEnumId" from="firstRouteSegment.shipmentMethodEnumId"/>
+            </entity-find-one>
         </if>
 
         <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
@@ -441,7 +445,9 @@ along with this software (see the LICENSE.md file). If not, see
                                     text="${description ? description : (carrierPartyId != '_NA_' ? (carrierName + ' - ') : '') + shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
                             <dynamic-options transition="getShippingOptions"/>
                         </drop-down>
-                    </conditional-field></field>
+                    </conditional-field><default-field title="Ship By">
+                        <display text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod?.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}"/>
+                    </default-field></field>
 
                     <field name="shipmentTypeEnumId"><default-field title="Type">
                         <display text="${shipmentTypeEnum.description}" also-hidden="false"/></default-field></field>
@@ -527,7 +533,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text="Estimated Arrival" type="dt"/><label text="${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="dd"/>
 
                     <section name="ShipmentDisplaySection" condition="isOutgoing || isTransfer"><widgets>
-                        <label text="Ship By" type="dt"/><label text="${curCarrierDetail ? ec.resource.expand('PartyNameTemplate','',curCarrierDetail) : 'N/A'} - ${shipmentMethodEnum?.description ?: 'None'}" type="dd"/>
+                        <label text="Ship By" type="dt"/><label text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod?.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}" type="dd"/>
                         <label text="Shipping Instructions" type="dt" condition="shipment.handlingInstructions"/>
                         <label text="${shipment.handlingInstructions}" type="dd" condition="shipment.handlingInstructions"/>
                         <section name="ShippedShippingInfo" condition="curPaInfo"><actions><set field="contactInfo" from="curPaInfo"/></actions><widgets>
