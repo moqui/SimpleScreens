@@ -47,6 +47,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
     <transition name="getLocationList">
+        <parameter name="term"/>
         <parameter name="facilityId"/>
         <actions>
             <entity-find entity-name="mantle.facility.FacilityLocation" list="locList" limit="20">
@@ -66,6 +67,30 @@ along with this software (see the LICENSE.md file). If not, see
                 def outList = []
                 for (def facLoc in locList)
                 outList.add([value:facLoc.locationSeqId, label:ec.resource.expand('FacilityLocationNameTemplate','',facLoc?:[:])])
+                ec.web.sendJsonResponse(outList)
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="getContainerList">
+        <parameter name="term"/>
+        <parameter name="facilityId"/>
+        <parameter name="locationSeqId"/>
+        <actions>
+            <entity-find entity-name="mantle.product.asset.Container" list="containerList" limit="20">
+                <econdition field-name="facilityId" ignore-if-empty="true"/>
+                <econdition field-name="locationSeqId" ignore-if-empty="true"/>
+                <econditions combine="or">
+                    <econdition field-name="serialNumber" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="externalId" operator="like" value="%${term}%" ignore-case="true"/>
+                </econditions>
+                <order-by field-name="serialNumber,description"/>
+            </entity-find>
+            <script>
+                def outList = []
+                for (def container in containerList)
+                    outList.add([value:container.containerId, label:ec.resource.expand('ContainerNameTemplate','',container?:[:])])
                 ec.web.sendJsonResponse(outList)
             </script>
         </actions>

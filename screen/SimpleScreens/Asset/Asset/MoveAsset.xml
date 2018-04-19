@@ -24,11 +24,13 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
         <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset"/>
         <set field="facilityId" from="asset?.facilityId"/>
         <set field="facLoc" from="asset?.location"/>
+        <set field="container" from="asset?.container"/>
 
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/><order-by field-name="facilityName"/></entity-find>
@@ -42,13 +44,15 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="facilityId"><default-field title="Facility">
                 <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field></field>
             <field name="currentLocation"><default-field>
-                <display text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/>
-            </default-field></field>
+                <display text="FacilityLocationNameTemplate" text-map="facLoc?:[locationSeqId:'N/A']"/></default-field></field>
+            <field name="currentContainer"><default-field>
+                <display text="ContainerNameTemplate" text-map="container?:[containerId:'N/A']"/></default-field></field>
             <field name="quantityOnHandTotal"><default-field title="On Hand"><display/></default-field></field>
             <field name="availableToPromiseTotal"><default-field title="Available"><display/></default-field></field>
             <field-layout>
                 <field-ref name="productId"/>
                 <field-row><field-ref name="facilityId"/><field-ref name="currentLocation"/></field-row>
+                <field-ref name="currentContainer"/>
                 <field-row><field-ref name="quantityOnHandTotal"/><field-ref name="availableToPromiseTotal"/></field-row>
             </field-layout>
         </form-single>
@@ -59,7 +63,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="facilityId"><default-field title="Facility">
                     <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
-                <field name="locationSeqId"><default-field title="Scan New Location"><text-line size="20"/></default-field></field>
+                <field name="scanLocation"><default-field title="Scan Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
+                    <text-line size="20"/></default-field></field>
+                <!-- <field name="containerId"><default-field title="Scan Container ID" tooltip="Can be Container ID or Serial Number (Plate ID)">
+                    <text-line size="20"/></default-field></field> -->
                 <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
                     <text-line size="20"/></default-field></field>
                 <field name="submitButton"><default-field title="Move Asset"><submit/></default-field></field>
@@ -67,11 +74,18 @@ along with this software (see the LICENSE.md file). If not, see
         </row-col><row-col md="6">
             <form-single name="EnterMoveAssetForm" transition="completeMove">
                 <field name="assetId"><default-field><hidden/></default-field></field>
-                <field name="facilityId"><default-field title="Facility">
-                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
-                </default-field></field>
-                <field name="locationSeqId"><default-field title="Enter New Location"><drop-down allow-empty="true">
-                    <dynamic-options transition="getLocationList" server-search="true" min-length="0"><depends-on field="facilityId"/></dynamic-options>
+                <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/>
+                </drop-down></default-field></field>
+                <field name="locationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLocationList" server-search="true" min-length="0">
+                        <depends-on field="facilityId"/></dynamic-options>
+                </drop-down></default-field></field>
+                <field name="containerId"><default-field title="Container"><drop-down>
+                    <!-- NOTE: don't allow-empty, if there is at least one container in the location it should go in a container, for movable bin support -->
+                    <!-- TODO: would be nice to allow-empty but auto-select first if there is at least one -->
+                    <dynamic-options transition="getContainerList" server-search="true" min-length="0">
+                        <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options>
                 </drop-down></default-field></field>
                 <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
                     <text-line size="10"/></default-field></field>
