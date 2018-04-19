@@ -52,15 +52,18 @@ along with this software (see the LICENSE.md file). If not, see
 
         <form-list name="ContainerList" list="containerList" skip-form="true" header-dialog="true">
             <entity-find entity-name="mantle.product.asset.ContainerAndAsset" list="containerList">
-                <search-form-inputs default-order-by="-createdDate"/></entity-find>
+                <search-form-inputs default-order-by="serialNumber,containerId"/></entity-find>
             <row-actions>
                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true"/>
                 <entity-find entity-name="mantle.product.asset.AssetAndProduct" list="assetList">
                     <econdition field-name="containerId"/><order-by field-name="assetId"/></entity-find>
             </row-actions>
 
-            <field name="containerId"><header-field show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+            <field name="serialNumber"><header-field show-order-by="true"><text-find/></header-field>
+                <default-field><link url="editContainer" text="${serialNumber}" link-type="anchor"/></default-field></field>
+            <field name="containerId"><header-field show-order-by="true"><text-find hide-options="true"/></header-field>
                 <default-field><link url="editContainer" text="${containerId}" link-type="anchor"/></default-field></field>
+
             <field name="containerTypeEnumId">
                 <header-field title="Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -68,12 +71,13 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
-            <field name="createdDate"><header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display/></default-field></field>
+            <!-- <field name="createdDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field> -->
 
-            <field name="description"><header-field><text-find/></header-field><default-field><text-line size="40"/></default-field></field>
-            <field name="serialNumber"><header-field><text-find/></header-field><default-field><text-line size="40"/></default-field></field>
-            <field name="externalId"><header-field><text-find/></header-field><default-field><text-line size="20"/></default-field></field>
+            <field name="description"><header-field show-order-by="case-insensitive"><text-find/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="externalId"><header-field show-order-by="true"><text-find/></header-field>
+                <default-field><display/></default-field></field>
 
             <field name="facilityId">
                 <header-field title="Facility" show-order-by="case-insensitive"><drop-down allow-empty="true">
@@ -88,7 +92,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><label condition="locationSeqId" text-map="facLoc" text="FacilityLocationNameTemplate"/></default-field>
             </field>
 
-            <field name="assetId">
+            <field name="assetList">
                 <header-field title="Assets"><text-find size="20" hide-options="true"/></header-field>
                 <default-field>
                     <section-iterate name="AssetListSection" list="assetList" entry="assetProduct"><widgets><container>

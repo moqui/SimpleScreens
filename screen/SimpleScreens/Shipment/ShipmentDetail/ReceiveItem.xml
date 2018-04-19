@@ -24,6 +24,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
     <actions>
         <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
@@ -104,14 +107,16 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="facilityId"><default-field title="Facility">
                 <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field></field>
-            <field name="locationSeqId"><default-field title="Storage Location">
-                <drop-down allow-empty="true">
-                    <entity-options key="${locationSeqId}" text="FacilityLocationNameTemplate">
-                        <entity-find entity-name="mantle.facility.FacilityLocation">
-                            <econdition field-name="facilityId"/><order-by field-name="locationSeqId"/></entity-find>
-                    </entity-options>
-                </drop-down>
-            </default-field></field>
+            <field name="locationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                <dynamic-options transition="getLocationList" server-search="true" min-length="0">
+                    <depends-on field="facilityId"/></dynamic-options>
+            </drop-down></default-field></field>
+            <field name="containerId"><default-field title="Container"><drop-down>
+                <!-- NOTE: don't allow-empty, if there is at least one container in the location it should go in a container, for movable bin support -->
+                <!-- TODO: would be nice to allow-empty but auto-select first if there is at least one -->
+                <dynamic-options transition="getContainerList" server-search="true" min-length="0">
+                    <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options>
+            </drop-down></default-field></field>
 
             <field name="comments"><default-field title="Notes"><text-area cols="80" rows="5"/></default-field></field>
 

@@ -49,6 +49,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="getLocationList">
         <parameter name="term"/>
         <parameter name="facilityId"/>
+        <parameter name="locationTypeEnumId"/>
         <actions>
             <entity-find entity-name="mantle.facility.FacilityLocation" list="locList" limit="20">
                 <econdition field-name="facilityId" ignore-if-empty="true"/>
@@ -65,8 +66,14 @@ along with this software (see the LICENSE.md file). If not, see
             </entity-find>
             <script>
                 def outList = []
-                for (def facLoc in locList)
-                outList.add([value:facLoc.locationSeqId, label:ec.resource.expand('FacilityLocationNameTemplate','',facLoc?:[:])])
+                for (def facLoc in locList) {
+                    if (facLoc.locationTypeEnumId) {
+                        def locType = facLoc.type
+                        facLoc = facLoc.getMap()
+                        facLoc.put("type", locType)
+                    }
+                    outList.add([value:facLoc.locationSeqId, label:ec.resource.expand('FacilityLocationNameTemplate','',facLoc?:[:])])
+                }
                 ec.web.sendJsonResponse(outList)
             </script>
         </actions>
