@@ -18,6 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="findAsset"><default-response url="../FindAsset"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editContainer"><default-response url="//${appRoot}/Asset/Container/EditContainer"/></transition>
     <transition name="assetOnHand"><default-response url="//${appRoot}/Accounting/Reports/AssetOnHand"/></transition>
 
     <transition name="recordChange"><service-call name="mantle.product.AssetServices.record#PhysicalInventoryChange"/>
@@ -26,7 +27,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
@@ -79,14 +83,14 @@ along with this software (see the LICENSE.md file). If not, see
             </row-actions>
 
             <field name="assetsLink">
-                <default-field title="Assets"><link url="findAsset" text="Assets" parameter-map="[pseudoId:pseudoId, statusId:statusId,
+                <default-field title="Assets"><link url="findAsset" text="Assets" parameter-map="[productId:productId, statusId:statusId,
                             facilityId:facilityId, locationSeqId:locationSeqId, lotId:lotId]" condition="pseudoId"/></default-field>
             </field>
             <field name="productId"><header-field title="Product"><drop-down allow-empty="true">
                 <dynamic-options transition="getProductList" server-search="true"/></drop-down></header-field></field>
             <field name="pseudoId">
                 <header-field title="Product ID" show-order-by="true"><text-find size="15" hide-options="true"/></header-field>
-                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
+                <default-field><link url="editProduct" text="${pseudoId?:productId}" link-type="anchor"/></default-field>
             </field>
             <field name="productName">
                 <header-field show-order-by="case-insensitive"><text-find size="15" hide-options="true"/></header-field>
@@ -117,18 +121,24 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
 
-            <field name="facilityId"><header-field title="Facility" show-order-by="case-insensitive">
-                <drop-down allow-empty="true"><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
-            </header-field><default-field>
-                <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"
-                      parameter-map="[facilityId:facilityId]"/>
-            </default-field></field>
+            <field name="facilityId">
+                <header-field title="Facility" show-order-by="case-insensitive"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
             <field name="locationSeqId">
-                <header-field title="Location" show-order-by="case-insensitive"><drop-down allow-empty="true">
+                <header-field title="Location" show-order-by="true"><drop-down allow-empty="true">
                     <dynamic-options transition="getLocationList" server-search="true" min-length="0" depends-optional="true">
                         <depends-on field="facilityId"/></dynamic-options>
                 </drop-down></header-field>
                 <default-field><label condition="locationSeqId" text-map="facLoc" text="FacilityLocationNameTemplate"/></default-field>
+            </field>
+            <field name="containerId">
+                <header-field title="Container" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getContainerList" server-search="true" min-length="0" depends-optional="true">
+                        <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options>
+                </drop-down></header-field>
+                <default-field><link url="editContainer" entity-name="mantle.product.asset.Container" text="ContainerNameTemplate" link-type="anchor"/></default-field>
             </field>
             <field name="lotId">
                 <header-field title="Lot" show-order-by="true"><drop-down allow-empty="true">

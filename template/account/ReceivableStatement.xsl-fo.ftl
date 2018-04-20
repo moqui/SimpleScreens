@@ -40,7 +40,7 @@ along with this software (see the LICENSE.md file). If not, see
     <fo:page-sequence master-reference="letter-portrait" id="mainSequence">
         <fo:static-content flow-name="xsl-region-before">
             <fo:block font-size="16pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromParty.organizationName!"", false))!""}${(fromParty.firstName)!""} ${(fromParty.lastName)!""}</fo:block>
-            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Billing Statement</fo:block>
+            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">${ec.l10n.localize('Billing Statement')}</fo:block>
             <#if logoImageLocation?has_content>
                 <fo:block-container absolute-position="absolute" top="0in" left="0.1in" width="2in">
                     <fo:block text-align="left">
@@ -84,17 +84,17 @@ along with this software (see the LICENSE.md file). If not, see
                         </#if>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="2.25in">
-                        <fo:block font-weight="bold">Total Unpaid</fo:block>
+                        <fo:block font-weight="bold">${ec.l10n.localize('Total Unpaid')}</fo:block>
                         <fo:block>${ec.l10n.formatCurrency(receivableInfo.unpaidTotal, currencyUomId)}</fo:block>
-                        <fo:block font-weight="bold">Payments Unapplied</fo:block>
+                        <fo:block font-weight="bold">${ec.l10n.localize('Payments Unapplied')}</fo:block>
                         <fo:block>${ec.l10n.formatCurrency(receivableInfo.unappliedTotal, currencyUomId)}</fo:block>
-                        <fo:block font-weight="bold">Balance Due</fo:block>
+                        <fo:block font-weight="bold">${ec.l10n.localize('Balance Due')}</fo:block>
                         <fo:block font-weight="bold">${ec.l10n.formatCurrency(receivableInfo.balanceDue, currencyUomId)}</fo:block>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="1.75in">
-                        <fo:block font-weight="bold">As of Date</fo:block>
+                        <fo:block font-weight="bold">${ec.l10n.localize('As of Date')}</fo:block>
                         <fo:block>${ec.l10n.format(asOfTimestamp, dateFormat)}</fo:block>
-                        <fo:block font-weight="bold">Customer ID</fo:block>
+                        <fo:block font-weight="bold">${ec.l10n.localize('Customer ID')}</fo:block>
                         <fo:block>${toParty.pseudoId}</fo:block>
                     </fo:table-cell>
                 </fo:table-row></fo:table-body>
@@ -103,12 +103,12 @@ along with this software (see the LICENSE.md file). If not, see
             <#if invoiceList?has_content>
             <fo:table table-layout="fixed" width="100%">
                 <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
-                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Invoice #</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="left">Ref/PO</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Invoice Date</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">Due Date</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">Unpaid</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.localize('Invoice #')}</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.localize('Ref/PO')}</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.localize('Invoice Date')}</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.localize('Due Date')}</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.localize('Total')}</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.localize('Unpaid')}</fo:block></fo:table-cell>
                 </fo:table-header>
                 <fo:table-body>
                     <#list invoiceList as invoice>
@@ -136,10 +136,10 @@ along with this software (see the LICENSE.md file). If not, see
             <#if unappliedPaymentList?has_content>
                 <fo:table table-layout="fixed" width="100%" margin-top="0.2in">
                     <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
-                        <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="left">Payment #</fo:block></fo:table-cell>
-                        <fo:table-cell width="2.5in" padding="${cellPadding}"><fo:block text-align="left">Date</fo:block></fo:table-cell>
-                        <fo:table-cell width="2.0in" padding="${cellPadding}"><fo:block text-align="right">Amount</fo:block></fo:table-cell>
-                        <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">Unapplied</fo:block></fo:table-cell>
+                        <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.localize('Payment')} #</fo:block></fo:table-cell>
+                        <fo:table-cell width="2.5in" padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.localize('Date')}</fo:block></fo:table-cell>
+                        <fo:table-cell width="2.0in" padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.localize('Amount')}</fo:block></fo:table-cell>
+                        <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.localize('Unapplied')}</fo:block></fo:table-cell>
                     </fo:table-header>
                     <fo:table-body>
                         <#list unappliedPaymentList as payment>
@@ -164,16 +164,16 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:table table-layout="fixed" width="100%" margin-top="0.2in">
                 <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
                     <fo:table-cell width="1.0in" padding="${cellPadding}"><fo:block text-align="left"> </fo:block></fo:table-cell>
-                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">Current</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">0 - ${periodDays} days</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">${periodDays+1} - ${periodDays*2} days</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">${periodDays*2+1} - ${periodDays*3} days</fo:block></fo:table-cell>
-                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">&gt; ${periodDays*3} days</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.localize('Current')}</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">${ec.resource.expand("0 - $\{periodDays} days", null)}</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">${ec.resource.expand('$\{periodDays+1} - $\{periodDays*2} days', null)}</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">${ec.resource.expand('$\{periodDays*2+1} - $\{periodDays*3} days', null)}</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.3in" padding="${cellPadding}"><fo:block text-align="right">${ec.resource.expand('&gt; $\{periodDays*3} days', null)}</fo:block></fo:table-cell>
                 </fo:table-header>
                 <fo:table-body>
                     <#list agingSummaryList as summary>
                         <fo:table-row font-size="9pt" border-bottom="thin solid black">
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${summary.description}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.l10n.localize(summary.description)}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(summary.current, currencyUomId)}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(summary.period0, currencyUomId)}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right" font-family="Courier, monospace">${ec.l10n.formatCurrency(summary.period1, currencyUomId)}</fo:block></fo:table-cell>

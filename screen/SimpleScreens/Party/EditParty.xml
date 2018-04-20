@@ -62,6 +62,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="disableUserAccount"><service-call name="org.moqui.impl.UserServices.disable#UserAccount"/>
         <default-response url="."/></transition>
+    <transition name="resetPassword"><service-call name="org.moqui.impl.UserServices.reset#Password"/>
+        <default-response url="."/></transition>
     <transition name="createUserGroupMember"><service-call name="create#moqui.security.UserGroupMember"/>
         <default-response url="."/></transition>
     <transition name="updateUserGroupMember"><service-call name="update#moqui.security.UserGroupMember"/>
@@ -438,6 +440,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <container-box><box-header title="User Account"/><box-toolbar>
                     <link url="enableUserAccount" text="Enable Account" parameter-map="[userId:userAccount.userId]" condition="userAccount.disabled == 'Y'"/>
                     <link url="disableUserAccount" text="Disable Account" parameter-map="[userId:userAccount.userId]" condition="userAccount.disabled != 'Y'"/>
+                    <link url="resetPassword" text="Reset Password" parameter-map="[userId:userAccount.userId]" condition="userAccount.emailAddress"
+                            confirmation="Generate reset password and send by email to ${userAccount.emailAddress}?"/>
                 </box-toolbar><box-body>
                     <form-single name="UpdateUserAccount" map="userAccount" transition="updateUserAccount">
                         <field name="partyId"><default-field><hidden/></default-field></field>
@@ -446,10 +450,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="emailAddress"><default-field title="System Email"><text-line size="60"/></default-field></field>
 
                         <field name="locale"><default-field>
-                            <drop-down allow-empty="true" combo-box="true"><list-options list="localeStringList" key="${locale}" text="${name}"/></drop-down>
+                            <drop-down allow-empty="true"><list-options list="localeStringList" key="${locale}" text="${name}"/></drop-down>
                         </default-field></field>
                         <field name="timeZone"><default-field>
-                            <drop-down allow-empty="true" combo-box="true"><list-options list="new TreeSet(TimeZone.getAvailableIDs().collect())"/></drop-down>
+                            <drop-down allow-empty="true"><list-options list="new TreeSet(TimeZone.getAvailableIDs().collect())"/></drop-down>
                         </default-field></field>
 
                         <field name="requirePasswordChange"><default-field>

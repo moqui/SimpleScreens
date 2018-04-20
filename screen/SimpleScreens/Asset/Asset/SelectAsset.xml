@@ -34,9 +34,9 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
-        <entity-find entity-name="moqui.entity.EntityAuditLog" list="recentMoveList" limit="5">
+        <entity-find entity-name="moqui.entity.EntityAuditLog" list="recentMoveList" limit="10">
             <econdition field-name="changedEntityName" value="mantle.product.asset.Asset"/>
-            <econdition field-name="changedFieldName" value="locationSeqId"/>
+            <econdition field-name="changedFieldName" operator="in" value="locationSeqId,containerId"/>
             <econdition field-name="changedByUserId" from="ec.user.userId"/>
             <order-by field-name="-changedDate"/>
         </entity-find>
@@ -64,16 +64,23 @@ along with this software (see the LICENSE.md file). If not, see
             <row-actions>
                 <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset" cache="true">
                     <field-map field-name="assetId" from="pkPrimaryValue"/></entity-find-one>
-                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="fromFacLoc" cache="true">
-                    <field-map field-name="facilityId" from="asset.facilityId"/>
-                    <field-map field-name="locationSeqId" from="oldValueText"/>
-                </entity-find-one>
-                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="toFacLoc" cache="true">
-                    <field-map field-name="facilityId" from="asset.facilityId"/>
-                    <field-map field-name="locationSeqId" from="newValueText"/>
-                </entity-find-one>
+                <if condition="changedFieldName == 'locationSeqId'"><then>
+                    <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="fromFacLoc" cache="true">
+                        <field-map field-name="facilityId" from="asset.facilityId"/>
+                        <field-map field-name="locationSeqId" from="oldValueText"/>
+                    </entity-find-one>
+                    <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="toFacLoc" cache="true">
+                        <field-map field-name="facilityId" from="asset.facilityId"/>
+                        <field-map field-name="locationSeqId" from="newValueText"/>
+                    </entity-find-one>
+                </then><else-if condition="changedFieldName == 'containerId'">
+                    <entity-find-one entity-name="mantle.product.asset.Container" value-field="fromContainer">
+                        <field-map field-name="containerId" from="oldValueText"/></entity-find-one>
+                    <entity-find-one entity-name="mantle.product.asset.Container" value-field="toContainer">
+                        <field-map field-name="containerId" from="newValueText"/></entity-find-one>
+                </else-if></if>
             </row-actions>
-            <field name="assetId" from="asset.assetId"><default-field>
+            <field name="assetId" from="asset.assetId"><default-field title="Asset">
                 <link url="assetDetail" text="AssetNameTemplate" text-map="asset" link-type="anchor"
                       parameter-map="[assetId:asset.assetId]"/>
             </default-field></field>
@@ -87,9 +94,15 @@ along with this software (see the LICENSE.md file). If not, see
             </default-field></field>
 
             <field name="fromLocation"><default-field>
-                <display text="FacilityLocationNameTemplate" text-map="fromFacLoc?:[:]"/></default-field></field>
+                <label text="FacilityLocationNameTemplate" text-map="fromFacLoc?:[:]" condition="fromFacLoc"/></default-field></field>
             <field name="toLocation"><default-field>
-                <display text="FacilityLocationNameTemplate" text-map="toFacLoc?:[:]"/></default-field></field>
+                <label text="FacilityLocationNameTemplate" text-map="toFacLoc?:[:]" condition="toFacLoc"/></default-field></field>
+
+            <field name="fromContainer"><default-field>
+                <label text="ContainerNameTemplate" text-map="fromContainer?:[:]" condition="fromContainer"/></default-field></field>
+            <field name="toContainer"><default-field>
+                <label text="ContainerNameTemplate" text-map="toContainer?:[:]" condition="toContainer"/></default-field></field>
+
             <field name="changedDate"><default-field title="Date Moved"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
             <field name="moveAgain"><default-field title="">
                 <link url="moveAsset" text="Move Again" parameter-map="[assetId:asset.assetId]" link-type="anchor-button"/>

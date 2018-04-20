@@ -18,6 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editContainer"><default-response url="//${appRoot}/Asset/Container/EditContainer"/></transition>
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition name="createEquipment"><service-call name="mantle.product.EquipmentServices.create#Equipment"/>
@@ -26,8 +27,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <widgets>
         <link url="../FindSummary" text="Asset Summary Find"/>
@@ -89,7 +92,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="Product" show-order-by="case-insensitive"><drop-down allow-empty="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="2"/></drop-down>
                 </header-field>
-                <default-field><link url="editProduct" text="ProductNameTemplate" link-type="anchor" condition="productId"/></default-field>
+                <default-field><link url="editProduct" text="ProductNameTemplate" link-type="anchor" condition="pseudoId"/></default-field>
             </field>
             <field name="ownerPartyId">
                 <header-field title="Owner Party"><drop-down allow-empty="true">
@@ -126,18 +129,24 @@ along with this software (see the LICENSE.md file). If not, see
                         parameter-map="[orderId:acquireOrderId]"/></default-field>
             </field>
 
-            <field name="facilityId"><header-field title="Facility" show-order-by="case-insensitive">
-                <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
-            </header-field><default-field>
-                <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"
-                        parameter-map="[facilityId:facilityId]"/>
-            </default-field></field>
+            <field name="facilityId">
+                <header-field title="Facility" show-order-by="case-insensitive"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
             <field name="locationSeqId">
                 <header-field title="Location" show-order-by="true"><drop-down allow-empty="true">
                     <dynamic-options transition="getLocationList" server-search="true" min-length="0" depends-optional="true">
                         <depends-on field="facilityId"/></dynamic-options>
                 </drop-down></header-field>
                 <default-field><label condition="locationSeqId" text-map="facLoc" text="FacilityLocationNameTemplate"/></default-field>
+            </field>
+            <field name="containerId">
+                <header-field title="Container" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getContainerList" server-search="true" min-length="0" depends-optional="true">
+                        <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options>
+                </drop-down></header-field>
+                <default-field><link url="editContainer" entity-name="mantle.product.asset.Container" text="ContainerNameTemplate" link-type="anchor"/></default-field>
             </field>
             <field name="lotId">
                 <header-field title="Lot"><drop-down allow-empty="true">
@@ -167,7 +176,8 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="assetId"/><field-ref name="productId"/><field-ref name="ownerPartyId"/></form-list-column>
             <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/><field-ref name="statusId"/>
                 <field-ref name="acquireOrderId"/></form-list-column>
-            <form-list-column><field-ref name="facilityId"/><field-ref name="locationSeqId"/><field-ref name="lotId"/></form-list-column>
+            <form-list-column><field-ref name="facilityId"/><field-ref name="locationSeqId"/><field-ref name="containerId"/>
+                <field-ref name="lotId"/></form-list-column>
             <form-list-column><field-ref name="receivedDate"/><field-ref name="manufacturedDate"/>
                 <field-ref name="quantityOnHandTotal"/><field-ref name="availableToPromiseTotal"/></form-list-column>
         </form-list>

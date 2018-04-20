@@ -151,12 +151,13 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.order.OrderNote" list="orderNoteList">
             <econdition field-name="orderId" operator="in" from="orderIdSet"/><order-by field-name="-noteDate"/></entity-find>
 
-        <if condition="isIncoming"><then>
+        <if condition="isIncoming || isTransfer">
             <set field="anyReceived" from="false"/>
             <iterate list="shipmentItemDetailList" entry="sid">
                 <if condition="sid.quantityAcceptedTotal || sid.quantityRejectedTotal"><set field="anyReceived" from="true"/></if>
             </iterate>
-        </then><else>
+        </if>
+        <if condition="isOutgoing || isTransfer">
             <set field="allItemsPacked" from="true"/>
             <iterate list="shipmentItemSourceList" entry="sisCheck">
                 <if condition="sisCheck.quantityNotHandled &gt; 0.0"><set field="allItemsPacked" from="false"/><break/></if></iterate>
@@ -174,10 +175,10 @@ along with this software (see the LICENSE.md file). If not, see
 
             <set field="shippingGatewayConfigId" from="firstRouteSegment.shippingGatewayConfigId ?: ec.user.getPreference('DefaultShipmentGatewayConfigId')"/>
             <if condition="shippingGatewayConfigId"><entity-find-one entity-name="mantle.shipment.carrier.ShippingGatewayConfig" value-field="shippingGatewayConfig"/></if>
-        </else></if>
+        </if>
 
         <set field="shippingPostalAddressList" from="[]"/>
-        <if condition="toPartyId &amp;&amp; !isIncoming">
+        <if condition="isOutgoing &amp;&amp; toPartyId">
             <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="toPartyShippingInfo"
                     in-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
             <set field="shippingPostalAddressList" from="toPartyShippingInfo.postalAddressList ?: []"/>
@@ -189,6 +190,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <script>shippingPostalAddressList.add(0, curPaInfo)</script></if>
             </if>
         </if>
+        <!-- NOTE: for isTransfer not getting dest facility address for selection as we want it to change if the facility changes and not get passed through form submit causing wrong address for facility -->
         <!-- trim duplicates and replaced/valid from shippingPostalAddressList -->
         <script><![CDATA[
             Set replacedPostalIdSet = new HashSet()
@@ -211,7 +213,7 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
         <set field="destContactMechValid" from="destContactMech != null &amp;&amp; destContactMech.trustLevelEnumId in ['CmtlValid', 'CmtlVerified']"/>
 
-        <if condition="!isIncoming">
+        <if condition="isOutgoing || isTransfer">
             <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->
             <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="context"
                     in-map="[shipmentId:shipmentId, getRates:false]"/>
@@ -220,6 +222,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-map field-name="partyId" from="firstRouteSegment.carrierPartyId"/></entity-find-one>
             <entity-find-one entity-name="moqui.basic.Enumeration" value-field="curShipmentMethodEnum">
                 <field-map field-name="enumId" from="firstRouteSegment.shipmentMethodEnumId"/></entity-find-one>
+            <entity-find-one entity-name="mantle.shipment.carrier.CarrierShipmentMethod" value-field="curCarrierShipmentMethod">
+                <field-map field-name="carrierPartyId" from="firstRouteSegment.carrierPartyId"/>
+                <field-map field-name="shipmentMethodEnumId" from="firstRouteSegment.shipmentMethodEnumId"/>
+            </entity-find-one>
         </if>
 
         <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
@@ -235,6 +241,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped"/>
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"/>
                 </widgets><fail-widgets>
+                    <!-- isOutgoing || isTransfer -->
                     <link url="scheduleShipment" text="Set Scheduled" style="btn-success"/>
                     <link url="pickShipment" text="Set Picked"/>
                     <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?"/>
@@ -248,6 +255,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
+                    <!-- isOutgoing || isTransfer -->
                     <link url="pickShipment" text="Set Picked"/>
                     <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="allItemsPacked" type="success">
                         <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
@@ -270,6 +278,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
+                    <!-- isOutgoing || isTransfer -->
                     <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="allItemsPacked" type="success">
                         <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
                         <form-single name="SetPackedForm" transition="packShipment">
@@ -302,13 +311,14 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-single>
             </container-dialog>
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
-                <section name="ShipPackedInOutSection" condition="isIncoming"><widgets>
+                <section name="ShipPackedInSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
                     <link url="deliverShipment" text="Set Delivered" condition="anyReceived"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"><parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
-                </widgets><fail-widgets>
+                </widgets></section>
+                <section name="ShipPackedOutSection" condition="isOutgoing || isTransfer"><widgets>
                     <link url="requestShipmentLabels" text="Get Labels"
                             condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; destContactMechValid"/>
                     <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning"
@@ -319,11 +329,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
 
                     <link url="shipShipment" text="Set Shipped" style="btn-success"/>
-                    <link url="deliverShipment" text="Set Delivered"/>
+                    <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
+                    <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
+
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack Insert PDF" style="btn-info"/>
-                </fail-widgets></section>
+                </widgets></section>
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
                 <section name="ShipShippedInOutSection" condition="isIncoming"><widgets>
@@ -332,6 +344,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
+                    <!-- isOutgoing || isTransfer -->
                     <link url="requestShipmentLabels" text="Get Labels"
                             condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; destContactMechValid"/>
                     <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning"
@@ -341,7 +354,9 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-dialog>
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
 
-                    <link url="deliverShipment" text="Set Delivered"/>
+                    <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
+                    <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
+
                     <link url="ShipmentPick.pdf" text="Pick PDF"/>
                     <link url="ShipmentByPackage.pdf" text="Package PDF"/>
                     <link url="ShipmentPack.pdf" text="Pack Insert PDF" style="btn-info"/>
@@ -389,7 +404,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <!-- Header -->
             <section name="ShipmentHeaderSection" condition="allowUpdate || shipment.statusId == 'ShipPacked'"><widgets>
-                <section name="DestPostalAddressSection" condition="!isIncoming"><widgets>
+                <section name="DestPostalAddressSection" condition="isOutgoing"><widgets>
                     <container><dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
                             parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
                     <label text="No shipping address selected" style="text-danger" type="p" condition="!lastRouteSegment.destPostalContactMechId"/>
@@ -430,14 +445,15 @@ along with this software (see the LICENSE.md file). If not, see
                                     text="${description ? description : (carrierPartyId != '_NA_' ? (carrierName + ' - ') : '') + shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
                             <dynamic-options transition="getShippingOptions"/>
                         </drop-down>
-                    </conditional-field></field>
+                    </conditional-field><default-field title="Ship By">
+                        <display text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod?.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}"/>
+                    </default-field></field>
 
                     <field name="shipmentTypeEnumId"><default-field title="Type">
                         <display text="${shipmentTypeEnum.description}" also-hidden="false"/></default-field></field>
                     <field name="statusId"><default-field title="Status">
                         <display text="${statusItem.description}" also-hidden="false"/></default-field></field>
 
-                    <!-- Incoming Shipment Fields -->
                     <field name="fromPartyId">
                         <conditional-field title="From Party" condition="isIncoming">
                             <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
@@ -445,39 +461,39 @@ along with this software (see the LICENSE.md file). If not, see
                                     condition="fromPartyId" parameter-map="[partyId:fromPartyId]"/>
                         </conditional-field>
                     </field>
+                    <field name="toPartyId">
+                        <conditional-field title="To Party" condition="isOutgoing &amp;&amp; allowUpdate">
+                            <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                            <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                                    condition="toPartyId" parameter-map="[partyId:toPartyId]"/>
+                        </conditional-field>
+                        <conditional-field condition="isOutgoing" title="To Party">
+                            <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/>
+                        </conditional-field>
+                    </field>
+
+                    <field name="originFacilityId" from="firstRouteSegment.originFacilityId">
+                        <conditional-field title="Origin Facility" condition="(isOutgoing || isTransfer) &amp;&amp; allowUpdate">
+                            <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                        </conditional-field>
+                        <conditional-field title="Origin Facility" condition="isOutgoing || isTransfer">
+                            <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" link-type="anchor"
+                                    parameter-map="[facilityId:originFacilityId]"/>
+                        </conditional-field>
+                    </field>
                     <field name="destinationFacilityId" from="lastRouteSegment.destinationFacilityId">
-                        <conditional-field title="Destination Facility" condition="isIncoming">
+                        <conditional-field title="Destination Facility" condition="isIncoming || isTransfer">
                             <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
                             <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" link-type="anchor"
                                     parameter-map="[facilityId:destinationFacilityId]"/>
                         </conditional-field>
                     </field>
 
-                    <!-- Outgoing Shipment Fields -->
-                    <field name="toPartyId">
-                        <conditional-field title="To Party" condition="!isIncoming &amp;&amp; allowUpdate">
-                            <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
-                            <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
-                                    condition="toPartyId" parameter-map="[partyId:toPartyId]"/>
-                        </conditional-field>
-                        <conditional-field condition="!isIncoming" title="To Party">
-                            <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/>
-                        </conditional-field>
-                    </field>
-                    <field name="originFacilityId" from="firstRouteSegment.originFacilityId">
-                        <conditional-field title="Origin Facility" condition="!isIncoming &amp;&amp; allowUpdate">
-                            <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
-                        </conditional-field>
-                        <conditional-field title="Origin Facility" condition="!isIncoming">
-                            <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" link-type="anchor"
-                                    parameter-map="[facilityId:originFacilityId]"/>
-                        </conditional-field>
-                    </field>
                     <field name="handlingInstructions"><default-field title="Shipping Instructions">
                         <text-area rows="3" cols="80"/></default-field></field>
-                    <field name="otherPartyOrderId"><default-field title="Their Order" tooltip="Other party purchase or sales order ID">
-                        <text-line size="40"/></default-field></field>
-                    <field name="estimatedReadyDate"><conditional-field condition="!isIncoming" title="Ready"><date-time/></conditional-field></field>
+                    <field name="otherPartyOrderId"><conditional-field condition="!isTransfer" title="Their Order" tooltip="Other party purchase or sales order ID">
+                        <text-line size="40"/></conditional-field></field>
+                    <field name="estimatedReadyDate"><conditional-field condition="isOutgoing || isTransfer" title="Ready"><date-time/></conditional-field></field>
                     <field name="packedDate"><default-field title="Packed"><display/></default-field></field>
                     <field name="estimatedShipDate"><default-field title="Pack/Ship"><date-time/></default-field></field>
                     <field name="estimatedArrivalDate"><default-field title="Arrival"><date-time/></default-field></field>
@@ -501,19 +517,23 @@ along with this software (see the LICENSE.md file). If not, see
                 ]]></text></render-mode>
             </widgets><fail-widgets>
                 <container type="dl" style="dl-horizontal">
-                    <section name="ShipmentDisplaySection" condition="isIncoming"><widgets>
-                        <label text="From" type="dt"/><label text="${fromPartyDetail ? ec.resource.expand('PartyNameTemplate', '', fromPartyDetail) : 'Not Set'}" type="dd"/>
-                        <label text="Destination Facility" type="dt"/><label text="${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" type="dd"/>
-                        <label text="Shipment Type" type="dt"/><label text="${shipmentTypeEnum?.description}" type="dd"/>
-                        <label text="Status" type="dt"/><label text="${statusItem.description}" type="dd"/>
-                        <label text="Estimated Arrival" type="dt"/><label text="${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="dd"/>
-                    </widgets><fail-widgets>
-                        <label text="To" type="dt"/><label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}" type="dd"/>
-                        <label text="Origin Facility" type="dt"/><label text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" type="dd"/>
-                        <label text="Shipment Type" type="dt"/><label text="${shipmentTypeEnum?.description}" type="dd"/>
-                        <label text="Status" type="dt"/><label text="${statusItem.description}" type="dd"/>
-                        <label text="Estimated Ready" type="dt"/><label text="${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="dd"/>
-                        <label text="Ship By" type="dt"/><label text="${curCarrierDetail ? ec.resource.expand('PartyNameTemplate','',curCarrierDetail) : 'N/A'} - ${shipmentMethodEnum?.description ?: 'None'}" type="dd"/>
+                    <label text="From" type="dt" condition="isIncoming"/>
+                    <label text="${fromPartyDetail ? ec.resource.expand('PartyNameTemplate', '', fromPartyDetail) : 'Not Set'}" type="dd" condition="isIncoming"/>
+                    <label text="To" type="dt" condition="isOutgoing"/>
+                    <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}" type="dd" condition="isOutgoing"/>
+                    <label text="Origin Facility" type="dt" condition="isOutgoing || isTransfer"/>
+                    <label text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" type="dd" condition="isOutgoing || isTransfer"/>
+                    <label text="Destination Facility" type="dt" condition="isIncoming || isTransfer"/>
+                    <label text="${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" type="dd" condition="isIncoming || isTransfer"/>
+
+                    <label text="Shipment Type" type="dt"/><label text="${shipmentTypeEnum?.description}" type="dd"/>
+                    <label text="Status" type="dt"/><label text="${statusItem.description}" type="dd"/>
+                    <label text="Estimated Ready" type="dt" condition="isOutgoing || isTransfer"/>
+                    <label text="${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="dd" condition="isOutgoing || isTransfer"/>
+                    <label text="Estimated Arrival" type="dt"/><label text="${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}" type="dd"/>
+
+                    <section name="ShipmentDisplaySection" condition="isOutgoing || isTransfer"><widgets>
+                        <label text="Ship By" type="dt"/><label text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod?.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}" type="dd"/>
                         <label text="Shipping Instructions" type="dt" condition="shipment.handlingInstructions"/>
                         <label text="${shipment.handlingInstructions}" type="dd" condition="shipment.handlingInstructions"/>
                         <section name="ShippedShippingInfo" condition="curPaInfo"><actions><set field="contactInfo" from="curPaInfo"/></actions><widgets>
@@ -524,7 +544,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
                             </container>
                         </widgets></section>
-                    </fail-widgets></section>
+                    </widgets></section>
                 </container>
             </fail-widgets></section>
         </row-col><row-col md="6">
@@ -671,17 +691,19 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
         </box-toolbar><box-body>
             <section-iterate name="ShipmentItemsSection" list="shipmentItemDetailList" entry="sid"><actions>
-                <if condition="isIncoming"><then>
-                    <set field="quantityRemaining" from="sid.quantity - (sid.quantityAcceptedTotal ?: 0) - (sid.quantityRejectedTotal ?: 0)"/>
-                    <entity-find entity-name="mantle.product.asset.AssetAndReceipt" list="assetReceiptList">
-                        <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
-                </then><else>
-                    <set field="quantityRemaining" from="sid.quantity - (sid.quantityTotal ?: 0)"/>
+                <if condition="isOutgoing || isTransfer">
+                    <set field="quantityPackRemaining" from="sid.quantity - (sid.quantityTotal ?: 0)"/>
                     <entity-find entity-name="mantle.product.issuance.AssetAndIssuance" list="assetIssuanceList">
                         <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
-                </else></if>
-                <set field="allowPack" from="!isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPicked'] &amp;&amp; quantityRemaining &gt; 0"/>
-                <set field="allowReceive" from="isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipShipped'] &amp;&amp; quantityRemaining &gt; 0"/>
+                </if>
+                <set field="allowPack" from="(isOutgoing || isTransfer) &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPicked'] &amp;&amp; quantityPackRemaining &gt; 0"/>
+                <if condition="isIncoming || isTransfer">
+                    <set field="quantityRecRemaining" from="sid.quantity - (sid.quantityAcceptedTotal ?: 0) - (sid.quantityRejectedTotal ?: 0)"/>
+                    <entity-find entity-name="mantle.product.asset.AssetAndReceipt" list="assetReceiptList">
+                        <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
+                </if>
+                <set field="allowReceive" from="((isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipShipped']) ||
+                        (isTransfer &amp;&amp; shipment.statusId == 'ShipShipped')) &amp;&amp; quantityRecRemaining &gt; 0"/>
 
                 <entity-find-one entity-name="moqui.basic.Uom" value-field="productUom">
                     <field-map field-name="uomId" from="sid.amountUomId"/></entity-find-one>
@@ -695,9 +717,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="packageContentTotal" from="(packageContentList*.quantity).sum() ?: 0.0"/>
                 <set field="quantityNotInPackage" from="((BigDecimal) sid.quantity ?: 0.0) - packageContentTotal"/>
             </actions><widgets>
-                <container-box type="success"><box-header title="${ec.resource.expand('ProductNameTemplate', '', sid)}"/><box-toolbar>
+                <container-box type="info"><box-header title="${ec.resource.expand('ProductNameTemplate', '', sid)} (Qty ${ec.l10n.format(sid.quantity ?: 0, '#.##')})"/><box-toolbar>
                     <section name="PackItemSection" condition="allowPack"><widgets>
-                        <container-dialog id="PackItemContainer" button-text="Pack Item">
+                        <container-dialog id="PackItemContainer" button-text="Pack/Issue Item" type="success">
                             <form-single name="PackItemForm" transition="packItem" map="sid">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
                                 <field name="productId"><default-field><hidden/></default-field></field>
@@ -705,7 +727,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     <option key="" text="New Package"/>
                                     <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
                                 </drop-down></default-field></field>
-                                <field name="quantity" from="quantityRemaining">
+                                <field name="quantity" from="quantityPackRemaining">
                                     <default-field><text-line size="8"/></default-field></field>
                                 <field name="assetId"><default-field title="Asset">
                                     <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="0"
@@ -716,15 +738,15 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-dialog>
                     </widgets></section>
                     <section name="ReceiveItemSection" condition="allowReceive"><widgets>
-                        <dynamic-dialog id="ReceiveProductContainer" button-text="Receive Product" transition="ReceiveItem" width="800">
+                        <dynamic-dialog id="ReceiveProductContainer" button-text="Receive Product" transition="ReceiveItem" width="800" type="success">
                             <parameter name="shipmentId"/><parameter name="productId" from="sid.productId"/>
                             <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
                     </widgets></section>
                 </box-toolbar><box-body>
                     <container-row>
                         <row-col lg="5">
-                            <label condition="isIncoming" text="Total: ${ec.l10n.format(sid.quantity ?: 0, '#.##')}, Accepted: ${ec.l10n.format(sid.quantityAcceptedTotal ?: 0, '#.##')}, Rejected: ${ec.l10n.format(sid.quantityRejectedTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})"/>
-                            <label condition="!isIncoming" text="Total: ${ec.l10n.format(sid.quantity ?: 0, '#.##')}, Packed/Issued: ${ec.l10n.format(sid.quantityTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})"/>
+                            <label condition="isOutgoing || isTransfer" text="Packed/Issued: ${ec.l10n.format(sid.quantityTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityPackRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})" type="div"/>
+                            <label condition="isIncoming || isTransfer" text="Receive Accepted: ${ec.l10n.format(sid.quantityAcceptedTotal ?: 0, '#.##')}, Rejected: ${ec.l10n.format(sid.quantityRejectedTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRecRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})" type="div"/>
                         </row-col>
                         <row-col lg="3">
                             <section name="ShipItemUpdateSection" condition="allowUpdate"><widgets>
@@ -756,68 +778,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </row-col>
                     </container-row>
                 </box-body><box-body-nopad>
-                    <section name="ItemAssetSection" condition="isIncoming"><widgets>
-                        <form-list name="ItemSourceReceiptList" list="sisList" skip-form="true">
-                            <field name="orderId"><default-field title="Order">
-                                <link url="orderDetail" text="${orderId?:''}" link-type="anchor"/></default-field></field>
-                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
-
-                            <field name="quantity"><default-field><display/></default-field></field>
-                            <field name="quantityNotHandled"><default-field><display/></default-field></field>
-
-                            <field name="invoiceId"><default-field title="Invoice">
-                                <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/></default-field></field>
-                            <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
-                        </form-list>
-                        <form-list name="ItemAssetReceiptList" list="assetReceiptList" skip-form="true">
-                            <row-actions>
-                                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
-                                <filter-map-list list="acctgTransList" to-list="recAcctgTransList">
-                                    <field-map field-name="assetReceiptId"/></filter-map-list>
-                            </row-actions>
-
-                            <field name="statusId"><default-field title="Status">
-                                <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
-
-                            <field name="receivedDate"><default-field title="Received Date"><display/></default-field></field>
-                            <field name="quantityOnHandTotal" align="right"><default-field title="QOH"><display/></default-field></field>
-                            <field name="quantityAccepted" align="right"><default-field title="Accepted"><display/></default-field></field>
-                            <field name="quantityRejected" align="right"><default-field title="Rejected"><display/></default-field></field>
-
-                            <field name="assetId"><default-field title="Asset"><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
-
-                            <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
-                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
-                            <field name="acctgTransList"><default-field title="TX">
-                                <section-iterate name="RecAcctgTransList" list="recAcctgTransList" entry="recAcctgTrans"><widgets>
-                                    <link url="editTransaction" text="${recAcctgTrans.acctgTransId}" link-type="anchor"
-                                            parameter-map="[acctgTransId:recAcctgTrans.acctgTransId]"/>
-                                </widgets></section-iterate>
-                            </default-field></field>
-                            <field name="locationSeqId"><default-field title="Stored At">
-                                <display text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></default-field></field>
-                            <field name="lotId"><default-field title="Lot">
-                                <display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field></field>
-                            
-                            <field name="updateDialog"><header-field title=""/>
-                                <conditional-field condition="shipment.statusId == 'ShipInput'">
-                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
-                                        <parameter name="shipmentId"/><parameter name="assetId"/>
-                                        <parameter name="statusId" value="AstIncoming"/></dynamic-dialog>
-                                </conditional-field>
-                                <conditional-field condition="statusId == 'AstIncoming'">
-                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Receive" transition="UpdateItemAsset">
-                                        <parameter name="shipmentId"/><parameter name="assetId"/>
-                                        <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
-                                </conditional-field>
-                                <default-field>
-                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
-                                        <parameter name="shipmentId"/><parameter name="assetId"/>
-                                        <!-- <parameter name="statusId" value="AstAvailable"/> --></dynamic-dialog>
-                                </default-field>
-                            </field>
-                        </form-list>
-                    </widgets><fail-widgets>
+                    <!-- Pack and Issuance -->
+                    <section name="ItemAssetPackSection" condition="isOutgoing || isTransfer"><widgets>
                         <form-list name="ItemSourceIssuanceList" list="sisList" transition="packItemSource">
                             <row-actions>
                                 <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
@@ -852,9 +814,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 </conditional-field>
                                 <default-field><display text=" "/></default-field>
                             </field>
-                            <field name="reserveItem"><default-field title="">
+                            <field name="reserveItem"><conditional-field condition="orderId" title="">
                                 <dynamic-dialog id="ItemReserveDialog" button-text="Reserve" transition="ItemReserve" condition="quantityNotHandled &gt; 0.0"/>
-                            </default-field></field>
+                            </conditional-field></field>
 
                             <field name="packDate" from="shipment.estimatedShipDate ?: ec.user.nowTimestamp">
                                 <conditional-field condition="resPackForm" title="Pack Date"><date-time/></conditional-field>
@@ -912,7 +874,81 @@ along with this software (see the LICENSE.md file). If not, see
                                     confirmation="Are you sure? Only do this when necessary to avoid processing a return to receive the item back into inventory."/>
                             </default-field></field>
                         </form-list>
-                    </fail-widgets></section>
+                    </widgets></section>
+                    <!-- Receipt -->
+                    <section name="ItemAssetReceiptSection" condition="isIncoming || (isTransfer &amp;&amp; shipment.statusId in ['ShipShipped', 'ShipDelivered', 'ShipCancelled'])"><widgets>
+                        <form-list name="ItemSourceReceiptList" list="sisList" skip-form="true">
+                            <row-actions>
+                                <if condition="isTransfer">
+                                    <!-- for isTransfer ShipmentItemSource based sisList quantityNotHandled gets updated on pack so can't use on receipt-->
+                                    <set field="quantityNotHandled" from="quantity"/>
+                                    <entity-find entity-name="mantle.product.receipt.AssetReceipt" list="assetReceiptList">
+                                        <econdition field-name="shipmentItemSourceId"/></entity-find>
+                                    <iterate list="assetReceiptList" entry="assetReceipt">
+                                        <set field="quantityNotHandled" from="quantityNotHandled - (assetReceipt.quantityAccepted ?: 0.0) - (assetReceipt.quantityRejected ?: 0.0)"/>
+                                    </iterate>
+                                </if>
+                            </row-actions>
+                            <field name="orderId"><default-field title="Order">
+                                <link url="orderDetail" text="${orderId?:''}" link-type="anchor"/></default-field></field>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+
+                            <field name="quantity"><default-field><display/></default-field></field>
+                            <field name="quantityNotHandled"><default-field><display/></default-field></field>
+
+                            <field name="invoiceId"><default-field title="Invoice">
+                                <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/></default-field></field>
+                            <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
+                        </form-list>
+                        <form-list name="ItemAssetReceiptList" list="assetReceiptList" skip-form="true">
+                            <row-actions>
+                                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
+                                <filter-map-list list="acctgTransList" to-list="recAcctgTransList">
+                                    <field-map field-name="assetReceiptId"/></filter-map-list>
+                            </row-actions>
+
+                            <field name="statusId"><default-field title="Status">
+                                <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+
+                            <field name="receivedDate"><default-field title="Received Date"><display/></default-field></field>
+                            <field name="quantityOnHandTotal" align="right"><default-field title="QOH"><display/></default-field></field>
+                            <field name="quantityAccepted" align="right"><default-field title="Accepted"><display/></default-field></field>
+                            <field name="quantityRejected" align="right"><default-field title="Rejected"><display/></default-field></field>
+
+                            <field name="assetId"><default-field title="Asset"><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+
+                            <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="acctgTransList"><default-field title="TX">
+                                <section-iterate name="RecAcctgTransList" list="recAcctgTransList" entry="recAcctgTrans"><widgets>
+                                    <link url="editTransaction" text="${recAcctgTrans.acctgTransId}" link-type="anchor"
+                                            parameter-map="[acctgTransId:recAcctgTrans.acctgTransId]"/>
+                                </widgets></section-iterate>
+                            </default-field></field>
+                            <field name="locationSeqId"><default-field title="Stored At">
+                                <display text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></default-field></field>
+                            <field name="lotId"><default-field title="Lot">
+                                <display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field></field>
+
+                            <field name="updateDialog"><header-field title=""/>
+                                <conditional-field condition="shipment.statusId == 'ShipInput'">
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
+                                        <parameter name="shipmentId"/><parameter name="assetId"/>
+                                        <parameter name="statusId" value="AstIncoming"/></dynamic-dialog>
+                                </conditional-field>
+                                <conditional-field condition="statusId == 'AstIncoming'">
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Receive" transition="UpdateItemAsset">
+                                        <parameter name="shipmentId"/><parameter name="assetId"/>
+                                        <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
+                                </conditional-field>
+                                <default-field>
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
+                                        <parameter name="shipmentId"/><parameter name="assetId"/>
+                                        <!-- <parameter name="statusId" value="AstAvailable"/> --></dynamic-dialog>
+                                </default-field>
+                            </field>
+                        </form-list>
+                    </widgets></section>
                 </box-body-nopad></container-box>
             </widgets></section-iterate>
         </box-body></container-box>
