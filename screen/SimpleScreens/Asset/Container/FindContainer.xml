@@ -23,6 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
 
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
@@ -55,8 +56,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <search-form-inputs default-order-by="serialNumber,containerId"/></entity-find>
             <row-actions>
                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true"/>
-                <entity-find entity-name="mantle.product.asset.AssetAndProduct" list="assetList">
-                    <econdition field-name="containerId"/><order-by field-name="assetId"/></entity-find>
+                <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="assetList">
+                    <econdition field-name="containerId"/>
+                    <select-field field-name="productId,pseudoId,productName,availableToPromiseTotal,quantityOnHandTotal"/>
+                    <order-by field-name="pseudoId"/>
+                </entity-find>
             </row-actions>
 
             <field name="serialNumber"><header-field show-order-by="true"><text-find/></header-field>
@@ -76,8 +80,8 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="description"><header-field show-order-by="case-insensitive"><text-find/></header-field>
                 <default-field><display/></default-field></field>
-            <field name="externalId"><header-field show-order-by="true"><text-find/></header-field>
-                <default-field><display/></default-field></field>
+            <!-- <field name="externalId"><header-field show-order-by="true"><text-find/></header-field>
+                <default-field><display/></default-field></field> -->
 
             <field name="facilityId">
                 <header-field title="Facility" show-order-by="case-insensitive"><drop-down allow-empty="true">
@@ -92,18 +96,16 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><label condition="locationSeqId" text-map="facLoc" text="FacilityLocationNameTemplate"/></default-field>
             </field>
 
-            <field name="assetList">
-                <header-field title="Assets"><text-find size="20" hide-options="true"/></header-field>
-                <default-field>
-                    <section-iterate name="AssetListSection" list="assetList" entry="assetProduct"><widgets><container>
-                        <link url="editAsset" text="${assetProduct.assetId}" link-type="anchor"
-                                parameter-map="[assetId:assetProduct.assetId]"/>
-                        <label text=": ${ec.l10n.format(assetProduct.quantityOnHandTotal, null)}"/>
-                        <link url="editProduct" text="ProductNameTemplate" text-map="assetProduct"
-                                link-type="anchor" parameter-map="[productId:assetProduct.productId]"/>
-                    </container></widgets></section-iterate>
-                </default-field>
-            </field>
+            <field name="assetList"><default-field title="Product">
+                <section-iterate name="AssetListSection" list="assetList" entry="assetProduct"><widgets><container>
+                    <label text="ATP ${ec.l10n.format(assetProduct.availableToPromiseTotal, null)} QOH ${ec.l10n.format(assetProduct.quantityOnHandTotal, null)}"/>
+                    <link url="editProduct" text="ProductNameTemplate" text-map="assetProduct"
+                            link-type="anchor" parameter-map="[productId:assetProduct.productId]"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
+
+            <field name="assetId"><header-field title="Asset"><drop-down allow-empty="true">
+                <dynamic-options transition="getAssetList" server-search="true" min-length="2"/></drop-down></header-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>

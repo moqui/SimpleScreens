@@ -17,9 +17,41 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="moveAsset"><default-response url="../MoveAsset"/></transition>
     <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
+    <transition name="assetOrContainerMove" read-only="true">
+        <actions>
+            <!-- see if scanId is a assetId -->
+            <if condition="scanId">
+                <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset">
+                    <field-map field-name="assetId" from="scanId"/></entity-find-one>
+                <if condition="asset != null"><set field="assetId" from="asset.assetId"/><set field="scanId" from="null"/></if>
+            </if>
+            <!-- see if scanId is a containerId -->
+            <if condition="scanId">
+                <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                    <field-map field-name="containerId" from="scanId"/></entity-find-one>
+                <if condition="container != null"><set field="containerId" from="container.containerId"/><set field="scanId" from="null"/></if>
+            </if>
+            <!-- see if scanId is a Container.serialNumber -->
+            <if condition="scanId">
+                <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                    <field-map field-name="serialNumber" from="scanId"/></entity-find-one>
+                <if condition="container != null"><set field="containerId" from="container.containerId"/><set field="scanId" from="null"/></if>
+            </if>
+            <if condition="scanId"><message>No asset or container found with ID ${scanId}</message></if>
+        </actions>
+        <conditional-response url="../MoveAsset"><condition><expression>assetId</expression></condition></conditional-response>
+        <conditional-response url="../../Container/MoveContainer"><condition><expression>containerId</expression></condition></conditional-response>
+        <default-response url="."/>
+    </transition>
+
+    <transition name="editContainer"><default-response url="../../Container/EditContainer"/></transition>
+    <transition name="moveContainer"><default-response url="../../Container/MoveContainer"/></transition>
+
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <transition name="assetMove">
         <actions>
@@ -38,31 +70,47 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="changedEntityName" value="mantle.product.asset.Asset"/>
             <econdition field-name="changedFieldName" operator="in" value="locationSeqId,containerId"/>
             <econdition field-name="changedByUserId" from="ec.user.userId"/>
+            <econdition field-name="changedDate" operator="greater" from="ec.user.nowTimestamp - 5"/>
+            <order-by field-name="-changedDate"/>
+        </entity-find>
+        <entity-find entity-name="moqui.entity.EntityAuditLog" list="recentContainerMoveList" limit="10">
+            <econdition field-name="changedEntityName" value="mantle.product.asset.Container"/>
+            <econdition field-name="changedFieldName" value="locationSeqId"/>
+            <econdition field-name="changedByUserId" from="ec.user.userId"/>
+            <econdition field-name="changedDate" operator="greater" from="ec.user.nowTimestamp - 5"/>
             <order-by field-name="-changedDate"/>
         </entity-find>
     </actions>
 
     <widgets>
-        <container-row><row-col md="6">
-            <form-single name="ScanAssetForm" transition="assetMove" focus-field="scanId">
-                <field name="scanId"><default-field title="Scan Asset ID"><text-line size="20"/></default-field></field>
+        <container-row style="text-center"><row-col md="4">
+            <form-single name="ScanAssetForm" transition="assetOrContainerMove" focus-field="scanId">
+                <field name="scanId"><default-field title="Scan Asset or Container"><text-line size="20"/></default-field></field>
                 <field name="submitButton"><default-field title="Move"><submit/></default-field></field>
                 <field-layout><field-row-big><field-ref name="scanId"/><field-ref name="submitButton"/></field-row-big></field-layout>
             </form-single>
-        </row-col><row-col md="6">
-            <form-single name="EnterAssetForm" transition="moveAsset">
-                <field name="assetId"><default-field title="Lookup Asset ID">
+        </row-col><row-col md="4">
+            <form-single name="SelectAssetForm" transition="moveAsset">
+                <field name="assetId"><default-field title="Lookup Asset">
                     <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
                 <field name="submitButton"><default-field title="Move"><submit/></default-field></field>
                 <field-layout><field-row-big><field-ref name="assetId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </row-col><row-col md="4">
+            <form-single name="SelectContainerForm" transition="moveContainer">
+                <field name="containerId"><default-field title="Lookup Container">
+                    <drop-down><dynamic-options transition="getContainerList" server-search="true" min-length="2"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Move"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="containerId"/><field-ref name="submitButton"/></field-row-big></field-layout>
             </form-single>
         </row-col></container-row>
 
         <label text="Recent Asset Moves" type="h4"/>
         <form-list name="RecentMoveForm" list="recentMoveList" skip-form="true">
             <row-actions>
-                <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset" cache="true">
+                <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset">
                     <field-map field-name="assetId" from="pkPrimaryValue"/></entity-find-one>
                 <if condition="changedFieldName == 'locationSeqId'"><then>
                     <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="fromFacLoc" cache="true">
@@ -106,6 +154,44 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="changedDate"><default-field title="Date Moved"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
             <field name="moveAgain"><default-field title="">
                 <link url="moveAsset" text="Move Again" parameter-map="[assetId:asset.assetId]" link-type="anchor-button"/>
+            </default-field></field>
+        </form-list>
+
+        <label text="Recent Container Moves" type="h4"/>
+        <form-list name="RecentContainerMoveForm" list="recentContainerMoveList" skip-form="true">
+            <row-actions>
+                <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                    <field-map field-name="containerId" from="pkPrimaryValue"/></entity-find-one>
+
+                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="fromFacLoc" cache="true">
+                    <field-map field-name="facilityId" from="container.facilityId"/>
+                    <field-map field-name="locationSeqId" from="oldValueText"/>
+                </entity-find-one>
+                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="toFacLoc" cache="true">
+                    <field-map field-name="facilityId" from="container.facilityId"/>
+                    <field-map field-name="locationSeqId" from="newValueText"/>
+                </entity-find-one>
+            </row-actions>
+
+            <field name="container"><default-field><link url="editContainer" text="${container.serialNumber ?: container.containerId}"
+                    parameter-map="[containerId:container.containerId]" link-type="anchor"/></default-field></field>
+
+            <field name="containerTypeEnumId" from="container.containerTypeEnumId"><default-field title="Type">
+                <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+            <field name="facilityId" from="container.facilityId"><default-field title="Facility">
+                <link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"
+                        parameter-map="[facilityId:container.facilityId]"/>
+            </default-field></field>
+
+            <field name="fromLocation"><default-field>
+                <label text="FacilityLocationNameTemplate" text-map="fromFacLoc?:[:]" condition="fromFacLoc"/></default-field></field>
+            <field name="toLocation"><default-field>
+                <label text="FacilityLocationNameTemplate" text-map="toFacLoc?:[:]" condition="toFacLoc"/></default-field></field>
+
+            <field name="changedDate"><default-field title="Date Moved"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
+            <field name="moveAgain"><default-field title="">
+                <link url="moveContainer" text="Move Again" parameter-map="[containerId:container.containerId]" link-type="anchor-button"/>
             </default-field></field>
         </form-list>
     </widgets>
