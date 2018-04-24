@@ -21,11 +21,12 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
     <transition name="equipmentDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
 
     <transition name="addShipment"><default-response url="../AddShipment"/></transition>
     <transition name="updateShipmentLoad"><service-call name="update#mantle.work.effort.WorkEffort"/>
         <default-response url="."/></transition>
-
     <transition name="updateShipment"><service-call name="update#mantle.shipment.Shipment"/>
         <default-response url="."/></transition>
 
@@ -40,6 +41,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <transition name="Picklist.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Picking/ShipmentLoadPick" url-type="plain">
@@ -75,14 +77,6 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- Party Assignments -->
         <entity-find entity-name="mantle.work.effort.WorkEffortAndPartyDetail" list="weapdList">
             <date-filter/><econdition field-name="workEffortId"/><order-by field-name="firstName,organizationName"/></entity-find>
-
-        <entity-find entity-name="mantle.shipment.ShipmentShipFindView" list="shipmentList">
-            <econdition field-name="shipWorkEffortId" from="workEffortId"/>
-            <select-field field-name="shipmentId"/><select-field field-name="originFacilityName"/>
-            <select-field field-name="binLocationNumber"/><select-field field-name="toPartyId"/>
-            <select-field field-name="statusId"/><select-field field-name="estimatedReadyDate"/>
-            <order-by field-name="shipmentId"/>
-        </entity-find>
     </actions>
     <widgets>
         <container-row>
@@ -92,13 +86,19 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <form-single name="UpdateShipmentLoad" transition="updateShipmentLoad" map="workEffort">
                     <field name="workEffortId"><default-field title="ID"><display/></default-field></field>
+                    <field name="workEffortName"><default-field title="Name"><text-line size="40"/></default-field></field>
                     <field name="facilityId"><default-field title="Facility"><drop-down>
                         <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse,FcTpDock']"/>
                     </drop-down></default-field></field>
-                    <field name="workEffortName"><default-field title="Name"><text-line size="40"/></default-field></field>
                     <field name="estimatedStartDate"><default-field title="Ship Date"><date-time/></default-field></field>
                     <field name="estimatedWorkDuration"><default-field title="Est. Hours"><text-line size="8"/></default-field></field>
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                    <field-layout>
+                        <field-row><field-ref name="workEffortId"/><field-ref name="workEffortName"/></field-row>
+                        <fields-not-referenced/>
+                        <field-row><field-ref name="estimatedStartDate"/><field-ref name="estimatedWorkDuration"/></field-row>
+                        <field-ref name="submitButton"/>
+                    </field-layout>
                 </form-single>
             </row-col>
             <row-col lg="6">
@@ -106,31 +106,63 @@ along with this software (see the LICENSE.md file). If not, see
             </row-col>
         </container-row>
 
-        <container-box>
-            <box-header><label text="Shipments" type="h5"/></box-header>
-            <box-toolbar>
-                <link url="addShipment" text="Add Shipments"/>
-            </box-toolbar>
-            <box-body>
-                <form-list name="ListShipments" list="shipmentList" transition="updateShipment" multi="true">
-                    <field name="shipmentId"><default-field><hidden/></default-field></field>
-                    <field name="workEffortId"><default-field><hidden/></default-field></field>
+        <container-box><box-header><label text="Shipments" type="h5"/></box-header><box-toolbar>
+            <link url="addShipment" text="Add Shipments"/>
+        </box-toolbar><box-body>
+            <form-list name="ListShipments" list="shipmentList" transition="updateShipment" multi="true">
+                <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList">
+                    <econdition field-name="shipWorkEffortId" from="workEffortId"/>
+                    <order-by field-name="shipmentId"/>
+                </entity-find>
+                <row-actions>
+                    <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
+                        <date-filter/><econdition field-name="partyId" from="toPartyId"/>
+                        <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
 
-                    <field name="shipmentLink"><default-field title="Shipment">
-                        <link url="shipmentDetail" text="${shipmentId}"/></default-field></field>
-                    <field name="binLocationNumber"><default-field title="Pick Bin #">
-                        <text-line size="4"/></default-field></field>
-                    <field name="originFacilityName"><default-field title="Facility"><display/></default-field></field>
-                    <field name="statusId"><default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
-                    <field name="toPartyId"><default-field title="To Party">
-                        <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
-                    </default-field></field>
-                    <field name="estimatedReadyDate"><default-field title="Ready Date"><display/></default-field></field>
+                    <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList" distinct="true">
+                        <econdition field-name="shipmentId"/><select-field field-name="orderId"/></entity-find>
+                    <entity-find entity-name="mantle.order.OrderHeader" list="orderHeaderList">
+                        <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
+                        <select-field field-name="orderId,salesChannelEnumId"/>
+                    </entity-find>
+                </row-actions>
 
-                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                </form-list>
-            </box-body>
-        </container-box>
+                <field name="shipmentId"><default-field><hidden/></default-field></field>
+                <field name="workEffortId"><default-field><hidden/></default-field></field>
+
+                <field name="binLocationNumber"><default-field title="Pick Bin #">
+                    <text-line size="4"/></default-field></field>
+                <field name="shipmentLink"><default-field title="Shipment">
+                    <link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
+                <field name="shipmentTypeEnumId"><default-field title="Type">
+                    <display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field></field>
+
+                <field name="originFacilityId"><default-field title="Facility">
+                    <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate" also-hidden="false"
+                            style="${originFacilityId == workEffort.facilityId ? 'text-success' : 'text-danger'}"/></default-field></field>
+                <field name="toPartyId"><default-field title="To Party">
+                    <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                            link-type="anchor" parameter-map="[partyId:toPartyId]"/>
+                    <label text=" - ${custPcaaList*.description.join(', ')}" condition="custPcaaList"/>
+                </default-field></field>
+
+                <field name="orderIds"><default-field title="Orders">
+                    <section-iterate name="OrderSisList" list="orderHeaderList" entry="orderHeader"><widgets>
+                        <link url="orderDetail" text="${orderHeader.orderId}" link-type="anchor" condition="orderHeader.orderId"
+                                parameter-map="[orderId:orderHeader.orderId]"/>
+                        <label text=" - ${orderHeader.salesChannel?.description?:''}" condition="orderHeader.salesChannelEnumId"/>
+                    </widgets></section-iterate>
+                </default-field></field>
+
+                <field name="otherPartyOrderId"><default-field title="Their Order"><display also-hidden="false"/></default-field></field>
+                <field name="entryDate"><default-field title="Entry Date"><display also-hidden="false"/></default-field></field>
+                <field name="estimatedReadyDate"><default-field title="Ready Date"><display also-hidden="false"/></default-field></field>
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-list>
+        </box-body></container-box>
 
         <container-box>
             <box-header><label text="Equipment" type="h5"/></box-header>
@@ -139,8 +171,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <form-single name="AddAsset" transition="addAssetAssign">
                         <field name="workEffortId"><default-field><hidden/></default-field></field>
                         <field name="assetId"><default-field title="Truck / Equipment">
-                            <drop-down>
-                                <list-options list="allEquipmentList" key="${assetId}" text="AssetNameTemplate"/></drop-down>
+                            <drop-down><list-options list="allEquipmentList" key="${assetId}" text="AssetNameTemplate"/></drop-down>
                         </default-field></field>
                         <field name="statusId" from="null"><default-field>
                             <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
@@ -199,24 +230,17 @@ along with this software (see the LICENSE.md file). If not, see
         </container-box>
 
         <container-box>
-            <box-header><label text="Parties Assigned" type="h5"/></box-header>
+            <box-header><label text="People Assigned" type="h5"/></box-header>
             <box-toolbar>
-                <container-dialog id="AddPartyAssignDialog" button-text="Add Party">
+                <container-dialog id="AddPartyAssignDialog" button-text="Add Person">
                     <form-single name="AddPartyAssignForm" transition="addAssignment">
                         <field name="workEffortId"><default-field><hidden/></default-field></field>
                         <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
 
-                        <field name="partyId"><default-field title="Person">
-                            <drop-down>
-                                <entity-options key="${partyId}" text="PartyNameTemplate">
-                                    <entity-find entity-name="mantle.party.PartyDetailAndRole">
-                                        <econdition field-name="roleTypeId" value="Employee"/>
-                                        <econdition field-name="disabled" value="N" or-null="true"/>
-                                        <order-by field-name="firstName,lastName"/>
-                                    </entity-find>
-                                </entity-options>
-                            </drop-down>
-                        </default-field></field>
+                        <field name="partyId"><default-field title="Person"><drop-down>
+                            <dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                                    parameter-map="[roleTypeId:'Employee,Worker']"/>
+                        </drop-down></default-field></field>
                         <field name="roleTypeId"><default-field><hidden default-value="_NA_"/></default-field></field>
                         <field name="statusId" from="null"><default-field title="Status">
                             <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
