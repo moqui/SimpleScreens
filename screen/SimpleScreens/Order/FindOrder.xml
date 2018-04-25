@@ -149,14 +149,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
                     <date-filter/><econdition field-name="partyId" from="customerPartyId"/>
                     <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
-
                 <!-- Shipments -->
                 <entity-find entity-name="mantle.order.OrderItemShipSummary" list="oissList">
                     <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
                     <having-econditions><econdition field-name="shipmentQuantity" operator="greater" from="0.0"/></having-econditions>
                     <select-field field-name="shipmentId,shipmentQuantity,quantityHandled"/>
                 </entity-find>
-
                 <!-- Other Parties -->
                 <entity-find entity-name="mantle.order.OrderPartPartyDetail" list="partPartyList">
                     <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
@@ -225,8 +223,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"
                             parameter-map="[roleTypeId:'Customer,OrgInternal']"/></drop-down>
                 </header-field>
-                <default-field><link url="editCustomer" entity-name="mantle.party.PartyDetail" text="${ec.resource.expand('PartyNameTemplate','')}${custPcaaList ? ' - ' + custPcaaList*.description.join(', ') : ''}"
-                        link-type="anchor" parameter-map="[partyId:customerPartyId]"/></default-field>
+                <default-field>
+                    <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                            link-type="anchor" parameter-map="[partyId:customerPartyId]"/>
+                    <label text=" - ${custPcaaList*.description.join(', ')}" condition="custPcaaList"/>
+                </default-field>
             </field>
             <field name="customerClassificationId"><header-field title="Customer Class">
                 <drop-down allow-empty="true" allow-multiple="true" show-not="true">
@@ -249,8 +250,8 @@ along with this software (see the LICENSE.md file). If not, see
             </header-field></field>
             <field name="otherParties"><default-field>
                 <section-iterate name="OtherPartyListSection" list="partPartyList" entry="partParty"><widgets><container>
-                    <link url="editParty" link-type="anchor" text="${ec.resource.expand('PartyNameTemplate','',partParty)} - ${partParty.description?:'N/A'}"
-                            parameter-map="[partyId:partParty.partyId]"/>
+                    <link url="editParty" link-type="anchor" parameter-map="[partyId:partParty.partyId]"
+                            text="* ${ec.resource.expand('PartyNameTemplate','',partParty)} - ${partParty.description?:'N/A'}"/>
                 </container></widgets></section-iterate>
             </default-field></field>
 
