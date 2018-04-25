@@ -22,6 +22,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateInvoiceClosed"><service-call name="mantle.account.InvoiceServices.update#InvoiceClosed"/>
         <default-response url="."/></transition>
     <transition name="updateStatus"><service-call name="update#mantle.account.invoice.Invoice"/><default-response url="."/></transition>
+    <transition name="cancelInvoiceAndPayments"><service-call name="mantle.account.InvoiceServices.cancel#InvoiceAndPayments"/>
+        <default-response url="."/></transition>
 
     <transition name="adjustInvoice"><service-call name="mantle.account.InvoiceServices.adjust#Invoice"/>
         <default-response url="."/></transition>
@@ -29,6 +31,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="repostInvoice"><service-call name="mantle.ledger.InvoiceAutoPostServices.repost#Invoice"/>
         <default-response url="."/></transition>
+    <!-- NOTE: needs a more generic interface to avoid dependency on mantle-edi and to support other SystemRemotes:
+    <transition name="produceEdiInvoice"><service-call name="mantle.edi.account.X12InvoiceServices.produce#Invoice"/><default-response url="."/></transition> -->
 
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
@@ -87,6 +91,13 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="partyId" from="invoice.fromPartyId"/><econdition field-name="roleTypeId" value="OrgInternal"/></entity-find>
         <set field="isFromPartyOrgInternal" from="fromOrgInternalList as boolean"/>
         <set field="organizationPartyId" from="isFromPartyOrgInternal ? invoice.fromPartyId : invoice.toPartyId"/>
+
+        <!-- find associated system messages (EDI, etc) -->
+        <entity-find entity-name="moqui.service.message.SystemMessage" list="outSystemMessageList">
+            <econdition field-name="invoiceId"/><econdition field-name="isOutgoing" value="Y"/>
+            <econdition field-name="statusId" operator="not-equals" value="SmsgCancelled"/>
+        </entity-find>
+        <filter-map-list list="outSystemMessageList" to-list="inMessageList"><field-map field-name="docType" value="IN"/></filter-map-list>
     </actions>
     <widgets>
         <container-row><row-col lg="6">
@@ -150,6 +161,29 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="statusId == 'InvoiceCancelled' &amp;&amp; isFromPartyOrgInternal" confirmation="Go back to In Process status?"/>
                 <link url="updateStatus" text="Uncancel" parameter-map="[invoiceId:invoiceId, statusId:'InvoiceReceived']"
                         condition="statusId == 'InvoiceCancelled' &amp;&amp; !isFromPartyOrgInternal" confirmation="Go back to Received status?"/>
+
+                <!-- see note above about more generic SystemRemote send transition:
+                <section name="SendEdiInvoiceSection" condition="isFromPartyOrgInternal &amp;&amp; invoice.systemMessageRemoteId"><widgets>
+                    <link url="produceEdiInvoice" text="${inMessageList ? 'Resend' : 'Send'} EDI Invoice" parameter-map="[invoiceId:invoiceId]"/>
+                </widgets></section>
+                -->
+                <section name="OutMessageSection" condition="outSystemMessageList"><widgets>
+                    <container-dialog id="OutMessageDialog" button-text="Invoice Message History" width="800">
+                        <form-list name="OutSystemMessageList" list="outSystemMessageList" skip-form="true">
+                            <field name="systemMessageId"><default-field title="Message ID"><display/></default-field></field>
+                            <field name="systemMessageTypeId"><default-field title="Type">
+                                <display-entity entity-name="moqui.service.message.SystemMessageType"/></default-field></field>
+                            <field name="systemMessageRemoteId"><default-field title="Remote">
+                                <display-entity entity-name="moqui.service.message.SystemMessageRemote"/></default-field></field>
+                            <field name="statusId"><default-field title="Status">
+                                <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                            <field name="initDate"><default-field><display/></default-field></field>
+                            <field name="docType"><default-field><display/></default-field></field>
+                            <field name="docSubType"><default-field><display/></default-field></field>
+                            <field name="ackMessageId"><default-field><display/></default-field></field>
+                        </form-list>
+                    </container-dialog>
+                </widgets></section>
 
                 <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
                     <form-list name="AuditLogList" list="auditLogList" skip-form="true">
@@ -333,6 +367,9 @@ along with this software (see the LICENSE.md file). If not, see
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
             <container-box><box-header title="Payment Applications"/><box-toolbar>
+                <link url="cancelInvoiceAndPayments" text="Cancel Invoice and Payments" confirmation="Cancel this invoice and all payments applied to it?"
+                        condition="statusId != 'InvoiceCancelled'"/>
+
                 <container-dialog id="RecordPaymentContainer" button-text="New Payment for Invoice" condition="unpaidTotal">
                     <form-single name="RecordPaymentForm" transition="recordPayment">
                         <field name="invoiceId"><default-field><display/></default-field></field>
