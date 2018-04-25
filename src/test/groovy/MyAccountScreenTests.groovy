@@ -98,7 +98,7 @@ class MyAccountScreenTests extends Specification {
         "User/Task/TaskDetail?workEffortId=61001" |
                 ['Screen Test Task', 'Screen Test Description', 'In Planning', 'Test Worker']
 
-        "User/TimeEntries/recordTimeEntry?workEffortId=61001&rateTypeEnumId=RatpStandard&emplPositionClassId=Programmer&hours=3&pieceCount=150" | []
+        "User/TimeEntries/recordTimeEntry?workEffortId=61001&rateTypeEnumId=RatpStandard&emplPositionClassId=Programmer&hours=3&pieceCount=150&workTypeEnumId=WktpGeneralOffice&facilityId=ZIRET_WH" | []
         "User/TimeEntries" | ['Screen Test Task', 'Standard', '3.00']
         "User/ContactInfo" | ['Email Addresses', 'Phone Numbers']
         "User/Account" | ['worker@test.com', 'Worker', 'Change Password']
