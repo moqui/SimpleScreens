@@ -34,6 +34,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
+        <set field="excludeOnPicklist" from="excludeOnPicklist ?: 'true'"/>
+        <set field="includeOnPicklist" from="excludeOnPicklist == 'false'"/>
+
         <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
         <entity-find-related-one value-field="workEffort" relationship-name="mantle.facility.Facility" to-value-field="facility"/>
 
@@ -50,6 +53,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"/></search-form-inputs>
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
                 <econdition field-name="originFacilityId" ignore-if-empty="true"/>
+                <econdition field-name="shipWorkEffortId" operator="is-null" ignore="includeOnPicklist"/>
             </entity-find>
             <row-actions>
                 <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
@@ -113,6 +117,9 @@ along with this software (see the LICENSE.md file). If not, see
                         style="${workEffortId == shipWorkEffortId ? 'text-success' : 'text-danger'}"
                         parameter-map="[workEffortId:shipWorkEffortId]" condition="shipWorkEffortId"/></default-field>
             </field>
+            <field name="excludeOnPicklist"><header-field title="Exclude On Picklist">
+                <radio><option key="true" text="Yes"/><option key="false" text="No"/></radio>
+            </header-field></field>
 
             <field name="originFacilityId">
                 <header-field title="Origin Facility">
