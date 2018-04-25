@@ -156,6 +156,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <having-econditions><econdition field-name="shipmentQuantity" operator="greater" from="0.0"/></having-econditions>
                     <select-field field-name="shipmentId,shipmentQuantity,quantityHandled"/>
                 </entity-find>
+
+                <!-- Other Parties -->
+                <entity-find entity-name="mantle.order.OrderPartPartyDetail" list="partPartyList">
+                    <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
+                    <select-field field-name="partyId,pseudoId,firstName,lastName,organizationName,description"/>
+                </entity-find>
             </row-actions>
 
             <field name="orderType"><header-field><radio no-current-selected-key="Any">
@@ -171,7 +177,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <set field="enumTypeId" value="SalesChannel"/><set field="allowMultiple" value="true"/>
                         <set field="showNot" value="true"/></widget-template-include>
                 </header-field>
-                <default-field container-style="${salesChannelEnumId == 'ScWeb' ? 'text-strong text-success' : ''}"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                <default-field container-style="${salesChannelEnumId == 'ScWeb' ? 'text-strong text-success' : ''}">
+                    <display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
 
             <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
@@ -218,7 +225,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"
                             parameter-map="[roleTypeId:'Customer,OrgInternal']"/></drop-down>
                 </header-field>
-                <default-field><link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                <default-field><link url="editCustomer" entity-name="mantle.party.PartyDetail" text="${ec.resource.expand('PartyNameTemplate','')}${custPcaaList ? ' - ' + custPcaaList*.description.join(', ') : ''}"
                         link-type="anchor" parameter-map="[partyId:customerPartyId]"/></default-field>
             </field>
             <field name="customerClassificationId"><header-field title="Customer Class">
@@ -229,8 +236,32 @@ along with this software (see the LICENSE.md file). If not, see
                             <order-by field-name="description"/></entity-find></entity-options>
                 </drop-down>
             </header-field></field>
-            <field name="customerClass"><default-field><display text="${custPcaaList ? custPcaaList*.description.join(', ') : ''}"/></default-field></field>
 
+            <field name="otherPartyId"><header-field>
+                <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+            </header-field></field>
+            <field name="otherRoleTypeId"><header-field>
+                <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                    <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                        <econdition field-name="roleGroupEnumId" value="RgpOrder"/>
+                        <order-by field-name="description"/></entity-find>
+                </entity-options></drop-down>
+            </header-field></field>
+            <field name="otherParties"><default-field>
+                <section-iterate name="OtherPartyListSection" list="partPartyList" entry="partParty"><widgets><container>
+                    <link url="editParty" link-type="anchor" text="${ec.resource.expand('PartyNameTemplate','',partParty)} - ${partParty.description?:'N/A'}"
+                            parameter-map="[partyId:partParty.partyId]"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
+
+            <field name="shipmentMethodEnumId">
+                <header-field title="Ship Method" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentMethod"/><set field="allowMultiple" value="true"/>
+                        <set field="showNot" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
             <field name="shipments"><default-field>
                 <section-iterate name="ShipmentListSection" list="oissList" entry="oiss"><widgets><container>
                     <link url="shipmentDetail" link-type="anchor" text="${oiss.shipmentId}" parameter-map="[shipmentId:oiss.shipmentId]"/>
@@ -274,8 +305,8 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="statusId"/><field-ref name="facilityId"/>
                 <field-ref name="productStoreId"/></form-list-column>
             <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
-                <field-ref name="customerClass"/></form-list-column>
-            <form-list-column><field-ref name="shipments"/></form-list-column>
+                <field-ref name="otherParties"/></form-list-column>
+            <form-list-column><field-ref name="shipmentMethodEnumId"/><field-ref name="shipments"/></form-list-column>
             <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
