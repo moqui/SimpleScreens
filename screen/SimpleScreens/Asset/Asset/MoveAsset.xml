@@ -32,9 +32,6 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="facilityId" from="asset?.facilityId"/>
         <set field="facLoc" from="asset?.location"/>
         <set field="container" from="asset?.container"/>
-
-        <entity-find entity-name="mantle.facility.Facility" list="facilityList">
-            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/><order-by field-name="facilityName"/></entity-find>
     </actions>
     <widgets>
         <label text="Move Asset ${assetId}" type="h4"/>
@@ -47,7 +44,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="currentLocation"><default-field>
                 <display text="FacilityLocationNameTemplate" text-map="facLoc?:[locationSeqId:'N/A']"/></default-field></field>
             <field name="currentContainer"><default-field>
-                <link url="editContainer" text="ContainerNameTemplate" text-map="container?:[containerId:'N/A']"/></default-field></field>
+                <link url="editContainer" text="ContainerNameTemplate" text-map="container" condition="container" link-type="anchor"/></default-field></field>
             <field name="quantityOnHandTotal"><default-field title="On Hand"><display/></default-field></field>
             <field name="availableToPromiseTotal"><default-field title="Available"><display/></default-field></field>
             <field-layout>
@@ -59,7 +56,7 @@ along with this software (see the LICENSE.md file). If not, see
         </form-single>
 
         <container-row><row-col md="6">
-            <form-single name="ScanMoveAssetForm" transition="completeMove" focus-field="locationSeqId">
+            <form-single name="ScanMoveAssetForm" transition="completeMove" focus-field="scanLocation">
                 <field name="assetId"><default-field><hidden/></default-field></field>
                 <field name="facilityId"><default-field title="Facility">
                     <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
