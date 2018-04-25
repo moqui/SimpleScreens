@@ -20,7 +20,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
     <transition name="picklistDetail"><default-response url="../PicklistDetail"/></transition>
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
 
     <transition name="addShipmentToLoad">
@@ -44,7 +46,7 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="ListShipments" list="shipmentList" transition="addShipmentToLoad" multi="true"
                 header-dialog="true" select-columns="true" saved-finds="true">
             <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList">
-                <search-form-inputs default-order-by="shipmentId" skip-fields="originFacilityId">
+                <search-form-inputs default-order-by="binLocationNumber,shipmentId" skip-fields="originFacilityId">
                     <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"/></search-form-inputs>
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
                 <econdition field-name="originFacilityId" ignore-if-empty="true"/>
@@ -54,11 +56,18 @@ along with this software (see the LICENSE.md file). If not, see
                     <date-filter/><econdition field-name="partyId" from="toPartyId"/>
                     <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
 
+                <!-- Order IDs from ShipmentItemSource -->
                 <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList" distinct="true">
                     <econdition field-name="shipmentId"/><select-field field-name="orderId"/></entity-find>
+                <!-- Orders -->
                 <entity-find entity-name="mantle.order.OrderHeader" list="orderHeaderList">
                     <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
                     <select-field field-name="orderId,salesChannelEnumId"/>
+                </entity-find>
+                <!-- Order Other Parties -->
+                <entity-find entity-name="mantle.order.OrderPartPartyDetail" list="orderPartyList">
+                    <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
+                    <select-field field-name="partyId,pseudoId,firstName,lastName,organizationName,description"/>
                 </entity-find>
             </row-actions>
 
@@ -66,20 +75,31 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="_useRowSubmit"><default-field><hidden default-value="true"/></default-field></field>
             <field name="_rowSubmit"><default-field title="Add"><check all-checked="true"><option key="true" text=" "/></check></default-field></field>
-            <field name="binLocationNumber"><default-field title="Pick Bin #"><text-line size="3"/></default-field></field>
+            <field name="binLocationNumber"><header-field title="Pick Bin #" show-order-by="true"/>
+                <default-field><text-line size="3"/></default-field></field>
 
             <field name="shipmentId">
                 <header-field title="Shipment" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
                 <default-field><display text=""/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></default-field>
             </field>
+            <field name="shipmentMethodEnumId">
+                <header-field title="Ship Method" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentMethod"/><set field="allowMultiple" value="true"/>
+                        <set field="showNot" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
+            </field>
+
             <field name="shipmentTypeEnumId">
                 <header-field title="Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="ShipmentType"/><set field="allowEmpty" value="true"/>
                         <set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
             </field>
+
             <field name="statusId">
                 <header-field title="Status" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
@@ -102,7 +122,7 @@ along with this software (see the LICENSE.md file). If not, see
                         link-type="anchor" parameter-map="[facilityId:originFacilityId]"/></default-field>
             </field>
             <field name="toPartyId">
-                <header-field title="To Party" show-order-by="true">
+                <header-field title="To Party">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </header-field>
                 <default-field>
@@ -119,6 +139,23 @@ along with this software (see the LICENSE.md file). If not, see
                             <order-by field-name="description"/></entity-find></entity-options>
                 </drop-down>
             </header-field></field>
+
+            <field name="orderPartyId"><header-field>
+                <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+            </header-field></field>
+            <field name="orderRoleTypeId"><header-field>
+                <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                    <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                        <econdition field-name="roleGroupEnumId" value="RgpOrder"/>
+                        <order-by field-name="description"/></entity-find>
+                </entity-options></drop-down>
+            </header-field></field>
+            <field name="orderParties"><default-field>
+                <section-iterate name="OtherPartyListSection" list="orderPartyList" entry="partParty"><widgets><container>
+                    <link url="editParty" link-type="anchor" text="${ec.resource.expand('PartyNameTemplate','',partParty)} - ${partParty.description?:'N/A'}"
+                            parameter-map="[partyId:partParty.partyId]"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
 
             <field name="orderId"><header-field><text-find default-operator="begins"/></header-field></field>
             <field name="salesChannelEnumId"><header-field title="Order Source">
@@ -150,12 +187,12 @@ along with this software (see the LICENSE.md file). If not, see
 
             <form-list-column><field-ref name="_rowSubmit"/></form-list-column>
             <form-list-column><field-ref name="binLocationNumber"/></form-list-column>
-            <form-list-column><field-ref name="shipmentId"/><field-ref name="shipmentTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="shipmentId"/><field-ref name="shipmentMethodEnumId"/>
+                <field-ref name="shipmentTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="shipWorkEffortId"/></form-list-column>
             <form-list-column><field-ref name="originFacilityId"/></form-list-column>
-            <form-list-column><field-ref name="toPartyId"/></form-list-column>
-            <form-list-column><field-ref name="orderIds"/></form-list-column>
-            <form-list-column><field-ref name="otherPartyOrderId"/></form-list-column>
+            <form-list-column><field-ref name="toPartyId"/><field-ref name="orderParties"/></form-list-column>
+            <form-list-column><field-ref name="otherPartyOrderId"/><field-ref name="orderIds"/></form-list-column>
             <form-list-column><field-ref name="entryDate"/><field-ref name="estimatedReadyDate"/></form-list-column>
         </form-list>
     </widgets>
