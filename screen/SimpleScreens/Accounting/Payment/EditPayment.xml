@@ -20,12 +20,23 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="editPayment"><default-response url="."/></transition>
     <transition name="editPaymentMethod"><default-response url="//${appRoot}/Party/PaymentMethod/EditPaymentMethod"/></transition>
+    <transition name="paymentMethodFiles"><default-response url="//${appRoot}/Party/PaymentMethod/PaymentMethodFiles"/></transition>
+
     <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
+    <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
+    <transition name="editFinancialAccount"><default-response url="../../FinancialAccount/EditFinancialAccount"/></transition>
+    <transition name="financialAccountTrans"><default-response url="../../FinancialAccount/FinancialAccountTrans"/></transition>
+
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition name="updatePayment"><service-call name="mantle.account.PaymentServices.update#Payment"/>
         <default-response url="."/></transition>
     <transition name="updateStatus"><service-call name="update#mantle.account.payment.Payment"/>
         <default-response url="."/></transition>
+    <transition name="cancelPaymentAndInvoices"><service-call name="mantle.account.PaymentServices.cancel#PaymentAndInvoices"/>
+        <default-response url="."/></transition>
+
     <transition name="postPayment"><service-call name="mantle.ledger.PaymentAutoPostServices.post#Payment"/>
         <default-response url="."/></transition>
     <transition name="repostPaymentAndApplications"><service-call name="mantle.ledger.PaymentAutoPostServices.repost#PaymentAndApplications"/>
@@ -50,13 +61,6 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/>
         <default-response url="."/></transition>
-
-    <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
-    <transition name="editFinancialAccount"><default-response url="../../FinancialAccount/EditFinancialAccount"/></transition>
-    <transition name="financialAccountTrans"><default-response url="../../FinancialAccount/FinancialAccountTrans"/></transition>
-
-    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
-    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
@@ -94,6 +98,9 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="paymentDelivered" from="statusId in ['PmntDelivered', 'PmntConfirmed']"/>
         <set field="isInvoicePayment" from="payment?.paymentTypeEnumId == 'PtInvoicePayment' || payment?.type?.parentEnumId == 'PtInvoicePayment'"/>
         <set field="isCheck" from="payment.paymentInstrumentEnumId in ['PiPersonalCheck', 'PiCompanyCheck']"/>
+
+        <entity-find-one entity-name="mantle.account.method.PaymentMethodFile" value-field="paymentMethodFile">
+            <field-map field-name="paymentMethodFileId" from="payment.paymentMethodFileId"/></entity-find-one>
     </actions>
     <widgets>
         <container-row><row-col lg="6">
@@ -237,6 +244,14 @@ along with this software (see the LICENSE.md file). If not, see
                     </conditional-field>
                     <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
                 </field>
+                <field name="paymentMethodFileId">
+                    <conditional-field condition="paymentMethodFile" title="In File">
+                        <link url="paymentMethodFiles" text="#${paymentMethodFile.paymentMethodFileId}" link-type="anchor"
+                                parameter-map="[paymentMethodId:paymentMethodFile.paymentMethodId,
+                                        paymentMethodFileId:paymentMethodFile.paymentMethodFileId]"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
+                </field>
                 <field name="overrideGlAccountId">
                     <conditional-field title="Override (Cash) GL Account" condition="paymentEditable"><drop-down allow-empty="true">
                         <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></conditional-field>
@@ -376,7 +391,12 @@ along with this software (see the LICENSE.md file). If not, see
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
-            <container-box><box-header title="Payment Applications"/><box-body>
+            <container-box><box-header title="Payment Applications"/><box-toolbar>
+                <link url="cancelPaymentAndInvoices" text="Cancel Payment and Invoices" confirmation="Cancel this payment and cancel all invoices it is applied to?"
+                        condition="statusId in ['PmntProposed', 'PmntPromised']"/>
+                <link url="cancelPaymentAndInvoices" text="Void Payment and Invoices" confirmation="Void this payment and cancel all invoices it is applied to?"
+                        condition="statusId in ['PmntAuthorized', 'PmntDelivered']"/>
+            </box-toolbar><box-body>
                 <label text="Applied ${ec.l10n.formatCurrency(appliedTotal, payment.amountUomId)}, Unapplied ${ec.l10n.formatCurrency(unappliedTotal, payment.amountUomId)}" type="strong"/>
             </box-body><box-body-nopad>
                 <form-list name="PaymentApplicationList" list="paymentApplicationList">
