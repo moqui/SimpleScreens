@@ -25,10 +25,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
 
-    <transition name="addShipmentToLoad">
-        <service-call name="update#mantle.shipment.Shipment" in-map="context + [shipWorkEffortId:workEffortId]"/>
-        <default-response url="../PicklistDetail"/>
-    </transition>
+    <transition name="addShipmentToLoad"><service-call name="mantle.work.ShipmentWorkServices.add#ShipmentToShipmentLoad"/>
+        <default-response url="../PicklistDetail"/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
@@ -39,27 +37,29 @@ along with this software (see the LICENSE.md file). If not, see
 
         <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
         <entity-find-related-one value-field="workEffort" relationship-name="mantle.facility.Facility" to-value-field="facility"/>
+        <set field="originFacilityId" from="originFacilityId != null ? originFacilityId : (facility?.parentFacilityId ?: facility?.facilityId)"/>
 
         <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="shipmentTypeOut" in-map="[parentEnumId:'ShpTpOutgoing']"/>
-        <set field="originFacilityId" from="originFacilityId != null? originFacilityId : (facility?.parentFacilityId ?: facility?.facilityId)"/>
     </actions>
     <widgets>
-        <link url="picklistDetail" text="Back to Picklist #${workEffortId}"/>
-
         <form-list name="ListShipments" list="shipmentList" transition="addShipmentToLoad" multi="true"
                 header-dialog="true" select-columns="true" saved-finds="true">
             <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList">
-                <search-form-inputs default-order-by="binLocationNumber,shipmentId" skip-fields="originFacilityId">
+                <search-form-inputs default-order-by="binLocationNumber,shipmentMethodSequenceNum,shipmentId" skip-fields="originFacilityId">
                     <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"/></search-form-inputs>
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
                 <econdition field-name="originFacilityId" ignore-if-empty="true"/>
                 <econdition field-name="shipWorkEffortId" operator="is-null" ignore="includeOnPicklist"/>
+                <select-field field-name="shipmentMethodEnumId"/>
             </entity-find>
             <row-actions>
+                <!-- Shipment method description -->
+                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="shipMethEnum" cache="true">
+                    <field-map field-name="enumId" from="shipmentMethodEnumId"/></entity-find-one>
+                <!-- Customer Classification -->
                 <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
                     <date-filter/><econdition field-name="partyId" from="toPartyId"/>
                     <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
-
                 <!-- Order IDs from ShipmentItemSource -->
                 <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList" distinct="true">
                     <econdition field-name="shipmentId"/><select-field field-name="orderId"/></entity-find>
@@ -82,17 +82,18 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="binLocationNumber"><header-field title="Pick Bin #" show-order-by="true"/>
                 <default-field><text-line size="3"/></default-field></field>
 
+            <field name="shipmentMethodEnumId"><header-field title="Ship Method">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="ShipmentMethod"/><set field="allowMultiple" value="true"/>
+                    <set field="showNot" value="true"/></widget-template-include>
+            </header-field></field>
+            <field name="shipmentMethodSequenceNum">
+                <header-field title="Ship Method" show-order-by="true"/>
+                <default-field><display text="${shipmentMethodSequenceNum != null ? shipmentMethodSequenceNum + ' - ' : ''}${shipMethEnum?.description ?: ''}"/></default-field>
+            </field>
             <field name="shipmentId">
                 <header-field title="Shipment" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
                 <default-field><display text=""/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></default-field>
-            </field>
-            <field name="shipmentMethodEnumId">
-                <header-field title="Ship Method" show-order-by="true">
-                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                        <set field="enumTypeId" value="ShipmentMethod"/><set field="allowMultiple" value="true"/>
-                        <set field="showNot" value="true"/></widget-template-include>
-                </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
             </field>
 
             <field name="shipmentTypeEnumId">
@@ -194,7 +195,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <form-list-column><field-ref name="_rowSubmit"/></form-list-column>
             <form-list-column><field-ref name="binLocationNumber"/></form-list-column>
-            <form-list-column><field-ref name="shipmentId"/><field-ref name="shipmentMethodEnumId"/>
+            <form-list-column><field-ref name="shipmentMethodSequenceNum"/><field-ref name="shipmentId"/>
                 <field-ref name="shipmentTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="shipWorkEffortId"/></form-list-column>
             <form-list-column><field-ref name="originFacilityId"/></form-list-column>

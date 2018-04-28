@@ -112,15 +112,21 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list name="ListShipments" list="shipmentList" transition="updateShipment" multi="true">
                 <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList">
                     <econdition field-name="shipWorkEffortId" from="workEffortId"/>
-                    <order-by field-name="binLocationNumber,shipmentId"/>
+                    <select-field field-name="shipmentMethodEnumId"/>
+                    <order-by field-name="binLocationNumber,shipmentMethodSequenceNum,shipmentId"/>
                 </entity-find>
                 <row-actions>
+                    <!-- Shipment method description -->
+                    <entity-find-one entity-name="moqui.basic.Enumeration" value-field="shipMethEnum" cache="true">
+                        <field-map field-name="enumId" from="shipmentMethodEnumId"/></entity-find-one>
+                    <!-- Customer Classification -->
                     <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
                         <date-filter/><econdition field-name="partyId" from="toPartyId"/>
                         <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
-
+                    <!-- Order IDs from ShipmentItemSource -->
                     <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList" distinct="true">
                         <econdition field-name="shipmentId"/><select-field field-name="orderId"/></entity-find>
+                    <!-- Orders -->
                     <entity-find entity-name="mantle.order.OrderHeader" list="orderHeaderList">
                         <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
                         <select-field field-name="orderId,salesChannelEnumId"/>
@@ -132,6 +138,10 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="binLocationNumber"><default-field title="Pick Bin #">
                     <text-line size="4"/></default-field></field>
+
+                <field name="shipmentMethodSequenceNum"><default-field title="Ship Method">
+                    <display text="${shipmentMethodSequenceNum != null ? shipmentMethodSequenceNum + ' - ' : ''}${shipMethEnum?.description ?: ''}"/>
+                </default-field></field>
                 <field name="shipmentLink"><default-field title="Shipment">
                     <link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></default-field></field>
                 <field name="statusId"><default-field title="Status">
