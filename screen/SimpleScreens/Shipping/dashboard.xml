@@ -15,7 +15,54 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Dashboard" default-menu-index="1">
 
+    <transition name="findOrder"><default-response url="//${appRoot}/Order/FindOrder"/></transition>
+
+    <actions>
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="itemTypeEnumIdList" from="productItemTypeEgms*.enumId.join(',')"/>
+    </actions>
     <widgets>
         <link url="../Picklist" text="Picklists"/>
+
+        <form-list name="FacilitySummary" list="facilitySummaryList" skip-form="true" paginate-always-show="false">
+            <entity-find entity-name="mantle.facility.FacilityShippingSummary">
+                <search-form-inputs default-order-by="pseudoId,shipmentMethodSequenceNum"/>
+                <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                <econdition field-name="partStatusId" value="OrderApproved"/>
+                <econdition field-name="itemTypeEnumId" operator="in" from="itemTypeEnumIdList"/>
+                <select-field field-name="facilityId,pseudoId,facilityName,shipmentMethodEnumId"/>
+            </entity-find>
+            <row-actions>
+                <!-- Shipment method description -->
+                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="shipMethEnum" cache="true">
+                    <field-map field-name="enumId" from="shipmentMethodEnumId"/></entity-find-one>
+                <!-- Reservation Summary -->
+                <entity-find entity-name="mantle.facility.FacilityShippingReservationSummary" list="fsrsList">
+                    <econdition field-name="facilityId"/><econdition field-name="shipmentMethodEnumId"/></entity-find>
+                <set field="resSummary" from="fsrsList.first()"/>
+            </row-actions>
+
+            <field name="pseudoId">
+                <header-field title="Facility" show-order-by="true"/>
+                <default-field><display text="FacilityNameTemplate"/></default-field>
+            </field>
+            <field name="shipmentMethodSequenceNum">
+                <header-field title="Ship Method" show-order-by="true"/>
+                <default-field><display text="${shipmentMethodSequenceNum != null ? shipmentMethodSequenceNum + ' - ' : ''}${shipMethEnum?.description ?: ''}"/></default-field>
+            </field>
+            <field name="quantityTotal"><default-field title="Order Qty"><link url="findOrder" text="${quantityTotal}" link-type="anchor"
+                    parameter-map="[orderType:'Sales', statusId:'OrderApproved', facilityId:facilityId, shipmentMethodEnumId:shipmentMethodEnumId]"/></default-field></field>
+
+            <!-- reserved, not available, not issued -->
+            <field name="resQuantity" from="resSummary.quantity"><default-field title="Res Qty"><display/></default-field></field>
+            <field name="quantityNotAvailable" from="resSummary.quantityNotAvailable"><default-field title="Not Avail">
+                <display/></default-field></field>
+            <field name="quantityNotIssued" from="resSummary.quantityNotIssued"><default-field title="Not Issued">
+                <display/></default-field></field>
+
+            <!-- TODO: quantity by location type -->
+            <!-- TODO: quantity on shipment/picklist -->
+        </form-list>
     </widgets>
 </screen>
