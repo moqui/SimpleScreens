@@ -21,6 +21,10 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
             <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
         <set field="itemTypeEnumIdList" from="productItemTypeEgms*.enumId.join(',')"/>
+        <!-- Reservation Summary -->
+        <entity-find entity-name="mantle.facility.FacilityShippingReservationSummary" list="fsrsList">
+            <econdition field-name="partStatusId" value="OrderApproved"/>
+        </entity-find>
     </actions>
     <widgets>
         <link url="../Picklist" text="Picklists"/>
@@ -38,9 +42,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find-one entity-name="moqui.basic.Enumeration" value-field="shipMethEnum" cache="true">
                     <field-map field-name="enumId" from="shipmentMethodEnumId"/></entity-find-one>
                 <!-- Reservation Summary -->
-                <entity-find entity-name="mantle.facility.FacilityShippingReservationSummary" list="fsrsList">
-                    <econdition field-name="facilityId"/><econdition field-name="shipmentMethodEnumId"/></entity-find>
-                <set field="resSummary" from="fsrsList.first()"/>
+                <set field="resSummary" from="fsrsList.find({ it.facilityId == facilityId &amp;&amp; it.shipmentMethodEnumId == shipmentMethodEnumId })"/>
             </row-actions>
 
             <field name="pseudoId">
