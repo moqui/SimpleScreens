@@ -34,7 +34,7 @@ along with this software (see the LICENSE.md file). If not, see
     <fo:page-sequence master-reference="letter-portrait" initial-page-number="1" force-page-count="no-force">
         <fo:static-content flow-name="xsl-region-before">
             <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center">${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromPartyDetail.organizationName!"", true))!""}${(fromPartyDetail.firstName)!""} ${(fromPartyDetail.lastName)!""}</fo:block></#if>
-            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment Load Picklist</fo:block>
+            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipping Picklist</fo:block>
             <fo:block-container absolute-position="absolute" top="0in" right="0.5in" width="3in">
                 <fo:block text-align="right">
                     <fo:instream-foreign-object>
@@ -57,7 +57,7 @@ along with this software (see the LICENSE.md file). If not, see
         </fo:static-content>
         <fo:static-content flow-name="xsl-region-after" font-size="8pt">
             <fo:block border-top="thin solid black">
-                <fo:block text-align="center">Picklist for Shipment Load #${workEffortId} -- <#if workEffort.estimatedStartDate??>${ec.l10n.format(workEffort.estimatedStartDate, dateTimeFormat)} -- </#if>Printed ${ec.l10n.format(ec.user.nowTimestamp, dateTimeFormat)} -- Page <fo:page-number/></fo:block>
+                <fo:block text-align="center">Picklist #${workEffortId} -- <#if workEffort.estimatedStartDate??>${ec.l10n.format(workEffort.estimatedStartDate, dateTimeFormat)} -- </#if>Printed ${ec.l10n.format(ec.user.nowTimestamp, dateTimeFormat)} -- Page <fo:page-number/></fo:block>
             </fo:block>
         </fo:static-content>
 
@@ -65,7 +65,7 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:table table-layout="fixed" margin-bottom="0.1in" width="7.5in">
                 <fo:table-body><fo:table-row>
                     <fo:table-cell padding="3pt" width="3in">
-                        <fo:block font-weight="bold">Shipment Load #</fo:block>
+                        <fo:block font-weight="bold">Picklist</fo:block>
                         <fo:block>${workEffortId}</fo:block>
                         <#if warehouseFacility?has_content>
                             <fo:block font-weight="bold">Warehouse</fo:block>

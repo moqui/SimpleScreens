@@ -39,6 +39,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#assign fromContactInfo = shipmentInfo.fromContactInfo!>
     <#assign toPartyDetail = shipmentInfo.toPartyDetail!>
     <#assign toContactInfo = shipmentInfo.toContactInfo!>
+    <#assign packageInfoList = shipmentInfo.packageInfoList!>
     <#assign productInfoList = shipmentInfo.productInfoList!>
 
     <fo:page-sequence master-reference="letter-portrait" initial-page-number="1" force-page-count="no-force">
