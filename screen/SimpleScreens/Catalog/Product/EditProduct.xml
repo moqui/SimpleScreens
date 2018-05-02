@@ -31,9 +31,9 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="productIdTypeEnumId"/>
         <service-call name="delete#mantle.product.ProductIdentification"/><default-response url="."/></transition>
 
-    <transition name="applyProductFeatures"><service-call name="mantle.product.ProductServices.apply#ProductFeatures"/>
+    <transition name="createProductFeature"><service-call name="mantle.product.ProductServices.create#ProductFeature"/>
         <default-response url="."/></transition>
-    <transition name="createProductFeatureAppl"><service-call name="create#mantle.product.feature.ProductFeatureAppl"/>
+    <transition name="applyProductFeatures"><service-call name="mantle.product.ProductServices.apply#ProductFeatures"/>
         <default-response url="."/></transition>
     <transition name="updateProductFeatureAppl"><service-call name="update#mantle.product.feature.ProductFeatureAppl"/>
         <default-response url="."/></transition>
@@ -165,6 +165,24 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body></container-box>
 
             <container-box><box-header title="Features"/><box-toolbar>
+                <container-dialog id="NewFeatureDialog" button-text="Apply New Feature">
+                    <form-single name="NewFeatureForm" transition="createProductFeature">
+                        <field name="productId"><default-field><hidden/></default-field></field>
+                        <field name="productFeatureTypeEnumId"><default-field title="Feature Type">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                <set field="enumTypeId" value="ProductFeatureType"/></widget-template-include>
+                        </default-field></field>
+                        <field name="abbrev"><default-field title="Abbreviation"><text-line size="10"/></default-field></field>
+                        <field name="description"><default-field><text-line/></default-field></field>
+                        <field name="applTypeEnumId"><default-field title="Appl. Type"><drop-down no-current-selected-key="PfatStandard">
+                            <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                                <econdition field-name="enumTypeId" value="ProductFeatureApplType"/>
+                                <order-by field-name="description"/>
+                            </entity-find></entity-options></drop-down>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
                 <container-dialog id="AddFeatureDialog" button-text="Apply Feature">
                     <form-single name="AddFeatureForm" transition="applyProductFeatures">
                         <field name="productId"><default-field><hidden/></default-field></field>
@@ -176,13 +194,11 @@ along with this software (see the LICENSE.md file). If not, see
                             <drop-down allow-multiple="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0">
                                 <depends-on field="productFeatureTypeEnumId"/></dynamic-options></drop-down>
                         </default-field></field>
-                        <field name="applTypeEnumId"><default-field title="Appl. Type">
-                            <drop-down no-current-selected-key="PfatStandard">
-                                <entity-options key="${enumId}" text="${description}">
-                                    <entity-find entity-name="moqui.basic.Enumeration">
-                                        <econdition field-name="enumTypeId" value="ProductFeatureApplType"/>
-                                        <order-by field-name="description"/>
-                                    </entity-find></entity-options></drop-down>
+                        <field name="applTypeEnumId"><default-field title="Appl. Type"><drop-down no-current-selected-key="PfatStandard">
+                            <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                                <econdition field-name="enumTypeId" value="ProductFeatureApplType"/>
+                                <order-by field-name="description"/>
+                            </entity-find></entity-options></drop-down>
                         </default-field></field>
                         <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                     </form-single>
