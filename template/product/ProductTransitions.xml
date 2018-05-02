@@ -110,6 +110,39 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none"/>
     </transition>
+    <transition name="getFeatureList">
+        <parameter name="term"/>
+        <parameter name="productFeatureTypeEnumId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.feature.ProductFeatureAndType" value-field="productFeature">
+                <field-map field-name="productFeatureId" from="term"/></entity-find-one>
+            <if condition="productFeature != null"><then>
+                <script>
+                    def outList = [[value:productFeature.productFeatureId, label:ec.resource.expand('ProductFeatureAndTypeTemplate','',productFeature)]]
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </then><else>
+                <entity-find entity-name="mantle.product.feature.ProductFeatureAndType" list="productFeatureList" limit="40">
+                    <econdition field-name="productFeatureTypeEnumId" ignore-if-empty="true"/>
+                    <econditions combine="or">
+                        <econdition field-name="productFeatureId" operator="like" value="%${term}%"/>
+                        <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="abbrev" operator="like" value="%${term}%"/>
+                        <econdition field-name="idCode" operator="like" value="%${term}%" ignore-case="true"/>
+                    </econditions>
+                    <select-field field-name="productFeatureId,productFeatureTypeEnumId,typeDescription,description,abbrev,idCode"/>
+                    <order-by field-name="typeDescription,abbrev,description"/>
+                </entity-find>
+                <script>
+                    def outList = []
+                    for (productFeature in productFeatureList)
+                        outList.add([value:productFeature.productFeatureId, label:ec.resource.expand('ProductFeatureAndTypeTemplate','',productFeature)])
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
 
     <transition name="getAssetList">
         <parameter name="term"/>
