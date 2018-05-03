@@ -17,7 +17,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="partyId" required="true"/>
 
-    <transition name="findOrder"><default-response url="../../Order/FindOrder"/></transition>
+    <transition name="findOrder"><default-response url="//${appRoot}/Order/FindOrder"/></transition>
+    <transition name="findShipment"><default-response url="//${appRoot}/Shipment/FindShipment"/></transition>
     <transition name="findRequest"><default-response url="//${appRoot}/Request/FindRequest"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
@@ -108,14 +109,17 @@ along with this software (see the LICENSE.md file). If not, see
             <date-filter/><econdition field-name="partyId"/></entity-find-count>
         <entity-find-count entity-name="mantle.order.OrderPart" count-field="customerOrderPartCount">
             <econdition field-name="customerPartyId" from="partyId"/></entity-find-count>
+        <entity-find-count entity-name="mantle.shipment.Shipment" count-field="toShipmentCount">
+            <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
 
         <entity-find entity-name="mantle.party.PartyRole" list="partyRoleList"><econdition field-name="partyId"/></entity-find>
         <set field="roleTypeIdList" from="partyRoleList*.roleTypeId"/>
     </actions>
     <widgets>
         <container-row><row-col lg="6">
-            <link url="findRequest" text="Requests" badge="${requestCount}" parameter-map="[partyId:partyId]" condition="requestCount"/>
+            <link url="findRequest" text="Requests" badge="${requestCount}" parameter-map="[partyId:partyId]"/>
             <link url="findOrder" text="Orders" badge="${customerOrderPartCount}" parameter-map="[customerPartyId:partyId]"/>
+            <link url="findShipment" text="Shipments To" badge="${toShipmentCount}" parameter-map="[toPartyId:partyId]"/>
             <link url="receivableStatement" text="Statement PDF" parameter-map="[toPartyId:partyId]"/>
 
             <section-include name="NonUserPerson" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
