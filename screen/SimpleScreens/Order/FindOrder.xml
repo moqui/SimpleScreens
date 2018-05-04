@@ -132,7 +132,8 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
                 <search-form-inputs default-order-by="entryDate,orderId,orderPartSeqId"
                         skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType">
-                    <default-parameters statusId="OrderOpen,OrderPlaced,OrderApproved,OrderHold" statusId_op="in"
+                    <!-- NOTE: OrderOpen no longer included by default to exclude shopping cart orders (salesChannelEnumId == 'ScWeb') -->
+                    <default-parameters statusId="OrderPlaced,OrderApproved,OrderHold" statusId_op="in"
                             entryDate_poffset="-3" entryDate_period="30d"/></search-form-inputs>
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal" ignore="!'sales'.equalsIgnoreCase(orderType)"/>
@@ -238,10 +239,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down>
             </header-field></field>
 
-            <field name="otherPartyId"><header-field>
+            <field name="otherPartyId"><header-field title="Other Party">
                 <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
             </header-field></field>
-            <field name="otherRoleTypeId"><header-field>
+            <field name="otherRoleTypeId"><header-field title="Other Role">
                 <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
                     <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
                         <econdition field-name="roleGroupEnumId" value="RgpOrder"/>
