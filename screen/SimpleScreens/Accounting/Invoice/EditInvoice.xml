@@ -225,9 +225,19 @@ along with this software (see the LICENSE.md file). If not, see
                         <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                             <set field="enumTypeId" value="InvoiceType"/></widget-template-include>
                     </conditional-field>
-                    <default-field title="Type">
-                        <display-entity entity-name="moqui.basic.Enumeration"/>
-                    </default-field>
+                    <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                </field>
+                <field name="productStoreId">
+                    <conditional-field title="Store" condition="invoiceEditable">
+                        <drop-down allow-empty="true"><entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                            <entity-find entity-name="mantle.product.store.ProductStore">
+                                <order-by field-name="storeName"/></entity-find></entity-options>
+                        </drop-down>
+                    </conditional-field>
+                    <conditional-field title="Store" condition="invoice.productStoreId">
+                        <display-entity entity-name="mantle.product.store.ProductStore" text="${productStoreId}: ${storeName}"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
                 </field>
                 <field name="timePeriodId">
                     <conditional-field condition="invoice.timePeriodId" title="Time Period">
