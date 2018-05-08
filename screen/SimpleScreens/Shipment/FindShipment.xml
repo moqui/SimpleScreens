@@ -89,7 +89,7 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="ShipmentList" list="shipmentList" skip-form="true" header-dialog="true" select-columns="true"
                 saved-finds="true" show-csv-button="true">
             <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList" distinct="true">
-                <search-form-inputs default-order-by="entryDate,shipmentId">
+                <search-form-inputs default-order-by="-entryDate,shipmentId">
                     <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"
                             entryDate_poffset="-1" entryDate_period="30d"/></search-form-inputs>
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
@@ -139,6 +139,9 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
+
+            <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
             <field name="statusId">
                 <header-field title="Status" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
@@ -231,21 +234,18 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="otherPartyOrderId"><header-field title="Their Order" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
                 <default-field><display/></default-field></field>
 
-            <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
+            <field name="estimatedArrivalDate"><header-field title="Est. Arrival" show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
-            <field name="estimatedArrivalDate"><header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display/></default-field></field>
-            <field name="estimatedReadyDate"><header-field show-order-by="true"><date-period/></header-field>
+            <field name="estimatedReadyDate"><header-field title="Est. Ready" show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="shipmentId"/><field-ref name="shipmentMethodEnumId"/>
                 <field-ref name="shipmentTypeEnumId"/></form-list-column>
-            <form-list-column><field-ref name="statusId"/><field-ref name="shipWorkEffortId"/></form-list-column>
+            <form-list-column><field-ref name="entryDate"/><field-ref name="statusId"/><field-ref name="shipWorkEffortId"/></form-list-column>
             <form-list-column><field-ref name="originFacilityId"/><field-ref name="destinationFacilityId"/></form-list-column>
             <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/><field-ref name="orderParties"/></form-list-column>
-            <form-list-column><field-ref name="otherPartyOrderId"/><field-ref name="orderIds"/></form-list-column>
-            <form-list-column><field-ref name="trackingCodes"/><field-ref name="entryDate"/></form-list-column>
+            <form-list-column><field-ref name="otherPartyOrderId"/><field-ref name="orderIds"/><field-ref name="trackingCodes"/></form-list-column>
             <form-list-column><field-ref name="estimatedArrivalDate"/><field-ref name="estimatedReadyDate"/></form-list-column>
         </form-list>
     </widgets>
