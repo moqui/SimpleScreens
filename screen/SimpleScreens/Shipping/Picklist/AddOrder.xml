@@ -37,25 +37,31 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="excludeOnPicklist" from="excludeOnPicklist ?: 'true'"/>
         <set field="includeOnPicklist" from="excludeOnPicklist == 'false'"/>
 
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="itemTypeEnumIdList" from="productItemTypeEgms*.enumId"/>
+
         <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
         <entity-find-related-one value-field="workEffort" relationship-name="mantle.facility.Facility" to-value-field="facility"/>
         <set field="facilityId" from="facilityId != null ? facilityId : (facility?.parentFacilityId ?: facility?.facilityId)"/>
     </actions>
     <widgets>
-        <form-list name="OrderList" list="orderList" transition="addOrderPartToLoad" multi="true"
+        <form-list name="AddOrderList" list="orderList" transition="addOrderPartToLoad" multi="true"
                 header-dialog="true" select-columns="true" saved-finds="true">
             <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
                 <search-form-inputs default-order-by="shipmentMethodSequenceNum,placedDate,orderId,orderPartSeqId"
                         skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType,facilityId">
-                    <default-parameters statusId="OrderApproved" entryDate_poffset="-3" entryDate_period="30d"/></search-form-inputs>
+                    <default-parameters statusId="OrderApproved"/></search-form-inputs>
+                <!-- NOTE: note limiting by date, ie placedDate_poffset="-3" placedDate_period="30d" -->
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
+                <econdition field-name="itemTypeEnumId" operator="in" from="itemTypeEnumIdList"/>
                 <econdition field-name="facilityId" ignore-if-empty="true"/>
                 <econdition field-name="customerClassificationId" ignore-if-empty="true"/>
-                <econdition field-name="itemTypeEnumId" operator="in" ignore-if-empty="true" or-null="true"/>
                 <econdition field-name="productId" operator="in" from="findProductId" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="greater-equals" from="findQuantity_from" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
+                <econdition field-name="shipWorkEffortId" operator="is-null" ignore="includeOnPicklist"/>
                 <select-field field-name="orderPartSeqId,shipmentMethodEnumId"/>
             </entity-find>
             <row-actions>
@@ -102,6 +108,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text=" (${ec.l10n.format(oiss.quantityHandled, null)} of ${ec.l10n.format(oiss.shipmentQuantity, null)})"/>
                 </container></widgets></section-iterate>
             </default-field></field>
+            <field name="excludeOnPicklist"><header-field title="Exclude On Picklist">
+                <radio><option key="true" text="Yes"/><option key="false" text="No"/></radio>
+            </header-field></field>
 
             <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
