@@ -152,32 +152,6 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.order.OrderNote" list="orderNoteList">
             <econdition field-name="orderId" operator="in" from="orderIdSet"/><order-by field-name="-noteDate"/></entity-find>
 
-        <if condition="isIncoming || isTransfer">
-            <set field="anyReceived" from="false"/>
-            <iterate list="shipmentItemDetailList" entry="sid">
-                <if condition="sid.quantityAcceptedTotal || sid.quantityRejectedTotal"><set field="anyReceived" from="true"/></if>
-            </iterate>
-        </if>
-        <if condition="isOutgoing || isTransfer">
-            <set field="allItemsPacked" from="true"/>
-            <iterate list="shipmentItemSourceList" entry="sisCheck">
-                <if condition="sisCheck.quantityNotHandled &gt; 0.0"><set field="allItemsPacked" from="false"/><break/></if></iterate>
-            <set field="anyItemPacked" from="false"/>
-            <iterate list="shipmentItemSourceList" entry="sisCheck">
-                <if condition="sisCheck.quantityNotHandled == 0.0"><set field="anyItemPacked" from="true"/><break/></if></iterate>
-
-            <set field="hasAllLabels" from="true"/><set field="hasAnyLabels" from="false"/>
-            <iterate list="packageRouteSegList" entry="packageRouteSeg">
-                <if condition="packageRouteSeg.gatewayLabelId || packageRouteSeg.labelImage != null || packageRouteSeg.labelUrl">
-                    <then><set field="hasAnyLabels" from="true"/></then>
-                    <else><set field="hasAllLabels" from="false"/></else>
-                </if>
-            </iterate>
-
-            <set field="shippingGatewayConfigId" from="firstRouteSegment.shippingGatewayConfigId ?: ec.user.getPreference('DefaultShipmentGatewayConfigId')"/>
-            <if condition="shippingGatewayConfigId"><entity-find-one entity-name="mantle.shipment.carrier.ShippingGatewayConfig" value-field="shippingGatewayConfig"/></if>
-        </if>
-
         <set field="shippingPostalAddressList" from="[]"/>
         <if condition="isOutgoing &amp;&amp; toPartyId">
             <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="toPartyShippingInfo"
@@ -206,13 +180,6 @@ along with this software (see the LICENSE.md file). If not, see
                 else { shippingPostalIdSet.add(curAddressId); i++ }
             }
         ]]></script>
-
-        <!-- get dest ContactMech for trust level -->
-        <if condition="lastRouteSegment.destPostalContactMechId">
-            <entity-find-one entity-name="mantle.party.contact.ContactMech" value-field="destContactMech">
-                <field-map field-name="contactMechId" from="lastRouteSegment.destPostalContactMechId"/></entity-find-one>
-        </if>
-        <set field="destContactMechValid" from="destContactMech != null &amp;&amp; destContactMech.trustLevelEnumId in ['CmtlValid', 'CmtlVerified']"/>
 
         <if condition="isOutgoing || isTransfer">
             <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->

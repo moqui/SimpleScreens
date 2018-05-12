@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Pack Shipment" default-menu-include="false">
+
+    <parameter name="shipmentId" required="true"/>
+
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="picklistDetail"><default-response url="//${appRoot}/Shipping/Picklist/PicklistDetail"/></transition>
+
+    <transition name="packShipmentProduct"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProduct"/>
+        <default-response url="."/></transition>
+    <transition name="packShipmentProductScan"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProductScan"/>
+        <default-response url="."/></transition>
+    <transition name="unpackItemIssuance"><service-call name="mantle.shipment.ShipmentServices.unpack#ShipmentItemIssuance"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
+        
+        <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
+
+        <!-- TODO: improve; session maintained active (or first package with no box/weight?) -->
+        <set field="activePackageSeqId" from="shipmentPackageList ? shipmentPackageList[0].shipmentPackageSeqId : null"/>
+    </actions>
+    <widgets>
+        <!--
+            Usage/Flow
+            1. scan item to pack (product or asset barcode; for product also lookup by other IDs like SKU, UPC, etc)
+            2. set package info (box type, weight), clear active package so next item scan (if there is one) creates a new package
+            3. repeat #1 and #2 as needed
+            4. Pack Completed
+               - set to packed (create invoice, capture CC)
+               - if CC captured get labels for specified carrier/method
+               - if got labels and a network printer is selected send to printer
+        -->
+
+        <container-row><row-col md="6">
+            <container><label text="Pack Shipment "/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></container>
+            <!--
+                scan input (product or asset ID, other product IDs like SKU/UPC/etc), auto-focused
+                quantity input default 1 (with up/down buttons?)
+                package drop-down with active package selected
+            -->
+            <form-single name="PackItemForm" transition="packShipmentProductScan" focus-field="scanInput">
+                <field name="shipmentId"><default-field><hidden/></default-field></field>
+                <field name="scanInput"><default-field title=""><text-line size="20"/></default-field></field>
+                <field name="quantity" from="1"><default-field title=""><text-line size="4"/></default-field></field>
+                <field name="shipmentPackageSeqId" from="activePackageSeqId">
+                    <default-field title=""><drop-down>
+                        <option key="" text="New"/>
+                        <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                    </drop-down></default-field>
+                </field>
+                <field name="packButton"><default-field title="Pack Item"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="scanInput"/><field-ref name="quantity"/>
+                    <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
+            </form-single>
+
+            <!-- close package form, set current package box type and weight; clears active package so next item scan goes in new package -->
+            <!-- TODO: don't auto package for this screen, should be store level setting or something; maybe even kill package contents records if there are any? -->
+
+            <!-- warning if payment not authorized -->
+            <!-- Pack Completed dialog
+                - disabled unless at least one item packed and non-empty packages have box type and weight
+                - dynamic dialog, load with carrier/method rates looked up and cheapest for method selected
+                - with confirmation mention auto get labels and print, extra text if not fully packed
+                - auto select carrier by method selected and rate lookup
+                - make sure shipment item quantity and SIS quantity reduced on partial ship
+            -->
+            <!-- set network printer mini form -->
+            <!-- small manual set carrier/method form -->
+            <!-- manual Get Labels button and Print Labels dialog -->
+
+            <!-- package list -->
+            <!-- switch active package link 'Make Active' -->
+            <!-- set box type, weight, tracking code, etc form in dialog -->
+            <!-- product/quantity list; move quantity to package form -->
+
+        </row-col><row-col md="6">
+            <!-- product/item list -->
+            <!-- pack/issue form -->
+            <!-- unpack button -->
+
+            <!-- shipment info like address, etc -->
+        </row-col></container-row>
+    </widgets>
+</screen>

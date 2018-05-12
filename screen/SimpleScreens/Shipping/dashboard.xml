@@ -16,6 +16,7 @@ along with this software (see the LICENSE.md file). If not, see
         default-menu-title="Dashboard" default-menu-index="1">
 
     <transition name="findOrder"><default-response url="//${appRoot}/Order/FindOrder"/></transition>
+    <transition name="packShipment"><default-response url="//${appRoot}/Shipping/PackShipment"/></transition>
 
     <actions>
         <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
@@ -27,7 +28,15 @@ along with this software (see the LICENSE.md file). If not, see
         </entity-find>
     </actions>
     <widgets>
-        <link url="../Picklist" text="Picklists"/>
+        <container-row><row-col md="6">
+            <form-single name="PackShipmentForm" transition="packShipment" focus-field="shipmentId">
+                <field name="shipmentId"><default-field title=""><text-line size="20"/></default-field></field>
+                <field name="packButton"><default-field title="Pack Shipment"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="shipmentId"/><field-ref name="packButton"/></field-row-big></field-layout>
+            </form-single>
+        </row-col><row-col md="6">
+            <link url="../Picklist" text="Picklists"/>
+        </row-col></container-row>
 
         <form-list name="FacilitySummary" list="facilitySummaryList" skip-form="true" paginate-always-show="false">
             <entity-find entity-name="mantle.facility.FacilityShippingSummary">
