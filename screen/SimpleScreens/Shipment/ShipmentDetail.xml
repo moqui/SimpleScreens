@@ -659,7 +659,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <entity-find entity-name="mantle.product.issuance.AssetAndIssuance" list="assetIssuanceList">
                         <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
                 </if>
-                <set field="allowPack" from="(isOutgoing || isTransfer) &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPicked'] &amp;&amp; quantityPackRemaining &gt; 0"/>
+                <set field="allowPack" from="(isOutgoing || isTransfer) &amp;&amp; shipment.statusId in ['ShipInput', 'ShipScheduled', 'ShipPicked'] &amp;&amp; quantityPackRemaining &gt; 0"/>
                 <if condition="isIncoming || isTransfer">
                     <set field="quantityRecRemaining" from="sid.quantity - (sid.quantityAcceptedTotal ?: 0) - (sid.quantityRejectedTotal ?: 0)"/>
                     <entity-find entity-name="mantle.product.asset.AssetAndReceipt" list="assetReceiptList">
@@ -685,13 +685,16 @@ along with this software (see the LICENSE.md file). If not, see
                         <container-dialog id="PackItemContainer" button-text="Pack/Issue Item" type="success">
                             <form-single name="PackItemForm" transition="packItem" map="sid">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
-                                <field name="productId"><default-field><hidden/></default-field></field>
+                                <field name="productId"><default-field title="Product">
+                                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
                                 <field name="shipmentPackageSeqId"><default-field title="Package"><drop-down>
                                     <option key="" text="New Package"/>
                                     <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
                                 </drop-down></default-field></field>
                                 <field name="quantity" from="quantityPackRemaining">
                                     <default-field><text-line size="8"/></default-field></field>
+                                <field name="packDate" from="shipment.estimatedShipDate ?: ec.user.nowTimestamp">
+                                    <default-field title="Pack Date"><date-time/></default-field></field>
                                 <field name="assetId"><default-field title="Asset">
                                     <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="0"
                                             parameter-map="[facilityId:firstRouteSegment.originFacilityId, productId:productId, assetTypeEnumId:null, excludeZeroQoh:'true']"/></drop-down>
