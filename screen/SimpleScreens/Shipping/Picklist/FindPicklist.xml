@@ -68,16 +68,6 @@ along with this software (see the LICENSE.md file). If not, see
                 </entity-find>
             </row-actions>
 
-            <field name="workEffortId">
-                <header-field title="Picklist" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
-                <default-field><link url="picklistDetail" text="WorkEffortNameTemplate" link-type="anchor"/></default-field>
-            </field>
-            <field name="facilityId">
-                <header-field title="Facility" show-order-by="true"><drop-down allow-empty="true">
-                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse,FcTpDock']"/>
-                </drop-down></header-field>
-                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
-            </field>
             <field name="statusId">
                 <header-field title="Status" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
@@ -90,35 +80,39 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display/></default-field>
             </field>
 
-            <field name="assetId">
-                <header-field title="Equipment">
-                    <drop-down allow-empty="true"><list-options list="allEquipmentList" key="${assetId}"
-                            text="AssetNameTemplate"/></drop-down>
-                </header-field>
-                <default-field>
-                    <section-iterate name="AssetList" list="assetList" entry="asset">
-                        <widgets><link url="equipmentDetail" text="AssetNameTemplate" text-map="asset"
-                                link-type="anchor" parameter-map="[assetId:asset.assetId]"/></widgets>
-                    </section-iterate>
-                </default-field>
+            <field name="workEffortId">
+                <header-field title="Picklist" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><link url="picklistDetail" text="WorkEffortNameTemplate" link-type="anchor"/></default-field>
             </field>
-            <field name="shipmentId">
-                <header-field title="Shipments"><text-find size="10" hide-options="true"/></header-field>
-                <default-field title="Shipments">
-                    <section-iterate name="ShipmentList" list="shipmentList" entry="shipment">
-                        <widgets><link url="shipmentDetail" text="#${shipment.shipmentId}"
-                                parameter-map="[shipmentId:shipment.shipmentId]"/></widgets>
-                    </section-iterate>
-                </default-field>
+            <field name="facilityId">
+                <header-field title="Facility" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse,FcTpDock']"/>
+                </drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
             </field>
+
+            <field name="assetId"><header-field title="Equipment"><drop-down allow-empty="true">
+                <list-options list="allEquipmentList" key="${assetId}" text="AssetNameTemplate"/></drop-down></header-field></field>
+            <field name="assetList"><default-field title="Equipment">
+                <section-iterate name="AssetList" list="assetList" entry="asset">
+                    <widgets><link url="equipmentDetail" text="AssetNameTemplate" text-map="asset"
+                            link-type="anchor" parameter-map="[assetId:asset.assetId]"/></widgets>
+                </section-iterate>
+            </default-field></field>
+            <field name="shipmentId"><header-field title="Shipments"><text-find size="10" hide-options="true"/></header-field></field>
+            <field name="shipmentList"><default-field title="Shipments">
+                <section-iterate name="ShipmentList" list="shipmentList" entry="shipment">
+                    <widgets><link url="shipmentDetail" text="${shipment.shipmentId}" link-type="anchor"
+                            parameter-map="[shipmentId:shipment.shipmentId]"/></widgets>
+                </section-iterate>
+            </default-field></field>
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field>
                 <default-field><display text=" "/></default-field></field>
 
-            <form-list-column><field-ref name="workEffortId"/></form-list-column>
-            <form-list-column><field-ref name="facilityId"/></form-list-column>
-            <form-list-column><field-ref name="statusId"/><field-ref name="estimatedStartDate"/></form-list-column>
-            <form-list-column><field-ref name="assetId"/><field-ref name="shipmentId"/></form-list-column>
+            <form-list-column><field-ref name="estimatedStartDate"/><field-ref name="workEffortId"/></form-list-column>
+            <form-list-column><field-ref name="statusId"/><field-ref name="facilityId"/></form-list-column>
+            <form-list-column><field-ref name="assetList"/><field-ref name="shipmentList"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
     </widgets>
