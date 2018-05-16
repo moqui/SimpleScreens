@@ -226,9 +226,6 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-single>
                     </container-dialog>
                     <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?"/>
-                    <link url="ShipmentPick.pdf" text="Pick PDF" style="btn-info"/>
-                    <link url="ShipmentByPackage.pdf" text="Package PDF" style="btn-info"/>
-                    <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
@@ -249,10 +246,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-dialog>
                     <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?">
                         <parameter name="shipmentId"/></link>
-                    <link url="ShipmentPick.pdf" text="Pick PDF" style="btn-info"/>
                 </fail-widgets></section>
-                <link url="ShipmentByPackage.pdf" text="Package PDF" style="btn-info"/>
-                <link url="ShipmentPack.pdf" text="Pack Insert PDF"/>
             </widgets></section>
 
             <container-dialog id="PrintLabelsDialog" button-text="Print Labels" condition="hasAnyLabels">
@@ -290,10 +284,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped" style="btn-success"/>
                     <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
                     <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
-
-                    <link url="ShipmentPick.pdf" text="Pick PDF"/>
-                    <link url="ShipmentByPackage.pdf" text="Package PDF"/>
-                    <link url="ShipmentPack.pdf" text="Pack Insert PDF" style="btn-info"/>
                 </widgets></section>
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
@@ -315,11 +305,12 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
                     <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
-
-                    <link url="ShipmentPick.pdf" text="Pick PDF"/>
-                    <link url="ShipmentByPackage.pdf" text="Package PDF"/>
-                    <link url="ShipmentPack.pdf" text="Pack Insert PDF" style="btn-info"/>
                 </fail-widgets></section>
+            </widgets></section>
+            <section name="OutgoingTransferSection" condition="isOutgoing || isTransfer"><widgets>
+                <link url="ShipmentPick.pdf" text="Pick PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
+                <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
+                <link url="ShipmentPack.pdf" text="Pack Insert PDF" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
             </widgets></section>
 
             <section-iterate name="OrderLinks" list="orderIdSet" entry="orderId"><widgets>
