@@ -353,123 +353,132 @@ along with this software (see the LICENSE.md file). If not, see
             </container>
 
             <!-- Header -->
-            <section name="ShipmentHeaderSection" condition="allowUpdate || shipment.statusId == 'ShipPacked'"><widgets>
-                <section name="DestPostalAddressSection" condition="isOutgoing"><widgets>
-                    <container><dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
-                            parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
-                    <label text="No shipping address selected" style="text-danger" type="p" condition="!lastRouteSegment.destPostalContactMechId"/>
-                    <container style="float-box" type="ul">
-                        <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="contactInfo"><actions>
-                            <set field="checkRadio" from="(lastRouteSegment.destPostalContactMechId &amp;&amp; lastRouteSegment.destPostalContactMechId == contactInfo.postalContactMechId)"/>
-                        </actions><widgets>
-                            <container type="li" style="box-narrow">
-                                <render-mode><text type="html,vuet"><![CDATA[
-                                    <div class="text-center"><input type="radio" name="shippingPostalContactMechId" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
-                                ]]></text></render-mode>
-                                <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                                <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo"
-                                        width="800" condition="allowUpdate"
-                                        parameter-map="[partyId:toPartyId, postalContactMechId:contactInfo.postalContactMechId,
-                                                postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, shipmentId:shipmentId]"/>
+            <section name="DestPostalAddressSection" condition="isOutgoing &amp;&amp; (allowUpdate || shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
+                <container><dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
+                        parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
+                <label text="No shipping address selected" style="text-danger" type="p" condition="!lastRouteSegment.destPostalContactMechId"/>
+                <container style="float-box" type="ul">
+                    <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="contactInfo"><actions>
+                        <set field="checkRadio" from="(lastRouteSegment.destPostalContactMechId &amp;&amp; lastRouteSegment.destPostalContactMechId == contactInfo.postalContactMechId)"/>
+                    </actions><widgets>
+                        <container type="li" style="box-narrow">
+                            <render-mode><text type="html,vuet"><![CDATA[
+                                <div class="text-center"><input type="radio" name="shippingPostalContactMechId" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
+                            ]]></text></render-mode>
+                            <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                            <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo"
+                                    width="800" condition="allowUpdate"
+                                    parameter-map="[partyId:toPartyId, postalContactMechId:contactInfo.postalContactMechId,
+                                            postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, shipmentId:shipmentId]"/>
 
-                                <container>
-                                    <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
-                                    <link url="validateAddress" text="Validate"
-                                            parameter-map="[shipmentId:shipmentId, partyId:toPartyId, contactMechId:contactInfo.postalContactMechId]"
-                                            condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
-                                </container>
-                                <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
+                            <container>
+                                <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
+                                <link url="validateAddress" text="Validate"
+                                        parameter-map="[shipmentId:shipmentId, partyId:toPartyId, contactMechId:contactInfo.postalContactMechId]"
+                                        condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
                             </container>
-                        </widgets></section-iterate>
-                    </container>
-                    <label text="No shipment method selected" style="text-warning" type="p" condition="!firstRouteSegment.shipmentMethodEnumId"/>
-                    <label text="&amp;nbsp;" type="p" encode="false"/>
-                </widgets></section>
-                <form-single name="EditShipment" transition="updateShipment" map="shipment">
-                    <field name="shipmentId"><default-field><hidden/></default-field></field>
-                    <field name="destPostalContactMechId"><default-field><hidden/></default-field></field>
+                            <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
+                        </container>
+                    </widgets></section-iterate>
+                </container>
+                <label text="No shipment method selected" style="text-warning" type="p" condition="!firstRouteSegment.shipmentMethodEnumId"/>
+                <label text="&amp;nbsp;" type="p" encode="false"/>
+            </widgets></section>
+            <form-single name="EditShipment" transition="updateShipment" map="shipment">
+                <field name="shipmentId"><default-field><hidden/></default-field></field>
+                <field name="destPostalContactMechId"><default-field><hidden/></default-field></field>
 
-                    <field name="carrierAndShipmentMethod"><conditional-field title="Ship By" condition="!hasAllLabels || !packageRouteSegList">
-                        <drop-down allow-empty="true" no-current-selected-key="${firstRouteSegment.carrierPartyId ? firstRouteSegment.carrierPartyId + ':' + firstRouteSegment.shipmentMethodEnumId : ''}">
-                            <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
-                                    text="${description ? description : (carrierPartyId != '_NA_' ? (carrierName + ' - ') : '') + shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
-                            <dynamic-options transition="getShippingOptions"/>
-                        </drop-down>
-                    </conditional-field><default-field title="Ship By">
-                        <display text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod?.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}"/>
-                    </default-field></field>
+                <field name="carrierAndShipmentMethod"><conditional-field title="Ship By" condition="!hasAllLabels || !packageRouteSegList">
+                    <drop-down allow-empty="true" no-current-selected-key="${firstRouteSegment.carrierPartyId ? firstRouteSegment.carrierPartyId + ':' + firstRouteSegment.shipmentMethodEnumId : ''}">
+                        <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
+                                text="${description ? description : (carrierPartyId != '_NA_' ? (carrierName + ' - ') : '') + shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.formatCurrency(shippingTotal, orderHeader.currencyUomId) : ''}"/>
+                        <dynamic-options transition="getShippingOptions"/>
+                    </drop-down>
+                </conditional-field><default-field title="Ship By">
+                    <display text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod?.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}"/>
+                </default-field></field>
 
-                    <field name="shipmentTypeEnumId"><default-field title="Type">
-                        <display text="${shipmentTypeEnum.description}" also-hidden="false"/></default-field></field>
-                    <field name="statusId"><default-field title="Status">
-                        <display text="${statusItem.description}" also-hidden="false"/></default-field></field>
-                    <field name="shipWorkEffortId"><conditional-field condition="shipWorkEffortId" title="Picklist">
-                        <link url="picklistDetail" text="${shipWorkEffortId}" link-type="anchor"
-                                parameter-map="[workEffortId:shipWorkEffortId]" condition="shipWorkEffortId"/>
-                    </conditional-field></field>
+                <field name="shipmentTypeEnumId"><default-field title="Type">
+                    <display text="${shipmentTypeEnum.description}" also-hidden="false"/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <display text="${statusItem.description}" also-hidden="false"/></default-field></field>
+                <field name="shipWorkEffortId"><conditional-field condition="shipWorkEffortId" title="Picklist">
+                    <link url="picklistDetail" text="${shipWorkEffortId}" link-type="anchor"
+                            parameter-map="[workEffortId:shipWorkEffortId]" condition="shipWorkEffortId"/>
+                </conditional-field></field>
 
-                    <field name="fromPartyId">
-                        <conditional-field title="From Party" condition="isIncoming">
-                            <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
-                            <link url="editSupplier" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
-                                    condition="fromPartyId" parameter-map="[partyId:fromPartyId]"/>
-                        </conditional-field>
-                    </field>
-                    <field name="toPartyId">
-                        <conditional-field title="To Party" condition="isOutgoing &amp;&amp; allowUpdate">
-                            <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
-                            <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
-                                    condition="toPartyId" parameter-map="[partyId:toPartyId]"/>
-                        </conditional-field>
-                        <conditional-field condition="isOutgoing" title="To Party">
-                            <label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/>
-                        </conditional-field>
-                    </field>
+                <field name="fromPartyId">
+                    <conditional-field title="From Party" condition="isIncoming &amp;&amp; allowUpdate">
+                        <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                        <link url="editSupplier" text="${ec.resource.expand('PartyNameTemplate', '', fromPartyDetail)}" link-type="anchor"
+                                condition="toPartyDetail" parameter-map="[partyId:fromPartyId]"/>
+                    </conditional-field>
+                    <conditional-field title="From Party" condition="fromPartyId">
+                        <link url="editSupplier" text="${ec.resource.expand('PartyNameTemplate', '', fromPartyDetail)}" link-type="anchor"
+                                condition="toPartyDetail" parameter-map="[partyId:fromPartyId]"/>
+                    </conditional-field>
+                </field>
+                <field name="toPartyId">
+                    <conditional-field title="To Party" condition="isOutgoing &amp;&amp; allowUpdate">
+                        <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                        <link url="editCustomer" text="${ec.resource.expand('PartyNameTemplate', '', toPartyDetail)}" link-type="anchor"
+                                condition="toPartyDetail" parameter-map="[partyId:toPartyId]"/>
+                    </conditional-field>
+                    <conditional-field condition="isOutgoing" title="To Party">
+                        <link url="editCustomer" text="${ec.resource.expand('PartyNameTemplate', '', toPartyDetail)}" link-type="anchor"
+                                condition="toPartyDetail" parameter-map="[partyId:toPartyId]"/>
+                    </conditional-field>
+                </field>
 
-                    <field name="originFacilityId" from="firstRouteSegment.originFacilityId">
-                        <conditional-field title="Origin Facility" condition="(isOutgoing || isTransfer) &amp;&amp; allowUpdate">
-                            <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
-                        </conditional-field>
-                        <conditional-field title="Origin Facility" condition="isOutgoing || isTransfer">
-                            <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" link-type="anchor"
-                                    parameter-map="[facilityId:originFacilityId]"/>
-                        </conditional-field>
-                    </field>
-                    <field name="destinationFacilityId" from="lastRouteSegment.destinationFacilityId">
-                        <conditional-field title="Destination Facility" condition="isIncoming || isTransfer">
-                            <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
-                            <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" link-type="anchor"
-                                    parameter-map="[facilityId:lastRouteSegment.destinationFacilityId]"/>
-                        </conditional-field>
-                    </field>
+                <field name="originFacilityId" from="firstRouteSegment.originFacilityId">
+                    <conditional-field title="Origin Facility" condition="(isOutgoing || isTransfer) &amp;&amp; allowUpdate">
+                        <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                    </conditional-field>
+                    <conditional-field title="Origin Facility" condition="isOutgoing || isTransfer">
+                        <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}" link-type="anchor"
+                                parameter-map="[facilityId:originFacilityId]"/>
+                    </conditional-field>
+                </field>
+                <field name="destinationFacilityId" from="lastRouteSegment.destinationFacilityId">
+                    <conditional-field title="Destination Facility" condition="(isIncoming || isTransfer) &amp;&amp; allowUpdate">
+                        <drop-down><list-options list="facilityList" key="${facilityId}" text="FacilityNameTemplate"/></drop-down>
+                        <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" link-type="anchor"
+                                parameter-map="[facilityId:lastRouteSegment.destinationFacilityId]"/>
+                    </conditional-field>
+                    <conditional-field title="Destination Facility" condition="isIncoming || isTransfer">
+                        <link url="editFacility" text="${ec.resource.expand('FacilityNameTemplate', '', destinationFacility)}" link-type="anchor"
+                                parameter-map="[facilityId:lastRouteSegment.destinationFacilityId]"/>
+                    </conditional-field>
+                </field>
 
-                    <field name="handlingInstructions"><default-field title="Shipping Instructions">
-                        <text-area rows="3" cols="80"/></default-field></field>
-                    <field name="otherPartyOrderId"><conditional-field condition="!isTransfer" title="Their Order" tooltip="Other party purchase or sales order ID">
-                        <text-line size="40"/></conditional-field></field>
-                    <field name="estimatedReadyDate"><conditional-field condition="isOutgoing || isTransfer" title="Ready"><date-time/></conditional-field></field>
-                    <field name="packedDate"><default-field title="Packed"><display/></default-field></field>
-                    <field name="estimatedShipDate"><default-field title="Pack/Ship"><date-time/></default-field></field>
-                    <field name="estimatedArrivalDate"><default-field title="Arrival"><date-time/></default-field></field>
+                <field name="handlingInstructions"><default-field title="Shipping Instructions">
+                    <text-area rows="3" cols="80"/></default-field></field>
+                <field name="otherPartyOrderId"><conditional-field condition="!isTransfer" title="Their Order" tooltip="Other party purchase or sales order ID">
+                    <text-line size="40"/></conditional-field></field>
+                <field name="estimatedReadyDate"><conditional-field condition="isOutgoing || isTransfer" title="Ready"><date-time/></conditional-field></field>
+                <field name="packedDate"><default-field title="Packed"><display/></default-field></field>
+                <field name="estimatedShipDate"><default-field title="Pack/Ship"><date-time/></default-field></field>
+                <field name="estimatedArrivalDate"><default-field title="Arrival"><date-time/></default-field></field>
 
-                    <field name="submitButton"><default-field title="Update Shipment"><submit/></default-field></field>
+                <field name="submitButton"><default-field title="Update Shipment"><submit/></default-field></field>
 
-                    <field-layout>
-                        <field-ref name="carrierAndShipmentMethod"/>
-                        <field-row><field-ref name="shipmentTypeEnumId"/><field-ref name="statusId"/></field-row>
-                        <fields-not-referenced/>
-                        <field-row><field-ref name="estimatedReadyDate"/><field-ref name="packedDate"/></field-row>
-                        <field-row><field-ref name="estimatedShipDate"/><field-ref name="estimatedArrivalDate"/></field-row>
-                        <field-ref name="submitButton"/>
-                    </field-layout>
-                </form-single>
-                <render-mode><text type="html,vuet"><![CDATA[
-                    <script>
-                        $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val());
-                        $("input[name=shippingPostalContactMechId]:radio").change( function() { $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val()); })
-                    </script>
-                ]]></text></render-mode>
-            </widgets><fail-widgets>
+                <field-layout>
+                    <field-ref name="carrierAndShipmentMethod"/>
+                    <field-row><field-ref name="shipmentTypeEnumId"/><field-ref name="statusId"/></field-row>
+                    <fields-not-referenced/>
+                    <field-row><field-ref name="estimatedReadyDate"/><field-ref name="packedDate"/></field-row>
+                    <field-row><field-ref name="estimatedShipDate"/><field-ref name="estimatedArrivalDate"/></field-row>
+                    <field-ref name="submitButton"/>
+                </field-layout>
+            </form-single>
+            <render-mode><text type="html,vuet"><![CDATA[
+                <script>
+                    $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val());
+                    $("input[name=shippingPostalContactMechId]:radio").change( function() { $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val()); })
+                </script>
+            ]]></text></render-mode>
+
+            <!-- deprecated, main form now always displays with more conditional fields:
                 <container type="dl" style="dl-horizontal">
                     <label text="From" type="dt" condition="isIncoming"/>
                     <label text="${fromPartyDetail ? ec.resource.expand('PartyNameTemplate', '', fromPartyDetail) : 'Not Set'}" type="dd" condition="isIncoming"/>
@@ -500,7 +509,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </widgets></section>
                     </widgets></section>
                 </container>
-            </fail-widgets></section>
+            -->
         </row-col><row-col md="6">
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
