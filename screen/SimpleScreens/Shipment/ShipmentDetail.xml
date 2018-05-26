@@ -30,6 +30,9 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="shipShipment"><service-call name="mantle.shipment.ShipmentServices.ship#Shipment"/>
         <default-response url="."/></transition>
+    <transition name="unshipShipment">
+        <service-call name="update#mantle.shipment.Shipment" in-map="[shipmentId:shipmentId, statusId:'ShipPacked']"/>
+        <default-response url="."/></transition>
     <transition name="deliverShipment"><service-call name="mantle.shipment.ShipmentServices.deliver#Shipment"/>
         <default-response url="."/></transition>
     <transition name="receiveEntireShipment"><service-call name="mantle.shipment.ShipmentServices.receive#EntireShipment"/>
@@ -289,7 +292,9 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
                 <section name="ShipShippedInOutSection" condition="isIncoming"><widgets>
                     <link url="deliverShipment" text="Set Delivered" condition="anyReceived"><parameter name="shipmentId"/></link>
-                    <link url="receiveEntireShipment" text="Receive Entire Shipment" ><parameter name="shipmentId"/></link>
+                    <link url="unshipShipment" text="Set Packed (Un-Ship)"><parameter name="shipmentId"/></link>
+                    <link url="receiveEntireShipment" text="Receive Entire Shipment" confirmation="Receive full quantity of all items with defaults?">
+                        <parameter name="shipmentId"/></link>
                     <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
@@ -303,6 +308,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-dialog>
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
 
+                    <link url="unshipShipment" text="Set Packed (Un-Ship)" confirmation="Set shipment status back to Packed?"/>
                     <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
                     <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
                 </fail-widgets></section>
@@ -608,6 +614,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <container-dialog id="SendPlacedEmailDialog" button-text="Send Email">
                             <form-single name="SendPlacedEmailForm" transition="sendShipmentStoreEmail">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                <field name="forceByType"><default-field><hidden default-value="true"/></default-field></field>
                                 <field name="emailTypeEnumId" from="'PsetShipmentShipped'"><default-field><hidden/></default-field></field>
                                 <field name="toAddresses"><default-field title="To Address"><text-line size="40"/></default-field></field>
                                 <field name="submitButton"><default-field title="Send Email"><submit/></default-field></field>
