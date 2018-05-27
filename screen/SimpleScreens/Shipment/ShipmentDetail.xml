@@ -191,6 +191,9 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
 
         <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
+
+        <entity-find-count entity-name="mantle.shipment.ShipmentEmailMessage" count-field="emailMessageCount">
+            <econdition field-name="shipmentId"/></entity-find-count>
     </actions>
     <widgets>
         <container-row><row-col md="6">
@@ -201,12 +204,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <section name="ShipInputInOutSection" condition="isIncoming"><widgets>
                     <link url="scheduleShipment" text="Set Scheduled"/>
                     <link url="shipShipment" text="Set Shipped"/>
-                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?"/>
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
                     <link url="scheduleShipment" text="Set Scheduled" style="btn-success"/>
                     <link url="pickShipment" text="Set Picked"/>
-                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipScheduledSection" condition="shipment.statusId == 'ShipScheduled'"><widgets>
@@ -214,8 +215,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped"/>
                     <link url="deliverShipment" text="Set Delivered" condition="anyReceived"/>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"/>
-                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
-                        <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
                     <link url="pickShipment" text="Set Picked"/>
@@ -228,14 +227,11 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>
-                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
                 <section name="ShipPickedInOuSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped"/>
-                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
-                        <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
                     <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="allItemsPacked" type="success">
@@ -247,8 +243,6 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>
-                    <link url="cancelShipment" text="Cancel Shipment" condition="!anyItemPacked" confirmation="Really cancel shipment?">
-                        <parameter name="shipmentId"/></link>
                 </fail-widgets></section>
             </widgets></section>
 
@@ -271,8 +265,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
                     <link url="deliverShipment" text="Set Delivered" condition="anyReceived"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"><parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
-                        <parameter name="shipmentId"/></link>
                 </widgets></section>
                 <section name="ShipPackedOutSection" condition="isOutgoing || isTransfer"><widgets>
                     <link url="requestShipmentLabels" text="Get Labels"
@@ -295,8 +287,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="unshipShipment" text="Set Packed (Un-Ship)"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment" confirmation="Receive full quantity of all items with defaults?">
                         <parameter name="shipmentId"/></link>
-                    <link url="cancelShipment" text="Cancel Shipment" confirmation="Really cancel shipment?" condition="!anyReceived">
-                        <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
                     <link url="requestShipmentLabels" text="Get Labels"
@@ -313,6 +303,23 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
                 </fail-widgets></section>
             </widgets></section>
+            <section name="ShipShippedSection" condition="shipment.statusId == 'ShipDelivered'"><widgets>
+                <link url="shipShipment" text="Set Shipped (Un-deliver)"/>
+            </widgets></section>
+            <container-dialog id="CancelDialog" button-text="Cancel Shipment" condition="!(shipment.statusId in ['ShipDelivered', 'ShipRejected', 'ShipCancelled'])">
+                <label text="Invoices associated with this shipment will be CANCELLED: ${invoiceIdSet.join(', ')}"
+                        condition="isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-danger"/>
+                <label text="Invoices (found ${invoiceIdSet.size()} associated with this shipment) will not be changed, must be cancelled manually"
+                        condition="!isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-warning"/>
+                <label text="Items have been packed/issued, these will be un-packed and returned to inventory" condition="anyItemPacked" type="p" style="text-danger"/>
+                <label text="Items have been received, all receipt quantities will be set to zero" condition="anyReceived" type="p" style="text-danger"/>
+                <label text="Labels will not be refunded automatically, refund manually if needed" condition="hasAnyLabels" type="p" style="text-warning"/>
+                <label text="Payments associated with this shipment through order or invoice will not be changed" type="p" style="text-warning"/>
+                <label text="Emails have been sent, these cannot be unsent" type="p" style="text-danger" condition="emailMessageCount"/>
+
+                <label text="Are you sure you want to cancel this shipment?"/>
+                <link url="cancelShipment" text="Cancel Shipment"/>
+            </container-dialog>
             <section name="OutgoingTransferSection" condition="isOutgoing || isTransfer"><widgets>
                 <link url="ShipmentPick.pdf" text="Pick PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
                 <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
