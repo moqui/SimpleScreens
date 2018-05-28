@@ -162,10 +162,22 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="shippingPostalAddressList" from="toPartyShippingInfo.postalAddressList ?: []"/>
 
             <if condition="lastRouteSegment.destPostalContactMechId">
-                <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curPaInfo"
+                <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curDestPaInfo"
                         in-map="[partyId:toPartyId, postalContactMechId:lastRouteSegment.destPostalContactMechId]"/>
                 <if condition="!(lastRouteSegment.destPostalContactMechId in shippingPostalAddressList*.postalContactMechId)">
-                    <script>shippingPostalAddressList.add(0, curPaInfo)</script></if>
+                    <script>shippingPostalAddressList.add(0, curDestPaInfo)</script></if>
+            </if>
+        </if>
+        <if condition="isIncoming &amp;&amp; fromPartyId">
+            <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="fromPartyShippingInfo"
+                    in-map="[partyId:fromPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
+            <set field="shippingPostalAddressList" from="fromPartyShippingInfo.postalAddressList ?: []"/>
+
+            <if condition="firstRouteSegment.originPostalContactMechId">
+                <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curOriginPaInfo"
+                        in-map="[partyId:fromPartyId, postalContactMechId:firstRouteSegment.originPostalContactMechId]"/>
+                <if condition="!(firstRouteSegment.originPostalContactMechId in shippingPostalAddressList*.postalContactMechId)">
+                    <script>shippingPostalAddressList.add(0, curOriginPaInfo)</script></if>
             </if>
         </if>
         <!-- NOTE: for isTransfer not getting dest facility address for selection as we want it to change if the facility changes and not get passed through form submit causing wrong address for facility -->
@@ -197,7 +209,7 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container-row><row-col md="6">
-            <label text="Shipment #${shipmentId}" type="h4"/>
+            <label text="${isIncoming ? 'Incoming' : (isOutgoing ? 'Outgoing' : (isTransfer ? 'Transfer' : 'Unknown Type'))} Shipment #${shipmentId}" type="h4"/>
 
             <!-- Links -->
             <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
@@ -215,6 +227,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped"/>
                     <link url="deliverShipment" text="Set Delivered" condition="anyReceived"/>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"/>
+                    <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
                     <link url="pickShipment" text="Set Picked"/>
@@ -365,13 +378,13 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="${shippingGatewayConfig.description}" type="dd" condition="shippingGatewayConfig != null"/>
             </container>
 
-            <!-- Header -->
-            <section name="DestPostalAddressSection" condition="isOutgoing &amp;&amp; (allowUpdate || shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
-                <container><dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
+            <!-- Address Selection - Outgoing -->
+            <section name="PostalAddressSelectDestSection" condition="isOutgoing &amp;&amp; (allowUpdate || shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
+                <container><dynamic-dialog id="AddPostalInfoDest" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
                         parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
                 <label text="No shipping address selected" style="text-danger" type="p" condition="!lastRouteSegment.destPostalContactMechId"/>
                 <container style="float-box" type="ul">
-                    <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="contactInfo"><actions>
+                    <section-iterate name="ShippingAddressDestList" list="shippingPostalAddressList" entry="contactInfo"><actions>
                         <set field="checkRadio" from="(lastRouteSegment.destPostalContactMechId &amp;&amp; lastRouteSegment.destPostalContactMechId == contactInfo.postalContactMechId)"/>
                     </actions><widgets>
                         <container type="li" style="box-narrow">
@@ -396,9 +409,68 @@ along with this software (see the LICENSE.md file). If not, see
                 </container>
                 <label text="No shipment method selected" style="text-warning" type="p" condition="!firstRouteSegment.shipmentMethodEnumId"/>
                 <label text="&amp;nbsp;" type="p" encode="false"/>
-            </widgets></section>
+            </widgets><fail-widgets>
+                <section name="ShippedShippingDestInfo" condition="curDestPaInfo"><actions><set field="contactInfo" from="curDestPaInfo"/></actions><widgets>
+                    <container type="dl" style="dl-horizontal">
+                        <label text="Destination" type="dt"/>
+                        <container type="dd">
+                            <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                            <container><label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/></container>
+                            <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
+                        </container>
+                    </container>
+                </widgets></section>
+            </fail-widgets></section>
+            <!-- Address Selection - Incoming -->
+            <section name="PostalAddressSelectOriginSection" condition="isIncoming &amp;&amp; allowUpdate"><widgets>
+                <!-- TODO: better handling of postalContactMechPurposeId, using PostalShippingDest for use case of incoming shipments for returns from customers -->
+                <!-- TODO: any changes for postalContactMechPurposeId should be done in actions finds and elsewhere too -->
+                <container><dynamic-dialog id="AddPostalInfoOrigin" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
+                        parameter-map="[partyId:fromPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
+                <label text="No shipping address selected" style="text-danger" type="p" condition="!lastRouteSegment.destPostalContactMechId"/>
+                <container style="float-box" type="ul">
+                    <section-iterate name="ShippingAddressOriginList" list="shippingPostalAddressList" entry="contactInfo"><actions>
+                        <set field="checkRadio" from="(firstRouteSegment.originPostalContactMechId &amp;&amp; firstRouteSegment.originPostalContactMechId == contactInfo.postalContactMechId)"/>
+                    </actions><widgets>
+                        <container type="li" style="box-narrow">
+                            <render-mode><text type="html,vuet"><![CDATA[
+                                <div class="text-center"><input type="radio" name="shippingPostalContactMechId" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
+                            ]]></text></render-mode>
+                            <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                            <dynamic-dialog id="UpdatePostalInfoOrigin" button-text="Update Address" transition="UpdateContactInfo"
+                                    width="800" condition="allowUpdate"
+                                    parameter-map="[partyId:fromPartyId, postalContactMechId:contactInfo.postalContactMechId,
+                                            postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, shipmentId:shipmentId]"/>
+
+                            <container>
+                                <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
+                                <link url="validateAddress" text="Validate"
+                                        parameter-map="[shipmentId:shipmentId, partyId:fromPartyId, contactMechId:contactInfo.postalContactMechId]"
+                                        condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
+                            </container>
+                            <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
+                        </container>
+                    </widgets></section-iterate>
+                </container>
+                <label text="No shipment method selected" style="text-warning" type="p" condition="!firstRouteSegment.shipmentMethodEnumId"/>
+                <label text="&amp;nbsp;" type="p" encode="false"/>
+            </widgets><fail-widgets>
+                <section name="ShippedShippingOriginInfo" condition="curOriginPaInfo"><actions><set field="contactInfo" from="curOriginPaInfo"/></actions><widgets>
+                    <container type="dl" style="dl-horizontal">
+                        <label text="Origin" type="dt"/>
+                        <container type="dd">
+                            <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                            <container><label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/></container>
+                            <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
+                        </container>
+                    </container>
+                </widgets></section>
+            </fail-widgets></section>
+
+            <!-- Main/Header Form -->
             <form-single name="EditShipment" transition="updateShipment" map="shipment">
                 <field name="shipmentId"><default-field><hidden/></default-field></field>
+                <field name="originPostalContactMechId"><default-field><hidden/></default-field></field>
                 <field name="destPostalContactMechId"><default-field><hidden/></default-field></field>
 
                 <field name="carrierAndShipmentMethod"><conditional-field title="Ship By" condition="!hasAllLabels || !packageRouteSegList">
@@ -484,12 +556,18 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-ref name="submitButton"/>
                 </field-layout>
             </form-single>
-            <render-mode><text type="html,vuet"><![CDATA[
+            <section name="PostalSelectJsOutSection" condition="isOutgoing"><widgets><render-mode><text type="html,vuet"><![CDATA[
                 <script>
                     $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val());
                     $("input[name=shippingPostalContactMechId]:radio").change( function() { $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val()); })
                 </script>
-            ]]></text></render-mode>
+            ]]></text></render-mode></widgets></section>
+            <section name="PostalSelectJsInSection" condition="isIncoming"><widgets><render-mode><text type="html,vuet"><![CDATA[
+                <script>
+                    $("#EditShipment_originPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val());
+                    $("input[name=shippingPostalContactMechId]:radio").change( function() { $("#EditShipment_originPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val()); })
+                </script>
+            ]]></text></render-mode></widgets></section>
 
             <!-- deprecated, main form now always displays with more conditional fields:
                 <container type="dl" style="dl-horizontal">
@@ -512,7 +590,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="Ship By" type="dt"/><label text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod?.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}" type="dd"/>
                         <label text="Shipping Instructions" type="dt" condition="shipment.handlingInstructions"/>
                         <label text="${shipment.handlingInstructions}" type="dd" condition="shipment.handlingInstructions"/>
-                        <section name="ShippedShippingInfo" condition="curPaInfo"><actions><set field="contactInfo" from="curPaInfo"/></actions><widgets>
+                        <section name="ShippedShippingInfo" condition="curDestPaInfo"><actions><set field="contactInfo" from="curDestPaInfo"/></actions><widgets>
                             <label text="Destination" type="dt"/>
                             <container type="dd">
                                 <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
@@ -526,7 +604,7 @@ along with this software (see the LICENSE.md file). If not, see
         </row-col><row-col md="6">
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
-            <section name="OrderNotesSection"><widgets>
+            <section name="OrderNotesSection" condition="orderNoteList"><widgets>
                 <container-box><box-header title="Order Notes"/><box-body>
                     <section-iterate name="NoteIterateSection" list="orderNoteList" entry="note"><actions>
                         <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
@@ -653,7 +731,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <!-- Items -->
         <container-box><box-header title="Shipment Items"/><box-toolbar>
-            <section name="ShipItemInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
+            <section name="ShipItemInputSection" condition="shipment.statusId in ['ShipInput', 'ShipScheduled']"><widgets>
                 <container-dialog id="AddItemContainer" button-text="Add Item">
                     <form-single name="AddItemForm" transition="addItem">
                         <field name="shipmentId"><default-field><hidden/></default-field></field>
@@ -984,7 +1062,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-dialog>
 
                         <link url="requestShipmentLabels" text="Get Label"
-                                condition="shippingGatewayConfigId &amp;&amp; !hasLabel &amp;&amp; destContactMechValid"
+                                condition="shippingGatewayConfigId &amp;&amp; !hasLabel &amp;&amp; (destContactMechValid || isIncoming)"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
                                     shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
                         <container-dialog id="RequestPkgLabelDialog" button-text="Get Label" type="warning"
