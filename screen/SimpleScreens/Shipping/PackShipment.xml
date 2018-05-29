@@ -57,8 +57,8 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
 
-        <!-- TODO: improve; session maintained active (or first package with no box/weight?) -->
-        <set field="activePackageSeqId" from="shipmentPackageList ? shipmentPackageList[0].shipmentPackageSeqId : null"/>
+        <!-- maybe improve; session maintained active (or first package with no box/weight?) -->
+        <set field="activePackageSeqId" from="shipmentPackageList?.find({ !it.weight &amp;&amp; !it.shipmentBoxTypeId })?.shipmentPackageSeqId"/>
     </actions>
     <widgets>
         <!--
@@ -72,8 +72,8 @@ along with this software (see the LICENSE.md file). If not, see
                - if got labels and a network printer is selected send to printer
         -->
 
-        <container-row><row-col md="6">
-            <container><label text="Pack Shipment "/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></container>
+        <container-row><row-col lg="6">
+            <container style="text-strong"><label text="Pack Shipment "/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></container>
             <!--
                 scan input (product or asset ID, other product IDs like SKU/UPC/etc), auto-focused
                 quantity input default 1 (with up/down buttons?)
@@ -94,10 +94,16 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
             </form-single>
 
-            <!-- close package form, set current package box type and weight; clears active package so next item scan goes in new package -->
+            <!-- close package form, set current package box type and weight -->
+            <!-- TODO clears active package so next item scan goes in new package -->
             <!-- TODO: don't auto package for this screen, should be store level setting or something; maybe even kill package contents records if there are any? -->
+            <form-single name="CloseBoxForm" transition="">
+
+            </form-single>
 
             <!-- warning if payment not authorized -->
+            
+
             <!-- Pack Completed dialog
                 - disabled unless at least one item packed and non-empty packages have box type and weight
                 - dynamic dialog, load with carrier/method rates looked up and cheapest for method selected
@@ -120,12 +126,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="shipmentPackageContentList" from="shipmentPackage.contents"/>
                 <set field="packageRouteSeg" from="packageRouteSegList.find({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId &amp;&amp; it.shipmentRouteSegmentSeqId == firstRouteSegment.shipmentRouteSegmentSeqId })"/>
                 <set field="hasLabel" from="packageRouteSeg.gatewayLabelId || packageRouteSeg.labelImage != null || packageRouteSeg.labelUrl"/>
-                <set field="hasReturnLabel" from="packageRouteSeg.returnGatewayLabelId || packageRouteSeg.returnLabelImage != null || packageRouteSeg.returnLabelUrl"/>
                 <set field="trackingStatusEnum" from="packageRouteSeg?.trackingStatusEnum"/>
-                <set field="returnTrackingStatusEnum" from="packageRouteSeg?.returnTrackingStatusEnum"/>
                 <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
             </actions><widgets>
-                <container-box type="warning"><box-header title="Package ${shipmentPackage.shipmentPackageSeqId}"/><box-toolbar>
+                <container-box type="${shipmentBoxType &amp;&amp; shipmentPackage.weight ? 'success' : (activePackageSeqId == shipmentPackage.shipmentPackageSeqId ? 'info' : 'warning')}">
+                <box-header title="Package ${shipmentPackage.shipmentPackageSeqId}"/><box-toolbar>
                     <container-dialog id="UpdatePackageDialog" button-text="Update Package">
                         <form-single name="UpdatePackageForm" map="packageAndRouteSeg" transition="updatePackageAndRouteSeg">
                             <field name="shipmentId"><default-field><hidden/></default-field></field>
@@ -198,28 +203,13 @@ along with this software (see the LICENSE.md file). If not, see
                             condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId"
                             parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
                                 shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
-                    <link url="removeShipmentReturnLabelInfo" text="Clear Ret Label Info" style="btn-danger"
-                            confirmation="Clear return label data? This will allow getting a new label, and system keeps a history of label IDs, but otherwise current label will no longer be tracked. Use only when there are errors, etc with the label."
-                            condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.returnGatewayLabelId"
-                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
-                                shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
+
                     <link url="deletePackage" text="Delete Package" condition="!shipmentPackageContentList" style="btn-danger"
                             confirmation="Delete package ${shipmentPackage.shipmentPackageSeqId}?"
                             parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId]"/>
 
-                    <link url="trackShipmentLabels" text="Track" style="btn-warning"
-                            condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId"
-                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
-                                shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
-                    <link url="${packageRouteSeg.trackingUrl}" text="Carrier Track" url-type="plain" target-window="_blank"
-                            style="btn-warning" condition="packageRouteSeg?.trackingUrl"/>
-                    <link url="${packageRouteSeg.returnTrackingUrl}" text="Carrier Ret Track" url-type="plain" style="btn-info"
-                            target-window="_blank" condition="packageRouteSeg?.returnTrackingUrl"/>
-
                     <link url="${packageRouteSeg.labelUrl}" text="Download Label" url-type="plain" target-window="_blank"
                             style="btn-success" condition="packageRouteSeg?.labelUrl"/>
-                    <link url="${packageRouteSeg.returnLabelUrl}" text="Download Ret Label" url-type="plain" target-window="_blank"
-                            style="btn-info" condition="packageRouteSeg?.returnLabelUrl"/>
                     <container-dialog id="PrintLabelDialog" button-text="Print Label" type="success"
                             condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null">
                         <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
@@ -234,41 +224,29 @@ along with this software (see the LICENSE.md file). If not, see
                                         <order-by field-name="description,printerName"/></entity-find></entity-options>
                             </drop-down></default-field></field>
                             <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
-                            <field name="returnLabels"><default-field title=""><radio no-current-selected-key="false">
-                                <option key="false" text="Outgoing Labels"/><option key="true" text="Return Labels"/></radio></default-field></field>
+                            <field name="returnLabels"><default-field><hidden default-value="false"/></default-field></field>
                             <field name="submitButton"><default-field title="Print"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>
                 </box-toolbar><box-body>
                     <container-row>
-                        <row-col sm="1"><label text="Status" type="strong"/></row-col>
+                        <row-col sm="2"><label text="Status" type="strong"/></row-col>
                         <row-col sm="2"><label text="${trackingStatusEnum?.description?:'N/A'}${packageRouteSeg.trackingSubStatus ? ' (' + packageRouteSeg.trackingSubStatus + ')' : ''}"/></row-col>
-                        <row-col sm="1"><label text="Box" type="strong"/></row-col>
-                        <row-col sm="4"><label text="${shipmentBoxType?.description?:'N/A'} - ${ec.l10n.format(shipmentPackage.weight, null)?:'N/A'} ${weightUom?.description?:''}" style="text-info"/></row-col>
-                        <row-col sm="1"><label text="Tracking" type="strong"/></row-col>
-                        <row-col sm="3"><label text="${packageRouteSeg?.trackingCode?:'N/A'}" type="div"/></row-col>
+                        <row-col sm="2"><label text="Box" type="strong"/></row-col>
+                        <row-col sm="6"><label text="${shipmentBoxType?.description?:'N/A'} - ${ec.l10n.format(shipmentPackage.weight, null)?:'N/A'} ${weightUom?.description?:''}"/></row-col>
                     </container-row>
                     <container-row>
-                        <row-col sm="1"><label text="ETA" type="strong"/></row-col>
-                        <row-col sm="2"><label text="${packageRouteSeg?.trackingEta ? ec.l10n.format(packageRouteSeg.trackingEta, null) : 'N/A'}"
-                                style="${packageRouteSeg?.trackingEta &lt;= packageRouteSeg?.trackingOrigEta ? 'text-success' : 'text-warning'}"/></row-col>
-                        <row-col sm="1"><label text="Orig. ETA" type="strong"/></row-col>
-                        <row-col sm="2"><label text="${packageRouteSeg?.trackingOrigEta ? ec.l10n.format(packageRouteSeg.trackingOrigEta, null) : 'N/A'}"/></row-col>
+                        <row-col sm="2"><label text="Tracking" type="strong"/></row-col>
+                        <row-col sm="6"><label text="${packageRouteSeg?.trackingCode?:'N/A'}" type="div"/></row-col>
 
-                        <row-col sm="1"><label text="Label ID" type="strong"/></row-col>
-                        <row-col sm="3"><label text="${packageRouteSeg?.gatewayLabelId?:'N/A'}"/></row-col>
-                        <!--
-                        <row-col sm="1"><label text="Rate ID" type="strong"/></row-col>
-                        <row-col sm="3"><label text="${packageRouteSeg?.gatewayRateId?:'N/A'}"/></row-col>
-                        -->
-                        <row-col sm="1"><label text="Amount" type="strong"/></row-col>
-                        <row-col sm="1"><label text="${ec.l10n.format(packageRouteSeg?.estimatedAmount, '#,##0.00')}" style="text-success"/></row-col>
+                        <row-col sm="2"><label text="Amount" type="strong"/></row-col>
+                        <row-col sm="2"><label text="${ec.l10n.format(packageRouteSeg?.estimatedAmount, '#,##0.00')}" style="text-success"/></row-col>
                     </container-row>
                     <container-row>
-                        <row-col sm="1"><label text="Gateway" type="strong"/></row-col>
+                        <row-col sm="2"><label text="Gateway" type="strong"/></row-col>
                         <row-col sm="2"><label text="${packageRouteSeg?.gatewayStatus?:'N/A'}"/></row-col>
-                        <row-col sm="1"><label text="Message" type="strong"/></row-col>
-                        <row-col sm="8"><label text="${packageRouteSeg?.gatewayMessage?:'N/A'}"/></row-col>
+                        <row-col sm="2"><label text="Message" type="strong"/></row-col>
+                        <row-col sm="6"><label text="${packageRouteSeg?.gatewayMessage?:'N/A'}"/></row-col>
                     </container-row>
                     <section name="LabelRefundSection" condition="packageRouteSeg?.gatewayRefundId"><widgets>
                         <container-row>
@@ -276,22 +254,6 @@ along with this software (see the LICENSE.md file). If not, see
                             <row-col sm="1"><label text="${packageRouteSeg?.gatewayRefundStatus?:'N/A'}"/></row-col>
                             <row-col sm="1"><label text="Refund ID" type="strong"/></row-col>
                             <row-col sm="3"><label text="${packageRouteSeg?.gatewayRefundId?:'N/A'}"/></row-col>
-                        </container-row>
-                    </widgets></section>
-                    <section name="LabelReturnSection" condition="hasReturnLabel"><widgets>
-                        <container-row>
-                            <row-col sm="1"><label text="Ret Status" type="strong"/></row-col>
-                            <row-col sm="1"><label text="${returnTrackingStatusEnum?.description?:'N/A'}"/></row-col>
-                            <row-col sm="1"><label text="Ret Message" type="strong"/></row-col>
-                            <row-col sm="5"><label text="${packageRouteSeg?.returnGatewayMessage?:'N/A'}"/></row-col>
-                            <row-col sm="1"><label text="Ret Tracking" type="strong"/></row-col>
-                            <row-col sm="3"><label text="${packageRouteSeg?.returnTrackingCode?:'N/A'}"/></row-col>
-                        </container-row>
-                        <container-row>
-                            <row-col sm="1"><label text="Ret Label" type="strong"/></row-col>
-                            <row-col sm="3"><label text="${packageRouteSeg?.returnGatewayLabelId?:'N/A'}"/></row-col>
-                            <row-col sm="1"><label text="Ret Amount" type="strong"/></row-col>
-                            <row-col sm="3"><label text="${ec.l10n.format(packageRouteSeg?.returnEstimatedAmount, '#,##0.00')}" style="text-success"/></row-col>
                         </container-row>
                     </widgets></section>
                 </box-body><box-body-nopad>
@@ -306,7 +268,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section-iterate>
-        </row-col><row-col md="6">
+        </row-col><row-col lg="6">
             <!-- product/item list -->
             <!-- pack/issue form -->
             <!-- unpack button -->
@@ -330,7 +292,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="packageContentTotal" from="(packageContentList*.quantity).sum() ?: 0.0"/>
                 <set field="quantityNotInPackage" from="((BigDecimal) sid.quantity ?: 0.0) - packageContentTotal"/>
             </actions><widgets>
-                <container-box type="info"><box-header title="${ec.resource.expand('ProductNameTemplate', '', sid)} (Qty ${ec.l10n.format(sid.quantity ?: 0, '#.##')})"/><box-toolbar>
+                <container-box><box-header title="${ec.resource.expand('ProductNameTemplate', '', sid)} (Qty ${ec.l10n.format(sid.quantity ?: 0, '#.##')})"/><box-toolbar>
                     <section name="PackItemSection" condition="allowPack"><widgets>
                         <container-dialog id="PackItemContainer" button-text="Pack/Issue Item" type="success">
                             <form-single name="PackItemForm" transition="packShipmentProduct" map="sid">
@@ -396,16 +358,14 @@ along with this software (see the LICENSE.md file). If not, see
                             </row-actions>
                             <field name="shipmentId"><default-field><hidden/></default-field></field>
                             <field name="shipmentItemSourceId"><default-field><hidden/></default-field></field>
-                            <field name="orderId"><default-field title="Order">
-                                <link url="orderDetail" text="${orderId?:''}" link-type="anchor"/></default-field></field>
-                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="orderId"><default-field title="Order Item">
+                                <link url="orderDetail" text="${orderId?:''}:${orderItemSeqId?:''}" link-type="anchor" condition="orderId"/></default-field></field>
 
-                            <field name="quantitySis" from="quantity">
-                                <default-field title="Quantity"><display/></default-field></field>
-                            <field name="quantityNotHandled"><default-field title="Not Issued"><display/></default-field></field>
+                            <field name="quantitySis" from="quantity"><default-field title="Qty"><display/></default-field></field>
+                            <field name="quantityNotHandled"><default-field title="Rem"><display/></default-field></field>
 
                             <field name="invoiceId"><default-field title="Invoice Item">
-                                <link url="editInvoice" text="${invoiceId?:''}:${invoiceItemSeqId?:''}" link-type="anchor"/></default-field></field>
+                                <link url="editInvoice" text="${invoiceId?:''}:${invoiceItemSeqId?:''}" link-type="anchor" condition="invoiceId"/></default-field></field>
 
                             <field name="assetReservations">
                                 <conditional-field condition="existingResList">
@@ -427,12 +387,13 @@ along with this software (see the LICENSE.md file). If not, see
                             <row-actions>
                                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
                                 <entity-find-one entity-name="mantle.product.issuance.AssetReservation" value-field="res"/>
-                                <filter-map-list list="acctgTransList" to-list="issAcctgTransList">
-                                    <field-map field-name="assetIssuanceId"/></filter-map-list>
                             </row-actions>
-                            <field name="issuedDate"><default-field title="Issued Date"><display/></default-field></field>
-                            <field name="quantity"><default-field title="Quantity"><display/></default-field></field>
 
+                            <field name="quantity"><default-field title="Issued"><display/></default-field></field>
+                            <field name="issuedDate"><default-field title="Issued Date"><display/></default-field></field>
+
+                            <field name="orderId"><default-field title="Order Item">
+                                <link url="orderDetail" text="${orderId?:''}:${orderItemSeqId?:''}" link-type="anchor"/></default-field></field>
                             <field name="assetId"><default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
                             <field name="assetReservationId">
                                 <conditional-field condition="res">
@@ -440,24 +401,22 @@ along with this software (see the LICENSE.md file). If not, see
                                 </conditional-field>
                                 <default-field title="Reservation"><display/></default-field>
                             </field>
-
-                            <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
-                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
-                            <field name="acctgTransList"><default-field title="TX">
-                                <section-iterate name="IssAcctgTransList" list="issAcctgTransList" entry="issAcctgTrans"><widgets>
-                                    <link url="editTransaction" text="${issAcctgTrans.acctgTransId}" link-type="anchor"
-                                            parameter-map="[acctgTransId:issAcctgTrans.acctgTransId]"/>
-                                </widgets></section-iterate>
-                            </default-field></field>
-                            <field name="locationSeqId"><default-field title="Was Stored At">
-                                <display text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></default-field></field>
                             <field name="lotId"><default-field title="Lot">
                                 <display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field></field>
+
+                            <field name="locationSeqId"><default-field title="Was Stored At">
+                                <display text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></default-field></field>
                             <field name="unpackLink"><default-field title=""><link url="unpackItemIssuance" text="Unpack"
                                     parameter-map="[shipmentId:shipmentId, assetIssuanceId:assetIssuanceId]"
                                     condition="!invoiceId &amp;&amp; quantity"
                                     confirmation="Are you sure? Only do this when necessary to avoid processing a return to receive the item back into inventory."/>
                             </default-field></field>
+                            
+                            <form-list-column><field-ref name="quantity"/><!-- <field-ref name="issuedDate"/> --></form-list-column>
+                            <form-list-column><field-ref name="orderId"/><field-ref name="assetId"/></form-list-column>
+                            <form-list-column><field-ref name="assetReservationId"/><field-ref name="lotId"/></form-list-column>
+                            <form-list-column><field-ref name="locationSeqId"/></form-list-column>
+                            <form-list-column><field-ref name="unpackLink"/></form-list-column>
                         </form-list>
                     </widgets></section>
                 </box-body-nopad></container-box>
