@@ -17,6 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="shipmentId" required="true"/>
 
+    <transition name="packShipmentScreen"><default-response url="//${appRoot}/Shipping/PackShipment"/></transition>
     <transition name="updateShipment"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentAndRouteSegment"/>
         <default-response url="."/></transition>
 
@@ -98,6 +99,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
 
     <transition name="createPackage"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentPackage"/>
+        <default-response url="."/></transition>
+    <transition name="resetShipmentPackage"><service-call name="mantle.shipment.ShipmentServices.reset#ShipmentPackage"/>
         <default-response url="."/></transition>
     <transition name="deletePackage"><service-call name="mantle.shipment.ShipmentServices.delete#ShipmentPackage"/>
         <default-response url="."/></transition>
@@ -349,6 +352,7 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section-iterate>
             -->
 
+            <link url="packShipmentScreen" text="Pack Screen"/>
             <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
                 <form-list name="AuditLogList" list="auditLogList" skip-form="true">
                     <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
@@ -1022,7 +1026,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <section-iterate name="PackageListSection" list="shipmentPackageList" entry="shipmentPackage"><actions>
                     <set field="shipmentBoxType" from="shipmentPackage.boxType"/>
                     <set field="weightUom" from="shipmentPackage.weightUom"/>
-                    <set field="shipmentPackageContentList" from="shipmentPackage.contents"/>
+                    <set field="shipmentPackageContentList" from="allShipmentPackageContentList.findAll({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId })"/>
                     <set field="packageRouteSeg" from="packageRouteSegList.find({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId &amp;&amp; it.shipmentRouteSegmentSeqId == firstRouteSegment.shipmentRouteSegmentSeqId })"/>
                     <set field="hasLabel" from="packageRouteSeg.gatewayLabelId || packageRouteSeg.labelImage != null || packageRouteSeg.labelUrl"/>
                     <set field="hasReturnLabel" from="packageRouteSeg.returnGatewayLabelId || packageRouteSeg.returnLabelImage != null || packageRouteSeg.returnLabelUrl"/>
@@ -1108,7 +1112,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.returnGatewayLabelId"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
                                     shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
-                        <link url="deletePackage" text="Delete Package" condition="!shipmentPackageContentList" style="btn-danger"
+                        <link url="resetShipmentPackage" text="Reset" confirmation="Reset box type, weight, and contents?" style="btn-danger"
+                                parameter-map="[shipmentId:packageAndRouteSeg.shipmentId, shipmentPackageSeqId:packageAndRouteSeg.shipmentPackageSeqId]"/>
+                        <link url="deletePackage" text="Delete" condition="!shipmentPackageContentList" style="btn-danger"
                                 confirmation="Delete package ${shipmentPackage.shipmentPackageSeqId}?"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId]"/>
 
