@@ -45,7 +45,7 @@ along with this software (see the LICENSE.md file). If not, see
     <fo:page-sequence master-reference="letter-portrait" initial-page-number="1" force-page-count="no-force">
         <fo:static-content flow-name="xsl-region-before">
             <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center"><@encodeText fromPartyDetail.organizationName!""/><@encodeText fromPartyDetail.firstName!""/> <@encodeText fromPartyDetail.lastName!""/></fo:block></#if>
-            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment Pack Sheet</fo:block>
+            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment Insert</fo:block>
             <#if logoImageLocation?has_content>
                 <fo:block-container absolute-position="absolute" top="0in" left="0.1in" width="2in">
                     <fo:block text-align="left">
@@ -158,41 +158,6 @@ along with this software (see the LICENSE.md file). If not, see
             <#if shipment.handlingInstructions?has_content>
                 <fo:block font-weight="bold" margin-top="0.1in">Shipping Instructions</fo:block>
                 <fo:block><@encodeText shipment.handlingInstructions/></fo:block>
-            </#if>
-
-            <#if productInfoList?has_content>
-                <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="10pt">
-                    <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
-                        <fo:table-cell width="3.5in" padding="${cellPadding}"><fo:block text-align="left">ID Barcode</fo:block></fo:table-cell>
-                        <fo:table-cell width="3in" padding="${cellPadding}"><fo:block text-align="left">Product</fo:block></fo:table-cell>
-                        <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="center">Quantity</fo:block></fo:table-cell>
-                    </fo:table-header>
-                    <fo:table-body>
-                    <#list productInfoList as productInfo>
-                        <fo:table-row font-size="9pt" border-top="solid black">
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">
-                                <fo:instream-foreign-object>
-                                    <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.pseudoId}">
-                                        <barcode:code128>
-                                            <barcode:height>0.4in</barcode:height>
-                                            <barcode:module-width>0.25mm</barcode:module-width>
-                                        </barcode:code128>
-                                        <barcode:human-readable>
-                                            <barcode:placement>bottom</barcode:placement>
-                                            <barcode:font-name>Helvetica</barcode:font-name>
-                                            <barcode:font-size>7pt</barcode:font-size>
-                                            <barcode:display-start-stop>false</barcode:display-start-stop>
-                                            <barcode:display-checksum>false</barcode:display-checksum>
-                                        </barcode:human-readable>
-                                    </barcode:barcode>
-                                </fo:instream-foreign-object>
-                            </fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${productInfo.quantity}</fo:block></fo:table-cell>
-                        </fo:table-row>
-                    </#list>
-                    </fo:table-body>
-                </fo:table>
             </#if>
 
             <#list packageInfoList as packageInfo><#if packageInfo.contentInfoList?has_content>

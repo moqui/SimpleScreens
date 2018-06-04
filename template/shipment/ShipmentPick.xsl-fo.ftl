@@ -144,7 +144,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-row font-size="9pt" border-top="solid black">
                             <fo:table-cell padding="${cellPadding}" number-columns-spanned="4"><fo:block text-align="center">
                                 <fo:instream-foreign-object>
-                                    <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.productId}">
+                                    <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.pseudoId}">
                                         <barcode:code128>
                                             <barcode:height>0.4in</barcode:height>
                                             <barcode:module-width>0.25mm</barcode:module-width>
@@ -249,7 +249,7 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:table-row font-size="9pt">
                 <fo:table-cell padding="${cellPadding}" number-columns-spanned="4"><fo:block text-align="center">
                     <fo:instream-foreign-object>
-                        <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.productId}">
+                        <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.pseudoId}">
                             <barcode:code128>
                                 <barcode:height>0.4in</barcode:height>
                                 <barcode:module-width>0.25mm</barcode:module-width>

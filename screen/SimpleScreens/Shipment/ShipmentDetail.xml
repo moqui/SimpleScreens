@@ -140,6 +140,12 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/>
         </default-response>
     </transition>
+    <transition name="ShipmentInsert.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentInsert" url-type="plain">
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentInsert-${shipmentId}.pdf"/>
+        </default-response>
+    </transition>
     <transition name="ShipmentByPackage.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentByPackage" url-type="plain">
             <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
@@ -338,8 +344,9 @@ along with this software (see the LICENSE.md file). If not, see
             </container-dialog>
             <section name="OutgoingTransferSection" condition="isOutgoing || isTransfer"><widgets>
                 <link url="ShipmentPick.pdf" text="Pick PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
+                <link url="ShipmentPack.pdf" text="Pack PDF" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
                 <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
-                <link url="ShipmentPack.pdf" text="Pack Insert PDF" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
+                <link url="ShipmentInsert.pdf" text="Insert PDF" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
             </widgets></section>
 
             <section-iterate name="OrderLinks" list="orderIdSet" entry="orderId"><widgets>
