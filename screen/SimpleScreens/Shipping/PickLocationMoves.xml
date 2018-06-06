@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Pick Location Moves" default-menu-index="4">
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <actions>
+    </actions>
+    <widgets>
+        <form-list name="PickMoveList" list="pickMoveList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true">
+            <entity-find entity-name="mantle.work.effort.WorkEffortShipmentLoadFind" list="pickMoveList">
+                <search-form-inputs default-order-by="estimatedStartDate">
+                    <default-parameters statusId="WeInPlanning,WeApproved,WeInProgress,WeOnHold" statusId_op="in"/></search-form-inputs>
+                <econdition field-name="purposeEnumId" value="WepShipmentShip"/>
+                <select-field field-name="workEffortName"/>
+            </entity-find>
+
+            <field name="facilityId">
+                <header-field title="Facility" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/>
+                </drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field>
+                <default-field><display text=" "/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>

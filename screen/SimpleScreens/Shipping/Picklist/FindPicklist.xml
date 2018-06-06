@@ -24,13 +24,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="equipmentDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
-    <actions>
-        <entity-find entity-name="mantle.product.asset.Asset" list="allEquipmentList">
-            <econdition field-name="assetTypeEnumId" value="AstTpEquipment"/>
-            <order-by field-name="assetName"/>
-        </entity-find>
-    </actions>
     <widgets>
         <container>
             <container-dialog id="NewPicklistContainer" button-text="New Picklist">
@@ -43,10 +38,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <default-field title="Start Date"><date-time/></default-field></field>
                     <field name="estimatedWorkDuration"><default-field title="Est. Hours">
                         <text-line size="8" default-value="1"/></default-field></field>
-                    <field name="assetIdList"><default-field title="Truck / Equipment">
-                        <drop-down allow-empty="true" allow-multiple="true">
-                            <list-options list="allEquipmentList" key="${assetId}" text="AssetNameTemplate"/></drop-down>
-                    </default-field></field>
+                    <!-- <field name="assetIdList"><default-field title="Truck / Equipment">
+                        <drop-down allow-multiple="true"><dynamic-options transition="getAssetList" server-search="true" min-length="0"
+                                parameter-map="[assetTypeEnumId:'AstTpEquipment']"/></drop-down>
+                    </default-field></field> -->
                     <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
@@ -91,8 +86,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
             </field>
 
-            <field name="assetId"><header-field title="Equipment"><drop-down allow-empty="true">
-                <list-options list="allEquipmentList" key="${assetId}" text="AssetNameTemplate"/></drop-down></header-field></field>
+            <field name="assetId"><header-field title="Equipment">
+                <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="0"
+                        parameter-map="[assetTypeEnumId:'AstTpEquipment']"/></drop-down>
+            </header-field></field>
             <field name="assetList"><default-field title="Equipment">
                 <section-iterate name="AssetList" list="assetList" entry="asset">
                     <widgets><link url="equipmentDetail" text="AssetNameTemplate" text-map="asset"

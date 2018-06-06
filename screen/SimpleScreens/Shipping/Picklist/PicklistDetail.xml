@@ -48,6 +48,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <transition name="Picklist.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/Picklist/ShipmentLoadPick" url-type="plain">
@@ -68,11 +69,6 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="statusChangeTransition" value="updateShipmentLoad"/>
         <set field="changedEntityName" value="mantle.work.effort.WorkEffort"/>
         <set field="pkPrimaryValue" from="workEffortId"/>
-
-        <entity-find entity-name="mantle.product.asset.Asset" list="allEquipmentList">
-            <econdition field-name="assetTypeEnumId" value="AstTpEquipment"/>
-            <order-by field-name="assetName"/>
-        </entity-find>
 
         <!-- Equipment Assignments -->
         <entity-find entity-name="mantle.work.effort.WorkEffortAssetAndAssign" list="assetList">
@@ -220,7 +216,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <form-single name="AddAsset" transition="addAssetAssign">
                         <field name="workEffortId"><default-field><hidden/></default-field></field>
                         <field name="assetId"><default-field title="Truck / Equipment">
-                            <drop-down><list-options list="allEquipmentList" key="${assetId}" text="AssetNameTemplate"/></drop-down>
+                            <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="0"
+                                    parameter-map="[assetTypeEnumId:'AstTpEquipment']"/></drop-down>
                         </default-field></field>
                         <field name="statusId" from="null"><default-field>
                             <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
