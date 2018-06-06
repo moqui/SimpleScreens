@@ -73,12 +73,27 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
                     <select-field field-name="partyId,pseudoId,firstName,lastName,organizationName,description"/>
                 </entity-find>
+                <!-- Shipment Quantities - single value, could be optimized with sub-select -->
+                <entity-find entity-name="mantle.shipment.ShipmentItemSourceSummary" list="sisSummaryList">
+                    <econdition field-name="shipmentId"/>
+                    <select-field field-name="quantity,quantityNotHandled"/>
+                </entity-find>
+                <set field="quantityTotal" from="sisSummaryList.first()?.quantity ?: 0.0"/>
+                <set field="quantityNotHandled" from="sisSummaryList.first()?.quantityNotHandled ?: 0.0"/>
+                <!-- Pick vs other location reservations - single value, could be optimized with sub-select -->
+                <entity-find entity-name="mantle.product.issuance.AssetAndReservationSummary" list="resPickLocList">
+                    <econdition field-name="shipmentId"/>
+                    <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                    <select-field field-name="quantity"/>
+                </entity-find>
+                <set field="resPickLocQuantity" from="resPickLocList.first()?.quantity ?: 0.0"/>
+                <set field="_rowSubmit" from="(resPickLocQuantity == quantityTotal) ? 'true' : 'false'"/>
             </row-actions>
 
             <hidden-parameters><parameter name="workEffortId"/></hidden-parameters>
 
             <field name="_useRowSubmit"><default-field><hidden default-value="true"/></default-field></field>
-            <field name="_rowSubmit"><default-field title="Add"><check all-checked="true"><option key="true" text=" "/></check></default-field></field>
+            <field name="_rowSubmit"><default-field title="Add"><check><option key="true" text=" "/></check></default-field></field>
             <field name="binLocationNumber"><header-field title="Pick Bin #" show-order-by="true"/>
                 <default-field><text-line size="3"/></default-field></field>
 
@@ -187,6 +202,10 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="estimatedReadyDate"><header-field title="Ready Date" show-order-by="true"><date-period/></header-field>
                 <default-field><display also-hidden="false"/></default-field></field>
 
+            <field name="quantityTotal" align="right">
+                <default-field title="Quantity Total"><display/></default-field></field>
+            <field name="resPickLocQuantity" align="right">
+                <default-field title="Pick Loc Qty"><display style="text-strong ${(resPickLocQuantity == quantityTotal) ? 'text-success' : 'text-danger'}"/></default-field></field>
 
             <field name="submitButton">
                 <header-field title="Find"><submit/></header-field>
@@ -195,13 +214,13 @@ along with this software (see the LICENSE.md file). If not, see
 
             <form-list-column><field-ref name="_rowSubmit"/></form-list-column>
             <form-list-column><field-ref name="binLocationNumber"/></form-list-column>
-            <form-list-column><field-ref name="shipmentMethodSequenceNum"/><field-ref name="shipmentId"/>
-                <field-ref name="shipmentTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="shipmentMethodSequenceNum"/><field-ref name="shipmentId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="shipWorkEffortId"/></form-list-column>
-            <form-list-column><field-ref name="originFacilityId"/></form-list-column>
+            <form-list-column><field-ref name="shipmentTypeEnumId"/><field-ref name="originFacilityId"/></form-list-column>
             <form-list-column><field-ref name="toPartyId"/><field-ref name="orderParties"/></form-list-column>
             <form-list-column><field-ref name="otherPartyOrderId"/><field-ref name="orderIds"/></form-list-column>
             <form-list-column><field-ref name="entryDate"/><field-ref name="estimatedReadyDate"/></form-list-column>
+            <form-list-column><field-ref name="quantityTotal"/><field-ref name="resPickLocQuantity"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
