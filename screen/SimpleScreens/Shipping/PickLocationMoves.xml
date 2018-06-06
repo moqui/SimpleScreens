@@ -16,18 +16,21 @@ along with this software (see the LICENSE.md file). If not, see
         default-menu-title="Pick Location Moves" default-menu-index="4">
 
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="assetDetail"><default-response url="//apps/${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="moveAsset"><default-response url="//apps/${appRoot}/Asset/MoveAsset"/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
     </actions>
     <widgets>
         <form-list name="PickMoveList" list="pickMoveList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true">
-            <entity-find entity-name="mantle.work.effort.WorkEffortShipmentLoadFind" list="pickMoveList">
-                <search-form-inputs default-order-by="estimatedStartDate">
-                    <default-parameters statusId="WeInPlanning,WeApproved,WeInProgress,WeOnHold" statusId_op="in"/></search-form-inputs>
-                <econdition field-name="purposeEnumId" value="WepShipmentShip"/>
-                <select-field field-name="workEffortName"/>
+            <entity-find entity-name="mantle.product.issuance.AssetAndReservationSummary" list="pickMoveList">
+                <search-form-inputs default-order-by="-quantity"/>
+                <econdition field-name="locationTypeEnumId" operator="not-equals" value="FltPick" or-null="true"/>
+                <having-econditions><econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/></having-econditions>
+                <select-field field-name="description,areaId,aisleId,sectionId,levelId,positionId"/>
             </entity-find>
 
             <field name="facilityId">
@@ -36,9 +39,26 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down></header-field>
                 <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
             </field>
+            <field name="productId"><header-field title="Product">
+                <drop-down allow-multiple="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+            </header-field><default-field>
+                <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/>
+            </default-field></field>
 
-            <field name="submitButton"><header-field title="Find"><submit/></header-field>
-                <default-field><display text=" "/></default-field></field>
+            <field name="locationSeqId"><default-field title="Location">
+                <display text="${locationSeqId?:''} ${description?:''} [${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}]"/></default-field></field>
+            <field name="locationTypeEnumId"><header-field title="Loc Type" show-order-by="true"/>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+            <field name="assetId"><default-field title="Asset">
+                <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+            <field name="quantity"><header-field title="Res Qty" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="quantityOnHandTotal"><default-field title="QOH"><display/></default-field></field>
+
+            <field name="moveLink"><default-field title=""><link url="moveAsset" text="Move"/></default-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>
     </widgets>
 </screen>
