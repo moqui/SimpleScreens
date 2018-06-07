@@ -29,9 +29,25 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset"/>
+        <set field="productId" from="asset?.productId"/>
         <set field="facilityId" from="asset?.facilityId"/>
         <set field="facLoc" from="asset?.location"/>
         <set field="container" from="asset?.container"/>
+
+        <!-- is there a configured Pick location for the product in the facility? -->
+        <entity-find entity-name="mantle.facility.ProductFacilityLocationDetail" list="pickLocList" distinct="true">
+            <econdition field-name="productId"/><econdition field-name="facilityId"/>
+            <econdition field-name="locationTypeEnumId" value="FltPick"/>
+            <select-field field-name="locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
+        </entity-find>
+        <!-- if no configured location(s) look for existing/prior Asset pick locations -->
+        <if condition="!pickLocList">
+            <entity-find entity-name="mantle.product.asset.AssetLocationDetail" list="pickLocList" distinct="true">
+                <econdition field-name="productId"/><econdition field-name="facilityId"/>
+                <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                <select-field field-name="locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
+            </entity-find>
+        </if>
     </actions>
     <widgets>
         <label text="Move Asset ${assetId}" type="h4"/>
@@ -43,13 +59,19 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field></field>
             <field name="currentLocation"><default-field>
                 <display text="FacilityLocationNameTemplate" text-map="facLoc?:[locationSeqId:'N/A']"/></default-field></field>
+            <field name="pickLocations"><default-field title="Pick Location(s)">
+                <section-iterate name="RecLocList" list="pickLocList" entry="recLoc"><widgets>
+                    <label text="${locationSeqId?:''} ${description?:''} [${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}]"
+                            text-map="recLoc" type="div"/>
+                </widgets></section-iterate>
+            </default-field></field>
             <field name="currentContainer"><default-field>
                 <link url="editContainer" text="ContainerNameTemplate" text-map="container" condition="container" link-type="anchor"/></default-field></field>
             <field name="quantityOnHandTotal"><default-field title="On Hand"><display/></default-field></field>
             <field name="availableToPromiseTotal"><default-field title="Available"><display/></default-field></field>
             <field-layout>
-                <field-ref name="productId"/>
-                <field-row><field-ref name="facilityId"/><field-ref name="currentLocation"/></field-row>
+                <field-row><field-ref name="productId"/><field-ref name="facilityId"/></field-row>
+                <field-row><field-ref name="currentLocation"/><field-ref name="pickLocations"/></field-row>
                 <field-ref name="currentContainer"/>
                 <field-row><field-ref name="quantityOnHandTotal"/><field-ref name="availableToPromiseTotal"/></field-row>
             </field-layout>
