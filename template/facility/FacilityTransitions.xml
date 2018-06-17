@@ -84,16 +84,26 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="facilityId"/>
         <parameter name="locationSeqId"/>
         <actions>
-            <entity-find entity-name="mantle.product.asset.Container" list="containerList" limit="20">
-                <econdition field-name="facilityId" ignore-if-empty="true"/>
-                <econdition field-name="locationSeqId" ignore-if-empty="true"/>
-                <econditions combine="or">
-                    <econdition field-name="serialNumber" operator="like" value="%${term}%" ignore-case="true"/>
-                    <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
-                    <econdition field-name="externalId" operator="like" value="%${term}%" ignore-case="true"/>
-                </econditions>
-                <order-by field-name="serialNumber,description"/>
-            </entity-find>
+            <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                <field-map field-name="serialNumber" from="term"/></entity-find-one>
+            <if condition="container == null">
+                <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                    <field-map field-name="containerId" from="term"/></entity-find-one>
+            </if>
+            <if condition="container != null"><then>
+                <set field="containerList" from="[container]"/>
+            </then><else>
+                <entity-find entity-name="mantle.product.asset.Container" list="containerList" limit="20">
+                    <econdition field-name="facilityId" ignore-if-empty="true"/>
+                    <econdition field-name="locationSeqId" ignore-if-empty="true"/>
+                    <econditions combine="or">
+                        <econdition field-name="serialNumber" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="externalId" operator="like" value="%${term}%" ignore-case="true"/>
+                    </econditions>
+                    <order-by field-name="serialNumber,description"/>
+                </entity-find>
+            </else></if>
             <script>
                 def outList = []
                 for (def container in containerList)
