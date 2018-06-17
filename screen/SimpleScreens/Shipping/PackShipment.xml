@@ -211,7 +211,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="shipmentPackageSeqId"><default-field title="" container-style="text-strong">
                         <display text="Pkg ${shipmentPackageSeqId}"/></default-field></field>
                     <field name="shipmentBoxTypeId"><default-field title=""><drop-down allow-empty="true">
-                        <entity-options key="${shipmentBoxTypeId}" text="${description}">
+                        <entity-options key="${shipmentBoxTypeId}" text="${pseudoId}: ${description}">
                             <entity-find entity-name="mantle.shipment.ShipmentBoxType">
                                 <order-by field-name="description"/></entity-find></entity-options>
                     </drop-down></default-field></field>
@@ -237,6 +237,20 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="hasLabel" from="packageRouteSeg.gatewayLabelId || packageRouteSeg.labelImage != null || packageRouteSeg.labelUrl"/>
                 <set field="trackingStatusEnum" from="packageRouteSeg?.trackingStatusEnum"/>
                 <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
+
+                <!-- TODO calculate weight of package with contents, also do above for active package
+                <set field="weight" from="shipmentBoxType.boxWeight"/>
+                <iterate list="quantityByProductId" entry="quantity" key="productId">
+                    <entity-find-one entity-name="mantle.product.ProductDimension" value-field="weightDim" cache="true">
+                        <field-map field-name="productId"/><field-map field-name="dimensionTypeId" value="ShippingWeight"/></entity-find-one>
+                    <if condition="!weightDim?.value">
+                        <log level="error" message="Product ${productId} has no Shipping Weight dimension"/>
+                        <message>Product ${productId} has no Shipping Weight dimension</message>
+                        <return/>
+                    </if>
+                    <set field="weight" from="weight + (weightDim.value * quantity)"/>
+                </iterate>
+                -->
             </actions><widgets>
                 <container-box type="${shipmentBoxType &amp;&amp; shipmentPackage.weight ? 'success' : (activePackageSeqId == shipmentPackage.shipmentPackageSeqId ? 'info' : 'warning')}">
                 <box-header title="Package ${shipmentPackage.shipmentPackageSeqId}"/><box-toolbar>
