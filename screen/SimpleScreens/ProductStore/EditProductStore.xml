@@ -18,41 +18,29 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="productStoreId" required="true"/>
 
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
-    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
-    <transition name="updateStore">
-        <service-call name="update#mantle.product.store.ProductStore"/>
-        <default-response url="."/>
-    </transition>
-    <transition name="createShippingOption">
-        <service-call name="mantle.product.StoreServices.create#StoreShippingOption"/>
-        <default-response url="."/>
-    </transition>
-    <transition name="createShippingGateway">
-        <service-call name="create#mantle.product.store.ProductStoreShippingGateway"/>
-        <default-response url="."/>
-    </transition>
-    <transition name="createPaymentGateway">
-        <service-call name="create#mantle.product.store.ProductStorePaymentGateway"/>
-        <default-response url="."/>
-    </transition>
-    <transition name="deleteShippingOption">
-        <service-call name="delete#mantle.product.store.ProductStoreShipOption"/>
-        <default-response url="."/>
-    </transition>
-    <transition name="deleteShippingGateway">
-        <service-call name="delete#mantle.product.store.ProductStoreShippingGateway"/>
-        <default-response url="."/>
-    </transition>
-    <transition name="editPaymentGateway"><default-response url="//${appRoot}/Gateway/EditPaymentGateway"/></transition>
-    <transition name="deletePaymentGateway">
-        <service-call name="delete#mantle.product.store.ProductStorePaymentGateway"/>
-        <default-response url="."/>
-    </transition>
-    <transition name="updateShippingOption">
-        <service-call name="update#mantle.product.store.ProductStoreShipOption" multi="true" in-map="context"/>
-        <default-response url="."/>
-    </transition>
     <transition name="editShippingGateway"><default-response url="//${appRoot}/Gateway/EditShippingGateway"/></transition>
+    <transition name="editPaymentGateway"><default-response url="//${appRoot}/Gateway/EditPaymentGateway"/></transition>
+
+    <transition name="updateStore"><service-call name="update#mantle.product.store.ProductStore"/>
+        <default-response url="."/></transition>
+
+    <transition name="createShippingOption"><service-call name="mantle.product.StoreServices.create#StoreShippingOption"/>
+        <default-response url="."/></transition>
+    <transition name="updateShippingOption"><service-call name="update#mantle.product.store.ProductStoreShipOption" multi="true" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="deleteShippingOption"><service-call name="delete#mantle.product.store.ProductStoreShipOption"/>
+        <default-response url="."/></transition>
+
+    <transition name="createShippingGateway"><service-call name="create#mantle.product.store.ProductStoreShippingGateway"/>
+        <default-response url="."/></transition>
+    <transition name="deleteShippingGateway"><service-call name="delete#mantle.product.store.ProductStoreShippingGateway"/>
+        <default-response url="."/></transition>
+    <transition name="createPaymentGateway"><service-call name="create#mantle.product.store.ProductStorePaymentGateway"/>
+        <default-response url="."/></transition>
+    <transition name="deletePaymentGateway"><service-call name="delete#mantle.product.store.ProductStorePaymentGateway"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
         <entity-find-one entity-name="mantle.product.store.ProductStore" value-field="store">
@@ -138,6 +126,12 @@ along with this software (see the LICENSE.md file). If not, see
                         </entity-find>
                     </entity-options></drop-down>
                 </default-field></field>
+                <field name="systemMessageRemoteId"><default-field title="Remote"><drop-down allow-empty="true">
+                    <entity-options key="${systemMessageRemoteId}" text="${description}">
+                        <entity-find entity-name="moqui.service.message.SystemMessageRemote">
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
 
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
             </form-single>
