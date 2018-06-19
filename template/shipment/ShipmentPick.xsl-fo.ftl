@@ -133,9 +133,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Sec</fo:block></fo:table-cell>
                         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Lev</fo:block></fo:table-cell>
                         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Pos</fo:block></fo:table-cell>
-                        <fo:table-cell width="0.6in" padding="${cellPadding}"><fo:block text-align="center">Cont</fo:block></fo:table-cell>
+                        <fo:table-cell width="0.8in" padding="${cellPadding}"><fo:block text-align="center">Cont</fo:block></fo:table-cell>
 
-                        <fo:table-cell width="3.0in" padding="${cellPadding}"><fo:block>Lot</fo:block></fo:table-cell>
+                        <fo:table-cell width="2.8in" padding="${cellPadding}"><fo:block>Lot</fo:block></fo:table-cell>
                         <fo:table-cell width="0.5in" padding="${cellPadding}"><fo:block text-align="center">Bin</fo:block></fo:table-cell>
                         <fo:table-cell width="0.5in" padding="${cellPadding}"><fo:block text-align="right">Quantity</fo:block></fo:table-cell>
                     </fo:table-header>
