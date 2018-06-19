@@ -64,6 +64,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
 
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getPackageWeight" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
 
     <transition name="ShipmentPack.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPack" url-type="plain">
@@ -215,7 +216,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <entity-find entity-name="mantle.shipment.ShipmentBoxType">
                                 <order-by field-name="description"/></entity-find></entity-options>
                     </drop-down></default-field></field>
-                    <field name="weight"><default-field title=""><text-line size="4"/></default-field></field>
+                    <field name="weight"><default-field title=""><text-line size="4" default-transition="getPackageWeight"
+                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackageSeqId]">
+                        <depends-on field="shipmentBoxTypeId"/><depends-on field="weightUomId"/>
+                    </text-line></default-field></field>
                     <field name="weightUomId" from="weightUomId ?: 'WT_lb'"><default-field title="">
                         <display-entity entity-name="moqui.basic.Uom" text="${abbreviation ?: description}"/></default-field></field>
 
@@ -237,20 +241,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="hasLabel" from="packageRouteSeg.gatewayLabelId || packageRouteSeg.labelImage != null || packageRouteSeg.labelUrl"/>
                 <set field="trackingStatusEnum" from="packageRouteSeg?.trackingStatusEnum"/>
                 <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
-
-                <!-- TODO calculate weight of package with contents, also do above for active package
-                <set field="weight" from="shipmentBoxType.boxWeight"/>
-                <iterate list="quantityByProductId" entry="quantity" key="productId">
-                    <entity-find-one entity-name="mantle.product.ProductDimension" value-field="weightDim" cache="true">
-                        <field-map field-name="productId"/><field-map field-name="dimensionTypeId" value="ShippingWeight"/></entity-find-one>
-                    <if condition="!weightDim?.value">
-                        <log level="error" message="Product ${productId} has no Shipping Weight dimension"/>
-                        <message>Product ${productId} has no Shipping Weight dimension</message>
-                        <return/>
-                    </if>
-                    <set field="weight" from="weight + (weightDim.value * quantity)"/>
-                </iterate>
-                -->
             </actions><widgets>
                 <container-box type="${shipmentBoxType &amp;&amp; shipmentPackage.weight ? 'success' : (activePackageSeqId == shipmentPackage.shipmentPackageSeqId ? 'info' : 'warning')}">
                 <box-header title="Package ${shipmentPackage.shipmentPackageSeqId}"/><box-toolbar>
@@ -267,15 +257,18 @@ along with this software (see the LICENSE.md file). If not, see
                                             <order-by field-name="description"/></entity-find></entity-options>
                                 </drop-down>
                             </default-field></field>
-                            <field name="weight"><default-field><text-line size="8"/></default-field></field>
                             <field name="weightUomId"><default-field title="Weight UOM">
                                 <drop-down allow-empty="true" no-current-selected-key="WT_lb">
-                                    <entity-options key="${uomId}" text="${description}">
+                                    <entity-options key="${uomId}" text="${description} (${abbreviation})">
                                         <entity-find entity-name="moqui.basic.Uom">
                                             <econdition field-name="uomTypeEnumId" value="UT_WEIGHT_MEASURE"/>
                                             <order-by field-name="description"/></entity-find></entity-options>
                                 </drop-down>
                             </default-field></field>
+                            <field name="weight"><default-field><text-line size="8" default-transition="getPackageWeight"
+                                    parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackageSeqId]">
+                                <depends-on field="shipmentBoxTypeId"/><depends-on field="weightUomId"/>
+                            </text-line></default-field></field>
                             <field name="trackingCode"><default-field><text-line size="30"/></default-field></field>
                             <!-- <field name="boxNumber"><default-field><text-line size="8"/></default-field></field> -->
                             <field name="estimatedAmount"><default-field title="Est. Cost"><text-line size="10"/></default-field></field>

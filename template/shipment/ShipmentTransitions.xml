@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd">
+
+    <transition name="getPackageWeight">
+        <parameter name="shipmentId" required="true"/>
+        <parameter name="shipmentPackageSeqId" required="true"/>
+        <parameter name="shipmentBoxTypeId"/>
+        <parameter name="weightUomId"/>
+        <parameter name="weightFormat"/>
+        <actions>
+            <if condition="shipmentId &amp;&amp; shipmentPackageSeqId"><then>
+                <if condition="!weightFormat"><set field="weightFormat" value="#,##0.0##"/></if>
+                <service-call name="mantle.shipment.ShipmentServices.get#ShipmentPackageWeight" in-map="context" out-map="weightOut" ignore-error="true"/>
+                <if condition="weightOut?.weight"><then>
+                    <script>ec.web.sendTextResponse(ec.l10n.format(weightOut.weight, weightFormat))</script>
+                </then><else>
+                    <script>ec.web.sendTextResponse('0')</script>
+                </else></if>
+            </then><else>
+                <script>ec.web.sendTextResponse('0')</script>
+            </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <widgets/>
+</screen>

@@ -18,6 +18,18 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="shipmentId" required="true"/>
 
     <transition name="packShipmentScreen"><default-response url="//${appRoot}/Shipping/PackShipment"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
+    <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="picklistDetail"><default-response url="//${appRoot}/Picking/PicklistDetail"/></transition>
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+
     <transition name="updateShipment"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentAndRouteSegment"/>
         <default-response url="."/></transition>
 
@@ -61,18 +73,6 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="sendEmailMessage"><service-call name="org.moqui.impl.EmailServices.send#EmailMessage"/>
         <default-response url="."/></transition>
 
-    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
-    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
-    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
-    <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
-    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
-    <transition name="picklistDetail"><default-response url="//${appRoot}/Picking/PicklistDetail"/></transition>
-
-    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
-    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
-    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
-    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
-
     <transition name="createContent"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentContent"/>
         <default-response url="."/></transition>
     <transition name="updateContent"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentContent"/>
@@ -82,10 +82,6 @@ along with this software (see the LICENSE.md file). If not, see
             <script>ec.web.sendResourceResponse(shipmentContent.contentLocation)</script></actions>
         <default-response type="none"/>
     </transition>
-
-    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
-    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
-    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <transition name="addItem"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentItem"/>
         <default-response url="."/></transition>
@@ -112,6 +108,11 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="createShipmentAutoPackages"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentAutoPackages"/>
         <default-response url="."/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getPackageWeight" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
 
     <transition name="getShippingOptions"><actions>
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="shipOptsOut"
@@ -1055,15 +1056,18 @@ along with this software (see the LICENSE.md file). If not, see
                                                 <order-by field-name="description"/></entity-find></entity-options>
                                     </drop-down>
                                 </default-field></field>
-                                <field name="weight"><default-field><text-line size="8"/></default-field></field>
                                 <field name="weightUomId"><default-field title="Weight UOM">
                                     <drop-down allow-empty="true" no-current-selected-key="WT_lb">
-                                        <entity-options key="${uomId}" text="${description}">
+                                        <entity-options key="${uomId}" text="${description} (${abbreviation})">
                                             <entity-find entity-name="moqui.basic.Uom">
                                                 <econdition field-name="uomTypeEnumId" value="UT_WEIGHT_MEASURE"/>
                                                 <order-by field-name="description"/></entity-find></entity-options>
                                     </drop-down>
                                 </default-field></field>
+                                <field name="weight"><default-field><text-line size="8" default-transition="getPackageWeight"
+                                        parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackageSeqId]">
+                                    <depends-on field="shipmentBoxTypeId"/><depends-on field="weightUomId"/>
+                                </text-line></default-field></field>
                                 <field name="trackingCode"><default-field><text-line size="30"/></default-field></field>
                                 <!-- <field name="boxNumber"><default-field><text-line size="8"/></default-field></field> -->
                                 <field name="estimatedAmount"><default-field title="Est. Cost"><text-line size="10"/></default-field></field>
