@@ -29,6 +29,23 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
+        <if condition="shipmentItem == null">
+            <!-- see if productId is a pseudoId or ProductIdentification -->
+            <entity-find-one entity-name="mantle.product.Product" value-field="product">
+                <field-map field-name="pseudoId" from="productId"/></entity-find-one>
+            <if condition="product != null"><set field="productId" from="product.productId"/></if>
+            <if condition="product == null">
+                <entity-find entity-name="mantle.product.ProductIdentification" list="prodIdentList">
+                    <econdition field-name="idValue" from="productId"/></entity-find>
+                <if condition="prodIdentList.size() == 1"><set field="productId" from="prodIdentList[0].productId"/></if>
+                <if condition="prodIdentList.size() &gt; 1">
+                    <message type="warning">Found multiple products with ID ${scanId}: ${prodIdentList*.productId.join(', ')}</message></if>
+            </if>
+
+            <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
+            <if condition="shipmentItem == null"><return error="true" message="Shipment ${shipmentId} item ${productId} not found"/></if>
+        </if>
+
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
         <service-call name="org.moqui.impl.BasicServices.find#Enumeration" in-map="[enumTypeId:'RejectionReason']" out-map="reasonOut"/>
         <set field="facilityId" from="shipmentRouteSegmentList ? shipmentRouteSegmentList[shipmentRouteSegmentList.size()-1].destinationFacilityId : null"/>
@@ -118,9 +135,26 @@ along with this software (see the LICENSE.md file). If not, see
                     <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options>
             </drop-down></default-field></field>
 
-            <field name="comments"><default-field title="Notes"><text-area cols="80" rows="5"/></default-field></field>
+            <field name="comments"><default-field title="Notes"><text-area cols="80" rows="3"/></default-field></field>
 
             <field name="submitButton"><default-field title="Receive"><submit/></default-field></field>
+
+            <field-layout>
+                <field-ref name="fromPartyName"/>
+                <field-ref name="productId"/>
+                <field-row><field-ref name="statusId"/><field-ref name="receivedDate"/></field-row>
+                <field-ref name="mfgPartyId"/>
+                <field-ref name="lotId"/>
+                <field-ref name="lotNumber"/>
+                <field-row><field-ref name="manufacturedDate"/><field-ref name="expectedEndOfLife"/></field-row>
+                <field-ref name="acquireCost"/>
+                <field-row><field-ref name="quantityAccepted"/><field-ref name="quantityRejected"/></field-row>
+                <field-row><field-ref name="facilityId"/><field-ref name="rejectionReasonEnumId"/></field-row>
+                <field-ref name="locationSeqId"/>
+                <field-ref name="containerId"/>
+                <field-ref name="comments"/>
+                <field-ref name="submitButton"/>
+            </field-layout>
         </form-single>
     </widgets>
 </screen>

@@ -224,18 +224,19 @@ along with this software (see the LICENSE.md file). If not, see
             <!-- Links -->
             <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
                 <section name="ShipInputInOutSection" condition="isIncoming"><widgets>
-                    <link url="scheduleShipment" text="Set Scheduled"/>
+                    <link url="scheduleShipment" text="Set Scheduled" btn-type="success"/>
                     <link url="shipShipment" text="Set Shipped"/>
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
-                    <link url="scheduleShipment" text="Set Scheduled" style="btn-success"/>
+                    <link url="scheduleShipment" text="Set Scheduled" btn-type="success"/>
                     <link url="pickShipment" text="Set Picked"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipScheduledSection" condition="shipment.statusId == 'ShipScheduled'"><widgets>
                 <section name="ShipScheduledInOutSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped"/>
-                    <link url="deliverShipment" text="Set Delivered" condition="anyReceived"/>
+                    <link url="deliverShipment" text="Set Delivered" btn-type="success" condition="anyReceived"
+                            confirmation="Set as Delivered and generate invoice for order items as needed?"/>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"/>
                     <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
                 </widgets><fail-widgets>
@@ -286,7 +287,8 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="ShipPackedInSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
-                    <link url="deliverShipment" text="Set Delivered" condition="anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="deliverShipment" text="Set Delivered" btn-type="success" condition="anyReceived"
+                            confirmation="Set as Delivered and generate invoice for order items as needed?"/>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"><parameter name="shipmentId"/></link>
                 </widgets></section>
                 <section name="ShipPackedOutSection" condition="isOutgoing || isTransfer"><widgets>
@@ -299,14 +301,15 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-dialog>
                     <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
 
-                    <link url="shipShipment" text="Set Shipped" style="btn-success"/>
+                    <link url="shipShipment" text="Set Shipped" btn-type="success"/>
                     <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
                     <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
                 </widgets></section>
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
                 <section name="ShipShippedInOutSection" condition="isIncoming"><widgets>
-                    <link url="deliverShipment" text="Set Delivered" condition="anyReceived"><parameter name="shipmentId"/></link>
+                    <link url="deliverShipment" text="Set Delivered" btn-type="success" condition="anyReceived"
+                            confirmation="Set as Delivered and generate invoice for order items as needed?"/>
                     <link url="unshipShipment" text="Set Packed (Un-Ship)"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment" confirmation="Receive full quantity of all items with defaults?">
                         <parameter name="shipmentId"/></link>
@@ -614,6 +617,26 @@ along with this software (see the LICENSE.md file). If not, see
                 </container>
             -->
         </row-col><row-col md="6">
+            <section name="ScanReceiveSection" condition="((isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipShipped']) ||
+                        (isTransfer &amp;&amp; shipment.statusId == 'ShipShipped'))"><actions>
+                <set field="scanReceiveUrl" from="sri.buildUrl('ReceiveItem').addParameter('shipmentId', shipmentId).addParameter('statusId', 'AstAvailable')"/>
+            </actions><widgets><render-mode><text type="vuet"><![CDATA[
+                <form name="ReceiveByProductId" id="ReceiveByProductId"><fieldset class="form-horizontal">
+                    <div class="form-group"><div class="col-sm-12">
+                    <div class="big-row-item"><div class="form-group">
+                        <input id="ReceiveByProductId_scanId"  type="text" name="scanId" value="" size="15" class="form-control">
+                    </div></div>
+                    <div class="big-row-item"><div class="form-group">
+                        <button type="submit" name="submitButton" value="submitButton" id="ReceiveByProductId_submitButton" class="btn btn-primary btn-sm">Receive</button>
+                    </div></div>
+                </div></div></fieldset></form>
+                <dynamic-dialog id="ScanReceiveContainer" url="${scanReceiveUrl.urlWithParams}" width="800" title="Receive Product" :dynamic-params="{'productId':'ReceiveByProductId_scanId'}"></dynamic-dialog>
+                <m-script>
+                    $("#ReceiveByProductId_scanId").focus();
+                    $("#ReceiveByProductId").on("submit", function(evt) { evt.preventDefault(); $("#ScanReceiveContainer").modal("show"); });
+                </m-script>
+            ]]></text></render-mode></widgets></section>
+
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
             <section name="OrderNotesSection" condition="orderNoteList"><widgets>
@@ -1003,17 +1026,17 @@ along with this software (see the LICENSE.md file). If not, see
 
                             <field name="updateDialog"><header-field title=""/>
                                 <conditional-field condition="shipment.statusId == 'ShipInput'">
-                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset" width="800">
                                         <parameter name="shipmentId"/><parameter name="assetId"/>
                                         <parameter name="statusId" value="AstIncoming"/></dynamic-dialog>
                                 </conditional-field>
                                 <conditional-field condition="statusId == 'AstIncoming'">
-                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Receive" transition="UpdateItemAsset">
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Receive" transition="UpdateItemAsset" width="800">
                                         <parameter name="shipmentId"/><parameter name="assetId"/>
                                         <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
                                 </conditional-field>
                                 <default-field>
-                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset">
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset" width="800">
                                         <parameter name="shipmentId"/><parameter name="assetId"/>
                                         <!-- <parameter name="statusId" value="AstAvailable"/> --></dynamic-dialog>
                                 </default-field>
@@ -1108,40 +1131,40 @@ along with this software (see the LICENSE.md file). If not, see
                             </form-single>
                         </container-dialog>
 
-                        <link url="refundShipmentLabels" text="Refund Label" style="btn-danger"
+                        <link url="refundShipmentLabels" text="Refund Label" btn-type="danger"
                                 confirmation="Request refund? If package has not yet shipped a refund will be processed and label will not be valid for shipping."
                                 condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId &amp;&amp; !packageRouteSeg?.gatewayRefundId"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
                                     shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
-                        <link url="removeShipmentLabelInfo" text="Clear Label Info" style="btn-danger"
+                        <link url="removeShipmentLabelInfo" text="Clear Label Info" btn-type="danger"
                                 confirmation="Clear label data? This will allow getting a new label, and system keeps a history of label IDs, but otherwise current label will no longer be tracked. Use only when there are errors, etc with the label."
                                 condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
                                     shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
-                        <link url="removeShipmentReturnLabelInfo" text="Clear Ret Label Info" style="btn-danger"
+                        <link url="removeShipmentReturnLabelInfo" text="Clear Ret Label Info" btn-type="danger"
                                 confirmation="Clear return label data? This will allow getting a new label, and system keeps a history of label IDs, but otherwise current label will no longer be tracked. Use only when there are errors, etc with the label."
                                 condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.returnGatewayLabelId"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
                                     shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
-                        <link url="resetShipmentPackage" text="Reset" confirmation="Reset box type, weight, and contents?" style="btn-danger"
+                        <link url="resetShipmentPackage" text="Reset" confirmation="Reset box type, weight, and contents?" btn-type="danger"
                                 parameter-map="[shipmentId:packageAndRouteSeg.shipmentId, shipmentPackageSeqId:packageAndRouteSeg.shipmentPackageSeqId]"/>
-                        <link url="deletePackage" text="Delete" condition="!shipmentPackageContentList" style="btn-danger"
+                        <link url="deletePackage" text="Delete" condition="!shipmentPackageContentList" btn-type="danger"
                                 confirmation="Delete package ${shipmentPackage.shipmentPackageSeqId}?"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId]"/>
 
-                        <link url="trackShipmentLabels" text="Track" style="btn-warning"
+                        <link url="trackShipmentLabels" text="Track" btn-type="warning"
                                 condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
                                     shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
                         <link url="${packageRouteSeg.trackingUrl}" text="Carrier Track" url-type="plain" target-window="_blank"
-                                style="btn-warning" condition="packageRouteSeg?.trackingUrl"/>
-                        <link url="${packageRouteSeg.returnTrackingUrl}" text="Carrier Ret Track" url-type="plain" style="btn-info"
+                                btn-type="warning" condition="packageRouteSeg?.trackingUrl"/>
+                        <link url="${packageRouteSeg.returnTrackingUrl}" text="Carrier Ret Track" url-type="plain" btn-type="info"
                                 target-window="_blank" condition="packageRouteSeg?.returnTrackingUrl"/>
 
                         <link url="${packageRouteSeg.labelUrl}" text="Download Label" url-type="plain" target-window="_blank"
-                                style="btn-success" condition="packageRouteSeg?.labelUrl"/>
+                                btn-type="success" condition="packageRouteSeg?.labelUrl"/>
                         <link url="${packageRouteSeg.returnLabelUrl}" text="Download Ret Label" url-type="plain" target-window="_blank"
-                                style="btn-info" condition="packageRouteSeg?.returnLabelUrl"/>
+                                btn-type="info" condition="packageRouteSeg?.returnLabelUrl"/>
                         <container-dialog id="PrintLabelDialog" button-text="Print Label" type="success"
                                 condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null">
                             <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
