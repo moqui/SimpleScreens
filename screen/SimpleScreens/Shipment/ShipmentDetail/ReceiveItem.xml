@@ -64,14 +64,21 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="orderId" operator="is-not-null"/><econdition field-name="orderItemSeqId" operator="is-not-null"/>
         </entity-find>
         <iterate list="shipmentItemSourceList" entry="shipmentItemSource">
-            <if condition="!acquireCost &amp;&amp; shipmentItemSource.orderId &amp;&amp; shipmentItemSource.orderItemSeqId">
+            <if condition="(!acquireCost || !ownerPartyId) &amp;&amp; shipmentItemSource.orderId &amp;&amp; shipmentItemSource.orderItemSeqId">
                 <entity-find-one entity-name="mantle.order.OrderItem" value-field="orderItem">
                     <field-map field-name="orderId" from="shipmentItemSource.orderId"/>
                     <field-map field-name="orderItemSeqId" from="shipmentItemSource.orderItemSeqId"/>
                 </entity-find-one>
-                <set field="acquireCost" from="orderItem?.standardCost ?: orderItem?.unitAmount"/>
+                <if condition="!acquireCost"><set field="acquireCost" from="orderItem?.standardCost ?: orderItem?.unitAmount"/></if>
+                <if condition="!ownerPartyId">
+                    <set field="orderPart" from="orderItem?.'mantle.order.OrderPart'"/>
+                    <set field="ownerPartyId" from="orderPart?.customerPartyId"/>
+                </if>
             </if>
         </iterate>
+        <!-- if no ownerPartyId from order customer default to owned by whoever it was shipped from; for third party consignment inventory -->
+        <!-- NOTE: not sure if this is good to do automatically vs Facility.ownerPartyId -->
+        <if condition="!ownerPartyId"><set field="ownerPartyId" from="shipment.fromPartyId"/></if>
 
         <!-- special case for transfer shipments with AssetIssuance before receipt -->
         <entity-find entity-name="mantle.product.issuance.AssetIssuance" list="assetIssuanceList">
@@ -113,6 +120,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <text-line size="20"/></default-field></field>
             <field name="manufacturedDate"><default-field title="Manufactured"><date-time type="date"/></default-field></field>
             <field name="expectedEndOfLife"><default-field title="Expiration"><date-time type="date"/></default-field></field>
+
+            <field name="ownerPartyId"><default-field title="Owner">
+                <label text="Default Asset Owner (${ownerPartyId}) different from Facility owner (${destinationFacility.ownerPartyId}), if not consignment inventory change now" style="text-warning"
+                        condition="ownerPartyId &amp;&amp; destinationFacility?.ownerPartyId &amp;&amp; ownerPartyId != destinationFacility.ownerPartyId"/>
+                <drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,OrgInternal']"/>
+                </drop-down>
+            </default-field></field>
             <field name="acquireCost"><default-field tooltip="Defaults to Standard Cost or Price (Unit Amount) on related order item">
                 <text-line size="8" format="#,##0.00"/></default-field></field>
 
@@ -147,6 +162,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="lotId"/>
                 <field-ref name="lotNumber"/>
                 <field-row><field-ref name="manufacturedDate"/><field-ref name="expectedEndOfLife"/></field-row>
+                <field-ref name="ownerPartyId"/>
                 <field-ref name="acquireCost"/>
                 <field-row><field-ref name="quantityAccepted"/><field-ref name="quantityRejected"/></field-row>
                 <field-row><field-ref name="facilityId"/><field-ref name="rejectionReasonEnumId"/></field-row>
