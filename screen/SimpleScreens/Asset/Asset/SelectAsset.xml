@@ -240,7 +240,7 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="findAsset" text="All Container Assets" parameter-map="[containerId:containerId, productId:productId]" condition="containerId"/>
         <link url="findAsset" text="All Location Assets" parameter-map="[facilityId:facilityId, locationSeqId:locationSeqId, productId:productId]" condition="locationSeqId"/>
 
-        <section name="MoveFormsSection" condition="product != null &amp;&amp; (container != null || facilityLocation != null)"><widgets>
+        <section name="MoveFormsSection" condition="product != null &amp;&amp; facilityId"><widgets>
             <container-row><row-col md="6">
                 <form-single name="ScanMoveAssetForm" transition="moveProduct"><!-- NOTE: main scan field focused so don't focus this one like on MoveAsset: focus-field="scanLocation" -->
                     <field name="facilityId"><default-field><hidden/></default-field></field>
@@ -296,8 +296,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="quantityOnHandTotal"><default-field title="Quantity On Hand">
                         <display format="#,##0.###"/></default-field></field>
                 </form-list>
-            </widgets><fail-widgets>
                 <label text="No product found in container" condition="!contAssetList"/>
+            </widgets><fail-widgets>
                 <section-iterate name="ContProdListSection" list="contAssetList" entry="contAsset"><widgets>
                     <link url="." text="${ec.resource.expand('ProductNameTemplate', null, contAsset)} (${ec.l10n.format(contAsset.quantityOnHandTotal, null)})"/></widgets></section-iterate>
             </fail-widgets></section>
@@ -321,8 +321,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="quantityOnHandTotal"><default-field title="Quantity On Hand">
                         <display format="#,##0.###"/></default-field></field>
                 </form-list>
-            </widgets><fail-widgets>
                 <label text="No product found in location" condition="!locAssetList"/>
+            </widgets><fail-widgets>
                 <section-iterate name="LocProdListSection" list="locAssetList" entry="locAsset"><widgets>
                     <link url="." text="${ec.resource.expand('ProductNameTemplate', null, locAsset)} (${ec.l10n.format(locAsset.quantityOnHandTotal, null)})"/></widgets></section-iterate>
             </fail-widgets></section>
@@ -340,6 +340,23 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="." text="Loc ${ec.resource.expand('FacilityLocationNameTemplate', null, curFacLoc)} - Cont ${curContainer ? ec.resource.expand('ContainerNameTemplate', null, curContainer) : 'N/A'}"
                             parameter-map="[containerId:prodAsset.containerId, locationSeqId:prodAsset.locationSeqId]"/>
                 </widgets></section-iterate>
+
+                <!-- list assets -->
+                <form-list name="ProductNoLocAssetList" list="prodNoLocAssetList" skip-form="true">
+                    <entity-find entity-name="mantle.product.asset.Asset" list="prodNoLocAssetList" limit="10">
+                        <econdition field-name="facilityId"/><econdition field-name="locationSeqId" from="null"/>
+                        <econdition field-name="productId"/>
+                        <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/>
+                        <order-by field-name="-quantityOnHandTotal"/>
+                    </entity-find>
+                    <field name="assetId"><default-field title="No Location Asset">
+                        <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+                    <field name="statusId"><default-field title="Status">
+                        <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                    <field name="receivedDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                    <field name="quantityOnHandTotal"><default-field title="Quantity On Hand">
+                        <display format="#,##0.###"/></default-field></field>
+                </form-list>
             </widgets></section>
         </widgets></section>
 

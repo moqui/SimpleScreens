@@ -18,6 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
     <transition name="moveAsset"><default-response url="//${appRoot}/Asset/MoveAsset"/></transition>
+    <transition name="moveAsset"><default-response url="//${appRoot}/Asset/SelectAsset"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
@@ -68,6 +69,11 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="locationTypeEnumId"><header-field title="Loc Type" show-order-by="true"/>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
 
+            <field name="containerId"><default-field title="Container">
+                <display-entity entity-name="mantle.product.asset.Container" text="ContainerNameTemplate"/></default-field></field>
+            <field name="lotId"><default-field title="Lot">
+                <display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field></field>
+
             <field name="assetId"><default-field title="Asset">
                 <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
             <field name="quantity"><header-field title="Res Qty" show-order-by="true"/>
@@ -81,9 +87,21 @@ along with this software (see the LICENSE.md file). If not, see
                 </widgets></section-iterate>
             </default-field></field>
 
-            <field name="moveLink"><default-field title=""><link url="moveAsset" text="Move"/></default-field></field>
+            <field name="moveLink"><default-field title="Move">
+                <link url="moveAsset" text="Move"/>
+                <link url="moveAsset" text="Move Asset" condition="assetId"/>
+            </default-field></field>
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="facilityId"/></form-list-column>
+            <form-list-column><field-ref name="productId"/></form-list-column>
+            <form-list-column><field-ref name="locationSeqId"/></form-list-column>
+            <form-list-column><field-ref name="locationTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="quantity"/></form-list-column>
+            <form-list-column><field-ref name="quantityOnHandTotal"/></form-list-column>
+            <form-list-column><field-ref name="recLocations"/></form-list-column>
+            <form-list-column><field-ref name="moveLink"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
