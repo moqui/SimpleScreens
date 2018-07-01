@@ -19,16 +19,22 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="storePromotionId" required="true"/>
 
     <transition name="editPromotion"><default-response url="."/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+
     <transition name="updatePromotion"><service-call name="update#mantle.product.store.ProductStorePromotion"/>
         <default-response url="."/></transition>
-    <transition name="storePromoParameters">
-        <service-call name="store#mantle.product.store.ProductStorePromoParameter" multi="true"/>
-        <default-response url="."/>
-    </transition>
-    <transition name="deletePromoParam">
-        <service-call name="delete#mantle.product.store.ProductStorePromoParameter"/>
-        <default-response url="."/>
-    </transition>
+    <transition name="storePromoParameters"><service-call name="store#mantle.product.store.ProductStorePromoParameter" multi="true"/>
+        <default-response url="."/></transition>
+    <transition name="deletePromoParam"><service-call name="delete#mantle.product.store.ProductStorePromoParameter"/>
+        <default-response url="."/></transition>
+
+    <transition name="createPromoProduct"><service-call name="create#mantle.product.store.ProductStorePromoProduct"/>
+        <default-response url="."/></transition>
+    <transition name="deletePromoProduct"><service-call name="delete#mantle.product.store.ProductStorePromoProduct"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
     <actions>
         <entity-find-one entity-name="mantle.product.store.ProductStorePromotion" value-field="storePromotion">
             <field-map field-name="productStoreId" from="productStoreId"/>
@@ -81,37 +87,71 @@ along with this software (see the LICENSE.md file). If not, see
                     </script>
                 </actions>
                 <widgets>
-                    <container-box>
-                        <box-header title="Parameters"/>
-                        <box-body>
-                            <form-list name="PromoParameterForm" list="paramList" multi="true" transition="storePromoParameters">
-                                <row-actions>
-                                    <entity-find-one entity-name="mantle.product.store.ProductStorePromoParameter" value-field="promoParameter">
-                                        <field-map field-name="storePromotionId"/>
-                                        <field-map field-name="parameterName"/>
-                                    </entity-find-one>
-                                    <set field="parameterValue" from="promoParameter?.parameterValue"/>
-                                </row-actions>
-                                <field name="parameterName"><default-field title="Name">
-                                    <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(parameterName)}"/></default-field></field>
-                                <field name="parameterDescription"><default-field title="Description">
-                                    <display /></default-field></field>
-                                <field name="parameterValue">
-                                    <conditional-field condition="parameterType == 'Boolean'">
-                                        <check ><option key="true" text=" "/></check></conditional-field>
-                                    <default-field title="Value"><text-line size="3" format="#"/></default-field>
-                                </field>
-                                <field name="deleteButton" align="right"><default-field title="">
-                                    <link url="deletePromoParam" icon="glyphicon glyphicon-trash"
-                                          parameter-map="[storePromotionId:storePromotionId, parameterName:parameterName]"
-                                          confirmation="Are you sure you want to remove this Promo Param?"/>
-                                </default-field></field>
-                                <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
-                            </form-list>
-                        </box-body>
-                    </container-box>
+                    <container-box><box-header title="Parameters"/><box-body>
+                        <form-list name="PromoParameterForm" list="paramList" multi="true" transition="storePromoParameters">
+                            <row-actions>
+                                <entity-find-one entity-name="mantle.product.store.ProductStorePromoParameter" value-field="promoParameter">
+                                    <field-map field-name="storePromotionId"/>
+                                    <field-map field-name="parameterName"/>
+                                </entity-find-one>
+                                <set field="parameterValue" from="promoParameter?.parameterValue"/>
+                            </row-actions>
+                            <hidden-parameters><parameter name="productStoreId"/><parameter name="storePromotionId"/></hidden-parameters>
+
+                            <field name="parameterName"><default-field title="Name">
+                                <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(parameterName)}"/></default-field></field>
+                            <field name="parameterDescription"><default-field title="Description">
+                                <display /></default-field></field>
+                            <field name="parameterValue">
+                                <conditional-field condition="parameterType == 'Boolean'">
+                                    <check ><option key="true" text=" "/></check></conditional-field>
+                                <default-field title="Value"><text-line size="3" format="#"/></default-field>
+                            </field>
+                            <field name="deleteButton" align="right"><default-field title="">
+                                <link url="deletePromoParam" icon="glyphicon glyphicon-trash"
+                                      parameter-map="[storePromotionId:storePromotionId, parameterName:parameterName]"
+                                      confirmation="Are you sure you want to remove this Promo Param?"/>
+                            </default-field></field>
+                            <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
+                        </form-list>
+                    </box-body></container-box>
                 </widgets>
             </section>
+
+            <container-box><box-header title="Products"/><box-toolbar>
+                <container-dialog id="AddProductDialog" button-text="Add Product">
+                    <form-single name="AddProductForm" transition="createPromoProduct">
+                        <field name="productStoreId"><default-field><hidden/></default-field></field>
+                        <field name="storePromotionId"><default-field><hidden/></default-field></field>
+                        <field name="productId"><default-field title="Product"><drop-down>
+                            <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <form-list name="ProductsForm" list="psppdList" skip-form="true">
+                    <entity-find entity-name="mantle.product.store.ProductStorePromoProductDetail" list="psppdList">
+                        <econdition field-name="storePromotionId"/>
+                        <select-field field-name="productId"/>
+                        <order-by field-name="pseudoId"/>
+                    </entity-find>
+
+                    <field name="pseudoId"><default-field title="ID">
+                        <link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field></field>
+                    <field name="productName"><default-field title="Name">
+                        <link url="editProduct" text="${productName}" link-type="anchor"/></default-field></field>
+                    <field name="productTypeEnumId"><default-field title="Type">
+                        <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                    <field name="assetClassEnumId"><default-field title="A. Class">
+                        <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+                    <field name="delete"><default-field title=""><link url="deletePromoProduct" text=""
+                            icon="glyphicon glyphicon-trash" confirmation="Remove product from promotion?"
+                            parameter-map="[productId:productId]"/>
+                    </default-field></field>
+                </form-list>
+            </box-body></container-box>
 
             <!--
             <section name="PromoCodeStatistics">
