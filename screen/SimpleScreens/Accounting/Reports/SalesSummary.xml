@@ -178,18 +178,23 @@ along with this software (see the LICENSE.md file). If not, see
         </container>
 
         <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryStats.html.ftl"/></render-mode>
-        <container-row><row-col md="8">
-            <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryCharts.html.ftl"/></render-mode>
-        </row-col><row-col md="4">
-            <container-box><box-header title="Top Products Ordered (last period)"/><box-body-nopad>
-                <form-list name="TopProductList" list="topProductList" skip-form="true">
-                    <field name="productId"><default-field title="Product">
-                        <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
-                    <field name="totalQuantity" align="right"><default-field title="Quantity"><display/></default-field></field>
-                    <field name="totalSales" align="right"><default-field title="Total Sales"><display format="#,##0.00"/></default-field></field>
-                </form-list>
-            </box-body-nopad></container-box>
-        </row-col></container-row>
+
+        <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryCharts.html.ftl"/></render-mode>
+
+        <container-box><box-header title="Top Products Ordered (${[w:'Week', M:'Month', q:'Quarter', y:'Year'].get(interval?:'w')} from ${ec.l10n.format(topProductStart, 'dd MMM yyyy')} to ${ec.l10n.format(topProductEnd - 1, 'dd MMM yyyy')})"/><box-body-nopad>
+            <form-list name="TopProductList" list="topProductList" skip-form="true">
+                <field name="productId"><default-field title="Product">
+                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                <field name="totalSales" align="right"><default-field title="Sales"><display format="#,##0.00"/></default-field></field>
+                <field name="totalQuantity" align="right"><default-field title="Quantity"><display/></default-field></field>
+                <field name="productIssuedTotal" align="right"><default-field title="Total Issued"><display format="#,##0.00"/></default-field></field>
+                <field name="productCostTotal" align="right"><default-field title="Total Cost"><display format="#,##0.00"/></default-field></field>
+                <field name="costPercent" align="right"><default-field title="Cost %"><display format="0.0%"/></default-field></field>
+                <field name="marginPercent" from="1 - (costPercent ?: 0.0)" align="right"><default-field title="Margin %"><display format="0.0%"/></default-field></field>
+                <field name="percentOfTotal" from="ordersLast?.totalSales ? (totalSales / ordersLast.totalSales) : 0.0" align="right">
+                    <default-field title="% of Sales"><display format="0.0%"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
 
         <container-box><box-header title="Sales Orders by Placed Date"/><box-body-nopad>
             <form-list name="SalesOrderSummaryList" list="salesOrderSummaryList" skip-form="true">
