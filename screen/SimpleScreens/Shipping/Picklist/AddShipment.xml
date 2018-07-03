@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Add Shipments" default-menu-index="3">
+
+    <parameter name="workEffortId" required="true"/>
+
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="picklistDetail"><default-response url="../PicklistDetail"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+
+    <transition name="addShipmentToLoad"><service-call name="mantle.work.ShipmentWorkServices.add#ShipmentToShipmentLoad"/>
+        <default-response url="../PicklistDetail"/></transition>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <actions>
+        <set field="excludeOnPicklist" from="excludeOnPicklist ?: 'true'"/>
+        <set field="includeOnPicklist" from="excludeOnPicklist == 'false'"/>
+
+        <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
+        <entity-find-related-one value-field="workEffort" relationship-name="mantle.facility.Facility" to-value-field="facility"/>
+        <set field="originFacilityId" from="originFacilityId != null ? originFacilityId : (facility?.parentFacilityId ?: facility?.facilityId)"/>
+
+        <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="shipmentTypeOut" in-map="[parentEnumId:'ShpTpOutgoing']"/>
+    </actions>
+    <widgets>
+        <form-list name="AddShipmentList" list="shipmentList" transition="addShipmentToLoad" multi="true"
+                header-dialog="true" select-columns="true" saved-finds="true">
+            <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList">
+                <search-form-inputs default-order-by="binLocationNumber,shipmentMethodSequenceNum,shipmentId" skip-fields="originFacilityId">
+                    <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"/></search-form-inputs>
+                <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
+                <econdition field-name="originFacilityId" ignore-if-empty="true"/>
+                <econdition field-name="shipWorkEffortId" operator="is-null" ignore="includeOnPicklist"/>
+                <select-field field-name="shipmentMethodEnumId"/>
+            </entity-find>
+            <row-actions>
+                <!-- Shipment method description -->
+                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="shipMethEnum" cache="true">
+                    <field-map field-name="enumId" from="shipmentMethodEnumId"/></entity-find-one>
+                <!-- Customer Classification -->
+                <entity-find entity-name="mantle.party.PartyClassificationAndAppl" list="custPcaaList">
+                    <date-filter/><econdition field-name="partyId" from="toPartyId"/>
+                    <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
+                <!-- Order IDs from ShipmentItemSource -->
+                <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList" distinct="true">
+                    <econdition field-name="shipmentId"/><select-field field-name="orderId"/></entity-find>
+                <!-- Orders -->
+                <entity-find entity-name="mantle.order.OrderHeader" list="orderHeaderList">
+                    <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
+                    <select-field field-name="orderId,salesChannelEnumId"/>
+                </entity-find>
+                <!-- Order Other Parties -->
+                <entity-find entity-name="mantle.order.OrderPartPartyDetail" list="orderPartyList">
+                    <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
+                    <select-field field-name="partyId,pseudoId,firstName,lastName,organizationName,description"/>
+                </entity-find>
+                <!-- Shipment Quantities - single value, could be optimized with sub-select -->
+                <entity-find entity-name="mantle.shipment.ShipmentItemSourceSummary" list="sisSummaryList">
+                    <econdition field-name="shipmentId"/>
+                    <select-field field-name="quantity,quantityNotHandled"/>
+                </entity-find>
+                <set field="quantityTotal" from="sisSummaryList.first()?.quantity ?: 0.0"/>
+                <set field="quantityNotHandled" from="sisSummaryList.first()?.quantityNotHandled ?: 0.0"/>
+                <!-- Pick vs other location reservations - single value, could be optimized with sub-select -->
+                <entity-find entity-name="mantle.product.issuance.AssetAndReservationSummary" list="resPickLocList">
+                    <econdition field-name="shipmentId"/>
+                    <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                    <select-field field-name="quantity"/>
+                </entity-find>
+                <set field="resPickLocQuantity" from="resPickLocList.first()?.quantity ?: 0.0"/>
+                <set field="_rowSubmit" from="(resPickLocQuantity == quantityTotal) ? 'true' : 'false'"/>
+            </row-actions>
+
+            <hidden-parameters><parameter name="workEffortId"/></hidden-parameters>
+
+            <field name="_useRowSubmit"><default-field><hidden default-value="true"/></default-field></field>
+            <field name="_rowSubmit"><default-field title="Add"><check><option key="true" text=" "/></check></default-field></field>
+            <field name="binLocationNumber"><header-field title="Pick Bin #" show-order-by="true"/>
+                <default-field><text-line size="3"/></default-field></field>
+
+            <field name="shipmentMethodEnumId"><header-field title="Ship Method">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="ShipmentMethod"/><set field="allowMultiple" value="true"/>
+                    <set field="showNot" value="true"/></widget-template-include>
+            </header-field></field>
+            <field name="shipmentMethodSequenceNum">
+                <header-field title="Ship Method" show-order-by="true"/>
+                <default-field><display text="${shipmentMethodSequenceNum != null ? shipmentMethodSequenceNum + ' - ' : ''}${shipMethEnum?.description ?: ''}"/></default-field>
+            </field>
+            <field name="shipmentId">
+                <header-field title="Shipment" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><display text=""/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="shipmentTypeEnumId">
+                <header-field title="Type" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentType"/><set field="allowEmpty" value="true"/>
+                        <set field="allowMultiple" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
+            </field>
+
+            <field name="statusId">
+                <header-field title="Status" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="Shipment"/><set field="allowMultiple" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field>
+            </field>
+            <field name="shipWorkEffortId">
+                <header-field title="Picklist" show-order-by="true"><text-find size="15" hide-options="true"/></header-field>
+                <default-field><link url="picklistDetail" text="${shipWorkEffortId}" link-type="anchor"
+                        style="${workEffortId == shipWorkEffortId ? 'text-success' : 'text-danger'}"
+                        parameter-map="[workEffortId:shipWorkEffortId]" condition="shipWorkEffortId"/></default-field>
+            </field>
+            <field name="excludeOnPicklist"><header-field title="Exclude On Picklist">
+                <radio><option key="true" text="Yes"/><option key="false" text="No"/></radio>
+            </header-field></field>
+
+            <field name="originFacilityId">
+                <header-field title="Origin Facility">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
+                </header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate"
+                        link-type="anchor" parameter-map="[facilityId:originFacilityId]"/></default-field>
+            </field>
+            <field name="toPartyId">
+                <header-field title="To Party">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                </header-field>
+                <default-field>
+                    <link url="editCustomer" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                            link-type="anchor" parameter-map="[partyId:toPartyId]"/>
+                    <label text=" - ${custPcaaList*.description.join(', ')}" condition="custPcaaList"/>
+                </default-field>
+            </field>
+            <field name="customerClassificationId"><header-field title="Customer Class">
+                <drop-down allow-empty="true">
+                    <entity-options key="${partyClassificationId}" text="${description}">
+                        <entity-find entity-name="mantle.party.PartyClassification">
+                            <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/>
+                            <order-by field-name="description"/></entity-find></entity-options>
+                </drop-down>
+            </header-field></field>
+
+            <field name="orderPartyId"><header-field>
+                <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+            </header-field></field>
+            <field name="orderRoleTypeId"><header-field>
+                <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                    <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                        <econdition field-name="roleGroupEnumId" value="RgpOrder"/>
+                        <order-by field-name="description"/></entity-find>
+                </entity-options></drop-down>
+            </header-field></field>
+            <field name="orderParties"><default-field>
+                <section-iterate name="OtherPartyListSection" list="orderPartyList" entry="partParty"><widgets><container>
+                    <link url="editParty" link-type="anchor" text="${ec.resource.expand('PartyNameTemplate','',partParty)} - ${partParty.description?:'N/A'}"
+                            parameter-map="[partyId:partParty.partyId]"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
+
+            <field name="orderId"><header-field><text-find default-operator="begins"/></header-field></field>
+            <field name="salesChannelEnumId"><header-field title="Order Source">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="SalesChannel"/><set field="allowEmpty" value="true"/></widget-template-include>
+            </header-field></field>
+
+            <field name="orderIds"><default-field title="Orders">
+                <section-iterate name="OrderSisList" list="orderHeaderList" entry="orderHeader"><widgets>
+                    <link url="orderDetail" text="${orderHeader.orderId}" link-type="anchor" condition="orderHeader.orderId"
+                            parameter-map="[orderId:orderHeader.orderId]"/>
+                    <label text=" - ${orderHeader.salesChannel?.description?:''}" condition="orderHeader.salesChannelEnumId"/>
+                </widgets></section-iterate>
+            </default-field></field>
+
+            <field name="otherPartyOrderId"><header-field title="Their Order" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+                <default-field><display also-hidden="false"/></default-field></field>
+
+            <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display also-hidden="false"/></default-field></field>
+            <field name="estimatedReadyDate"><header-field title="Ready Date" show-order-by="true"><date-period/></header-field>
+                <default-field><display also-hidden="false"/></default-field></field>
+
+            <field name="quantityTotal" align="right">
+                <default-field title="Quantity Total"><display/></default-field></field>
+            <field name="resPickLocQuantity" align="right">
+                <default-field title="Pick Loc Qty"><display style="text-strong ${(resPickLocQuantity == quantityTotal) ? 'text-success' : 'text-danger'}"/></default-field></field>
+
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <default-field title="Add to Picklist"><submit/></default-field>
+            </field>
+
+            <form-list-column><field-ref name="_rowSubmit"/></form-list-column>
+            <form-list-column><field-ref name="binLocationNumber"/></form-list-column>
+            <form-list-column><field-ref name="shipmentMethodSequenceNum"/><field-ref name="shipmentId"/></form-list-column>
+            <form-list-column><field-ref name="statusId"/><field-ref name="shipWorkEffortId"/></form-list-column>
+            <form-list-column><field-ref name="shipmentTypeEnumId"/><field-ref name="originFacilityId"/></form-list-column>
+            <form-list-column><field-ref name="toPartyId"/><field-ref name="orderParties"/></form-list-column>
+            <form-list-column><field-ref name="otherPartyOrderId"/><field-ref name="orderIds"/></form-list-column>
+            <form-list-column><field-ref name="entryDate"/><field-ref name="estimatedReadyDate"/></form-list-column>
+            <form-list-column><field-ref name="quantityTotal"/><field-ref name="resPickLocQuantity"/></form-list-column>
+        </form-list>
+    </widgets>
+</screen>

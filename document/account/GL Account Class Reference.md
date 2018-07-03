@@ -9,9 +9,6 @@
             - Good Royalties Cost
             - Inventory Shrinkage
         - Cost of Services Sold
-    - **Contra Revenue**
-        - Discounts and Write-downs
-        - Customer Returns
     - **Operating Expense**
         - Sales and Marketing Expense
             - Advertising
@@ -49,7 +46,10 @@
     - **Revenue**
         - Goods Revenue
         - Services Revenue
-    - **Income**
+        - Other Revenue
+        - Discounts and Write-downs (contra)
+        - Customer Returns (contra)
+    - **Non-Operating Income**
         - Cash Income
         - Interest Income
         - Non-Cash Income
@@ -57,37 +57,36 @@
 ## Balance Sheet Classes
 
 - Debit
-    - **Asset**
-        - Current Asset
+    - **Assets**
+        - Current Assets
             - Cash and Equivalent
-            - Inventory Asset
+            - Inventory Assets
             - Accounts Receivable
             - Loans Receivable
             - Prepaid Expense (paid, not yet incurred)
             - Prepaid Inventory (paid, not yet billed)
             - Accrued Revenue (earned, not yet received)
-        - Long Term Asset
+            - Allowance For Bad Debts (contra)
+        - Long Term Assets
             - Land and Building
             - Equipment
-            - Other Asset
-        - Other Asset
-    - **Contra Equity**
+            - Accumulated Depreciation (contra)
+        - Other Assets
+            - Intangible Assets
+            - Accumulated Amortization (contra)
     - **Equity Distribution**
         - Return of Capital
         - Dividends
 - Credit
-    - **Liability**
-        - Current Liability
+    - **Liabilities**
+        - Current Liabilities
             - Accounts Payable
             - Loans Payable
             - Accrued Expenses (incurred, not yet paid)
             - Unearned Revenue (received, not yet earned)
             - Third-Party Holdings
-        - Long Term Liability
-    - **Contra Asset**
-        - Accumulated Depreciation
-        - Accumulated Amortization
-        - Allowance For Bad Debts
+        - Long Term Liabilities
     - **Equity**
         - Owners Equity
         - Retained Earnings
+        - Treasury Stock (contra)

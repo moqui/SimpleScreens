@@ -57,7 +57,7 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-dialog id="NewPayableDialog" button-text="New Payable">
             <form-single name="NewPayableForm" transition="createInvoice">
-                <field name="fromPartyId"><default-field title="Supplier">
+                <field name="fromPartyId"><default-field title="From">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
                 <field name="toPartyId"><default-field title="Organization">
@@ -101,7 +101,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <order-by field-name="organizationName"/></entity-find>
                     </entity-options></drop-down>
                 </default-field></field>
-                <field name="toPartyId"><default-field title="Customer">
+                <field name="toPartyId"><default-field title="To">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
             </form-single>
@@ -191,11 +191,12 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="InvoiceList" list="invoiceList" skip-form="true" header-dialog="true" select-columns="true"
                    saved-finds="true" show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.account.invoice.InvoiceFindView" list="invoiceList">
-                <search-form-inputs default-order-by="-invoiceDate,invoiceId" skip-fields="fromRoleTypeId,toRoleTypeId">
+                <search-form-inputs default-order-by="invoiceDate,invoiceId" skip-fields="fromRoleTypeId,toRoleTypeId">
                     <default-parameters statusId="InvoiceInProcess,InvoiceFinalized,InvoiceSent,InvoiceAcked,InvoiceIncoming,InvoiceReceived,InvoiceApproved"
                             statusId_op="in" invoiceDate_poffset="-3" invoiceDate_period="30d"/></search-form-inputs>
                 <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
                 <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
+                <select-field field-name="currencyUomId"/>
             </entity-find>
             <row-actions>
                 <script><![CDATA[
@@ -226,10 +227,20 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="invoiceId"><header-field show-order-by="true" title="Invoice"><text-find hide-options="ignore-case" default-operator="begins"/></header-field>
                 <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor"/></default-field></field>
+            <field name="invoiceTypeEnumId">
+                <header-field title="Type" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="InvoiceType"/><set field="allowEmpty" value="true"/>
+                        <set field="allowMultiple" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+
             <field name="referenceNumber"><header-field title="Their Invoice"><text-find size="20" default-operator="begins"/></header-field>
                 <default-field><display/></default-field></field>
             <field name="otherPartyOrderId"><header-field title="Their Order"><text-find size="20" default-operator="begins"/></header-field>
                 <default-field><display/></default-field></field>
+
             <field name="invoiceDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
             <field name="dueDate"><header-field show-order-by="true"><date-period/></header-field>
@@ -251,19 +262,19 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
                         link-type="anchor" parameter-map="[partyId:fromPartyId]"/></default-field>
             </field>
+            <field name="productStoreId">
+                <header-field title="Store">
+                    <drop-down allow-empty="true"><entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                        <entity-find entity-name="mantle.product.store.ProductStore">
+                            <order-by field-name="storeName"/></entity-find></entity-options></drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.product.store.ProductStore" text="${productStoreId}: ${storeName}"/></default-field>
+            </field>
             <field name="toPartyId">
                 <header-field title="To"><drop-down allow-empty="true">
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
                 <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
                         link-type="anchor" parameter-map="[partyId:toPartyId]"/></default-field>
-            </field>
-            <field name="invoiceTypeEnumId">
-                <header-field title="Type" show-order-by="true">
-                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                        <set field="enumTypeId" value="InvoiceType"/><set field="allowEmpty" value="true"/>
-                        <set field="allowMultiple" value="true"/></widget-template-include>
-                </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
 
             <field name="invoiceTotal" align="right" show-total="true"><header-field title="Total" show-order-by="true"><range-find/></header-field>
@@ -272,6 +283,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="invoiceId"/><field-ref name="invoiceTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="invoiceDate"/><field-ref name="dueDate"/></form-list-column>
+            <form-list-column><field-ref name="referenceNumber"/><field-ref name="otherPartyOrderId"/></form-list-column>
+            <form-list-column><field-ref name="statusId"/></form-list-column>
+            <form-list-column><field-ref name="fromPartyId"/><field-ref name="productStoreId"/></form-list-column>
+            <form-list-column><field-ref name="toPartyId"/></form-list-column>
+            <form-list-column><field-ref name="invoiceTotal"/></form-list-column>
+            <form-list-column><field-ref name="unpaidTotal"/></form-list-column>
         </form-list>
 
         <section name="AgingSummarySection" condition="hasReceivableAging.get() || hasPayableAging.get()"><actions>

@@ -20,15 +20,28 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="editPayment"><default-response url="."/></transition>
     <transition name="editPaymentMethod"><default-response url="//${appRoot}/Party/PaymentMethod/EditPaymentMethod"/></transition>
+    <transition name="paymentMethodFiles"><default-response url="//${appRoot}/Party/PaymentMethod/PaymentMethodFiles"/></transition>
+
     <transition name="editInvoice"><default-response url="../../Invoice/EditInvoice"/></transition>
+    <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
+    <transition name="editFinancialAccount"><default-response url="../../FinancialAccount/EditFinancialAccount"/></transition>
+    <transition name="financialAccountTrans"><default-response url="../../FinancialAccount/FinancialAccountTrans"/></transition>
+
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition name="updatePayment"><service-call name="mantle.account.PaymentServices.update#Payment"/>
         <default-response url="."/></transition>
     <transition name="updateStatus"><service-call name="update#mantle.account.payment.Payment"/>
         <default-response url="."/></transition>
+    <transition name="cancelPaymentAndInvoices"><service-call name="mantle.account.PaymentServices.cancel#PaymentAndInvoices"/>
+        <default-response url="."/></transition>
+
     <transition name="postPayment"><service-call name="mantle.ledger.PaymentAutoPostServices.post#Payment"/>
         <default-response url="."/></transition>
     <transition name="repostPaymentAndApplications"><service-call name="mantle.ledger.PaymentAutoPostServices.repost#PaymentAndApplications"/>
+        <default-response url="."/></transition>
+    <transition name="createRefundPayment"><service-call name="mantle.account.PaymentServices.create#RefundPayment"/>
         <default-response url="."/></transition>
 
     <transition name="gatewayAuthorize"><service-call name="mantle.account.PaymentServices.authorize#SinglePayment"/>
@@ -39,6 +52,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="gatewayRefund"><service-call name="mantle.account.PaymentServices.refund#SinglePayment"/>
         <default-response url="."/></transition>
+    <transition name="gatewayDetails"><service-call name="mantle.account.PaymentServices.get#SinglePaymentGatewayDetails"/>
+        <default-response url="."/></transition>
 
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
         <default-response url="."/></transition>
@@ -46,13 +61,6 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="unapplyPaymentApplication"><service-call name="mantle.account.PaymentServices.unapply#PaymentApplication"/>
         <default-response url="."/></transition>
-
-    <transition name="editTransaction"><default-response url="../../Transaction/EditTransaction"/></transition>
-    <transition name="editFinancialAccount"><default-response url="../../FinancialAccount/EditFinancialAccount"/></transition>
-    <transition name="financialAccountTrans"><default-response url="../../FinancialAccount/FinancialAccountTrans"/></transition>
-
-    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
-    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
@@ -86,10 +94,13 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="payment == null"><return error="true" message="Payment ${paymentId} not found"/></if>
         <set field="statusId" from="payment?.statusId"/>
         <set field="paymentEditable" from="statusId in ['PmntProposed', 'PmntPromised', 'PmntAuthorized']"/>
-        <!-- <set field="paymentVoid" from="statusId in ['PmntCancelled', 'PmntVoid', 'PmntRefunded']"/> -->
+        <!-- <set field="paymentVoid" from="statusId in ['PmntCancelled', 'PmntVoid']"/> -->
         <set field="paymentDelivered" from="statusId in ['PmntDelivered', 'PmntConfirmed']"/>
         <set field="isInvoicePayment" from="payment?.paymentTypeEnumId == 'PtInvoicePayment' || payment?.type?.parentEnumId == 'PtInvoicePayment'"/>
         <set field="isCheck" from="payment.paymentInstrumentEnumId in ['PiPersonalCheck', 'PiCompanyCheck']"/>
+
+        <entity-find-one entity-name="mantle.account.method.PaymentMethodFile" value-field="paymentMethodFile">
+            <field-map field-name="paymentMethodFileId" from="payment.paymentMethodFileId"/></entity-find-one>
     </actions>
     <widgets>
         <container-row><row-col lg="6">
@@ -106,6 +117,42 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="PaymentCheck.pdf" text="Check PDF" condition="isCheck &amp;&amp; isFromPartyOrgInternal"/>
                 <link url="PaymentDetail.pdf" text="Detail PDF" condition="isCheck &amp;&amp; isFromPartyOrgInternal"/>
 
+                <container-dialog id="RefundDialog" button-text="Create Refund" condition="paymentDelivered">
+                    <form-single name="RefundPaymentForm" transition="createRefundPayment">
+                        <field name="paymentId"><default-field title="Original Payment"><display/></default-field></field>
+                        <field name="statusId" from="paymentStatusId"><default-field title="Status">
+                            <drop-down no-current-selected-key="PmntPromised">
+                                <option key="PmntProposed" text="Proposed"/>
+                                <option key="PmntPromised" text="Promised"/>
+                                <option key="PmntAuthorized" text="Authorized"/>
+                                <option key="PmntDelivered" text="Delivered"/>
+                            </drop-down>
+                        </default-field></field>
+                        <field name="amountUomId" from="payment.amountUomId"><default-field title="Currency">
+                            <display-entity entity-name="moqui.basic.Uom"/></default-field></field>
+                        <field name="amount"><default-field>
+                            <text-line size="10" default-value="${ec.l10n.format(unappliedTotal, '#,##0.00')}"/>
+                        </default-field></field>
+                        <field name="paymentInstrumentEnumId"><default-field title="Payment Instrument">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                <set field="enumTypeId" value="PaymentInstrument"/>
+                                <set field="noCurrentSelectedKey" value="PiCompanyCheck"/></widget-template-include>
+                        </default-field></field>
+                        <field name="paymentMethodId"><default-field title="From Payment Method">
+                            <drop-down allow-empty="true"><entity-options key="${paymentMethodId}" text="PaymentMethodAndTypeTemplate">
+                                <entity-find entity-name="mantle.account.method.PaymentMethodAndType">
+                                    <econdition field-name="ownerPartyId" from="payment.toPartyId"/>
+                                    <order-by field-name="typeDescription,description"/>
+                                </entity-find>
+                            </entity-options></drop-down>
+                        </default-field></field>
+                        <field name="effectiveDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                        <field name="paymentRefNum"><default-field title="Ref/Check Number"><text-line size="10"/></default-field></field>
+                        <field name="memo"><default-field><text-line size="30"/></default-field></field>
+                        <field name="comments"><default-field><text-area cols="60" rows="4"/></default-field></field>
+                        <field name="submitButton"><default-field title="Create Refund Payment"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
                 <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
                     <form-list name="AuditLogList" list="auditLogList" skip-form="true">
                         <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
@@ -186,6 +233,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field><ignored/></default-field>
                 </field>
 
+                <field name="settlementDate"><default-field><date-time/></default-field></field>
                 <field name="memo"><default-field><text-line size="30"/></default-field></field>
                 <field name="comments"><default-field><text-area cols="60" rows="4"/></default-field></field>
 
@@ -195,6 +243,14 @@ along with this software (see the LICENSE.md file). If not, see
                             <set field="enumTypeId" value="PaymentType"/></widget-template-include>
                     </conditional-field>
                     <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                </field>
+                <field name="paymentMethodFileId">
+                    <conditional-field condition="paymentMethodFile" title="In File">
+                        <link url="paymentMethodFiles" text="#${paymentMethodFile.paymentMethodFileId}" link-type="anchor"
+                                parameter-map="[paymentMethodId:paymentMethodFile.paymentMethodId,
+                                        paymentMethodFileId:paymentMethodFile.paymentMethodFileId]"/>
+                    </conditional-field>
+                    <default-field><ignored/></default-field>
                 </field>
                 <field name="overrideGlAccountId">
                     <conditional-field title="Override (Cash) GL Account" condition="paymentEditable"><drop-down allow-empty="true">
@@ -215,10 +271,17 @@ along with this software (see the LICENSE.md file). If not, see
                         <drop-down allow-empty="true">
                             <entity-options key="${paymentMethodId}" text="PaymentMethodDetailTemplate">
                                 <entity-find entity-name="mantle.account.method.PaymentMethodDetail">
+                                    <econdition field-name="paymentMethodId"/></entity-find>
+                            </entity-options>
+                            <entity-options key="${paymentMethodId}" text="PaymentMethodDetailTemplate">
+                                <entity-find entity-name="mantle.account.method.PaymentMethodDetail">
+                                    <date-filter/>
                                     <econdition field-name="ownerPartyId" from="fromPartyId"/>
+                                    <econdition field-name="paymentMethodId" operator="not-equals"/>
                                     <order-by field-name="typeDescription,description"/>
                                 </entity-find>
-                            </entity-options></drop-down>
+                            </entity-options>
+                        </drop-down>
                         <link url="editPaymentMethod" text="PaymentMethodAndTypeTemplate"
                                 link-type="anchor" entity-name="mantle.account.method.PaymentMethodAndType"
                                 parameter-map="[paymentMethodId:paymentMethodId]" condition="paymentMethodId"/>
@@ -232,7 +295,13 @@ along with this software (see the LICENSE.md file). If not, see
                         <drop-down allow-empty="true">
                             <entity-options key="${paymentMethodId}" text="PaymentMethodDetailTemplate">
                                 <entity-find entity-name="mantle.account.method.PaymentMethodDetail">
+                                    <econdition field-name="paymentMethodId" from="toPaymentMethodId"/></entity-find>
+                            </entity-options>
+                            <entity-options key="${paymentMethodId}" text="PaymentMethodDetailTemplate">
+                                <entity-find entity-name="mantle.account.method.PaymentMethodDetail">
+                                    <date-filter/>
                                     <econdition field-name="ownerPartyId" from="toPartyId"/>
+                                    <econdition field-name="paymentMethodId" operator="not-equals" from="toPaymentMethodId"/>
                                     <order-by field-name="typeDescription,description"/>
                                 </entity-find>
                             </entity-options>
@@ -249,7 +318,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <conditional-field condition="paymentEditable" title="Financial Account">
                         <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
                             <entity-find entity-name="mantle.account.financial.FinancialAccount">
-                                <econdition field-name="ownerPartyId" from="fromPartyId"/></entity-find>
+                                <econdition field-name="ownerPartyId" operator="in" from="[fromPartyId, toPartyId]"/></entity-find>
                         </entity-options></drop-down>
                         <link url="editFinancialAccount" text="FinancialAccountNameTemplate" link-type="anchor" condition="finAccountId"
                                 entity-name="mantle.account.financial.FinancialAccount" parameter-map="[finAccountId:finAccountId]"/>
@@ -301,12 +370,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-row><field-ref name="orderId"/><field-ref name="forInvoiceId"/></field-row>
                     <field-row><field-ref name="amount"/><field-ref name="amountUomId"/></field-row>
                     <field-row><field-ref name="paymentAuthCode"/><field-ref name="paymentRefNum"/></field-row>
+                    <field-ref name="dupWarning"/>
                     <fields-not-referenced/>
                 </field-layout>
             </form-single>
         </row-col><row-col lg="6">
-            <section name="PaymentGatewayActionsSection" condition="payment.paymentGatewayConfigId || payment.paymentInstrumentEnumId == 'PiFinancialAccount'"><widgets>
-                <container-dialog id="GatewayAuthorizeDialog" button-text="Gateway Authorize" condition="payment.statusId in ['PmntPromised', 'PmntProposed']">
+            <section name="PaymentGatewayActionsSection" condition="payment.paymentMethodId &amp;&amp; (payment.paymentGatewayConfigId || payment.paymentInstrumentEnumId == 'PiFinancialAccount')"><widgets>
+                <container-dialog id="GatewayAuthorizeDialog" button-text="Gateway Authorize" condition="payment.statusId in ['PmntPromised', 'PmntProposed', 'PmntDeclined']">
                     <form-single name="GatewayAuthorizeForm" map="payment" transition="gatewayAuthorize">
                         <field name="paymentId"><default-field><hidden/></default-field></field>
                         <field name="cardSecurityCode"><default-field><text-line size="4"/></default-field></field>
@@ -321,19 +391,25 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-single>
                 </container-dialog>
                 <link url="gatewayRelease" text="Gateway Release Auth" condition="payment.statusId == 'PmntAuthorized'" parameter-map="[payment:null]"/>
-                <container-dialog id="GatewayRefundDialog" button-text="Gateway Refund" condition="payment.statusId == 'PmntDelivered'">
+                <container-dialog id="GatewayRefundDialog" button-text="Gateway Refund" condition="paymentDelivered">
                     <form-single name="GatewayRefundForm" map="payment" transition="gatewayRefund">
                         <field name="paymentId"><default-field><hidden/></default-field></field>
-                        <field name="amount"><default-field><text-line size="10"/></default-field></field>
+                        <field name="amount" from="unappliedTotal"><default-field><text-line size="10"/></default-field></field>
                         <field name="submitButton"><default-field title="Refund"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
+                <link url="gatewayDetails" text="Get Gateway Status" parameter-map="[payment:null]" condition="payment.paymentRefNum"/>
             </widgets></section>
 
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
-            <container-box><box-header title="Payment Applications"/><box-body>
+            <container-box><box-header title="Payment Applications"/><box-toolbar>
+                <link url="cancelPaymentAndInvoices" text="Cancel Payment and Invoices" confirmation="Cancel this payment and cancel all invoices it is applied to?"
+                        condition="statusId in ['PmntProposed', 'PmntPromised']"/>
+                <link url="cancelPaymentAndInvoices" text="Void Payment and Invoices" confirmation="Void this payment and cancel all invoices it is applied to?"
+                        condition="statusId in ['PmntAuthorized', 'PmntDelivered']"/>
+            </box-toolbar><box-body>
                 <label text="Applied ${ec.l10n.formatCurrency(appliedTotal, payment.amountUomId)}, Unapplied ${ec.l10n.formatCurrency(unappliedTotal, payment.amountUomId)}" type="strong"/>
             </box-body><box-body-nopad>
                 <form-list name="PaymentApplicationList" list="paymentApplicationList">
@@ -365,6 +441,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <link url="editInvoice" text="${invoice.invoiceId?:''}" link-type="anchor"
                                     parameter-map="[invoiceId:invoice.invoiceId]"/>
                         </default-field></field>
+                        <field name="invoiceDate" from="invoice.invoiceDate"><default-field title="Date">
+                            <display format="yyyy-MM-dd"/></default-field></field>
                         <field name="statusId" from="invoice.statusId"><default-field title="Status">
                             <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
                         <field name="forThis"><default-field title="For">
@@ -391,6 +469,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <link url="editPayment" text="${payment.paymentId?:''}" link-type="anchor"
                                     parameter-map="[paymentId:payment.paymentId]"/>
                         </default-field></field>
+                        <field name="effectiveDate" from="payment.effectiveDate"><default-field title="Date">
+                            <display format="yyyy-MM-dd"/></default-field></field>
                         <field name="statusId" from="payment.statusId"><default-field title="Status">
                             <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
                         <field name="paymentTotal" align="right"><default-field title="Amount">
@@ -557,6 +637,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="responseCode"><default-field title="Resp Code"><display/></default-field></field>
                         <field name="reasonCode"><default-field title="Reason" tooltip="${reasonMessage}"><display/></default-field></field>
                         <field name="reasonMessage"><default-field title="Message"><display/></default-field></field>
+                        <field name="transactionStatus"><default-field title="Status"><display/></default-field></field>
+
                         <field name="resultSuccess"><default-field title="Success"><display/></default-field></field>
                         <field name="resultDeclined"><default-field title="Decline"><display/></default-field></field>
                         <field name="resultError"><default-field title="Error"><display/></default-field></field>
@@ -569,7 +651,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <form-list-column><field-ref name="paymentGatewayConfigId"/><field-ref name="paymentOperationEnumId"/>
                             <field-ref name="amount"/><field-ref name="transactionDate"/><field-ref name="reasonMessage"/></form-list-column>
                         <form-list-column><field-ref name="referenceNum"/><field-ref name="approvalCode"/>
-                            <field-ref name="responseCode"/><field-ref name="reasonCode"/></form-list-column>
+                            <field-ref name="responseCode"/><field-ref name="reasonCode"/><field-ref name="transactionStatus"/></form-list-column>
                         <form-list-column><field-ref name="resultSuccess"/><field-ref name="resultDeclined"/><field-ref name="resultError"/></form-list-column>
                         <form-list-column><field-ref name="avsResult"/><field-ref name="cvResult"/></form-list-column>
                         <form-list-column><field-ref name="resultNsf"/><field-ref name="resultBadExpire"/><field-ref name="resultBadCardNumber"/></form-list-column>

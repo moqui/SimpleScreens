@@ -2,7 +2,7 @@ define({
     /* This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License. */
     data: function() { return { notificationCount:0, messageCount:0, eventCount:0, taskCount:0, updateInterval:null, updateErrors:0 } },
     template:
-    '<div class="btn-group navbar-right my-account-nav">' +
+    '<div class="btn-group navbar-right btn-group-condensed my-account-nav">' +
         '<m-link href="/apps/my/User/Notifications" data-toggle="tooltip" data-container="body" data-original-title="Notifications" data-placement="bottom" class="btn btn-default btn-sm navbar-btn">' +
             '<i class="glyphicon glyphicon-info-sign"></i> <span class="label label-info">{{notificationCount}}</span></m-link>' +
         '<m-link href="/apps/my/User/Messages/FindMessage?statusId=CeReceived&toCurrentUser=true" data-toggle="tooltip" data-container="body" data-original-title="Messages" data-placement="bottom" class="btn btn-default btn-sm navbar-btn">' +
@@ -45,7 +45,7 @@ define({
     },
     mounted: function() {
         this.updateCounts();
-        this.updateInterval = setInterval(this.updateCounts, 5*60*1000); /* update every 5 minutes */
+        this.updateInterval = setInterval(this.updateCounts, 2*60*1000); /* update every 2 minutes */
         $('.my-account-nav [data-toggle="tooltip"]').tooltip({ placement:'bottom', trigger:'hover' });
         this.$root.notificationClient.registerListener("ALL", this.notificationListener);
     }

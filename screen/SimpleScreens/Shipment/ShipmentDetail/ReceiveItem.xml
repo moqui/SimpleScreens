@@ -24,27 +24,69 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
     <actions>
         <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
+        <if condition="shipmentItem == null">
+            <!-- see if productId is a pseudoId or ProductIdentification -->
+            <entity-find-one entity-name="mantle.product.Product" value-field="product">
+                <field-map field-name="pseudoId" from="productId"/></entity-find-one>
+            <if condition="product != null"><set field="productId" from="product.productId"/></if>
+            <if condition="product == null">
+                <entity-find entity-name="mantle.product.ProductIdentification" list="prodIdentList">
+                    <econdition field-name="idValue" from="productId"/></entity-find>
+                <if condition="prodIdentList.size() == 1"><set field="productId" from="prodIdentList[0].productId"/></if>
+                <if condition="prodIdentList.size() &gt; 1">
+                    <message type="warning">Found multiple products with ID ${scanId}: ${prodIdentList*.productId.join(', ')}</message></if>
+            </if>
+
+            <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
+            <if condition="shipmentItem == null"><return error="true" message="Shipment ${shipmentId} item ${productId} not found"/></if>
+        </if>
+
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
         <service-call name="org.moqui.impl.BasicServices.find#Enumeration" in-map="[enumTypeId:'RejectionReason']" out-map="reasonOut"/>
         <set field="facilityId" from="shipmentRouteSegmentList ? shipmentRouteSegmentList[shipmentRouteSegmentList.size()-1].destinationFacilityId : null"/>
 
-        <!-- get quantityNotHandled total for quantityAccepted, try to get the default acquireCost -->
-        <set field="quantityAccepted" from="0.0"/>
+        <!-- populate quantityAccepted from item quantity minus AssetReceipt quantityAccepted + quantityRejected -->
+        <set field="quantityAccepted" from="shipmentItem.quantity"/>
+        <entity-find entity-name="mantle.product.receipt.AssetReceipt" list="assetReceiptList">
+            <econdition field-name="shipmentId"/><econdition field-name="productId"/></entity-find>
+        <iterate list="assetReceiptList" entry="assetReceipt">
+            <set field="quantityAccepted" from="quantityAccepted - (assetReceipt.quantityAccepted ?: 0.0) - (assetReceipt.quantityRejected ?: 0.0)"/>
+        </iterate>
+
+        <!-- try to get the default acquireCost from order items -->
         <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="shipmentItemSourceList">
             <econdition field-name="shipmentId"/><econdition field-name="productId"/>
-            <econdition field-name="quantityNotHandled" operator="greater" from="0.0"/>
+            <econdition field-name="orderId" operator="is-not-null"/><econdition field-name="orderItemSeqId" operator="is-not-null"/>
         </entity-find>
         <iterate list="shipmentItemSourceList" entry="shipmentItemSource">
-            <set field="quantityAccepted" from="quantityAccepted + shipmentItemSource.quantityNotHandled"/>
-            <if condition="!acquireCost &amp;&amp; shipmentItemSource.orderId &amp;&amp; shipmentItemSource.orderItemSeqId">
+            <if condition="(!acquireCost || !ownerPartyId) &amp;&amp; shipmentItemSource.orderId &amp;&amp; shipmentItemSource.orderItemSeqId">
                 <entity-find-one entity-name="mantle.order.OrderItem" value-field="orderItem">
                     <field-map field-name="orderId" from="shipmentItemSource.orderId"/>
                     <field-map field-name="orderItemSeqId" from="shipmentItemSource.orderItemSeqId"/>
                 </entity-find-one>
-                <set field="acquireCost" from="orderItem?.standardCost ?: orderItem?.unitAmount"/>
+                <if condition="!acquireCost"><set field="acquireCost" from="orderItem?.standardCost ?: orderItem?.unitAmount"/></if>
+                <if condition="!ownerPartyId">
+                    <set field="orderPart" from="orderItem?.'mantle.order.OrderPart'"/>
+                    <set field="ownerPartyId" from="orderPart?.customerPartyId"/>
+                </if>
             </if>
+        </iterate>
+        <!-- if no ownerPartyId from order customer default to owned by whoever it was shipped from; for third party consignment inventory -->
+        <!-- NOTE: not sure if this is good to do automatically vs Facility.ownerPartyId -->
+        <if condition="!ownerPartyId"><set field="ownerPartyId" from="shipment.fromPartyId"/></if>
+
+        <!-- special case for transfer shipments with AssetIssuance before receipt -->
+        <entity-find entity-name="mantle.product.issuance.AssetIssuance" list="assetIssuanceList">
+            <econdition field-name="shipmentId"/><econdition field-name="productId"/></entity-find>
+        <iterate list="assetIssuanceList" entry="assetIssuance">
+            <set field="asset" from="assetIssuance.asset"/>
+            <if condition="!lotId &amp;&amp; asset?.lotId"><set field="lotId" from="asset.lotId"/></if>
+            <if condition="!acquireCost &amp;&amp; asset?.acquireCost"><set field="acquireCost" from="asset.acquireCost"/></if>
         </iterate>
     </actions>
     <widgets>
@@ -78,6 +120,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <text-line size="20"/></default-field></field>
             <field name="manufacturedDate"><default-field title="Manufactured"><date-time type="date"/></default-field></field>
             <field name="expectedEndOfLife"><default-field title="Expiration"><date-time type="date"/></default-field></field>
+
+            <field name="ownerPartyId"><default-field title="Owner">
+                <label text="Default Asset Owner (${ownerPartyId}) different from Facility owner (${destinationFacility.ownerPartyId}), if not consignment inventory change now" style="text-warning"
+                        condition="ownerPartyId &amp;&amp; destinationFacility?.ownerPartyId &amp;&amp; ownerPartyId != destinationFacility.ownerPartyId"/>
+                <drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,OrgInternal']"/>
+                </drop-down>
+            </default-field></field>
             <field name="acquireCost"><default-field tooltip="Defaults to Standard Cost or Price (Unit Amount) on related order item">
                 <text-line size="8" format="#,##0.00"/></default-field></field>
 
@@ -89,18 +139,38 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="facilityId"><default-field title="Facility">
                 <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field></field>
-            <field name="locationSeqId"><default-field title="Storage Location">
-                <drop-down allow-empty="true">
-                    <entity-options key="${locationSeqId}" text="FacilityLocationNameTemplate">
-                        <entity-find entity-name="mantle.facility.FacilityLocation">
-                            <econdition field-name="facilityId"/><order-by field-name="locationSeqId"/></entity-find>
-                    </entity-options>
-                </drop-down>
-            </default-field></field>
+            <field name="locationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                <dynamic-options transition="getLocationList" server-search="true" min-length="0">
+                    <depends-on field="facilityId"/></dynamic-options>
+            </drop-down></default-field></field>
+            <field name="containerId"><default-field title="Container"><drop-down>
+                <!-- NOTE: don't allow-empty, if there is at least one container in the location it should go in a container, for movable bin support -->
+                <!-- TODO: would be nice to allow-empty but auto-select first if there is at least one -->
+                <dynamic-options transition="getContainerList" server-search="true" min-length="0">
+                    <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options>
+            </drop-down></default-field></field>
 
-            <field name="comments"><default-field title="Notes"><text-area cols="80" rows="5"/></default-field></field>
+            <field name="comments"><default-field title="Notes"><text-area cols="80" rows="3"/></default-field></field>
 
             <field name="submitButton"><default-field title="Receive"><submit/></default-field></field>
+
+            <field-layout>
+                <field-ref name="fromPartyName"/>
+                <field-ref name="productId"/>
+                <field-row><field-ref name="statusId"/><field-ref name="receivedDate"/></field-row>
+                <field-ref name="mfgPartyId"/>
+                <field-ref name="lotId"/>
+                <field-ref name="lotNumber"/>
+                <field-row><field-ref name="manufacturedDate"/><field-ref name="expectedEndOfLife"/></field-row>
+                <field-ref name="ownerPartyId"/>
+                <field-ref name="acquireCost"/>
+                <field-row><field-ref name="quantityAccepted"/><field-ref name="quantityRejected"/></field-row>
+                <field-row><field-ref name="facilityId"/><field-ref name="rejectionReasonEnumId"/></field-row>
+                <field-ref name="locationSeqId"/>
+                <field-ref name="containerId"/>
+                <field-ref name="comments"/>
+                <field-ref name="submitButton"/>
+            </field-layout>
         </form-single>
     </widgets>
 </screen>

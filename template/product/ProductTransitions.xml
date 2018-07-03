@@ -17,6 +17,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="getProductList">
         <parameter name="term"/>
         <parameter name="productFeatureIds"/>
+        <parameter name="productTypeEnumId"/>
+        <parameter name="productClassEnumId"/>
+        <parameter name="assetTypeEnumId"/>
+        <parameter name="assetClassEnumId"/>
         <parameter name="indexName"/>
         <parameter name="documentType"/>
         <parameter name="pageIndex"/>
@@ -48,6 +52,10 @@ along with this software (see the LICENSE.md file). If not, see
                         }
                         if (productFeatureIdList.size() > 1) termSb.append(')')
                     }
+                    if (productTypeEnumId) termSb.append(' AND productTypeEnumId:').append(productTypeEnumId)
+                    if (productClassEnumId) termSb.append(' AND productClassEnumId:').append(productClassEnumId)
+                    if (assetTypeEnumId) termSb.append(' AND assetTypeEnumId:').append(assetTypeEnumId)
+                    if (assetClassEnumId) termSb.append(' AND assetClassEnumId:').append(assetClassEnumId)
                 ]]></script>
                 <!-- <log level="warn" message="Doing product search with queryString [${termSb.toString()}], indexName:${indexName}, documentType:${documentType}"/> -->
                 <set field="orderByFields" from="term ? null : ['pseudoId']"/>
@@ -93,14 +101,45 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="productId" required="true"/>
         <actions>
             <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
-            <if condition="product">
+            <if condition="product"><script>
+                uom = product.amountUom
+                pantMap = product.getMap()
+                if (uom != null) pantMap.putAll(uom)
+                ec.web.sendTextResponse(ec.resource.expand('ProductAmountNameTemplate', '', pantMap))
+            </script></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="getFeatureList">
+        <parameter name="term"/>
+        <parameter name="productFeatureTypeEnumId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.feature.ProductFeatureAndType" value-field="productFeature">
+                <field-map field-name="productFeatureId" from="term"/></entity-find-one>
+            <if condition="productFeature != null"><then>
                 <script>
-                    uom = product.amountUom
-                    pantMap = product.getMap()
-                    if (uom != null) pantMap.putAll(uom)
-                    ec.web.sendTextResponse(ec.resource.expand("ProductAmountNameTemplate", '', pantMap))
+                    def outList = [[value:productFeature.productFeatureId, label:ec.resource.expand('ProductFeatureAndTypeTemplate','',productFeature)]]
+                    ec.web.sendJsonResponse(outList)
                 </script>
-            </if>
+            </then><else>
+                <entity-find entity-name="mantle.product.feature.ProductFeatureAndType" list="productFeatureList" limit="40">
+                    <econdition field-name="productFeatureTypeEnumId" ignore-if-empty="true"/>
+                    <econditions combine="or">
+                        <econdition field-name="productFeatureId" operator="like" value="%${term}%"/>
+                        <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="abbrev" operator="like" value="%${term}%"/>
+                        <econdition field-name="idCode" operator="like" value="%${term}%" ignore-case="true"/>
+                    </econditions>
+                    <select-field field-name="productFeatureId,productFeatureTypeEnumId,typeDescription,description,abbrev,idCode"/>
+                    <order-by field-name="typeDescription,abbrev,description"/>
+                </entity-find>
+                <script>
+                    def outList = []
+                    for (productFeature in productFeatureList)
+                        outList.add([value:productFeature.productFeatureId, label:ec.resource.expand('ProductFeatureAndTypeTemplate','',productFeature)])
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </else></if>
         </actions>
         <default-response type="none"/>
     </transition>

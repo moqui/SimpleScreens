@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" default-menu-title="Containers">
+
+    <transition name="createContainer"><service-call name="create#mantle.product.asset.Container"/>
+        <default-response url="../EditContainer"/></transition>
+
+    <transition name="editContainer"><default-response url="../EditContainer"/></transition>
+    <transition name="editAsset"><default-response url="../../Asset/AssetDetail"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <actions>
+        <entity-find entity-name="mantle.facility.Facility" list="facilityList">
+            <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/><order-by field-name="facilityName"/></entity-find>
+    </actions>
+    <widgets>
+        <container-dialog id="CreateContainerDialog" button-text="Create Container">
+            <form-single name="CreateContainerForm" transition="createContainer">
+                <field name="containerTypeEnumId"><default-field title="Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ContainerType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </default-field></field>
+                <field name="description"><default-field><text-line size="40"/></default-field></field>
+                <field name="serialNumber"><default-field><text-line size="40"/></default-field></field>
+                <field name="externalId"><default-field><text-line size="20"/></default-field></field>
+                <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></default-field></field>
+                <field name="locationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLocationList" server-search="true" min-length="0" depends-optional="true">
+                        <depends-on field="facilityId"/></dynamic-options>
+                </drop-down></default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="ContainerList" list="containerList" skip-form="true" header-dialog="true">
+            <entity-find entity-name="mantle.product.asset.ContainerAndAsset" list="containerList">
+                <search-form-inputs default-order-by="serialNumber,containerId"/></entity-find>
+            <row-actions>
+                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true"/>
+                <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="assetList">
+                    <econdition field-name="containerId"/>
+                    <select-field field-name="productId,pseudoId,productName,availableToPromiseTotal,quantityOnHandTotal"/>
+                    <order-by field-name="pseudoId"/>
+                </entity-find>
+            </row-actions>
+
+            <field name="serialNumber"><header-field show-order-by="true"><text-find/></header-field>
+                <default-field><link url="editContainer" text="${serialNumber}" link-type="anchor"/></default-field></field>
+            <field name="containerId"><header-field show-order-by="true"><text-find hide-options="true"/></header-field>
+                <default-field><link url="editContainer" text="${containerId}" link-type="anchor"/></default-field></field>
+
+            <field name="containerTypeEnumId">
+                <header-field title="Type" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ContainerType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <!-- <field name="createdDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field> -->
+
+            <field name="description"><header-field show-order-by="case-insensitive"><text-find/></header-field>
+                <default-field><display/></default-field></field>
+            <!-- <field name="externalId"><header-field show-order-by="true"><text-find/></header-field>
+                <default-field><display/></default-field></field> -->
+
+            <field name="facilityId">
+                <header-field title="Facility" show-order-by="case-insensitive"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
+            <field name="locationSeqId">
+                <header-field title="Location" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLocationList" server-search="true" min-length="0" depends-optional="true">
+                        <depends-on field="facilityId"/></dynamic-options>
+                </drop-down></header-field>
+                <default-field><label condition="locationSeqId" text-map="facLoc" text="FacilityLocationNameTemplate"/></default-field>
+            </field>
+
+            <field name="assetList"><default-field title="Product">
+                <section-iterate name="AssetListSection" list="assetList" entry="assetProduct"><widgets><container>
+                    <label text="ATP ${ec.l10n.format(assetProduct.availableToPromiseTotal, null)} QOH ${ec.l10n.format(assetProduct.quantityOnHandTotal, null)}"/>
+                    <link url="editProduct" text="ProductNameTemplate" text-map="assetProduct"
+                            link-type="anchor" parameter-map="[productId:assetProduct.productId]"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
+
+            <field name="assetId"><header-field title="Asset"><drop-down allow-empty="true">
+                <dynamic-options transition="getAssetList" server-search="true" min-length="2"/></drop-down></header-field></field>
+
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+    </widgets>
+</screen>

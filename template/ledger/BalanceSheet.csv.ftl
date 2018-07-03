@@ -34,11 +34,11 @@ along with this software (see the LICENSE.md file). If not, see
             <#t><@csvValue ec.l10n.format(beginningClassBalance, currencyFormat)/>,
             <#t><@csvValue ec.l10n.format(classInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)/>,
         </#if><#t>
-        <#t><@csvValue ec.l10n.format(classInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
+        <#assign classPerAmount = classInfo.balanceByTimePeriod[timePeriodId]!0>
+        <#t><#if classPerAmount != 0><@csvValue ec.l10n.format(classPerAmount, currencyFormat)/></#if><#if showPercents || timePeriodId_has_next>,</#if>
         <#t><#if showPercents>
             <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-            <#assign currentAmt = classInfo.balanceByTimePeriod[timePeriodId]!0>
-            <#t><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
+            <#t><#if classPerAmount != 0 && assetTotalAmt != 0>${ec.l10n.format(classPerAmount/assetTotalAmt, percentFormat)}</#if><#if timePeriodId_has_next>,</#if>
         </#if>
     </#list>
     <#t>${"\n"}
@@ -65,7 +65,7 @@ along with this software (see the LICENSE.md file). If not, see
     </#list>
     <#t><#if hasChildren>
         <#list classInfo.childClassInfoList as childClassInfo><@showClass childClassInfo depth + 1/></#list>
-        <#t><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize(classInfo.className + " Total")/>,
+        <#t><#list 1..depth as idx>${indentChar}</#list> <@csvValue ec.l10n.localize("Total " + classInfo.className)/>,
         <#t><#if showBeginningAndPosted && (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(classInfo.totalPostedByTimePeriod['ALL']!0, currencyFormat)/>,</#if>
         <#list timePeriodIdList as timePeriodId>
             <#t><#if showBeginningAndPosted>
@@ -83,7 +83,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#t>${"\n"}
     </#if>
 </#macro>
-<#t>${ec.l10n.localize("Balance Sheet")},
+<#t><@csvValue organizationName!""/> - ${ec.l10n.localize("Balance Sheet")} (${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')}),
 <#t><#if showBeginningAndPosted && (timePeriodIdList?size > 1)>${ec.l10n.localize("All Periods Posted")},</#if>
 <#list timePeriodIdList as timePeriodId>
     <#t><#if showBeginningAndPosted>
@@ -96,25 +96,8 @@ along with this software (see the LICENSE.md file). If not, see
 </#list>
 <#t>${"\n"}
 <#t><#if classInfoById.ASSET??><@showClass classInfoById.ASSET 1/></#if>
-<#t><#if classInfoById.CONTRA_ASSET??><@showClass classInfoById.CONTRA_ASSET 1/></#if>
-<#t><#if netAssetTotalMap??>
-    <#t>${ec.l10n.localize("Net Asset Total")},
-    <#t><#if showBeginningAndPosted && (timePeriodIdList?size > 1)><@csvValue ec.l10n.format(netAssetTotalMap.totalPosted['ALL']!0, currencyFormat)/>,</#if>
-    <#list timePeriodIdList as timePeriodId>
-        <#t><#if showBeginningAndPosted>
-            <#t><@csvValue ec.l10n.format((netAssetTotalMap.totalBalance[timePeriodId]!0) - (netAssetTotalMap.totalPosted[timePeriodId]!0), currencyFormat)/>,
-            <#t><@csvValue ec.l10n.format(netAssetTotalMap.totalPosted[timePeriodId]!0, currencyFormat)/>,
-        </#if><#t>
-        <#t><@csvValue ec.l10n.format(netAssetTotalMap.totalBalance[timePeriodId]!0, currencyFormat)/><#if showPercents || timePeriodId_has_next>,</#if>
-        <#t><#if showPercents>
-            <#t>${ec.l10n.format(1, percentFormat)}<#if timePeriodId_has_next>,</#if>
-        </#if>
-    </#list>
-    <#t>${"\n"}
-</#if>
 <#t><#if classInfoById.LIABILITY??><@showClass classInfoById.LIABILITY 1/></#if>
 <#t><#if classInfoById.EQUITY??><@showClass classInfoById.EQUITY 1/></#if>
-<#t><#if classInfoById.CONTRA_EQUITY??><@showClass classInfoById.CONTRA_EQUITY 1/></#if>
 <#t><#if classInfoById.DISTRIBUTION??><@showClass classInfoById.DISTRIBUTION 1/></#if>
 <#t><#if equityTotalMap??>
     <#t>${ec.l10n.localize("Equity + Contra Equity + Distribution Total")},

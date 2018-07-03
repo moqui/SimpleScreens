@@ -15,11 +15,20 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Sales Summary" default-menu-include="false">
 
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
     <actions>
+        <set field="maPeriods" from="(maPeriods ?: '0') as Integer"/>
+
         <service-call name="mantle.sales.SalesReportServices.get#SalesOrderSummary" out-map="context"
-                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
+                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, maPeriods:maPeriods,
+                    vendorPartyIds:vendorPartyIds, productStoreIds:productStoreIds,
+                    customerClassificationIds:customerClassificationIds, productIds:productIds]"/>
         <service-call name="mantle.sales.SalesReportServices.get#SalesInvoiceSummary" out-map="context"
-                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
+                in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, maPeriods:maPeriods,
+                    fromPartyIds:vendorPartyIds, productStoreIds:productStoreIds,
+                    customerClassificationIds:customerClassificationIds, productIds:productIds]"/>
 
         <service-call name="mantle.sales.SalesReportServices.get#SalesTopProduct" out-map="context"
                 in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, topLimit:(topLimit?:15)]"/>
@@ -33,20 +42,28 @@ along with this software (see the LICENSE.md file). If not, see
                     'rgba(60, 118, 61, 1.0)', 'rgba(49, 112, 143, 1.0)', 'rgba(138, 109, 59, 1.0)', 'rgba(169, 68, 66, 1.0)',
                     'rgba(223, 240, 216, 1.0)', 'rgba(217, 237, 247, 1.0)', 'rgba(252, 248, 227, 1.0)', 'rgba(242, 222, 222, 1.0)']
 
-            orderSummaryNoTotals = salesOrderSummaryList.subList(0, salesOrderSummaryList.size() - 2).reverse()
-            invoiceSummaryNoTotals = salesInvoiceSummaryList.subList(0, salesInvoiceSummaryList.size() - 2).reverse()
+            orderSummaryNoTotals = salesOrderSummaryList.subList(0, salesOrderSummaryList.size() - 2)
+            invoiceSummaryNoTotals = salesInvoiceSummaryList.subList(0, salesInvoiceSummaryList.size() - 2)
             orderLabelList = orderSummaryNoTotals*.dateKey
             invoiceLabelList = invoiceSummaryNoTotals*.dateKey
 
             newCustomerPercentList = orderSummaryNoTotals*.newCustomerPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
+            newCustomerPercentMaList = orderSummaryNoTotals*.newCustomerPercentMa.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
             orderProductSaleTotalList = orderSummaryNoTotals*.productSaleTotal.collect({ it.setScale(2, RoundingMode.HALF_UP) })
             orderNetSalesList = orderSummaryNoTotals*.netSales.collect({ it.setScale(2, RoundingMode.HALF_UP) })
             orderDiscountPercentList = orderSummaryNoTotals*.discountPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
+            orderDiscountPercentMaList = orderSummaryNoTotals*.discountPercentMa.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
 
             invoiceTotalList = invoiceSummaryNoTotals*.invoiceTotal.collect({ it.setScale(2, RoundingMode.HALF_UP) })
+            invoiceTotalMaList = invoiceSummaryNoTotals*.invoiceTotalMa.collect({ it.setScale(2, RoundingMode.HALF_UP) })
             invoicePaidPercentList = invoiceSummaryNoTotals*.paidPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
+            invoicePaidPercentMaList = invoiceSummaryNoTotals*.paidPercentMa.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
+            invoicePrePaidPercentList = invoiceSummaryNoTotals*.prePaidPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
+            invoicePrePaidPercentMaList = invoiceSummaryNoTotals*.prePaidPercentMa.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
             invoiceCostPercentList = invoiceSummaryNoTotals*.costPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
+            invoiceCostPercentMaList = invoiceSummaryNoTotals*.costPercentMa.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
             invoiceDiscountPercentList = invoiceSummaryNoTotals*.discountPercent.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
+            invoiceDiscountPercentMaList = invoiceSummaryNoTotals*.discountPercentMa.collect({ (it * 100.0).setScale(1, RoundingMode.HALF_UP) })
 
             countSummaryDatasets = [
                     [label: 'Orders', backgroundColor: defaultColors[0], borderColor: defaultColors[0], fill: false,
@@ -86,31 +103,98 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="statsPanelColStyle" value="col-lg-3 col-md-4 col-sm-4 col-xs-6"/>
         <set field="statsChartColStyle" value="col-md-6 col-sm-6"/>
+
+        <if condition="vendorPartyIds">
+            <set field="vendorPartyIdList" from="vendorPartyIds instanceof List ? vendorPartyIds : (vendorPartyIds.split(',') as List)"/>
+            <entity-find entity-name="mantle.party.PartyDetail" list="selectedVendorPartyList">
+                <econdition field-name="partyId" operator="in" from="vendorPartyIdList"/>
+                <order-by field-name="pseudoId"/>
+            </entity-find>
+        </if>
+        <if condition="productStoreIds">
+            <set field="productStoreIdList" from="productStoreIds instanceof List ? productStoreIds : (productStoreIds.split(',') as List)"/>
+            <entity-find entity-name="mantle.product.store.ProductStore" list="selectedProductStoreList">
+                <econdition field-name="productStoreId" operator="in" from="productStoreIdList"/>
+                <order-by field-name="storeName"/>
+            </entity-find>
+        </if>
+        <if condition="customerClassificationIds">
+            <set field="customerClassificationIdList" from="customerClassificationIds instanceof List ? customerClassificationIds : (customerClassificationIds.split(',') as List)"/>
+            <entity-find entity-name="mantle.party.PartyClassification" list="selectedClassificationList">
+                <econdition field-name="partyClassificationId" operator="in" from="customerClassificationIdList"/>
+                <order-by field-name="description"/>
+            </entity-find>
+        </if>
+        <if condition="productIds">
+            <set field="productIdList" from="productIds instanceof List ? productIds : (productIds.split(',') as List)"/>
+            <entity-find entity-name="mantle.product.Product" list="selectedProductList">
+                <econdition field-name="productId" operator="in" from="productIdList"/>
+                <order-by field-name="pseudoId"/>
+            </entity-find>
+        </if>
     </actions>
     <widgets>
-        <form-single name="SummaryOptions">
-            <field name="interval"><default-field><drop-down><option key="w" text="Week"/><option key="M" text="Month"/>
-                <option key="q" text="Quarter"/><option key="y" text="Year"/></drop-down></default-field></field>
-            <field name="intervalCount"><default-field title="Periods"><text-line size="2" default-value="13"/></default-field></field>
-            <field name="thruDate"><default-field><date-time type="date"/></default-field></field>
-            <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
-            <field-layout><field-row-big><field-ref name="interval"/><field-ref name="intervalCount"/>
-                <field-ref name="thruDate"/><field-ref name="submitButton"/></field-row-big></field-layout>
-        </form-single>
+        <container-dialog id="SummaryOptionsDialog" button-text="Summary Options">
+            <form-single name="SummaryOptions">
+                <field name="interval"><default-field><drop-down><option key="w" text="Week"/><option key="M" text="Month"/>
+                    <option key="q" text="Quarter"/><option key="y" text="Year"/></drop-down></default-field></field>
+                <field name="intervalCount"><default-field title="Periods"><text-line size="2" default-value="13"/></default-field></field>
+                <field name="thruDate"><default-field><date-time type="date"/></default-field></field>
+                <field name="maPeriods"><default-field title="MA Periods" tooltip="Moving Average look back periods, set to 0 to disable">
+                    <text-line size="2" default-value="0"/></default-field></field>
+
+                <field name="vendorPartyIds"><default-field title="Vendor"><drop-down allow-empty="true" allow-multiple="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'OrgInternal']"/>
+                </drop-down></default-field></field>
+                <field name="productStoreIds"><default-field title="Store"><drop-down allow-empty="true" allow-multiple="true">
+                    <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                        <entity-find entity-name="mantle.product.store.ProductStore">
+                            <order-by field-name="storeName"/></entity-find></entity-options>
+                </drop-down></default-field></field>
+
+                <field name="customerClassificationIds"><default-field title="Customer Classes">
+                    <drop-down allow-multiple="true">
+                        <entity-options key="${partyClassificationId}" text="${description}">
+                            <entity-find entity-name="mantle.party.PartyClassification">
+                                <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/>
+                                <order-by field-name="description"/></entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="productIds"><default-field title="Products"><drop-down allow-multiple="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0" parameter-map="[assetClassEnumId:'AsClsInventoryFin']"/>
+                </drop-down></default-field></field>
+                <field name="productNote"><default-field title="">
+                    <label text="NOTE: Invoice level stats (total, pre-paid, paid, etc) are not available by Product and will show as having no data"/>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container>
+            <label text="Sales Summary for ${intervalCount?:13} ${[w:'Weeks', M:'Months', q:'Quarters', y:'Years'].get(interval?:'w')}${thruDate ? ' thru ' + ec.l10n.format(thruDate, 'dd MMM yyyy') : ''}${maPeriods ? ' with ' + maPeriods + ' Period MA' : ''}" type="h3"/>
+            <label text="Vendors: ${selectedVendorPartyList.collect({ ec.resource.expand('PartyNameTemplate', '', it) }).join(', ')}" condition="selectedVendorPartyList" type="h5"/>
+            <label text="Stores: ${selectedProductStoreList.collect({ it.productStoreId + ': ' + it.storeName }).join(', ')}" condition="selectedProductStoreList" type="h5"/>
+            <label text="Customer Classes: ${selectedClassificationList*.description.join(', ')}" condition="selectedClassificationList" type="h5"/>
+            <label text="Products: ${selectedProductList.collect({ ec.resource.expand('ProductNameTemplate', '', it) }).join(', ')}" condition="selectedProductList" type="h5"/>
+        </container>
 
         <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryStats.html.ftl"/></render-mode>
-        <container-row><row-col md="8">
-            <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryCharts.html.ftl"/></render-mode>
-        </row-col><row-col md="4">
-            <container-box><box-header title="Top Products Ordered (last period)"/><box-body-nopad>
-                <form-list name="TopProductList" list="topProductList" skip-form="true">
-                    <field name="productId"><default-field title="Product">
-                        <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
-                    <field name="totalQuantity" align="right"><default-field title="Quantity"><display/></default-field></field>
-                    <field name="totalSales" align="right"><default-field title="Total Sales"><display format="#,##0.00"/></default-field></field>
-                </form-list>
-            </box-body-nopad></container-box>
-        </row-col></container-row>
+
+        <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryCharts.html.ftl"/></render-mode>
+
+        <container-box><box-header title="Top Products Ordered (${[w:'Week', M:'Month', q:'Quarter', y:'Year'].get(interval?:'w')} from ${ec.l10n.format(topProductStart, 'dd MMM yyyy')} to ${ec.l10n.format(topProductEnd - 1, 'dd MMM yyyy')})"/><box-body-nopad>
+            <form-list name="TopProductList" list="topProductList" skip-form="true">
+                <field name="productId"><default-field title="Product">
+                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                <field name="totalSales" align="right"><default-field title="Sales"><display format="#,##0.00"/></default-field></field>
+                <field name="totalQuantity" align="right"><default-field title="Quantity"><display/></default-field></field>
+                <field name="productIssuedTotal" align="right"><default-field title="Total Issued"><display format="#,##0.00"/></default-field></field>
+                <field name="productCostTotal" align="right"><default-field title="Total Cost"><display format="#,##0.00"/></default-field></field>
+                <field name="costPercent" align="right"><default-field title="Cost %"><display format="0.0%"/></default-field></field>
+                <field name="marginPercent" from="1 - (costPercent ?: 0.0)" align="right"><default-field title="Margin %"><display format="0.0%"/></default-field></field>
+                <field name="percentOfTotal" from="ordersLast?.totalSales ? (totalSales / ordersLast.totalSales) : 0.0" align="right">
+                    <default-field title="% of Sales"><display format="0.0%"/></default-field></field>
+            </form-list>
+        </box-body-nopad></container-box>
 
         <container-box><box-header title="Sales Orders by Placed Date"/><box-body-nopad>
             <form-list name="SalesOrderSummaryList" list="salesOrderSummaryList" skip-form="true">

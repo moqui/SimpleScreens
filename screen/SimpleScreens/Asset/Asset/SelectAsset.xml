@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" default-menu-title="Move Asset">
+
+    <parameter name="facilityId"/>
+    <parameter name="locationSeqId"/>
+    <parameter name="containerId"/>
+    <parameter name="productId"/>
+    <parameter name="lotId"/>
+
+    <transition name="moveAsset"><default-response url="../MoveAsset"/></transition>
+    <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
+    <transition name="findAsset"><default-response url="../FindAsset"/></transition>
+
+    <transition name="setActiveFacility">
+        <actions><script>ec.user.setPreference('FacilityActive', facilityId)</script></actions>
+        <default-response url="."/>
+    </transition>
+
+    <transition name="checkScanInput" read-only="true">
+        <actions>
+            <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
+
+            <if condition="scanId">
+                <!-- see if scanId is a assetId -->
+                <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset">
+                    <field-map field-name="assetId" from="scanId"/></entity-find-one>
+                <if condition="asset != null"><set field="assetId" from="asset.assetId"/></if>
+                <!-- see if scanId is a containerId -->
+                <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                    <field-map field-name="containerId" from="scanId"/></entity-find-one>
+                <if condition="container != null"><then>
+                    <set field="containerId" from="container.containerId"/>
+                </then><else>
+                    <!-- see if scanId is a Container.serialNumber -->
+                    <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                        <field-map field-name="serialNumber" from="scanId"/></entity-find-one>
+                    <if condition="container != null"><set field="containerId" from="container.containerId"/></if>
+                </else></if>
+                <if condition="facilityId">
+                    <!-- if we have a facilityId see if scanId is a locationSeqId -->
+                    <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facilityLocation">
+                        <field-map field-name="facilityId"/><field-map field-name="locationSeqId" from="scanId"/></entity-find-one>
+                    <if condition="facilityLocation != null"><set field="locationSeqId" from="facilityLocation.locationSeqId"/></if>
+                </if>
+                <!-- see if scanId is a productId -->
+                <entity-find-one entity-name="mantle.product.Product" value-field="product">
+                    <field-map field-name="productId" from="scanId"/></entity-find-one>
+                <if condition="product != null"><set field="productId" from="product.productId"/></if>
+                <if condition="product == null">
+                    <!-- see if scanId is a Product pseudoId -->
+                    <entity-find-one entity-name="mantle.product.Product" value-field="product">
+                        <field-map field-name="pseudoId" from="scanId"/></entity-find-one>
+                    <if condition="product != null"><set field="productId" from="product.productId"/></if>
+                </if>
+                <if condition="product == null">
+                    <!-- see if scanId is a Product pseudoId -->
+                    <entity-find entity-name="mantle.product.ProductIdentification" list="prodIdentList">
+                        <econdition field-name="idValue" from="scanId"/></entity-find>
+                    <if condition="prodIdentList.size() == 1"><set field="productId" from="prodIdentList[0].productId"/></if>
+                    <if condition="prodIdentList.size() &gt; 1">
+                        <message type="warning">Found multiple products with ID ${scanId}: ${prodIdentList*.productId.join(', ')}</message></if>
+                </if>
+            </if>
+            <if condition="!assetId &amp;&amp; !containerId &amp;&amp; !locationSeqId &amp;&amp; !productId">
+                <message>No Asset, Container, Location, or Product found with ID ${scanId}</message></if>
+        </actions>
+        <conditional-response url="../MoveAsset"><condition><expression>assetId</expression></condition></conditional-response>
+        <!-- stay on this screen to choose move container or asset in container, ie don't do this:
+            <conditional-response url="../../Container/MoveContainer"><condition><expression>containerId</expression></condition></conditional-response> -->
+        <default-response url="."/>
+    </transition>
+
+    <transition name="moveProduct"><service-call name="mantle.product.AssetServices.move#Product"/>
+        <default-response url="."/></transition>
+
+    <transition name="editContainer"><default-response url="../../Container/EditContainer"/></transition>
+    <transition name="moveContainer"><default-response url="../../Container/MoveContainer"/></transition>
+
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <transition name="assetMove">
+        <actions>
+            <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset">
+                <field-map field-name="assetId" from="scanId"/></entity-find-one>
+            <set field="assetId" from="asset?.assetId"/>
+            <if condition="asset == null"><message error="true">No asset found for ID ${scanId}</message></if>
+        </actions>
+        <conditional-response url="../MoveAsset" parameter-map="[assetId:assetId]">
+            <condition><expression>assetId</expression></condition></conditional-response>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
+
+        <!-- find quantity summaries and fill in single option values -->
+        <if condition="containerId">
+            <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="contAssetList">
+                <econdition field-name="containerId"/>
+                <econdition field-name="productId" ignore-if-empty="true"/>
+                <having-econditions><econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/></having-econditions>
+                <select-field field-name="productId,pseudoId,productName,quantityOnHandTotal"/>
+            </entity-find>
+            <!-- is there a single product in the container? set productId -->
+            <if condition="!productId &amp;&amp; contAssetList.size() == 1">
+                <set field="productId" from="contAssetList[0].productId"/></if>
+        </if>
+        <if condition="facilityId &amp;&amp; locationSeqId">
+            <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="locAssetList">
+                <econdition field-name="facilityId"/><econdition field-name="locationSeqId"/>
+                <econdition field-name="productId" ignore-if-empty="true"/>
+                <having-econditions><econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/></having-econditions>
+                <select-field field-name="productId,pseudoId,productName,quantityOnHandTotal"/>
+            </entity-find>
+            <!-- is there a single product in the location? set productId -->
+            <if condition="!productId &amp;&amp; locAssetList.size() == 1">
+                <set field="productId" from="locAssetList[0].productId"/></if>
+        </if>
+        <if condition="facilityId &amp;&amp; productId">
+            <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="prodAssetList">
+                <econdition field-name="facilityId"/><econdition field-name="productId"/>
+                <econdition field-name="locationSeqId" ignore-if-empty="true"/>
+                <having-econditions><econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/></having-econditions>
+                <select-field field-name="locationSeqId,containerId,quantityOnHandTotal"/>
+            </entity-find>
+            <!-- is there a single location for the product? set locationSeqId -->
+            <if condition="!locationSeqId &amp;&amp; prodAssetList.size() == 1">
+                <set field="locationSeqId" from="prodAssetList[0].locationSeqId"/></if>
+        </if>
+
+        <!-- look up the basics if we have IDs -->
+        <if condition="containerId"><entity-find-one entity-name="mantle.product.asset.Container" value-field="container"/></if>
+        <if condition="locationSeqId"><entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facilityLocation"/></if>
+        <if condition="productId"><entity-find-one entity-name="mantle.product.Product" value-field="product"/></if>
+    </actions>
+
+    <widgets>
+        <container-row style="text-center"><row-col sm="5">
+            <form-single name="ScanAssetForm" transition="checkScanInput" focus-field="scanId">
+                <field name="scanId"><default-field title="Scan Asset, Container, Location, Product"><text-line size="20"/></default-field></field>
+                <field name="submitButton"><default-field title="Select"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="scanId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </row-col><row-col sm="7">
+            <form-single name="ActiveFacilityForm" transition="setActiveFacility">
+                <field name="facilityId"><default-field title="Active Warehouse">
+                    <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                            parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Set WH"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="facilityId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </row-col></container-row>
+        <container-row style="text-center"><row-col sm="5">
+            <form-single name="SelectAssetForm" transition="moveAsset">
+                <field name="assetId"><default-field title="Lookup Asset">
+                    <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="2"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Move"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="assetId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </row-col><row-col sm="7">
+            <form-single name="SelectLocationForm" transition=".">
+                <!-- NOTE: could be "moveContainer" but come back to this screen and allow choice of move container or select item in container -->
+                <field name="facilityId"><default-field><hidden/></default-field></field>
+                <field name="locationSeqId"><default-field title="Location">
+                    <drop-down allow-empty="true"><dynamic-options transition="getLocationList" server-search="true" min-length="0">
+                        <depends-on field="facilityId"/></dynamic-options></drop-down>
+                </default-field></field>
+                <field name="containerId"><default-field title="Container">
+                    <drop-down allow-empty="true"><dynamic-options transition="getContainerList" server-search="true" min-length="0">
+                        <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options></drop-down>
+                </default-field></field>
+                <field name="productId"><default-field title="Product">
+                    <drop-down allow-empty="true"><dynamic-options transition="getProductList" server-search="true" min-length="2"/></drop-down>
+                </default-field></field>
+                <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLotList" server-search="true" min-length="2"/>
+                </drop-down></default-field></field>
+                <field name="submitButton"><default-field title="Select"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="locationSeqId"/><field-ref name="containerId"/>
+                    <field-ref name="productId"/><field-ref name="lotId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </row-col></container-row>
+
+        <!--
+            General concept, show different options based on what has already been selected/scanned
+            
+            - select active Facility, save in FacilityActive preference - default to FacilityGeneralDefault
+            - main scan: Asset, Container, Location, or Product
+
+            - scan location, if needed scan product and optionally select lot, select asset or use list (show with same sort: receivedDate, -quantityOnHandTotal, -assetId)
+            - scan product, if needed scan location, ...
+            - scan container move container... or select asset(s) in container as in scan location or product?
+        -->
+        <container-row><row-col sm="4">
+            <label text="Location " type="strong" condition="facilityLocation"/>
+            <label text="${ec.resource.expand('FacilityLocationNameTemplate', null, facilityLocation)}" type="span" condition="facilityLocation"/>
+            <!-- show total quantities, should be one but iterate just in case -->
+            <section-iterate name="LocAssetSummary" list="locAssetList" entry="locAsset"><widgets>
+                <label text="${ec.resource.expand('ProductNameTemplate', null, locAsset)} - Qty ${ec.l10n.format(locAsset.quantityOnHandTotal, null)}" type="div"/>
+            </widgets></section-iterate>
+        </row-col><row-col sm="4">
+            <label text="Container " type="strong" condition="container"/>
+            <label text="${ec.resource.expand('ContainerNameTemplate', null, container)}" type="span" condition="container"/>
+            <!-- show total quantities, should be one but iterate just in case -->
+            <section-iterate name="ContAssetSummary" list="contAssetList" entry="contAsset"><widgets>
+                <label text="${ec.resource.expand('ProductNameTemplate', null, contAsset)} - Qty ${ec.l10n.format(contAsset.quantityOnHandTotal, null)}" type="div"/>
+            </widgets></section-iterate>
+        </row-col><row-col sm="4">
+            <label text="Product " type="strong" condition="product"/>
+            <label text="${ec.resource.expand('ProductNameTemplate', null, product)}" type="span" condition="product"/>
+        </row-col></container-row>
+
+        <link url="." text="Reset Selections" condition="containerId || locationSeqId || productId"
+                parameter-map="[containerId:null, locationSeqId:null, productId:null]"/>
+        <link url="moveContainer" text="Move Container" condition="containerId"/>
+        <link url="findAsset" text="All Container Assets" parameter-map="[containerId:containerId, productId:productId]" condition="containerId"/>
+        <link url="findAsset" text="All Location Assets" parameter-map="[facilityId:facilityId, locationSeqId:locationSeqId, productId:productId]" condition="locationSeqId"/>
+
+        <section name="MoveFormsSection" condition="product != null &amp;&amp; facilityId"><widgets>
+            <container-row><row-col md="6">
+                <form-single name="ScanMoveAssetForm" transition="moveProduct"><!-- NOTE: main scan field focused so don't focus this one like on MoveAsset: focus-field="scanLocation" -->
+                    <field name="facilityId"><default-field><hidden/></default-field></field>
+                    <field name="locationSeqId"><default-field><hidden/></default-field></field>
+                    <field name="containerId"><default-field><hidden/></default-field></field>
+                    <field name="productId"><default-field><hidden/></default-field></field>
+                    <field name="scanLocation"><default-field title="Scan Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
+                        <text-line size="20"/></default-field></field>
+                    <!-- <field name="containerId"><default-field title="Scan Container ID" tooltip="Can be Container ID or Serial Number (Plate ID)">
+                        <text-line size="20"/></default-field></field> -->
+                    <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
+                        <text-line size="20"/></default-field></field>
+                    <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
+                </form-single>
+            </row-col><row-col md="6">
+                <form-single name="EnterMoveAssetForm" transition="moveProduct">
+                    <field name="facilityId"><default-field><hidden/></default-field></field>
+                    <field name="locationSeqId"><default-field><hidden/></default-field></field>
+                    <field name="containerId"><default-field><hidden/></default-field></field>
+                    <field name="productId"><default-field><hidden/></default-field></field>
+                    <field name="toLocationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                        <dynamic-options transition="getLocationList" server-search="true" min-length="0">
+                            <depends-on field="facilityId"/></dynamic-options>
+                    </drop-down></default-field></field>
+                    <field name="toContainerId"><default-field title="Container"><drop-down>
+                        <!-- NOTE: don't allow-empty, if there is at least one container in the location it should go in a container, for movable bin support -->
+                        <!-- TODO: would be nice to allow-empty but auto-select first if there is at least one -->
+                        <dynamic-options transition="getContainerList" server-search="true" min-length="0">
+                            <depends-on field="facilityId"/><depends-on field="toLocationSeqId" parameter="locationSeqId"/></dynamic-options>
+                    </drop-down></default-field></field>
+                    <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
+                        <text-line size="10"/></default-field></field>
+                    <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
+                </form-single>
+            </row-col></container-row>
+        </widgets></section>
+
+        <section name="ContainerSection" condition="container != null"><widgets>
+            <section name="ContainerProductSection" condition="product != null"><widgets>
+                <!-- list assets -->
+                <form-list name="ContainerAssetList" list="contAssetList" skip-form="true">
+                    <entity-find entity-name="mantle.product.asset.Asset" list="contAssetList" limit="10">
+                        <econdition field-name="containerId"/>
+                        <econdition field-name="productId"/>
+                        <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/>
+                        <order-by field-name="-quantityOnHandTotal"/>
+                    </entity-find>
+                    <field name="assetId"><default-field title="Container Asset">
+                        <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+                    <field name="statusId"><default-field title="Status">
+                        <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                    <field name="receivedDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                    <field name="quantityOnHandTotal"><default-field title="Quantity On Hand">
+                        <display format="#,##0.###"/></default-field></field>
+                </form-list>
+                <label text="No product found in container" condition="!contAssetList"/>
+            </widgets><fail-widgets>
+                <section-iterate name="ContProdListSection" list="contAssetList" entry="contAsset"><widgets>
+                    <link url="." text="${ec.resource.expand('ProductNameTemplate', null, contAsset)} (${ec.l10n.format(contAsset.quantityOnHandTotal, null)})"/></widgets></section-iterate>
+            </fail-widgets></section>
+        </widgets></section>
+
+        <section name="LocationSection" condition="facilityLocation != null"><widgets>
+            <section name="LocationProductSection" condition="product != null"><widgets>
+                <!-- list assets -->
+                <form-list name="LocationAssetList" list="locAssetList" skip-form="true">
+                    <entity-find entity-name="mantle.product.asset.Asset" list="locAssetList" limit="10">
+                        <econdition field-name="facilityId"/><econdition field-name="locationSeqId"/>
+                        <econdition field-name="productId"/>
+                        <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/>
+                        <order-by field-name="-quantityOnHandTotal"/>
+                    </entity-find>
+                    <field name="assetId"><default-field title="Location Asset">
+                        <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+                    <field name="statusId"><default-field title="Status">
+                        <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                    <field name="receivedDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                    <field name="quantityOnHandTotal"><default-field title="Quantity On Hand">
+                        <display format="#,##0.###"/></default-field></field>
+                </form-list>
+                <label text="No product found in location" condition="!locAssetList"/>
+            </widgets><fail-widgets>
+                <section-iterate name="LocProdListSection" list="locAssetList" entry="locAsset"><widgets>
+                    <link url="." text="${ec.resource.expand('ProductNameTemplate', null, locAsset)} (${ec.l10n.format(locAsset.quantityOnHandTotal, null)})"/></widgets></section-iterate>
+            </fail-widgets></section>
+        </widgets></section>
+
+        <section name="ProductSection" condition="product != null"><widgets>
+            <section name="ProductOtherSection" condition="facilityLocation == null &amp;&amp; container == null &amp;&amp; facilityId"><widgets>
+                <label text="No locations or containers found for product" condition="!prodAssetList"/>
+                <section-iterate name="ProdOtherListSection" list="prodAssetList" entry="prodAsset"><actions>
+                    <entity-find-one entity-name="mantle.product.asset.Container" value-field="curContainer">
+                        <field-map field-name="containerId" from="prodAsset.containerId"/></entity-find-one>
+                    <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="curFacLoc" cache="true">
+                        <field-map field-name="facilityId"/><field-map field-name="locationSeqId" from="prodAsset.locationSeqId"/></entity-find-one>
+                </actions><widgets>
+                    <link url="." text="Loc ${ec.resource.expand('FacilityLocationNameTemplate', null, curFacLoc)} - Cont ${curContainer ? ec.resource.expand('ContainerNameTemplate', null, curContainer) : 'N/A'}"
+                            parameter-map="[containerId:prodAsset.containerId, locationSeqId:prodAsset.locationSeqId]"/>
+                </widgets></section-iterate>
+
+                <!-- list assets -->
+                <form-list name="ProductNoLocAssetList" list="prodNoLocAssetList" skip-form="true">
+                    <entity-find entity-name="mantle.product.asset.Asset" list="prodNoLocAssetList" limit="10">
+                        <econdition field-name="facilityId"/><econdition field-name="locationSeqId" from="null"/>
+                        <econdition field-name="productId"/>
+                        <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/>
+                        <order-by field-name="-quantityOnHandTotal"/>
+                    </entity-find>
+                    <field name="assetId"><default-field title="No Location Asset">
+                        <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+                    <field name="statusId"><default-field title="Status">
+                        <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                    <field name="receivedDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                    <field name="quantityOnHandTotal"><default-field title="Quantity On Hand">
+                        <display format="#,##0.###"/></default-field></field>
+                </form-list>
+            </widgets></section>
+        </widgets></section>
+
+        <section name="RecentAssetMoves"><actions>
+            <entity-find entity-name="moqui.entity.EntityAuditLog" list="recentMoveList" limit="10">
+                <econdition field-name="changedEntityName" value="mantle.product.asset.Asset"/>
+                <econdition field-name="changedFieldName" operator="in" value="locationSeqId,containerId"/>
+                <econdition field-name="changedByUserId" from="ec.user.userId"/>
+                <econdition field-name="changedDate" operator="greater" from="ec.user.nowTimestamp - 5"/>
+                <order-by field-name="-changedDate"/>
+            </entity-find>
+        </actions><widgets>
+            <label text="Recent Asset Moves" type="h4"/>
+            <form-list name="RecentMoveForm" list="recentMoveList" skip-form="true">
+                <row-actions>
+                    <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset">
+                        <field-map field-name="assetId" from="pkPrimaryValue"/></entity-find-one>
+                    <if condition="changedFieldName == 'locationSeqId'"><then>
+                        <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="fromFacLoc" cache="true">
+                            <field-map field-name="facilityId" from="asset.facilityId"/>
+                            <field-map field-name="locationSeqId" from="oldValueText"/>
+                        </entity-find-one>
+                        <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="toFacLoc" cache="true">
+                            <field-map field-name="facilityId" from="asset.facilityId"/>
+                            <field-map field-name="locationSeqId" from="newValueText"/>
+                        </entity-find-one>
+                    </then><else-if condition="changedFieldName == 'containerId'">
+                        <entity-find-one entity-name="mantle.product.asset.Container" value-field="fromContainer">
+                            <field-map field-name="containerId" from="oldValueText"/></entity-find-one>
+                        <entity-find-one entity-name="mantle.product.asset.Container" value-field="toContainer">
+                            <field-map field-name="containerId" from="newValueText"/></entity-find-one>
+                    </else-if></if>
+                </row-actions>
+                <field name="assetId" from="asset.assetId"><default-field title="Asset">
+                    <link url="assetDetail" text="AssetNameTemplate" text-map="asset" link-type="anchor"
+                            parameter-map="[assetId:asset.assetId]"/>
+                </default-field></field>
+                <field name="productId" from="asset.productId"><default-field title="Product">
+                    <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor"
+                            parameter-map="[productId:asset.productId]"/>
+                </default-field></field>
+                <field name="facilityId" from="asset.facilityId"><default-field title="Facility">
+                    <link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"
+                            parameter-map="[facilityId:asset.facilityId]"/>
+                </default-field></field>
+
+                <field name="fromLocation"><default-field>
+                    <label text="FacilityLocationNameTemplate" text-map="fromFacLoc?:[:]" condition="fromFacLoc"/></default-field></field>
+                <field name="toLocation"><default-field>
+                    <label text="FacilityLocationNameTemplate" text-map="toFacLoc?:[:]" condition="toFacLoc"/></default-field></field>
+
+                <field name="fromContainer"><default-field>
+                    <label text="ContainerNameTemplate" text-map="fromContainer?:[:]" condition="fromContainer"/></default-field></field>
+                <field name="toContainer"><default-field>
+                    <label text="ContainerNameTemplate" text-map="toContainer?:[:]" condition="toContainer"/></default-field></field>
+
+                <field name="changedDate"><default-field title="Date Moved"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
+                <field name="moveAgain"><default-field title="">
+                    <link url="moveAsset" text="Move Again" parameter-map="[assetId:asset.assetId]" link-type="anchor-button"/>
+                </default-field></field>
+            </form-list>
+        </widgets></section>
+
+        <section name="RecentContainerMoves"><actions>
+            <entity-find entity-name="moqui.entity.EntityAuditLog" list="recentContainerMoveList" limit="10">
+                <econdition field-name="changedEntityName" value="mantle.product.asset.Container"/>
+                <econdition field-name="changedFieldName" value="locationSeqId"/>
+                <econdition field-name="changedByUserId" from="ec.user.userId"/>
+                <econdition field-name="changedDate" operator="greater" from="ec.user.nowTimestamp - 5"/>
+                <order-by field-name="-changedDate"/>
+            </entity-find>
+        </actions><widgets>
+            <label text="Recent Container Moves" type="h4"/>
+            <form-list name="RecentContainerMoveForm" list="recentContainerMoveList" skip-form="true">
+                <row-actions>
+                    <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                        <field-map field-name="containerId" from="pkPrimaryValue"/></entity-find-one>
+
+                    <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="fromFacLoc" cache="true">
+                        <field-map field-name="facilityId" from="container.facilityId"/>
+                        <field-map field-name="locationSeqId" from="oldValueText"/>
+                    </entity-find-one>
+                    <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="toFacLoc" cache="true">
+                        <field-map field-name="facilityId" from="container.facilityId"/>
+                        <field-map field-name="locationSeqId" from="newValueText"/>
+                    </entity-find-one>
+                </row-actions>
+
+                <field name="container"><default-field><link url="editContainer" text="${container.serialNumber ?: container.containerId}"
+                        parameter-map="[containerId:container.containerId]" link-type="anchor"/></default-field></field>
+
+                <field name="containerTypeEnumId" from="container.containerTypeEnumId"><default-field title="Type">
+                    <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+                <field name="facilityId" from="container.facilityId"><default-field title="Facility">
+                    <link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"
+                            parameter-map="[facilityId:container.facilityId]"/>
+                </default-field></field>
+
+                <field name="fromLocation"><default-field>
+                    <label text="FacilityLocationNameTemplate" text-map="fromFacLoc?:[:]" condition="fromFacLoc"/></default-field></field>
+                <field name="toLocation"><default-field>
+                    <label text="FacilityLocationNameTemplate" text-map="toFacLoc?:[:]" condition="toFacLoc"/></default-field></field>
+
+                <field name="changedDate"><default-field title="Date Moved"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
+                <field name="moveAgain"><default-field title="">
+                    <link url="moveContainer" text="Move Again" parameter-map="[containerId:container.containerId]" link-type="anchor-button"/>
+                </default-field></field>
+            </form-list>
+        </widgets></section>
+    </widgets>
+</screen>

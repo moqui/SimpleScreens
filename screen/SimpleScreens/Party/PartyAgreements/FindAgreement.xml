@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false">
+
+    <parameter name="partyId" required="true"/>
+
+    <transition name="editParty"><default-response url="../../EditParty"/></transition>
+    <transition name="editAgreement"><default-response url="../EditAgreement"/></transition>
+    <transition name="createAgreement"><service-call name="create#mantle.party.agreement.Agreement"/>
+        <default-response url="../EditAgreement"/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <widgets>
+        <container-dialog id="NewAgreementDialog" button-text="New Agreement">
+            <form-single name="NewAgreement" transition="createAgreement">
+                <field name="partyId"><default-field><hidden/></default-field></field>
+
+                <field name="agreementTypeEnumId"><default-field title="Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="AgreementType"/><set field="noCurrentSelectedKey" value="AgrOther"/></widget-template-include>
+                </default-field></field>
+                <field name="description"><default-field><text-line size="80"/></default-field></field>
+
+                <field name="otherPartyId" from="partyId"><default-field title="Party">
+                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+                <field name="otherRoleTypeId"><default-field title="Role"><drop-down>
+                    <entity-options key="${roleTypeId}" text="${description}">
+                        <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                            <econdition field-name="roleGroupEnumId" value="RgpAgreement"/>
+                            <order-by field-name="description"/></entity-find></entity-options>
+                </drop-down></default-field></field>
+                <field name="organizationPartyId"><default-field title="Organization"><drop-down>
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/></entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+
+                <field name="agreementDate"><default-field><date-time/></default-field></field>
+                <field name="fromDate"><default-field title="Valid From"><date-time/></default-field></field>
+                <field name="thruDate"><default-field title="Valid Thru"><date-time/></default-field></field>
+
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <form-list name="AgreementList" list="agreementList" skip-form="true">
+            <entity-find entity-name="mantle.party.agreement.Agreement" list="agreementList">
+                <search-form-inputs default-order-by="-fromDate"/>
+                <econdition field-name="otherPartyId" from="partyId"/>
+            </entity-find>
+
+            <field name="agreementId"><default-field>
+                <link url="editAgreement" text="${agreementId}" link-type="anchor"/></default-field></field>
+            <field name="description"><default-field>
+                <link url="editAgreement" text="${description}" link-type="anchor"/></default-field></field>
+
+            <field name="agreementTypeEnumId"><default-field title="Type">
+                <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+            <field name="otherRoleTypeId"><default-field title="Role">
+                <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
+            <field name="organizationPartyId"><default-field title="Organization">
+                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+
+            <field name="fromDate"><default-field title="Valid From"><display/></default-field></field>
+            <field name="thruDate"><default-field title="Valid Thru"><display/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>

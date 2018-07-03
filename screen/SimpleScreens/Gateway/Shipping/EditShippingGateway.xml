@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Shipping Gateway" default-menu-index="1">
+
+    <parameter name="shippingGatewayConfigId" required="true"/>
+
+    <transition name="updateShippingGatewayConfig">
+        <service-call name="update#mantle.shipment.carrier.ShippingGatewayConfig"/>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <!-- TODO limit to services that implement the interface for each field: <set field="knownServiceNames" from="ec.service.knownServiceNames"/> -->
+        <entity-find-one entity-name="mantle.shipment.carrier.ShippingGatewayConfig" value-field="shippingGatewayConfig">
+            <field-map field-name="shippingGatewayConfigId" from="shippingGatewayConfigId"/>
+        </entity-find-one>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="7">
+            <form-single name="EditShippingGatewayForm" map="shippingGatewayConfig" transition="updateShippingGatewayConfig">
+                <field name="shippingGatewayConfigId"><default-field title="ID">
+                    <display text="${shippingGatewayConfigId}"/>
+                </default-field></field>
+                <field name="shippingGatewayTypeEnumId"><default-field title="Gateway Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShippingGatewayType"/>
+                    </widget-template-include>
+                    </default-field></field>
+                <field name="description"><default-field title="Description"><text-line size="30"/></default-field></field>
+                <field name="getOrderRateServiceName"><default-field title="Order Rate Service">
+                    <!-- <drop-down allow-empty="true"><list-options list="knownServiceNames" key="${entry}"/></drop-down> -->
+                    <text-line size="100"/>
+                </default-field></field>
+                <field name="getShippingRatesBulkName"><default-field title="Bulk Shipping Rates Service">
+                    <!-- <drop-down allow-empty="true"><list-options list="knownServiceNames" key="${entry}"/></drop-down> -->
+                    <text-line size="100"/>
+                </default-field></field>
+                <field name="getAutoPackageInfoName"><default-field title="Auto Package Info Service">
+                    <!-- <drop-down allow-empty="true"><list-options list="knownServiceNames" key="${entry}"/></drop-down> -->
+                    <text-line size="100"/>
+                </default-field></field>
+                <field name="getRateServiceName"><default-field title="Rate Service Name">
+                    <!-- <drop-down allow-empty="true"><list-options list="knownServiceNames" key="${entry}"/></drop-down> -->
+                    <text-line size="100"/>
+                </default-field></field>
+                <field name="requestLabelsServiceName"><default-field title="Request Labels Service Name">
+                    <!-- <drop-down allow-empty="true"><list-options list="knownServiceNames" key="${entry}"/></drop-down> -->
+                    <text-line size="100"/>
+                </default-field></field>
+                <field name="refundLabelsServiceName"><default-field title="Refund Labels Service Name">
+                    <!-- <drop-down allow-empty="true"><list-options list="knownServiceNames" key="${entry}"/></drop-down> -->
+                    <text-line size="100"/>
+                </default-field></field>
+                <field name="trackLabelsServiceName"><default-field title="Track Labels Service Name">
+                    <!-- <drop-down allow-empty="true"><list-options list="knownServiceNames" key="${entry}"/></drop-down> -->
+                    <text-line size="100"/>
+                </default-field></field>
+                <field name="validateAddressServiceName"><default-field title="Address Validation Service">
+                    <!-- <drop-down allow-empty="true"><list-options list="knownServiceNames" key="${entry}"/></drop-down> -->
+                    <text-line size="100"/>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Update">
+                    <submit confirmation="WARNING: changing to incorrect or invalid services will break shipping label processing. Do you want to update?"/></default-field></field>
+            </form-single>
+        </row-col></container-row>
+    </widgets>
+</screen>

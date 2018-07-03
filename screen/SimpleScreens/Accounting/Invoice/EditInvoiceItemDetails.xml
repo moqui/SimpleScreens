@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Budget Details" default-menu-index="9">
+
+    <parameter name="invoiceId" required="true"/>
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/Asset/AssetDetail"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+
+    <transition name="createInvoiceItemDetail"><service-call name="mantle.account.InvoiceServices.create#InvoiceItemDetail"/>
+        <default-response url="."/></transition>
+    <transition name="updateInvoiceItemDetail"><service-call name="update#mantle.account.invoice.InvoiceItemDetail"/>
+        <default-response url="."/></transition>
+    <transition name="deleteInvoiceItemDetail"><service-call name="delete#mantle.account.invoice.InvoiceItemDetail"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
+        <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
+            <econdition field-name="invoiceId"/></entity-find>
+
+        <entity-find-one entity-name="mantle.party.PartyRole" value-field="toPartyRole">
+            <field-map field-name="partyId" from="invoice.overrideOrgPartyId ?: invoice.toPartyId"/>
+            <field-map field-name="roleTypeId" value="OrgInternal"/></entity-find-one>
+        <if condition="toPartyRole != null"><then><set field="organizationPartyId" from="toPartyRole.partyId"/></then>
+            <else><set field="organizationPartyId" from="invoice.fromPartyId"/></else></if>
+
+        <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
+        <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
+    </actions>
+    <widgets>
+        <section-iterate name="ItemListSection" list="invoiceItemList" entry="invoiceItem"><actions>
+            <entity-find entity-name="mantle.account.invoice.InvoiceItemDetail" list="itemDetailList">
+                <econdition field-name="invoiceId"/><econdition field-name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"/></entity-find>
+            <set field="detailQuantity" from="0"/>
+            <iterate list="itemDetailList" entry="itemDetail"><set field="detailQuantity" from="detailQuantity + (itemDetail.quantity ?: 0)"/></iterate>
+
+            <set field="glAccountId" from="invoiceItem.overrideGlAccountId"/>
+            <if condition="!glAccountId">
+                <service-call name="mantle.ledger.InvoiceAutoPostServices.get#InvoiceItemGlAccount"
+                        in-map="[organizationPartyId:organizationPartyId, itemTypeEnumId:invoiceItem.itemTypeEnumId,
+                            productId:invoiceItem.productId, assetId:invoiceItem.assetId, direction:'I']"
+                        out-map="invoiceItemGlAccountOut" out-map-add-to-existing="false"/>
+                <set field="glAccountId" from="invoiceItemGlAccountOut.glAccountId"/>
+            </if>
+            <if condition="glAccountId">
+                <service-call name="mantle.other.BudgetServices.get#GlAccountAppls" out-map="context"
+                        in-map="[glAccountId:glAccountId, ownerPartyIds:new HashSet([organizationPartyId])]"/>
+                <script>assetIdSet.removeAll(itemDetailList*.assetId); facilityIdSet.removeAll(itemDetailList*.facilityId)</script>
+            </if>
+            <entity-find-one entity-name="mantle.ledger.account.GlAccount" value-field="glAccount">
+                <field-map field-name="glAccountId"/></entity-find-one>
+        </actions><widgets>
+            <container-box><box-header title="Item ${invoiceItem.invoiceItemSeqId}: ${invoiceItem.description}"/><box-toolbar>
+                <container-dialog id="AddDetailDialog" button-text="Add Detail">
+                    <form-single name="AddDetailForm" transition="createInvoiceItemDetail">
+                        <field name="invoiceId"><default-field><hidden/></default-field></field>
+                        <field name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"><default-field><hidden/></default-field></field>
+                        <field name="facilityTypeEnumId"><default-field title="Facility Type">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                <set field="enumTypeId" value="FacilityType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                        </default-field></field>
+                        <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
+                            <dynamic-options transition="getFacilityList" server-search="true" min-length="0"><depends-on field="facilityTypeEnumId"/></dynamic-options>
+                        </drop-down></default-field></field>
+                        <field name="assetId"><default-field title="OR Asset"><drop-down allow-empty="true">
+                            <dynamic-options transition="getAssetList" server-search="true" min-length="0" parameter-map="[assetTypeEnumId:'AstTpEquipment']"/>
+                        </drop-down></default-field></field>
+                        <field name="partyId"><default-field title="OR Party"><drop-down allow-empty="true">
+                            <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/>
+                        </drop-down></default-field></field>
+                        <field name="quantity"><default-field><text-line size="10"/></default-field></field>
+                        <field name="submitButton"><default-field title="Add Detail"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+                <container-dialog id="AssetDetailDialog" button-text="Add Asset Details" condition="assetIdSet">
+                    <form-list name="AssetItemDetailList" list="assetList" transition="createInvoiceItemDetail" multi="true">
+                        <entity-find entity-name="mantle.product.asset.AssetSummaryView">
+                            <econdition field-name="assetId" operator="in" from="assetIdSet"/>
+                            <select-field field-name="assetId,assetName,assetTypeEnumId,classEnumId,ownerPartyId,pseudoId,productName"/>
+                            <order-by field-name="assetName,productName"/>
+                        </entity-find>
+
+                        <hidden-parameters><parameter name="invoiceId"/></hidden-parameters>
+                        <field name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"><default-field><hidden/></default-field></field>
+                        <field name="createNoQuantity" from="'false'"><default-field><hidden/></default-field></field>
+
+                        <field name="assetId"><default-field title="Asset"><display text="AssetNameTemplate"/></default-field></field>
+                        <field name="classEnumId"><default-field title="Class">
+                            <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                        <field name="productName"><default-field title="Product"><display text="ProductNameTemplate"/></default-field></field>
+                        <field name="ownerPartyId"><default-field title="Owner">
+                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+
+                        <field name="quantity" align="right"><default-field><text-line size="8"/></default-field></field>
+                        <field name="submitButton"><default-field title="Add Asset Details"><submit/></default-field></field>
+                    </form-list>
+                </container-dialog>
+                <container-dialog id="FacilityDetailDialog" button-text="Add Facility Details" condition="facilityIdSet">
+                    <form-list name="FacilityItemDetailList" list="facilityList" transition="createInvoiceItemDetail" multi="true">
+                        <entity-find entity-name="mantle.facility.Facility">
+                            <econdition field-name="facilityId" operator="in" from="facilityIdSet"/>
+                            <select-field field-name="facilityId,pseudoId,facilityName,ownerPartyId,facilitySize,facilitySizeUomId"/>
+                            <order-by field-name="facilityName"/>
+                        </entity-find>
+                        <row-actions>
+                            <entity-find-one entity-name="moqui.basic.Uom" value-field="sizeUom">
+                                <field-map field-name="uomId" from="facilitySizeUomId"/></entity-find-one>
+                        </row-actions>
+
+                        <hidden-parameters><parameter name="invoiceId"/></hidden-parameters>
+                        <field name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"><default-field><hidden/></default-field></field>
+                        <field name="createNoQuantity" from="'false'"><default-field><hidden/></default-field></field>
+
+                        <field name="facilityId"><default-field title="Facility"><link url="editFacility" link-type="anchor"
+                                entity-name="mantle.facility.Facility" text="FacilityNameTemplate" condition="facilityId"/></default-field></field>
+                        <field name="ownerPartyId"><default-field title="Owner">
+                            <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+
+                        <field name="quantity" align="right"><default-field><text-line size="8"/></default-field></field>
+                        <field name="submitButton"><default-field title="Add Facility Details"><submit/></default-field></field>
+                    </form-list>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col sm="1" style="text-right"><label text="Item Type" type="strong"/></row-col>
+                    <row-col sm="3"><label text="${invoiceItem.type?.description ?: ''}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Quantity" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.format(invoiceItem.quantity, '')}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Detail" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.format(detailQuantity, '')} (${ec.l10n.format((detailQuantity / (invoiceItem.quantity ?: 1)) * 100, '0.0')}%)"
+                            style="${detailQuantity &lt; (invoiceItem.quantity ?: 1) ? 'text-warning' : (detailQuantity &gt; (invoiceItem.quantity ?: 1) ? 'text-danger' : 'text-success')}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Amount" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.formatCurrency(invoiceItem.amount, invoice.currencyUomId)}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Total" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.formatCurrency((invoiceItem.quantity ?: 1) * (invoiceItem.amount ?: 0), invoice.currencyUomId)}"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col sm="1" style="text-right"><label text="GL Account" type="strong"/></row-col>
+                    <row-col sm="5"><label text="GlAccountNameTemplate" text-map="glAccount"/></row-col>
+                </container-row>
+            </box-body><box-body-nopad>
+                <form-list name="ItemDetailList" list="itemDetailList" transition="updateInvoiceItemDetail" multi="true">
+                    <hidden-parameters><parameter name="invoiceId"/></hidden-parameters>
+                    <field name="invoiceItemDetailId"><default-field><hidden/></default-field></field>
+
+                    <field name="facilityId"><default-field title="Facility"><link url="editFacility" link-type="anchor"
+                            entity-name="mantle.facility.Facility" text="FacilityNameTemplate" condition="facilityId"/></default-field></field>
+                    <field name="assetId"><default-field title="Asset"><link url="assetDetail" link-type="anchor"
+                            entity-name="mantle.product.asset.Asset" text="AssetNameTemplate" condition="assetId"/></default-field></field>
+                    <field name="partyId"><default-field title="Party"><link url="editParty" link-type="anchor"
+                            entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="partyId"/></default-field></field>
+                    <field name="quantity" align="right"><default-field><text-line size="10"/></default-field></field>
+                    <field name="amount" from="(quantity ?: 0) * (invoiceItem.amount ?: 0)" align="right"><default-field>
+                        <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+                    <field name="deleteButton" align="right"><default-field title="">
+                        <link url="deleteInvoiceItemDetail" text="" icon="glyphicon glyphicon-trash" confirmation="Remove budget detail?"
+                              parameter-map="[invoiceId:invoiceId, invoiceItemDetailId:invoiceItemDetailId]"/>
+                    </default-field></field>
+                    <field name="submitButton"><default-field title="Update Details"><submit/></default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
+        </widgets></section-iterate>
+    </widgets>
+</screen>

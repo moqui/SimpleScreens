@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Promotion" default-menu-index="1">
+
+    <parameter name="productStoreId" required="true"/>
+    <parameter name="storePromotionId" required="true"/>
+
+    <transition name="editPromotion"><default-response url="."/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+
+    <transition name="updatePromotion"><service-call name="update#mantle.product.store.ProductStorePromotion"/>
+        <default-response url="."/></transition>
+    <transition name="storePromoParameters"><service-call name="store#mantle.product.store.ProductStorePromoParameter" multi="true"/>
+        <default-response url="."/></transition>
+    <transition name="deletePromoParam"><service-call name="delete#mantle.product.store.ProductStorePromoParameter"/>
+        <default-response url="."/></transition>
+
+    <transition name="createPromoProduct"><service-call name="create#mantle.product.store.ProductStorePromoProduct"/>
+        <default-response url="."/></transition>
+    <transition name="deletePromoProduct"><service-call name="delete#mantle.product.store.ProductStorePromoProduct"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.store.ProductStorePromotion" value-field="storePromotion">
+            <field-map field-name="productStoreId" from="productStoreId"/>
+            <field-map field-name="storePromotionId" from="storePromotionId"/>
+        </entity-find-one>
+        
+        <entity-find-one entity-name="moqui.service.ServiceRegister" value-field="promoService">
+            <field-map field-name="serviceRegisterId" from="storePromotion.serviceRegisterId" />
+        </entity-find-one>
+    </actions>
+    <widgets>
+        <container-row><row-col md="6">
+            <form-single name="EditPromotionForm" map="storePromotion" transition="updatePromotion">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                <field name="storePromotionId"><default-field title="ID"><display/></default-field></field>
+                <field name="serviceRegisterId"><default-field title="Service">
+                    <display text="${promoService.description}"/></default-field></field>
+                <field name="itemDescription"><default-field title="Item Description"><text-line size="50"/></default-field></field>
+                <field name="sequenceNum"><default-field><text-line size="5"/></default-field></field>
+                <field name="fromDate"><default-field><date-time type="date-time"/></default-field></field>
+                <field name="thruDate"><default-field><date-time type="date-time"/></default-field></field>
+                <field name="requireCode"><default-field title="Require Code">
+                    <drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></default-field></field>
+                <field name="useLimitPerOrder"><default-field title="Limit Per Order">
+                    <text-line size="5" format="#"/></default-field></field>
+                <field name="useLimitPerCustomer"><default-field title="Per Customer">
+                    <text-line size="5" format="#"/></default-field></field>
+                <field name="useLimitPerPromotion"><default-field title="Per Promotion">
+                    <text-line size="5" format="#"/></default-field></field>
+                <field name="freeGroundShipping"><default-field title="Free Ground Ship">
+                    <drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down></default-field></field>
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col><row-col md="6">
+            <section name="PromoParameterSection">
+                <actions>
+                    <set field="defaultSD" from="ec.service.getServiceDefinition('mantle.product.PromotionServices.apply#Promotion')"/>
+                    <set field="sd" from="ec.service.getServiceDefinition(promoService.serviceName)"/>
+                    <set field="paramList" from="new ArrayList()"/>
+                    <script>
+                        def defaultParameterNames = defaultSD.getInParameterNames();
+                        def inParameterNames = sd.getInParameterNames();
+                        for (def name in inParameterNames) {
+                            if(!defaultParameterNames.contains(name)) {
+                                def param = sd.getInParameter(name)
+                                def description = param.first("description")?.text ?: ""
+                                def type = param.attribute("type")
+                                paramList.add([parameterName:name, parameterDescription:description, parameterType:type])
+                            }
+                        }
+                    </script>
+                </actions>
+                <widgets>
+                    <container-box><box-header title="Parameters"/><box-body>
+                        <form-list name="PromoParameterForm" list="paramList" multi="true" transition="storePromoParameters">
+                            <row-actions>
+                                <entity-find-one entity-name="mantle.product.store.ProductStorePromoParameter" value-field="promoParameter">
+                                    <field-map field-name="storePromotionId"/>
+                                    <field-map field-name="parameterName"/>
+                                </entity-find-one>
+                                <set field="parameterValue" from="promoParameter?.parameterValue"/>
+                            </row-actions>
+                            <hidden-parameters><parameter name="productStoreId"/><parameter name="storePromotionId"/></hidden-parameters>
+
+                            <field name="parameterName"><default-field title="Name">
+                                <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(parameterName)}"/></default-field></field>
+                            <field name="parameterDescription"><default-field title="Description">
+                                <display /></default-field></field>
+                            <field name="parameterValue">
+                                <conditional-field condition="parameterType == 'Boolean'">
+                                    <check ><option key="true" text=" "/></check></conditional-field>
+                                <default-field title="Value"><text-line size="3" format="#"/></default-field>
+                            </field>
+                            <field name="deleteButton" align="right"><default-field title="">
+                                <link url="deletePromoParam" icon="glyphicon glyphicon-trash"
+                                      parameter-map="[storePromotionId:storePromotionId, parameterName:parameterName]"
+                                      confirmation="Are you sure you want to remove this Promo Param?"/>
+                            </default-field></field>
+                            <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
+                        </form-list>
+                    </box-body></container-box>
+                </widgets>
+            </section>
+
+            <container-box><box-header title="Products"/><box-toolbar>
+                <container-dialog id="AddProductDialog" button-text="Add Product">
+                    <form-single name="AddProductForm" transition="createPromoProduct">
+                        <field name="productStoreId"><default-field><hidden/></default-field></field>
+                        <field name="storePromotionId"><default-field><hidden/></default-field></field>
+                        <field name="productId"><default-field title="Product"><drop-down>
+                            <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <form-list name="ProductsForm" list="psppdList" skip-form="true">
+                    <entity-find entity-name="mantle.product.store.ProductStorePromoProductDetail" list="psppdList">
+                        <econdition field-name="storePromotionId"/>
+                        <select-field field-name="productId"/>
+                        <order-by field-name="pseudoId"/>
+                    </entity-find>
+
+                    <field name="pseudoId"><default-field title="ID">
+                        <link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field></field>
+                    <field name="productName"><default-field title="Name">
+                        <link url="editProduct" text="${productName}" link-type="anchor"/></default-field></field>
+                    <field name="productTypeEnumId"><default-field title="Type">
+                        <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                    <field name="assetClassEnumId"><default-field title="A. Class">
+                        <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+                    <field name="delete"><default-field title=""><link url="deletePromoProduct" text=""
+                            icon="glyphicon glyphicon-trash" confirmation="Remove product from promotion?"
+                            parameter-map="[productId:productId]"/>
+                    </default-field></field>
+                </form-list>
+            </box-body></container-box>
+
+            <!--
+            <section name="PromoCodeStatistics">
+                <actions>
+                    <set field="openStatusIdList" from="['OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderSent', 'OrderCompleted', 'OrderHold']"/>
+                    <entity-find entity-name="mantle.order.OrderItemAndPartSummary" list="promoSummaryList">
+                        <econdition field-name="statusId" operator="in" from="openStatusIdList"/>
+                        <econdition field-name="storePromotionId" from="storePromotionId"/>
+                        <select-field field-name="promoTimesUsed"/>
+                    </entity-find>
+                    <set field="promoTimesUsed" from="promoSummaryList?.getAt(0)?.promoTimesUsed ?: 0"/>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Promo Code Stats"/>
+                        <box-body>
+                            <container-row>
+                                <row-col sm="4"><label text="Times Used" type="strong"/></row-col>
+                                <row-col sm="4"><label text="Sum of Discounts" type="strong"/></row-col>
+                            </container-row>
+                            <container-row>
+                                <row-col sm="4">
+                                    <label text="${promoTimesUsed}"/>
+                                </row-col>
+                                <row-col sm="4">
+                                    <label text="12"/>
+                                </row-col>
+                            </container-row>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+            -->
+        </row-col></container-row>
+    </widgets>
+</screen>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Registrations" default-menu-index="6">
+
+    <parameter name="assetId" required="true"/>
+
+    <transition name="createAssetRegistration"><service-call name="create#mantle.product.maintenance.AssetRegistration"/>
+        <default-response url="."/></transition>
+    <transition name="updateAssetRegistration"><service-call name="update#mantle.product.maintenance.AssetRegistration"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <widgets>
+        <container-dialog id="NewRegistrationDialog" button-text="New Registration">
+            <form-single name="NewRegistrationForm" transition="createAssetRegistration">
+                <field name="assetId"><default-field><hidden/></default-field></field>
+                <field name="fromDate"><default-field><date-time type="date"/></default-field></field>
+                <field name="thruDate"><default-field><date-time type="date"/></default-field></field>
+                <field name="registrationDate"><default-field><date-time type="date"/></default-field></field>
+                <field name="govAgencyPartyId"><default-field title="Gov Agency"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></default-field></field>
+
+                <field name="registrationNumber"><default-field><text-line size="20"/></default-field></field>
+                <field name="licenseNumber"><default-field><text-line size="20"/></default-field></field>
+
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="RegistrationsForm" list="registrationList" transition="updateAssetRegistration" header-dialog="true">
+            <entity-find entity-name="mantle.product.maintenance.AssetRegistration" list="registrationList">
+                <search-form-inputs default-order-by="-fromDate"/>
+                <econdition field-name="assetId"/>
+            </entity-find>
+
+            <field name="assetId"><header-field><hidden/></header-field><default-field><hidden/></default-field></field>
+            <field name="assetRegSeqId"><default-field><hidden/></default-field></field>
+
+            <field name="fromDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display format="yyyy-MM-dd"/></default-field></field>
+            <field name="thruDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><date-time type="date"/></default-field></field>
+            <field name="registrationDate"><header-field title="Reg Date" show-order-by="true"><date-period/></header-field>
+                <default-field><date-time type="date"/></default-field></field>
+
+            <field name="govAgencyPartyId">
+                <header-field title="Gov Agency"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
+                <default-field><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></default-field>
+            </field>
+            <field name="registrationNumber"><header-field title="Reg Number" show-order-by="true"><text-find hide-options="true"/></header-field>
+                <default-field><text-line size="20"/></default-field></field>
+            <field name="licenseNumber"><header-field show-order-by="true"><text-find hide-options="true"/></header-field>
+                <default-field><text-line size="20"/></default-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field>
+                <default-field title="Update"><submit/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>

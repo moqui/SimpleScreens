@@ -27,7 +27,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <return/>
             </if>
             <entity-find entity-name="mantle.facility.Facility" list="facilityList" limit="20">
-                <econdition field-name="facilityTypeEnumId" ignore-if-empty="true"/>
+                <econdition field-name="facilityTypeEnumId" operator="in" ignore-if-empty="true"/>
                 <econdition field-name="parentFacilityId" ignore-if-empty="true"/>
                 <econdition field-name="ownerPartyId" ignore-if-empty="true"/>
                 <econditions combine="or">
@@ -47,7 +47,9 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
     <transition name="getLocationList">
+        <parameter name="term"/>
         <parameter name="facilityId"/>
+        <parameter name="locationTypeEnumId"/>
         <actions>
             <entity-find entity-name="mantle.facility.FacilityLocation" list="locList" limit="20">
                 <econdition field-name="facilityId" ignore-if-empty="true"/>
@@ -64,8 +66,48 @@ along with this software (see the LICENSE.md file). If not, see
             </entity-find>
             <script>
                 def outList = []
-                for (def facLoc in locList)
-                outList.add([value:facLoc.locationSeqId, label:ec.resource.expand('FacilityLocationNameTemplate','',facLoc?:[:])])
+                for (def facLoc in locList) {
+                    if (facLoc.locationTypeEnumId) {
+                        def locType = facLoc.type
+                        facLoc = facLoc.getMap()
+                        facLoc.put("type", locType)
+                    }
+                    outList.add([value:facLoc.locationSeqId, label:ec.resource.expand('FacilityLocationNameTemplate','',facLoc?:[:])])
+                }
+                ec.web.sendJsonResponse(outList)
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="getContainerList">
+        <parameter name="term"/>
+        <parameter name="facilityId"/>
+        <parameter name="locationSeqId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                <field-map field-name="serialNumber" from="term"/></entity-find-one>
+            <if condition="container == null">
+                <entity-find-one entity-name="mantle.product.asset.Container" value-field="container">
+                    <field-map field-name="containerId" from="term"/></entity-find-one>
+            </if>
+            <if condition="container != null"><then>
+                <set field="containerList" from="[container]"/>
+            </then><else>
+                <entity-find entity-name="mantle.product.asset.Container" list="containerList" limit="20">
+                    <econdition field-name="facilityId" ignore-if-empty="true"/>
+                    <econdition field-name="locationSeqId" ignore-if-empty="true"/>
+                    <econditions combine="or">
+                        <econdition field-name="serialNumber" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="externalId" operator="like" value="%${term}%" ignore-case="true"/>
+                    </econditions>
+                    <order-by field-name="serialNumber,description"/>
+                </entity-find>
+            </else></if>
+            <script>
+                def outList = []
+                for (def container in containerList)
+                    outList.add([value:container.containerId, label:ec.resource.expand('ContainerNameTemplate','',container?:[:])])
                 ec.web.sendJsonResponse(outList)
             </script>
         </actions>

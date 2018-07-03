@@ -16,8 +16,9 @@ along with this software (see the LICENSE.md file). If not, see
 <#assign showDetail = (detail! == "true")>
 <#assign showBeginningAndPosted = (beginningAndPosted! == "true")>
 <#assign showPercents = (percents! == "true")>
-<#assign currencyFormat = currencyFormat!"#,##0.00">
+<#assign currencyFormat = currencyFormat!"#,##0.00;(#,##0.00)">
 <#assign percentFormat = percentFormat!"0.0%">
+<#assign indentMult = indentMult!1>
 
 <#macro showClass classInfo depth>
     <#-- skip classes with no balance -->
@@ -25,48 +26,50 @@ along with this software (see the LICENSE.md file). If not, see
 
     <#assign hasChildren = classInfo.childClassInfoList?has_content>
     <tr>
-        <td style="padding-left: ${(depth-1) * 2}.3em;">${ec.l10n.localize(classInfo.className)}</td>
+        <td style="padding-left: ${((depth-1) * indentMult) + 0.3}em;">${ec.l10n.localize(classInfo.className)}</td>
         <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(classInfo.postedByTimePeriod['ALL']!0, currencyFormat)}</td>
+            <#assign currentAmt = classInfo.postedByTimePeriod['ALL']!0>
+            <td class="text-right text-mono">${ec.l10n.format(currentAmt, currencyFormat)}<#if (currentAmt >= 0)>&nbsp;</#if></td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
             <#if showBeginningAndPosted>
                 <#assign beginningClassBalance = (classInfo.balanceByTimePeriod[timePeriodId]!0) - (classInfo.postedByTimePeriod[timePeriodId]!0)>
-                <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(beginningClassBalance, currencyFormat)}</td>
-                <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(classInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}</td>
+                <#assign postedAmount = classInfo.postedByTimePeriod[timePeriodId]!0>
+                <td class="text-right text-mono"><#if beginningClassBalance != 0>${ec.l10n.format(beginningClassBalance, currencyFormat)}<#if (beginningClassBalance >= 0)>&nbsp;</#if><#else>&nbsp;</#if></td>
+                <td class="text-right text-mono"><#if postedAmount != 0>${ec.l10n.format(postedAmount, currencyFormat)}<#if (postedAmount >= 0)>&nbsp;</#if><#else>&nbsp;</#if></td>
             </#if>
-            <td class="text-right text-mono" style="padding-right:${depth}em;">${ec.l10n.format(classInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)}</td>
+            <#assign classPerAmount = classInfo.balanceByTimePeriod[timePeriodId]!0>
+            <td class="text-right text-mono"><#if classPerAmount != 0>${ec.l10n.format(classPerAmount, currencyFormat)}<#if (classPerAmount >= 0)>&nbsp;</#if><#else>&nbsp;</#if></td>
             <#if showPercents>
                 <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-                <#assign currentAmt = classInfo.balanceByTimePeriod[timePeriodId]!0>
-                <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
+                <td class="text-right text-mono"><#if classPerAmount != 0 && assetTotalAmt != 0>${ec.l10n.format(classPerAmount/assetTotalAmt, percentFormat)}<#else>&nbsp;</#if></td>
             </#if>
         </#list>
     </tr>
     <#list classInfo.glAccountInfoList! as glAccountInfo>
         <#if showDetail && ((glAccountInfo.balanceByTimePeriod['ALL']!0) != 0 || (glAccountInfo.postedByTimePeriod['ALL']!0) != 0)>
             <tr>
-                <td style="padding-left: ${(depth-1) * 2 + 3}.3em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
+                <td style="padding-left: ${(depth-1) * indentMult + (indentMult * 1.5) + 0.3}em;"><#if accountCodeFormatter??>${accountCodeFormatter.valueToString(glAccountInfo.accountCode)}<#else>${glAccountInfo.accountCode}</#if>: ${glAccountInfo.accountName}</td>
                 <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-                    <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format(glAccountInfo.postedByTimePeriod['ALL']!0, currencyFormat)}</td>
+                    <#assign currentAmt = glAccountInfo.postedByTimePeriod['ALL']!0>
+                    <td class="text-right text-mono">${ec.l10n.format(currentAmt, currencyFormat)}<#if (currentAmt >= 0)>&nbsp;</#if></td>
                 </#if>
                 <#list timePeriodIdList as timePeriodId>
                     <#if showBeginningAndPosted>
                         <#assign beginningGlAccountBalance = (glAccountInfo.balanceByTimePeriod[timePeriodId]!0) - (glAccountInfo.postedByTimePeriod[timePeriodId]!0)>
-                        <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format(beginningGlAccountBalance, currencyFormat)}</td>
-                        <td class="text-right text-mono" style="padding-right:${depth+2}em;">
-                            <#if findEntryUrl??>
-                                <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                                <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}</a>
-                            <#else>
-                                ${ec.l10n.format(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}
-                            </#if>
-                        </td>
+                        <#assign postedAmount = glAccountInfo.postedByTimePeriod[timePeriodId]!0>
+                        <td class="text-right text-mono">${ec.l10n.format(beginningGlAccountBalance, currencyFormat)}<#if (beginningGlAccountBalance >= 0)>&nbsp;</#if></td>
+                        <#if findEntryUrl??>
+                            <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
+                            <td class="text-right text-mono"><a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(postedAmount, currencyFormat)}</a><#if (postedAmount >= 0)>&nbsp;</#if></td>
+                        <#else>
+                            <td class="text-right text-mono">${ec.l10n.format(postedAmount, currencyFormat)}<#if (postedAmount >= 0)>&nbsp;</#if></td>
+                        </#if>
                     </#if>
-                    <td class="text-right text-mono" style="padding-right:${depth+2}em;">${ec.l10n.format(glAccountInfo.balanceByTimePeriod[timePeriodId]!0, currencyFormat)}</td>
+                    <#assign currentAmt = glAccountInfo.balanceByTimePeriod[timePeriodId]!0>
+                    <td class="text-right text-mono">${ec.l10n.format(currentAmt, currencyFormat)}<#if (currentAmt >= 0)>&nbsp;</#if></td>
                     <#if showPercents>
                         <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-                        <#assign currentAmt = glAccountInfo.balanceByTimePeriod[timePeriodId]!0>
                         <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
                     </#if>
                 </#list>
@@ -79,21 +82,23 @@ along with this software (see the LICENSE.md file). If not, see
         <#list classInfo.childClassInfoList as childClassInfo>
             <@showClass childClassInfo depth + 1/>
         </#list>
-        <tr<#if depth == 1> class="text-info"</#if>>
-            <td style="padding-left: ${(depth-1) * 2}.3em;"><strong>${ec.l10n.localize(classInfo.className + " Total")}</strong></td>
+        <tr<#if depth == 1> class="text-info" style="border-bottom:solid black;border-top:solid black;"</#if>>
+            <td style="padding-left: ${((depth-1) * indentMult) + 0.3}em;"><strong>${ec.l10n.localize("Total " + classInfo.className)}</strong></td>
             <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-                <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>${ec.l10n.format(classInfo.totalPostedByTimePeriod['ALL']!0, currencyFormat)}</strong></td>
+                <#assign currentAmt = classInfo.totalPostedByTimePeriod['ALL']!0>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
                 <#if showBeginningAndPosted>
                     <#assign beginningTotalBalance = (classInfo.totalBalanceByTimePeriod[timePeriodId]!0) - (classInfo.totalPostedByTimePeriod[timePeriodId]!0)>
-                    <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>${ec.l10n.format(beginningTotalBalance, currencyFormat)}</strong></td>
-                    <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>${ec.l10n.format(classInfo.totalPostedByTimePeriod[timePeriodId]!0, currencyFormat)}</strong></td>
+                    <#assign postedAmount = classInfo.totalPostedByTimePeriod[timePeriodId]!0>
+                    <td class="text-right text-mono"><strong>${ec.l10n.format(beginningTotalBalance, currencyFormat)}</strong><#if (beginningTotalBalance >= 0)>&nbsp;</#if></td>
+                    <td class="text-right text-mono"><strong>${ec.l10n.format(postedAmount, currencyFormat)}</strong><#if (postedAmount >= 0)>&nbsp;</#if></td>
                 </#if>
-                <td class="text-right text-mono" style="padding-right:${depth}em;"><strong>${ec.l10n.format(classInfo.totalBalanceByTimePeriod[timePeriodId]!0, currencyFormat)}</strong></td>
+                <#assign currentAmt = classInfo.totalBalanceByTimePeriod[timePeriodId]!0>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
                 <#if showPercents>
                     <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-                    <#assign currentAmt = classInfo.totalBalanceByTimePeriod[timePeriodId]!0>
                     <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
                 </#if>
             </#list>
@@ -104,7 +109,7 @@ along with this software (see the LICENSE.md file). If not, see
 <table class="table table-striped table-hover table-condensed">
     <thead>
         <tr>
-            <th>${ec.l10n.localize("Balance Sheet")}</th>
+            <th>${organizationName!""} - ${ec.l10n.localize("Balance Sheet")} <small>(${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')})</small></th>
             <#if showBeginningAndPosted && (timePeriodIdList?size > 1)><th class="text-right">${ec.l10n.localize("All Periods Posted")}</th></#if>
             <#list timePeriodIdList as timePeriodId>
                 <#if showBeginningAndPosted>
@@ -120,66 +125,51 @@ along with this software (see the LICENSE.md file). If not, see
     </thead>
     <tbody>
         <#if classInfoById.ASSET??><@showClass classInfoById.ASSET 1/></#if>
-        <#if classInfoById.CONTRA_ASSET??><@showClass classInfoById.CONTRA_ASSET 1/></#if>
-        <#if netAssetTotalMap??>
-            <tr class="text-success" style="border-bottom: solid black;border-top:solid black;">
-                <td><strong>${ec.l10n.localize("Net Asset Total")}</strong></td>
-                <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-                    <td class="text-right text-mono"><strong>${ec.l10n.format(netAssetTotalMap.totalPosted['ALL']!0, currencyFormat)}</strong></td>
-                </#if>
-                <#list timePeriodIdList as timePeriodId>
-                    <#if showBeginningAndPosted>
-                        <td class="text-right text-mono"><strong>${ec.l10n.format((netAssetTotalMap.totalBalance[timePeriodId]!0) - (netAssetTotalMap.totalPosted[timePeriodId]!0), currencyFormat)}</strong></td>
-                        <td class="text-right text-mono"><strong>${ec.l10n.format(netAssetTotalMap.totalPosted[timePeriodId]!0, currencyFormat)}</strong></td>
-                    </#if>
-                    <td class="text-right text-mono"><strong>${ec.l10n.format(netAssetTotalMap.totalBalance[timePeriodId]!0, currencyFormat)}</strong></td>
-                    <#if showPercents>
-                        <td class="text-right text-mono">${ec.l10n.format(1, percentFormat)}</td>
-                    </#if>
-                </#list>
-            </tr>
-        </#if>
-
         <#if classInfoById.LIABILITY??><@showClass classInfoById.LIABILITY 1/></#if>
 
         <#if classInfoById.EQUITY??><@showClass classInfoById.EQUITY 1/></#if>
-        <#if classInfoById.CONTRA_EQUITY??><@showClass classInfoById.CONTRA_EQUITY 1/></#if>
         <#if classInfoById.DISTRIBUTION??><@showClass classInfoById.DISTRIBUTION 1/></#if>
         <#if equityTotalMap??>
             <tr class="text-info">
-                <td><strong>${ec.l10n.localize("Equity + Contra Equity + Distribution Total")}</strong></td>
+                <td><strong>${ec.l10n.localize("Total Equity + Distribution")}</strong></td>
                 <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-                    <td class="text-right text-mono"><strong>${ec.l10n.format(equityTotalMap.totalPosted['ALL']!0, currencyFormat)}</strong></td>
+                    <#assign currentAmt = equityTotalMap.totalPosted['ALL']!0>
+                    <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
                 </#if>
                 <#list timePeriodIdList as timePeriodId>
                     <#if showBeginningAndPosted>
-                        <td class="text-right text-mono"><strong>${ec.l10n.format((equityTotalMap.totalBalance[timePeriodId]!0) - (equityTotalMap.totalPosted[timePeriodId]!0), currencyFormat)}</strong></td>
-                        <td class="text-right text-mono"><strong>${ec.l10n.format(equityTotalMap.totalPosted[timePeriodId]!0, currencyFormat)}</strong></td>
+                        <#assign beginningTotalBalance = (equityTotalMap.totalBalance[timePeriodId]!0) - (equityTotalMap.totalPosted[timePeriodId]!0)>
+                        <#assign postedAmount = equityTotalMap.totalPosted[timePeriodId]!0>
+                        <td class="text-right text-mono"><strong>${ec.l10n.format(beginningTotalBalance, currencyFormat)}</strong><#if (beginningTotalBalance >= 0)>&nbsp;</#if></td>
+                        <td class="text-right text-mono"><strong>${ec.l10n.format(postedAmount, currencyFormat)}</strong><#if (postedAmount >= 0)>&nbsp;</#if></td>
                     </#if>
-                    <td class="text-right text-mono"><strong>${ec.l10n.format(equityTotalMap.totalBalance[timePeriodId]!0, currencyFormat)}</strong></td>
+                    <#assign currentAmt = equityTotalMap.totalBalance[timePeriodId]!0>
+                    <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
                     <#if showPercents>
                         <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-                        <#assign currentAmt = equityTotalMap.totalBalance[timePeriodId]!0>
                         <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
                     </#if>
                 </#list>
             </tr>
         </#if>
         <#if liabilityEquityTotalMap??>
-        <tr class="text-success" style="border-bottom:solid black;border-top:solid black;">
-            <td><strong>${ec.l10n.localize("Liability + Equity Grand Total")}</strong></td>
+        <tr class="text-success" style="border-bottom:solid black;">
+            <td><strong>${ec.l10n.localize("Grand Total Liability + Equity")}</strong></td>
             <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-                <td class="text-right text-mono"><strong>${ec.l10n.format(liabilityEquityTotalMap.totalPosted['ALL']!0, currencyFormat)}</strong></td>
+                <#assign currentAmt = liabilityEquityTotalMap.totalPosted['ALL']!0>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
             </#if>
             <#list timePeriodIdList as timePeriodId>
                 <#if showBeginningAndPosted>
-                    <td class="text-right text-mono"><strong>${ec.l10n.format((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) - (liabilityEquityTotalMap.totalPosted[timePeriodId]!0), currencyFormat)}</strong></td>
-                    <td class="text-right text-mono"><strong>${ec.l10n.format(liabilityEquityTotalMap.totalPosted[timePeriodId]!0, currencyFormat)}</strong></td>
+                    <#assign beginningTotalBalance = (liabilityEquityTotalMap.totalBalance[timePeriodId]!0) - (liabilityEquityTotalMap.totalPosted[timePeriodId]!0)>
+                    <#assign postedAmount = liabilityEquityTotalMap.totalPosted[timePeriodId]!0>
+                    <td class="text-right text-mono"><strong>${ec.l10n.format(beginningTotalBalance, currencyFormat)}</strong><#if (beginningTotalBalance >= 0)>&nbsp;</#if></td>
+                    <td class="text-right text-mono"><strong>${ec.l10n.format(postedAmount, currencyFormat)}</strong><#if (postedAmount >= 0)>&nbsp;</#if></td>
                 </#if>
-                <td class="text-right text-mono"><strong>${ec.l10n.format(liabilityEquityTotalMap.totalBalance[timePeriodId]!0, currencyFormat)}</strong></td>
+                <#assign currentAmt = liabilityEquityTotalMap.totalBalance[timePeriodId]!0>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
                 <#if showPercents>
                     <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-                    <#assign currentAmt = liabilityEquityTotalMap.totalBalance[timePeriodId]!0>
                     <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
                 </#if>
             </#list>
@@ -189,36 +179,42 @@ along with this software (see the LICENSE.md file). If not, see
         <tr class="text-info">
             <td><strong>${ec.l10n.localize("Unbooked Net Income")}</strong></td>
         <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-            <td class="text-right text-mono"><strong>${ec.l10n.format(netIncomeOut.totalPosted['ALL']!0, currencyFormat)}</strong></td>
+            <#assign currentAmt = netIncomeOut.totalPosted['ALL']!0>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
             <#if showBeginningAndPosted>
-                <td class="text-right text-mono"><strong>${ec.l10n.format((netIncomeOut.totalBalance[timePeriodId]!0) - (netIncomeOut.totalPosted[timePeriodId]!0), currencyFormat)}</strong></td>
-                <td class="text-right text-mono"><strong>${ec.l10n.format(netIncomeOut.totalPosted[timePeriodId]!0, currencyFormat)}</strong></td>
+                <#assign beginningTotalBalance = (netIncomeOut.totalBalance[timePeriodId]!0) - (netIncomeOut.totalPosted[timePeriodId]!0)>
+                <#assign postedAmount = netIncomeOut.totalPosted[timePeriodId]!0>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(beginningTotalBalance, currencyFormat)}</strong><#if (beginningTotalBalance >= 0)>&nbsp;</#if></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(postedAmount, currencyFormat)}</strong><#if (postedAmount >= 0)>&nbsp;</#if></td>
             </#if>
-            <td class="text-right text-mono"><strong>${ec.l10n.format(netIncomeOut.totalBalance[timePeriodId]!0, currencyFormat)}</strong></td>
+            <#assign currentAmt = netIncomeOut.totalBalance[timePeriodId]!0>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
             <#if showPercents>
                 <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-                <#assign currentAmt = netIncomeOut.totalBalance[timePeriodId]!0>
                 <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
             </#if>
         </#list>
         </tr>
 
-        <tr class="text-success" style="border-bottom:solid black;border-top:solid black;">
+        <tr class="text-success" style="border-bottom:solid black;">
             <td><strong>${ec.l10n.localize("Liability + Equity + Unbooked Net Income")}</strong></td>
         <#if showBeginningAndPosted && (timePeriodIdList?size > 1)>
-            <td class="text-right text-mono"><strong>${ec.l10n.format((liabilityEquityTotalMap.totalPosted['ALL']!0) + (netIncomeOut.totalPosted['ALL']!0), currencyFormat)}</strong></td>
+            <#assign currentAmt = (liabilityEquityTotalMap.totalPosted['ALL']!0) + (netIncomeOut.totalPosted['ALL']!0)>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
         </#if>
         <#list timePeriodIdList as timePeriodId>
             <#if showBeginningAndPosted>
-                <td class="text-right text-mono"><strong>${ec.l10n.format((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) - (liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0) - (netIncomeOut.totalPosted[timePeriodId]!0), currencyFormat)}</strong></td>
-                <td class="text-right text-mono"><strong>${ec.l10n.format((liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalPosted[timePeriodId]!0), currencyFormat)}</strong></td>
+                <#assign beginningTotalBalance = (liabilityEquityTotalMap.totalBalance[timePeriodId]!0) - (liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0) - (netIncomeOut.totalPosted[timePeriodId]!0)>
+                <#assign postedAmount = (liabilityEquityTotalMap.totalPosted[timePeriodId]!0) + (netIncomeOut.totalPosted[timePeriodId]!0)>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(beginningTotalBalance, currencyFormat)}</strong><#if (beginningTotalBalance >= 0)>&nbsp;</#if></td>
+                <td class="text-right text-mono"><strong>${ec.l10n.format(postedAmount, currencyFormat)}</strong><#if (postedAmount >= 0)>&nbsp;</#if></td>
             </#if>
-            <td class="text-right text-mono"><strong>${ec.l10n.format((liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0), currencyFormat)}</strong></td>
+            <#assign currentAmt = (liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0)>
+            <td class="text-right text-mono"><strong>${ec.l10n.format(currentAmt, currencyFormat)}</strong><#if (currentAmt >= 0)>&nbsp;</#if></td>
             <#if showPercents>
                 <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
-                <#assign currentAmt = (liabilityEquityTotalMap.totalBalance[timePeriodId]!0) + (netIncomeOut.totalBalance[timePeriodId]!0)>
                 <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>
             </#if>
         </#list>

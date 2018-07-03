@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Orders" default-menu-index="5">
+
+    <parameter name="invoiceId" required="true"/>
+
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/Asset/AssetDetail"/></transition>
+
+    <transition name="applyInvoiceToOrder"><service-call name="mantle.account.InvoiceServices.apply#InvoiceToOrder"/>
+        <default-response url="."/></transition>
+    <transition name="applyInvoiceItemToOrder"><service-call name="mantle.account.InvoiceServices.apply#InvoiceItemToOrder"/>
+        <default-response url="."/></transition>
+    <transition name="unapplyInvoiceItemFromOrder"><service-call name="mantle.account.InvoiceServices.unapply#InvoiceItemFromOrder"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
+        <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
+            <econdition field-name="invoiceId"/></entity-find>
+
+        <entity-find entity-name="mantle.order.OrderItemBillingDetail" list="allBillingList">
+            <econdition field-name="invoiceId"/></entity-find>
+    </actions>
+    <widgets>
+        <container-dialog id="ApplyToOrderDialog" button-text="Apply Invoice to Order">
+            <form-single name="ApplyToOrder" transition="applyInvoiceToOrder">
+                <field name="invoiceId"><default-field><hidden/></default-field></field>
+                <field name="orderId"><default-field>
+                    <!-- TODO: change this to drop-down, maybe server-search, for orders matching from/to parties and no billings or with quantity 0 (subselect) -->
+                    <text-line size="20"/>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Apply Invoice"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <section-iterate name="ItemListSection" list="invoiceItemList" entry="invoiceItem"><actions>
+            <filter-map-list list="allBillingList" to-list="itemBillingList">
+                <field-map field-name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"/></filter-map-list>
+            <set field="billingQuantity" from="0"/>
+            <iterate list="itemBillingList" entry="itemBilling"><set field="billingQuantity" from="billingQuantity + (itemBilling.quantity ?: 0)"/></iterate>
+        </actions><widgets>
+            <container-box><box-header title="Item ${invoiceItem.invoiceItemSeqId}: ${invoiceItem.description}"/><box-toolbar>
+                <container-dialog id="ApplyItemToOrderDialog" button-text="Apply Item to Order">
+                    <form-single name="ApplyItemToOrder" transition="applyInvoiceItemToOrder">
+                        <field name="invoiceId"><default-field><hidden/></default-field></field>
+                        <field name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"><default-field><hidden/></default-field></field>
+                        <field name="orderId"><default-field>
+                            <!-- TODO: change this to drop-down, maybe server-search, for orders matching from/to parties and no billings or with quantity 0 (subselect) -->
+                            <text-line size="20"/>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Apply Item"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col sm="1" style="text-right"><label text="Item Type" type="strong"/></row-col>
+                    <row-col sm="3"><label text="${invoiceItem.type?.description ?: ''}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Quantity" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.format(invoiceItem.quantity, '')}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Orders" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.format(billingQuantity, '')} (${ec.l10n.format((billingQuantity / (invoiceItem.quantity ?: 1)) * 100, '0.0')}%)"
+                            style="${billingQuantity &lt; (invoiceItem.quantity ?: 1) ? 'text-warning' : (billingQuantity &gt; (invoiceItem.quantity ?: 1) ? 'text-danger' : 'text-success')}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Amount" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.formatCurrency(invoiceItem.amount, invoice.currencyUomId)}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Total" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.formatCurrency((invoiceItem.quantity ?: 1) * (invoiceItem.amount ?: 0), invoice.currencyUomId)}"/></row-col>
+                </container-row>
+            </box-body><box-body-nopad>
+                <form-list name="ItemBillingList" list="itemBillingList" skip-form="true" multi="true">
+                    <hidden-parameters><parameter name="invoiceId"/></hidden-parameters>
+                    <field name="orderItemBillingId"><default-field><hidden/></default-field></field>
+
+                    <field name="orderId"><default-field title="Order Item">
+                        <link url="orderDetail" link-type="anchor" text="${orderId}:${orderItemSeqId}"/></default-field></field>
+
+                    <field name="shipmentId"><default-field title="Shipment">
+                        <link url="shipmentDetail" link-type="anchor" text="${shipmentId}"/></default-field></field>
+                    <field name="assetId" from="receiptAssetId ?: issuanceAssetId"><default-field title="Asset">
+                        <link url="assetDetail" link-type="anchor" condition="assetId"
+                                text="${assetId} (${assetReceiptId ? 'Receipt ' + assetReceiptId : 'Issuance ' + assetIssuanceId})"/>
+                    </default-field></field>
+
+                    <field name="quantity" align="right"><default-field title="Applied Qty"><display/></default-field></field>
+                    <field name="amountApplied" from="(quantity ?: 0) * (invoiceItem.amount ?: 0)" align="right"><default-field title="Applied Total">
+                        <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+
+                    <field name="itemQuantity" align="right"><default-field title="Order Qty"><display/></default-field></field>
+                    <field name="unitAmount" align="right"><default-field title="Order Amt"
+                            container-style="${unitAmount == invoiceItem.amount ? 'text-success' : 'text-danger'}">
+                        <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+
+                    <field name="deleteButton" align="right"><default-field title="">
+                        <link url="unapplyInvoiceItemFromOrder" text="" icon="glyphicon glyphicon-trash" confirmation="Unapply item from Order?"
+                              parameter-map="[invoiceId:invoiceId, orderItemBillingId:orderItemBillingId]"/>
+                    </default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
+        </widgets></section-iterate>
+    </widgets>
+</screen>

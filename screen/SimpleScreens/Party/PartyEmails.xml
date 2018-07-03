@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Emails" default-menu-index="3">
+
+    <parameter name="partyId" required="true"/>
+
+    <transition name="sendEmailMessage"><service-call name="org.moqui.impl.EmailServices.send#EmailMessage"/>
+        <default-response url="."/></transition>
+
+    <transition name="EmailMessage" read-only="true"><parameter name="emailMessageId"/><actions>
+        <entity-find-one entity-name="moqui.basic.email.EmailMessage" value-field="emailMessage"/>
+        <script>ec.web.sendTextResponse(emailMessage?.body, "text/html", null)</script>
+    </actions><default-response type="none"/></transition>
+
+    <actions>
+        <!-- for matches on *UserId -->
+        <entity-find entity-name="moqui.security.UserAccount" list="userAccountList">
+            <econdition field-name="partyId"/></entity-find>
+        <set field="userIdList" from="userAccountList*.userId"/>
+
+        <!-- for matches on email address -->
+        <entity-find entity-name="mantle.party.contact.PartyContactMechInfo" list="emailPcmList">
+            <!-- no date filter, to be more inclusive show all messages for current and past email addresses: <date-filter/> -->
+            <econdition field-name="partyId"/>
+            <econdition field-name="contactMechTypeEnumId" value="CmtEmailAddress"/>
+            <select-field field-name="infoString"/>
+        </entity-find>
+        <set field="emailAddressSet" from="new HashSet(emailPcmList*.infoString)"/>
+    </actions>
+    <widgets>
+        <section name="HasUserOrEmailAddress" condition="userIdList || emailAddressSet"><widgets>
+            <label text="User Accounts: ${userAccountList*.username.join(', ')}" condition="userAccountList"/>
+            <label text="Email Addresses: ${emailAddressSet.join(', ')}" condition="emailAddressSet"/>
+
+            <form-list name="EmailMessageList" list="emailMessageList" skip-form="true" header-dialog="true">
+                <entity-find entity-name="moqui.basic.email.EmailMessage" list="emailMessageList">
+                    <search-form-inputs default-order-by="sentDate,emailMessageId"/>
+                    <econditions combine="or">
+                        <econdition field-name="fromUserId" operator="in" from="userIdList" ignore-if-empty="true"/>
+                        <econdition field-name="toUserId" operator="in" from="userIdList" ignore-if-empty="true"/>
+                        <econdition field-name="toAddresses" operator="in" from="emailAddressSet" ignore-if-empty="true"/>
+                        <econdition field-name="fromAddress" operator="in" from="emailAddressSet" ignore-if-empty="true"/>
+                    </econditions>
+                </entity-find>
+
+                <hidden-parameters><parameter name="partyId"/></hidden-parameters>
+
+                <field name="emailMessageId"><default-field title="ID">
+                    <link url="EmailMessage" text="${emailMessageId}" link-type="anchor" target-window="_blank"/>
+                </default-field></field>
+                <field name="toAddresses"><default-field><display/></default-field></field>
+                <field name="statusId">
+                    <header-field title="Status" show-order-by="true">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                            <set field="statusTypeId" value="EmailMessage"/><set field="allowMultiple" value="true"/></widget-template-include>
+                    </header-field>
+                    <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+                </field>
+                <field name="sentDate"><header-field><date-period/></header-field>
+                    <default-field><display/></default-field></field>
+                <field name="receivedDate"><header-field><date-period/></header-field>
+                    <default-field><display/></default-field></field>
+                <field name="emailTypeEnumId">
+                    <header-field title="Email Type" show-order-by="true">
+                        <drop-down allow-multiple="true">
+                            <entity-options key="${enumId}" text="EnumerationNameTemplate"><entity-find entity-name="moqui.basic.Enumeration">
+                                <econdition field-name="enumTypeId" value="EmailType"/><order-by field-name="sequenceNum,description"/>
+                            </entity-find></entity-options>
+                            <entity-options key="${enumId}" text="EnumerationNameTemplate"><entity-find entity-name="moqui.basic.Enumeration">
+                                <econdition field-name="enumTypeId" value="ProductStoreEmailType"/><order-by field-name="sequenceNum,description"/>
+                            </entity-find></entity-options>
+                        </drop-down>
+                    </header-field>
+                    <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                </field>
+                <field name="viewLink"><default-field title=""><link url="EmailMessage" text="View Message"
+                        parameter-map="[emailMessageId:emailMessageId]" link-type="anchor-button" target-window="_blank"/>
+                </default-field></field>
+                <field name="sendLink"><default-field title=""><link url="sendEmailMessage" text="Send/Resend"
+                        parameter-map="[emailMessageId:emailMessageId]" condition="!(statusId in ['ES_DRAFT', 'ES_CANCELLED'])"
+                        confirmation="Send this email message? Note that this may not include attachments from original email."/>
+                </default-field></field>
+
+                <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+            </form-list>
+        </widgets><fail-widgets>
+            <label text="Party has no user accounts and no email address, cannot search for email messages" type="h5"/>
+        </fail-widgets></section>
+    </widgets>
+</screen>

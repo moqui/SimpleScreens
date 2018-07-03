@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Asset Maintenance">
+
+    <parameter name="assetId" required="true"/>
+
+    <transition name="createAssetMaintenance"><service-call name="mantle.product.EquipmentServices.create#AssetMaintenance"/>
+        <default-response url="../EditAssetMaintenance"/></transition>
+    <transition name="editAssetMaintenance"><default-response url="../EditAssetMaintenance"/></transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset"/>
+        <set field="productId" from="asset.productId"/>
+    </actions>
+    <widgets>
+        <label text="Scheduled Maintenance" type="h3"/>
+        <container-dialog id="AddPlannedMaintenanceDialog" button-text="Add Planned Maintenance">
+            <form-single name="AddPlannedMaintenance" transition="createAssetMaintenance">
+                <field name="assetId"><default-field><hidden/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="AssetMaintenance"/><set field="noCurrentSelectKey" value="AsMntCreated"/></widget-template-include>
+                </default-field></field>
+                <field name="maintenanceDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+
+                <field name="productMaintenanceId"><default-field title="Planned Maintenance"><drop-down>
+                    <entity-options key="${productMaintenanceId}" text="${description ?: maintTypeDescription ?: ''} - ${ec.l10n.format(intervalQuantity, null)} ${uomDescription ?: meterUomDescription ?: ''}">
+                        <entity-find entity-name="mantle.product.maintenance.ProductMaintenanceDetail">
+                            <econdition field-name="productId"/><order-by field-name="description,maintTypeDescription"/></entity-find></entity-options>
+                </drop-down></default-field></field>
+
+                <field name="intervalQuantity"><default-field><text-line size="10"/></default-field></field>
+
+                <!-- TODO: taskWorkEffortId, purchaseOrderId -->
+
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="AddOtherMaintenanceDialog" button-text="Add Other Maintenance">
+            <form-single name="AddOtherMaintenance" transition="createAssetMaintenance">
+                <field name="assetId"><default-field><hidden/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="AssetMaintenance"/><set field="noCurrentSelectKey" value="AsMntCreated"/></widget-template-include>
+                </default-field></field>
+                <field name="maintenanceDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+
+                <field name="maintenanceTypeEnumId"><default-field title="Maint Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="MaintenanceType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </default-field></field>
+
+                <field name="intervalProductMeterId"><default-field title="Interval Meter">
+                    <drop-down allow-empty="true"><entity-options key="${productMeterId}" text="${meterName}${description ? ' - ' + description : ''}">
+                        <entity-find entity-name="mantle.product.maintenance.ProductMeterAndUom">
+                            <econdition field-name="productId"/><order-by field-name="meterName"/></entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="intervalUomId"><default-field title="or Interval UOM">
+                    <drop-down allow-empty="true"><entity-options key="${uomId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.Uom">
+                            <econdition field-name="uomTypeEnumId" operator="in" value="UT_LENGTH_MEASURE,UT_TIME_FREQ_MEASURE"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+
+                <field name="intervalQuantity"><default-field><text-line size="10"/></default-field></field>
+
+                <!-- TODO: taskWorkEffortId, purchaseOrderId -->
+
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="ProductMaintenanceList" list="productMaintenanceList" transition="createAssetMaintenance">
+            <entity-find entity-name="mantle.product.maintenance.ProductMaintenance" list="productMaintenanceList">
+                <econdition field-name="productId"/><order-by field-name="maintenanceTypeEnumId"/></entity-find>
+            <row-actions>
+                <service-call name="mantle.product.EquipmentServices.get#AssetMaintenanceNeeded"
+                              in-map="[assetId:assetId, productMaintenanceId:productMaintenanceId]" out-map="context"/>
+            </row-actions>
+
+            <field name="assetId"><default-field><hidden/></default-field></field>
+            <field name="productId"><default-field><hidden/></default-field></field>
+            <field name="productMaintenanceId"><default-field><hidden/></default-field></field>
+
+            <field name="maintenanceTypeEnumId"><default-field title="Type">
+                <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+            <field name="description"><default-field><display/></default-field></field>
+
+            <field name="intervalProductMeterId"><default-field title="Interval Meter">
+                <display-entity entity-name="mantle.product.maintenance.ProductMeter" text="${meterName}"/></default-field></field>
+            <field name="schedIntervalQuantity" from="intervalQuantity"><default-field title="Interval"><display/></default-field></field>
+            <field name="intervalUomId"><default-field title="Interval UOM">
+                <display-entity entity-name="moqui.basic.Uom"/></default-field></field>
+
+            <field name="nextMaint"><default-field title="Last/Next:Diff">
+                <label text="${ec.l10n.format(lastMeterValue, null)}/${ec.l10n.format(nextMaintenanceInterval, null)}:${ec.l10n.format(remainingInterval, null)}"
+                       style="${remainingInterval &gt; 0 ? 'text-success' : 'text-danger'}"/>
+            </default-field></field>
+
+            <field name="repeatCount"><default-field title="Repeat"><display/></default-field></field>
+
+            <field name="statusId"><default-field title="Status">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                    <set field="statusTypeId" value="AssetMaintenance"/><set field="noCurrentSelectKey" value="AsMntCreated"/></widget-template-include>
+            </default-field></field>
+            <field name="maintenanceDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+            <field name="intervalQuantity" from="null"><default-field title="Interval Reading"><text-line size="8"/></default-field></field>
+
+            <field name="submitButton"><default-field title="New Maint"><submit/></default-field></field>
+        </form-list>
+
+        <label text="Maintenance History" type="h3"/>
+        <form-list name="MaintenanceListForm" list="maintenanceList" skip-form="true" header-dialog="true">
+            <entity-find entity-name="mantle.product.maintenance.AssetMaintenance" list="maintenanceList">
+                <search-form-inputs default-order-by="-maintenanceDate"/>
+                <econdition field-name="assetId"/>
+            </entity-find>
+
+            <field name="maintenanceDate"><header-field title="Maint Date" show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="assetMaintenanceId"><header-field title="Maint ID" show-order-by="true"><text-find hide-options="true"/></header-field>
+                <default-field><link url="editAssetMaintenance" text="${assetMaintenanceId}"/></default-field></field>
+            <field name="statusId">
+                <header-field title="Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="AssetMaintenance"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+            </field>
+            <field name="maintenanceTypeEnumId">
+                <header-field title="Maint Type" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="MaintenanceType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+
+            <field name="productMaintenanceId"><default-field title="Planned Maintenance">
+                <display-entity entity-name="mantle.product.maintenance.ProductMaintenanceDetail"
+                        text="${description ?: maintTypeDescription ?: ''} - ${ec.l10n.format(intervalQuantity, null)} ${uomDescription ?: meterUomDescription ?: ''}"/>
+            </default-field></field>
+
+            <field name="intervalProductMeterId"><default-field title="Interval Meter">
+                <display-entity entity-name="mantle.product.maintenance.ProductMeterAndUom" text="${meterName} - ${description ?: ''}"/>
+            </default-field></field>
+            <field name="intervalQuantity"><header-field><range-find/></header-field><default-field><display/></default-field></field>
+            <field name="intervalUomId">
+                <header-field title="Interval UOM"><drop-down allow-empty="true"><entity-options key="${uomId}" text="${description}">
+                    <entity-find entity-name="moqui.basic.Uom">
+                        <econdition field-name="uomTypeEnumId" operator="in" value="UT_LENGTH_MEASURE,UT_TIME_FREQ_MEASURE"/>
+                        <order-by field-name="description"/>
+                    </entity-find>
+                </entity-options></drop-down></header-field>
+                <default-field><display-entity entity-name="moqui.basic.Uom"/></default-field>
+            </field>
+
+            <field name="userId"><default-field title="Read By">
+                <display-entity entity-name="mantle.party.PersonAndUserAccount" text="UsernameTemplate"/></default-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+
+    </widgets>
+</screen>

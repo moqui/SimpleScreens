@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Production Run" default-menu-index="1">
+
+    <parameter name="workEffortId" required="true"/>
+
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="equipmentDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+
+    <transition name="updateRun"><service-call name="update#mantle.work.effort.WorkEffort"/><default-response url="."/></transition>
+    <transition name="cloneWorkEffort"><service-call name="mantle.work.WorkEffortServices.clone#WorkEffort"/>
+        <default-response url="."/></transition>
+
+    <transition name="createNote"><service-call name="create#mantle.work.effort.WorkEffortNote"/><default-response url="."/></transition>
+    <transition name="updateNote"><service-call name="update#mantle.work.effort.WorkEffortNote"/><default-response url="."/></transition>
+
+    <transition name="addAssetAssign"><service-call name="create#mantle.work.effort.WorkEffortAssetAssign"/>
+        <default-response url="."/></transition>
+    <transition name="updateAssetAssign"><service-call name="update#mantle.work.effort.WorkEffortAssetAssign"/>
+        <default-response url="."/></transition>
+
+    <transition name="addAssignment"><service-call name="create#mantle.work.effort.WorkEffortParty"/><default-response url="."/></transition>
+    <transition name="updateAssignment"><service-call name="update#mantle.work.effort.WorkEffortParty"/><default-response url="."/></transition>
+
+    <transition name="RunPickDocument.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Manufacturing/Run/RunPickDocument" url-type="plain">
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="workEffortId"/><parameter name="filename" value="RunPick-${workEffortId}.pdf"/>
+        </default-response>
+    </transition>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <actions>
+        <service-call name="mantle.work.ManufacturingServices.get#ProductionRunDisplayInfo" in-map="context" out-map="context"/>
+        <set field="statusId" from="workEffort?.statusId"/>
+        <set field="statusChangeTransition" value="updateRun"/>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="5">
+            <link url="cloneWorkEffort" text="Clone Run" parameter-map="[baseWorkEffortId:workEffortId, clearDates:true, copyAssetAssign:true]"/>
+            <link url="RunPickDocument.pdf" text="Run Pick PDF"/>
+
+            <form-single name="UpdateRun" transition="updateRun" map="workEffort">
+                <field name="workEffortName"><default-field title="Name"><text-line size="60"/></default-field></field>
+                <field name="warehouse"><conditional-field condition="inventoryFacility &amp;&amp; inventoryFacility.facilityId != workEffort.facilityId">
+                    <display text="FacilityNameTemplate" text-map="inventoryFacility"/></conditional-field></field>
+                <field name="workEffortId"><default-field><hidden/></default-field></field>
+                <field name="facilityId"><default-field title="WH/Line">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true"
+                            min-length="0" parameter-map="[facilityTypeEnumId:'FcTpLine,FcTpPlant,FcTpWarehouse']"/></drop-down>
+                </default-field></field>
+                <field name="estimatedStartDate"><default-field title="Start Date"><date-time/></default-field></field>
+                <field name="estimatedWorkDuration"><default-field title="Est. Hours"><text-line size="8"/></default-field></field>
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col><row-col lg="7">
+            <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+            <section name="NotesSection"><actions>
+                <entity-find entity-name="mantle.work.effort.WorkEffortNote" list="noteList">
+                    <econdition field-name="workEffortId"/><order-by field-name="-noteDate"/></entity-find>
+            </actions><widgets>
+                <container-box><box-header title="Notes"/><box-toolbar>
+                    <container-dialog id="NewNoteDialog" button-text="Add Note">
+                        <form-single name="NewNoteForm" transition="createNote">
+                            <field name="workEffortId"><default-field><hidden/></default-field></field>
+                            <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
+                            <field name="submitButton"><default-field title="Add Note"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <section-iterate name="NoteIterateSection" list="noteList" entry="note"><actions>
+                        <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                            <field-map field-name="userId" from="note.userId"/></entity-find-one>
+                    </actions><widgets>
+                        <container-row><row-col sm="4">
+                            <label text="${ec.l10n.format(note.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong" style="text-nowrap"/>
+                            <label text="by ${ec.resource.expand('UsernameTemplate','',paua+[userId:note.userId])}" condition="paua" style="text-nowrap"/>
+                        </row-col><row-col sm="6">
+                            <label text="${note.noteText}"/>
+                        </row-col><row-col sm="2" style="text-right">
+                            <section name="UpdateNoteSection" condition="note.userId == ec.user.userId"><widgets>
+                                <container-dialog id="UpdateNoteContainer" button-text="Edit">
+                                    <form-single name="UpdateNoteForm" transition="updateNote" map="note">
+                                        <field name="workEffortId"><default-field><hidden/></default-field></field>
+                                        <field name="noteDate"><default-field><hidden/></default-field></field>
+                                        <field name="noteText"><default-field title="Note"><text-area cols="60" rows="6"/></default-field></field>
+                                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                    </form-single>
+                                </container-dialog>
+                            </widgets></section>
+                        </row-col></container-row>
+                    </widgets></section-iterate>
+                </box-body></container-box>
+            </widgets></section>
+        </row-col></container-row>
+
+        <container-box><box-header title="Equipment"/><box-toolbar>
+            <container-dialog id="AddEquipment" button-text="Add">
+                <form-single name="AddEquipment" transition="addAssetAssign">
+                    <field name="workEffortId"><default-field><hidden/></default-field></field>
+                    <field name="assetId"><default-field title="Equipment"><drop-down>
+                        <entity-options key="${assetId}" text="AssetNameTemplate"><entity-find entity-name="mantle.product.asset.Asset">
+                            <econdition field-name="facilityId" operator="in" from="currentFacilityIdList"/>
+                            <econdition field-name="assetTypeEnumId" value="AstTpEquipment"/>
+                            <order-by field-name="assetName"/>
+                        </entity-find></entity-options>
+                    </drop-down></default-field></field>
+                    <field name="statusId" from="null"><default-field title="Status">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                            <set field="statusTypeId" value="WorkEffortAssetAssign"/>
+                            <set field="noCurrentSelectedKey" value="WeaaAssigned"/></widget-template-include>
+                    </default-field></field>
+                    <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+        </box-toolbar><box-body>
+            <form-list name="EquipmentList" list="equipmentList" transition="updateAssetAssign">
+                <field name="workEffortId"><default-field><hidden/></default-field></field>
+                <field name="assetId"><default-field><hidden/></default-field></field>
+                <field name="fromDate"><default-field><hidden/></default-field></field>
+
+                <field name="assetName"><default-field><link url="equipmentDetail" text="AssetNameTemplate" link-type="anchor"/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusTransitionDropDown">
+                        <set field="currentDescription" from="equipmentList_entry?.'WorkEffortAssetAssign#moqui.basic.StatusItem'?.description"/>
+                        <set field="statusId" from="invoice?.statusId"/></widget-template-include>
+                </default-field></field>
+                <field name="comments"><default-field><text-area cols="50" rows="2"/></default-field></field>
+                <field name="submitButton" align="right"><default-field title="Update"><submit/>
+                    <link url="updateAssetAssign" icon="glyphicon glyphicon-trash"
+                            parameter-map="[workEffortId:workEffortId, assetId:assetId, fromDate:fromDate, thruDate:ec.user.nowTimestamp]"/>
+                </default-field></field>
+            </form-list>
+        </box-body></container-box>
+
+        <container-box><box-header title="Parties Assigned"/><box-toolbar>
+            <container-dialog id="AddPartyAssignDialog" button-text="Add Party">
+                <form-single name="AddPartyAssignForm" transition="addAssignment">
+                    <field name="workEffortId"><default-field><hidden/></default-field></field>
+                    <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+
+                    <field name="partyId"><default-field title="Person"><drop-down allow-empty="true">
+                        <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></default-field></field>
+                    <field name="roleTypeId"><default-field title="Role"><drop-down><option key="Worker" text="Worker"/>
+                        <option key="Manager" text="Manager"/><option key="_NA_" text="Not Applicable"/></drop-down></default-field></field>
+                    <field name="statusId" from="null"><default-field title="Status">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                            <set field="statusTypeId" value="WorkEffortParty"/><set field="noCurrentSelectedKey" value="WeptAssigned"/></widget-template-include>
+                    </default-field></field>
+                    <field name="submitButton"><default-field title="Add Assignment"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+        </box-toolbar><box-body>
+            <form-list name="UpdateAssignForm" list="weapdList" transition="updateAssignment">
+                <row-actions><entity-find-one entity-name="moqui.basic.StatusItem" value-field="currentStatus"/></row-actions>
+                <field name="workEffortId"><default-field><hidden/></default-field></field>
+                <field name="partyId"><default-field><hidden/></default-field></field>
+                <field name="fromDate"><default-field><hidden/></default-field></field>
+
+                <field name="name"><header-field/><default-field>
+                    <link url="editParty" text="PartyNameTemplate" link-type="anchor"/></default-field></field>
+                <field name="username"><default-field><link url="editParty" text="${username?:'--'}" link-type="anchor"/></default-field></field>
+                <field name="roleTypeId"><header-field title="Role"/>
+                    <default-field><display-entity entity-name="mantle.party.RoleType"/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusTransitionDropDown">
+                        <set field="currentDescription" from="currentStatus?.description"/><set field="statusId"/></widget-template-include>
+                </default-field></field>
+                <field name="submitButton" align="right"><default-field title="Update"><submit/>
+                    <link url="updateAssignment" icon="glyphicon glyphicon-trash"
+                            parameter-map="[workEffortId:workEffortId, partyId:partyId, roleTypeId:roleTypeId, fromDate:fromDate, thruDate:ec.user.nowTimestamp]"/>
+                </default-field></field>
+            </form-list>
+        </box-body></container-box>
+    </widgets>
+</screen>

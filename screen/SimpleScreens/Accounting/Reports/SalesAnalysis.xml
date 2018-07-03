@@ -15,14 +15,17 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Sales Order Analysis" default-menu-include="false">
 
-    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editProductStore"><default-response url="//${appRoot}/ProductStore/EditProductStore"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
+        <set field="pageSize" from="pageSize ?: '100'"/>
+
         <set field="orderStatusList" from="['OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderSent', 'OrderCompleted', 'OrderHold']"/>
         <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
             <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
@@ -32,33 +35,42 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="SalesAnalysis" list="summaryList" skip-form="true" header-dialog="true"
                    select-columns="true" saved-finds="true" show-csv-button="true" show-all-button="true">
             <entity-find entity-name="mantle.order.OrderItemSalesSummary" list="summaryList">
-                <search-form-inputs default-order-by="pseudoId" paginate="false">
-                    <default-parameters placedDate_poffset="-1" placedDate_period="month"/></search-form-inputs>
+                <search-form-inputs default-order-by="vendorPartyId,pseudoId">
+                    <default-parameters placedDate_poffset="0" placedDate_period="month"/></search-form-inputs>
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
                 <econdition field-name="orderStatusId" operator="in" from="orderStatusList"/>
                 <econdition field-name="partStatusId" operator="in" from="orderStatusList" or-null="true"/>
                 <econdition field-name="itemTypeEnumId" operator="in" from="productItemTypes"/>
                 <!-- <econdition field-name="productId" operator="is-not-null"/> -->
-                <select-field field-name="productId,totalSales,totalCost"/>
+                <select-field field-name="totalSales,totalCost"/>
             </entity-find>
 
             <field name="placedDate"><header-field title="Placed Date"><date-period/></header-field></field>
+
+            <field name="vendorPartyId">
+                <header-field title="Vendor" show-order-by="true"><drop-down allow-empty="true" allow-multiple="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'OrgInternal']"/></drop-down></header-field>
+                <default-field><link url="editParty" text="PartyNameTemplate" link-type="anchor" condition="vendorPartyId"
+                        entity-name="mantle.party.PartyDetail"/></default-field>
+            </field>
+            <field name="productStoreId">
+                <header-field title="Store" show-order-by="true"><drop-down allow-empty="true" allow-multiple="true">
+                    <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                        <entity-find entity-name="mantle.product.store.ProductStore">
+                            <order-by field-name="storeName"/></entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><link url="editProductStore" text="${productStoreId}: ${storeName}" link-type="anchor" condition="productStoreId"
+                        entity-name="mantle.product.store.ProductStore"/></default-field>
+            </field>
+
             <field name="productId">
                 <header-field title="Product" show-order-by="true"><drop-down allow-empty="true" allow-multiple="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
             </field>
-
-            <field name="pseudoId" show-total="count">
-                <header-field title="Product" show-order-by="true"/>
-                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor" condition="productId"/></default-field>
-            </field>
-            <field name="productName">
-                <header-field title="Name" show-order-by="true"/>
-                <default-field>
-                    <link url="editProduct" text="${productName}" link-type="anchor"/>
-                    <label text="${pseudoId} Products" condition="!productId"/><!-- for the totals row -->
-                </default-field>
-            </field>
+            <field name="pseudoId"><header-field title="Prod ID" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="productName"><header-field title="Product Name" show-order-by="true"/>
+                <default-field><display/></default-field></field>
 
             <field name="orderId"><header-field show-order-by="true"><text-find size="15" hide-options="ignore-case"/></header-field>
                 <default-field><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
@@ -86,8 +98,8 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="find"><header-field title="Find"><submit/></header-field></field>
 
-            <form-list-column><field-ref name="pseudoId"/></form-list-column>
-            <form-list-column><field-ref name="productName"/></form-list-column>
+            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="productStoreId"/></form-list-column>
+            <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/></form-list-column>
             <form-list-column><field-ref name="minUnitAmount"/></form-list-column>
             <form-list-column><field-ref name="maxUnitAmount"/></form-list-column>
             <form-list-column><field-ref name="averageAmount"/></form-list-column>
@@ -100,7 +112,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="marginPercent"/></form-list-column>
         </form-list>
         <section name="ShowSql" condition="summaryList_xafind?.getQueryTextList()"><widgets>
-            <container-dialog id="ShowSqlDialog" button-text="Show SQL">
+            <container-dialog id="ShowSqlDialog" button-text="Show SQL" type="info">
                 <section-iterate name="ShowSqlIter" list="summaryList_xafind?.getQueryTextList()" entry="queryText"><widgets>
                     <label text="${queryText}" type="p"/>
                 </widgets></section-iterate>

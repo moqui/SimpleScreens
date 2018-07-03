@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Move" default-menu-index="3">
+
+    <parameter name="containerId" required="true"/>
+
+    <transition name="completeMove"><service-call name="update#mantle.product.asset.Container"/>
+        <default-response url="../../Asset/SelectAsset"/><error-response url="."/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.asset.Container" value-field="container"/>
+        <set field="facilityId" from="container?.facilityId"/>
+        <set field="facLoc" from="container?.location"/>
+    </actions>
+    <widgets>
+        <label text="Move Container ${container?.serialNumber ?: containerId}" type="h4"/>
+
+        <container-row><row-col md="6">
+            <form-single name="ContainerInfoForm" map="asset">
+                <field name="facilityId"><default-field title="Facility">
+                    <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field></field>
+                <field name="currentLocation"><default-field>
+                    <display text="FacilityLocationNameTemplate" text-map="facLoc?:[locationSeqId:'N/A']"/></default-field></field>
+            </form-single>
+        </row-col><row-col md="6">
+            <form-list name="AssetListForm" list="assetList" skip-form="true">
+                <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="assetList">
+                    <econdition field-name="containerId"/>
+                    <select-field field-name="productId,pseudoId,productName"/>
+                    <order-by field-name="pseudoId"/>
+                </entity-find>
+
+                <field name="availableToPromiseTotal"><default-field title="ATP"><display/></default-field></field>
+                <field name="quantityOnHandTotal"><default-field title="QOH"><display/></default-field></field>
+                <field name="product"><default-field><link url="editProduct" text="ProductNameTemplate" link-type="anchor"/></default-field></field>
+            </form-list>
+        </row-col></container-row>
+
+        <container-row><row-col md="6">
+            <form-single name="ScanMoveContainerForm" transition="completeMove" focus-field="locationSeqId">
+                <field name="containerId"><default-field><hidden/></default-field></field>
+                <field name="facilityId"><default-field title="Facility">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="locationSeqId"><default-field title="Scan Location"><text-line size="20"/></default-field></field>
+                <field name="submitButton"><default-field title="Move Container"><submit/></default-field></field>
+            </form-single>
+        </row-col><row-col md="6">
+            <form-single name="EnterMoveContainerForm" transition="completeMove">
+                <field name="containerId"><default-field><hidden/></default-field></field>
+                <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/>
+                </drop-down></default-field></field>
+                <field name="locationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLocationList" server-search="true" min-length="0">
+                        <depends-on field="facilityId"/></dynamic-options>
+                </drop-down></default-field></field>
+                <field name="submitButton"><default-field title="Move Container"><submit/></default-field></field>
+            </form-single>
+        </row-col></container-row>
+    </widgets>
+</screen>

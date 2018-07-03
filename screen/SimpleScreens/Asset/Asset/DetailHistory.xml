@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Detail History" default-menu-index="2">
+
+    <parameter name="assetId" required="true"/>
+
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="findTransactionEntry"><default-response url="//${appRoot}/Accounting/Transaction/FindTransactionEntry"/></transition>
+
+    <actions>
+        <entity-find entity-name="mantle.product.asset.AssetDetail" list="assetDetailList">
+            <search-form-inputs default-order-by="-effectiveDate"/><econdition field-name="assetId"/></entity-find>
+    </actions>
+    <widgets>
+        <form-list name="AssetDetailList" list="assetDetailList" skip-form="true" header-dialog="true">
+            <row-actions>
+                <entity-find-one entity-name="mantle.product.receipt.AssetReceipt" value-field="assetReceipt"/>
+                <entity-find-one entity-name="mantle.product.issuance.AssetIssuance" value-field="assetIssuance"/>
+                <entity-find-one entity-name="mantle.product.issuance.AssetReservation" value-field="assetReservation"/>
+                <entity-find-one entity-name="mantle.product.asset.PhysicalInventory" value-field="physicalInventory"/>
+                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="varianceReasonEnum">
+                    <field-map field-name="enumId" from="varianceReasonEnumId"/></entity-find-one>
+            </row-actions>
+            <field name="effectiveDate"><header-field title="Date" show-order-by="true"><date-period allow-empty="true"/></header-field>
+                <default-field><display format="yyyy-MM-dd HH:mm"/></default-field></field>
+            <field name="quantityOnHandDiff"><header-field title="QOH Diff" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="availableToPromiseDiff"><header-field title="ATP Diff" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="source">
+                <conditional-field condition="assetReceipt">
+                    <label text="Receipt #${assetReceiptId}"/>
+                    <link url="shipmentDetail" text="Shipment #${assetReceipt.shipmentId}"
+                            parameter-map="[shipmentId:assetReceipt.shipmentId]" link-type="anchor"
+                            condition="assetReceipt.shipmentId"/>
+                    <link url="orderDetail" text="PO #${assetReceipt.orderId}"
+                            parameter-map="[orderId:assetReceipt.orderId]" link-type="anchor"
+                            condition="assetReceipt.orderId"/>
+                </conditional-field>
+                <conditional-field condition="assetIssuance">
+                    <label text="Issuance #${assetIssuanceId}"/>
+                    <link url="shipmentDetail" text="Shipment #${assetIssuance.shipmentId}"
+                            parameter-map="[shipmentId:assetIssuance.shipmentId]" link-type="anchor"
+                            condition="assetIssuance.shipmentId"/>
+                    <link url="orderDetail" text="SO #${assetIssuance.orderId}"
+                            parameter-map="[orderId:assetIssuance.orderId]" link-type="anchor"
+                            condition="assetIssuance.orderId"/>
+                </conditional-field>
+                <conditional-field condition="assetReservationId">
+                    <label text="Reservation #${assetReservationId}"/>
+                    <label text="(reservation removed)" condition="!assetReservation"/>
+                    <link url="orderDetail" text="Order #${assetReservation.orderId}" link-type="anchor"
+                            parameter-map="[orderId:assetReservation.orderId]" condition="assetReservation?.orderId"/>
+                </conditional-field>
+                <conditional-field condition="otherAssetId">
+                    <link url="." text="Move, other asset: ${otherAssetId}" link-type="anchor" parameter-map="[assetId:otherAssetId]"/>
+                </conditional-field>
+                <conditional-field condition="physicalInventory">
+                    <label text="Physical Inventory #${physicalInventoryId} (${varianceReasonEnum?.description})"/>
+                </conditional-field>
+                <default-field><display text=" "/></default-field>
+            </field>
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+    </widgets>
+</screen>

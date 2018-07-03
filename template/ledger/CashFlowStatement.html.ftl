@@ -126,7 +126,6 @@ along with this software (see the LICENSE.md file). If not, see
         </tr>
 
         <#if classInfoById.REVENUE??><@showClassTotals classInfoById.REVENUE/></#if>
-        <#if classInfoById.CONTRA_REVENUE??><@showClassTotals classInfoById.CONTRA_REVENUE/></#if>
         <#if classInfoById.COST_OF_SALES??><@showClassTotals classInfoById.COST_OF_SALES/></#if>
         <#if classInfoById.INCOME??><@showClassTotals classInfoById.INCOME/></#if>
         <#if classInfoById.EXPENSE??><@showClassTotals classInfoById.EXPENSE/></#if>
@@ -145,7 +144,6 @@ along with this software (see the LICENSE.md file). If not, see
 
         <#if classInfoById.CURRENT_ASSET??><@showClass classInfoById.CURRENT_ASSET 1/></#if>
         <#if classInfoById.OTHER_ASSET??><@showClass classInfoById.OTHER_ASSET 1/></#if>
-        <#if classInfoById.CONTRA_ASSET??><@showClass classInfoById.CONTRA_ASSET 1/></#if>
         <#if classInfoById.CURRENT_LIABILITY??><@showClass classInfoById.CURRENT_LIABILITY 1/></#if>
         <tr class="text-success">
             <td><strong>${ec.l10n.localize("Net Cash Operating Activities")}</strong></td>

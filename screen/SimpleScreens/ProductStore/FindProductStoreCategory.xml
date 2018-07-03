@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Categories" default-menu-index="4">
+
+
+    <parameter name="productStoreId" required="true"/>
+    <transition name="editCategory"><default-response url="//${appRoot}/Catalog/Category/EditCategory"/></transition>
+    <transition name="updateStoreCategory">
+        <service-call name="update#mantle.product.store.ProductStoreCategory"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createStoreCategory">
+        <service-call name="create#mantle.product.store.ProductStoreCategory"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="deleteStoreCategory">
+        <service-call name="delete#mantle.product.store.ProductStoreCategory"/>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <entity-find entity-name="mantle.product.store.ProductStoreCategory" list="storeCategories">
+            <search-form-inputs default-order-by="productCategoryId"/>
+            <econdition field-name="productStoreId" />
+        </entity-find>
+    </actions>
+
+    <widgets>
+        <container-dialog id="NewStoreCategoryDialog" button-text="Add Store Category">
+            <form-single name="NewStoreCategoryForm" transition="createStoreCategory">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                <field name="productCategoryId"><default-field title="Category">
+                    <drop-down><entity-options key="${productCategoryId}" text="${pseudoId}: ${categoryName} (${typeDescription})">
+                        <entity-find entity-name="mantle.product.category.ProductCategoryAndType" limit="200">
+                            <order-by field-name="pseudoId"/><order-by field-name="categoryName"/></entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="storeCategoryTypeEnumId"><default-field title="Category Type">
+                    <drop-down><entity-options key="${enumId}" text="${enumId}: ${description ?: ''}">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="ProductStoreCategoryType"/>
+                            <order-by field-name="enumId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="fromDate"><default-field><date-time type="date-time"/></default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="StoreCategoriesForm" list="storeCategories" header-dialog="true" transition="updateStoreCategory">
+            <field name="productStoreId"><default-field><hidden/></default-field></field>
+
+            <field name="productCategoryId">
+                <header-field title="Product Category" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
+                <default-field>
+                    <display text=" "/><link url="editCategory" entity-name="mantle.product.category.ProductCategory" text="${categoryName}" link-type="anchor"/>
+                </default-field>
+            </field>
+            <field name="storeCategoryTypeEnumId">
+                <header-field title="Store Category Type" show-order-by="case-insensitive"></header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="fromDate">
+                <header-field title="From Date" show-order-by="case-insensitive" />
+                <default-field><display/></default-field>
+            </field>
+            <field name="thruDate">
+                <header-field title="Thru Date" show-order-by="case-insensitive" />
+                <default-field><date-time type="date-time"/></default-field>
+            </field>
+            <field name="sequenceNum"><header-field show-order-by="true"/>
+            <default-field><text-line size="4"/></default-field></field>
+
+            <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
+            <field name="deleteButton" align="right"><default-field title="">
+                <link url="deleteStoreCategory" icon="glyphicon glyphicon-trash"
+                      parameter-map="[productStoreId:productStoreId, productCategoryId:productCategoryId,
+                      storeCategoryTypeEnumId:storeCategoryTypeEnumId, fromDate:fromDate]"
+                      confirmation="Are you sure you want to remove this Store Category?"/>
+            </default-field></field>
+        </form-list>
+
+    </widgets>
+</screen>

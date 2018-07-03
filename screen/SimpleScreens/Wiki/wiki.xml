@@ -53,14 +53,16 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="addComment"><service-call name="mantle.party.CommunicationServices.add#WikiPageComment"/>
         <default-response url="."/></transition>
 
-    <transition name="addCategory"><service-call name="create#moqui.resource.wiki.WikiPageCategoryMember"/>
+    <transition name="addCategory"><service-call name="store#moqui.resource.wiki.WikiPageCategoryMember"/>
         <default-response url="."/></transition>
     <transition name="removeCategory"><service-call name="delete#moqui.resource.wiki.WikiPageCategoryMember"/>
         <default-response url="."/></transition>
 
     <pre-actions>
+        <!-- this gets run like all pre-actions in vuet mode for menuData but trying this redirect or even getting page info will cause errors -->
+        <if condition="sri.screenUrlInfo.fullPathNameList &amp;&amp; sri.screenUrlInfo.fullPathNameList[0] == 'menuData'"><return/></if>
+
         <set field="extraPathNameList" from="sri.screenUrlInfo.extraPathNameList"/>
-        <if condition="extraPathNameList &amp;&amp; extraPathNameList[0] == 'apps'"><return/></if>
         <service-call name="org.moqui.impl.WikiServices.get#WikiPageInfo" in-map="context" out-map="context"/>
 
         <!-- redirect to EditWikiPage to create instead of trying to render a page that doesn't exist -->
@@ -123,10 +125,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 if (curFileName.contains(".")) curFileName = curFileName.substring(0, curFileName.lastIndexOf('.'))
                             </script>
                             <set field="newIdPath" value="${treeNodeId == '#' ? '' : treeNodeId + '/'}${curFileName}"/>
+                            <!-- don't do this, framework will encode path segments: <set field="encodedPath" from="newIdPath.split('/').collect({java.net.URLEncoder.encode(it, 'UTF-8')}).join('/')"/> -->
                         </actions>
 
-                        <link text="${curFileName}" url="${basePath}/${wikiSpaceId}/${java.net.URLEncoder.encode(newIdPath)}"
-                                url-noparam="true" id="${newIdPath}"/>
+                        <link text="${curFileName}" url="${basePath}/${wikiSpaceId}/${newIdPath}" url-noparam="true" id="${newIdPath}"/>
 
                         <tree-sub-node node-name="WikiPageNode" list="childPageList"><actions>
                             <service-call name="org.moqui.impl.WikiServices.get#WikiPageInfo" out-map="curPageInfo"
@@ -276,6 +278,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="wikiPageCategoryId"><default-field title="Category"><drop-down>
                                 <list-options list="wikiPageCategories" text="${categoryName}" key="${wikiPageCategoryId}"/>
                             </drop-down></default-field></field>
+                            <field name="fromDate"><default-field><date-time/></default-field></field>
+                            <field name="thruDate"><default-field><date-time/></default-field></field>
                             <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>
@@ -285,8 +289,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="wikiPageCategoryId"><default-field title="">
                             <display-entity entity-name="moqui.resource.wiki.WikiPageCategory" text="${categoryName}"/>
                         </default-field></field>
-                        <field name="submitButton" align="right"><default-field title="">
+                        <field name="fromThruDates"><default-field title="">
+                            <display text="${fromDate ? 'From ' + ec.l10n.format(fromDate, null) : ''} ${thruDate ? 'Thru ' + ec.l10n.format(thruDate, null) : ''}"/></default-field></field>
+                        <field name="deleteButton" align="right"><default-field title="">
                             <submit icon="glyphicon glyphicon-trash" confirmation="Really remove?"/></default-field></field>
+                        <form-list-column><field-ref name="wikiPageCategoryId"/><field-ref name="fromThruDates"/></form-list-column>
+                        <form-list-column><field-ref name="deleteButton"/></form-list-column>
                     </form-list>
                 </box-body></container-box>
             </widgets></section>

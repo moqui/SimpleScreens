@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Shipments" default-menu-index="6">
+
+    <parameter name="invoiceId" required="true"/>
+
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editReturn"><default-response url="//${appRoot}/Return/EditReturn"/></transition>
+
+    <transition name="applyInvoiceToShipment"><service-call name="mantle.account.InvoiceServices.apply#InvoiceToShipment"/>
+        <default-response url="."/></transition>
+    <transition name="applyInvoiceItemToShipment"><service-call name="mantle.account.InvoiceServices.apply#InvoiceItemToShipment"/>
+        <default-response url="."/></transition>
+    <transition name="unapplyInvoiceItemFromShipment"><service-call name="mantle.account.InvoiceServices.unapply#InvoiceItemFromShipment"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
+        <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
+            <econdition field-name="invoiceId"/></entity-find>
+
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
+    </actions>
+    <widgets>
+        <container-dialog id="ApplyToShipmentDialog" button-text="Apply Invoice to Shipment">
+            <form-single name="ApplyToShipment" transition="applyInvoiceToShipment">
+                <field name="invoiceId"><default-field><hidden/></default-field></field>
+                <field name="shipmentId"><default-field>
+                    <!-- TODO: change this to drop-down, maybe server-search, for shipments matching from/to parties and with sources with no invoiceId (subselect) -->
+                    <text-line size="20"/>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Apply Invoice"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <section-iterate name="ItemListSection" list="invoiceItemList" entry="invoiceItem"><actions>
+            <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="itemSourceList">
+                <econdition field-name="invoiceId"/><econdition field-name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"/></entity-find>
+            <set field="sourceQuantity" from="0"/>
+            <iterate list="itemSourceList" entry="itemSource"><set field="sourceQuantity" from="sourceQuantity + (itemSource.quantity ?: 0)"/></iterate>
+        </actions><widgets><section name="ItemListInner" condition="invoiceItem.itemTypeEnumId in productItemTypes"><widgets>
+            <container-box><box-header title="Item ${invoiceItem.invoiceItemSeqId}: ${invoiceItem.description}"/><box-toolbar>
+                <container-dialog id="ApplyItemToShipmentDialog" button-text="Apply Item to Shipment">
+                    <form-single name="ApplyItemToShipment" transition="applyInvoiceItemToShipment">
+                        <field name="invoiceId"><default-field><hidden/></default-field></field>
+                        <field name="invoiceItemSeqId" from="invoiceItem.invoiceItemSeqId"><default-field><hidden/></default-field></field>
+                        <field name="shipmentId"><default-field>
+                            <!-- TODO: change this to drop-down, maybe server-search, for shipments matching from/to parties and with sources with no invoiceId (subselect) -->
+                            <text-line size="20"/>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Apply Item"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col sm="1" style="text-right"><label text="Item Type" type="strong"/></row-col>
+                    <row-col sm="3"><label text="${invoiceItem.type?.description ?: ''}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Quantity" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.format(invoiceItem.quantity, '')}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Shipments" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.format(sourceQuantity, '')} (${ec.l10n.format((sourceQuantity / (invoiceItem.quantity ?: 1)) * 100, '0.0')}%)"
+                            style="${sourceQuantity &lt; (invoiceItem.quantity ?: 1) ? 'text-warning' : (sourceQuantity &gt; (invoiceItem.quantity ?: 1) ? 'text-danger' : 'text-success')}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Amount" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.formatCurrency(invoiceItem.amount, invoice.currencyUomId)}"/></row-col>
+                    <row-col sm="1" style="text-right"><label text="Total" type="strong"/></row-col>
+                    <row-col sm="1"><label text="${ec.l10n.formatCurrency((invoiceItem.quantity ?: 1) * (invoiceItem.amount ?: 0), invoice.currencyUomId)}"/></row-col>
+                </container-row>
+            </box-body><box-body-nopad>
+                <form-list name="ItemSourceList" list="itemSourceList" skip-form="true" multi="true">
+                    <hidden-parameters><parameter name="invoiceId"/></hidden-parameters>
+                    <field name="shipmentItemSourceId"><default-field><hidden/></default-field></field>
+
+                    <field name="shipmentId"><default-field title="Shipment">
+                        <link url="shipmentDetail" link-type="anchor" text="${shipmentId}"/></default-field></field>
+
+                    <field name="orderId"><default-field title="Order Item">
+                        <link url="orderDetail" link-type="anchor" text="${orderId}:${orderItemSeqId}" condition="orderId"/></default-field></field>
+                    <field name="returnId"><default-field title="Return Item">
+                        <link url="editReturn" link-type="anchor" text="${returnId}:${returnItemSeqId}" condition="returnId"/></default-field></field>
+
+                    <field name="quantity" align="right"><default-field title="Applied Qty"><display/></default-field></field>
+                    <field name="amountApplied" from="(quantity ?: 0) * (invoiceItem.amount ?: 0)" align="right"><default-field title="Applied Total">
+                        <display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+
+                    <field name="deleteButton" align="right"><default-field title="">
+                        <link url="unapplyInvoiceItemFromShipment" text="" icon="glyphicon glyphicon-trash" confirmation="Unapply item from Shipment?"
+                                parameter-map="[invoiceId:invoiceId, shipmentItemSourceId:shipmentItemSourceId]"/>
+                    </default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
+        </widgets></section></widgets></section-iterate>
+    </widgets>
+</screen>

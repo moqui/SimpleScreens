@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="shipmentId" required="true"/>
+
+    <transition name="completeShipmentPack"><service-call name="mantle.shipment.ShipmentServices.complete#ShipmentPack"/>
+        <default-response url=".."/></transition>
+
+    <actions>
+        <entity-find entity-name="mantle.shipment.ShipmentRouteSegment" list="shipmentRouteSegmentList">
+            <econdition field-name="shipmentId"/>
+            <order-by field-name="shipmentRouteSegmentSeqId"/>
+        </entity-find>
+        <set field="firstRouteSegment" from="shipmentRouteSegmentList ? shipmentRouteSegmentList.first() : null"/>
+
+        <set field="shippingGatewayConfigId" from="firstRouteSegment.shippingGatewayConfigId ?: ec.user.getPreference('DefaultShipmentGatewayConfigId')"/>
+        <if condition="shippingGatewayConfigId"><entity-find-one entity-name="mantle.shipment.carrier.ShippingGatewayConfig" value-field="shippingGatewayConfig"/></if>
+
+        <!-- get shipping options with rates, select option with matching shipmentMethodEnumId and lowest shippingTotal -->
+        <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="context"
+                in-map="[shipmentId:shipmentId, getRates:true]"/>
+        <set field="lowestCarrierAndShipmentMethod" from="firstRouteSegment.carrierPartyId ? firstRouteSegment.carrierPartyId + ':' + firstRouteSegment.shipmentMethodEnumId : ''"/>
+        <set field="lowestRate" from="10000.0"/>
+        <iterate list="shippingOptions" entry="shipOption">
+            <set field="shippingTotalBd" from="shipOption.shippingTotal ? new BigDecimal(shipOption.shippingTotal) : null"/>
+            <if condition="shippingTotalBd &amp;&amp; shippingTotalBd &lt; lowestRate">
+                <set field="lowestCarrierAndShipmentMethod" from="shipOption.carrierPartyId + ':' + shipOption.shipmentMethodEnumId"/>
+                <set field="lowestRate" from="shippingTotalBd"/>
+            </if>
+        </iterate>
+
+        <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
+
+        <!-- Get PsstGetReturnLabels setting from ProductStore(s) through order(s) -->
+        <entity-find entity-name="mantle.product.store.ProductStoreSettingLookup" list="retLabelLookupList" distinct="true">
+            <date-filter/><econdition field-name="shipmentId"/>
+            <econdition field-name="settingTypeEnumId" value="PsstGetReturnLabels"/>
+            <select-field field-name="settingValue"/>
+        </entity-find>
+        <set field="retLabelSettings" from="retLabelLookupList*.settingValue"/>
+        <set field="defaultGetReturnLabels" from="retLabelSettings.contains('true') ? 'true' : ''"/>
+    </actions>
+    <widgets>
+        <!--
+        - dynamic dialog, load with carrier/method rates looked up and cheapest for method selected
+        - with confirmation mention auto get labels and print, extra text if not fully packed
+        - auto select carrier by method selected and rate lookup
+        - make sure shipment item quantity and SIS quantity reduced on partial ship
+        -->
+        <!-- <section-iterate name="headerMessageInfos" list="ec.message.messageInfos" entry="messageInfo"><widgets>
+            <label text="${messageInfo.message}" type="p"/></widgets></section-iterate> -->
+        <section-iterate name="headerErrors" list="ec.message.errors" entry="errorMessage"><widgets>
+            <label text="${errorMessage}" type="p"/></widgets></section-iterate>
+        <section-iterate name="headerValidationErrors" list="ec.message.validationErrors" entry="validationError"><widgets>
+            <label text="${validationError.message} (for field ${validationError.fieldPretty})" type="p"/>
+        </widgets></section-iterate>
+
+        <container type="dl" style="dl-horizontal">
+            <label text="Shipping Gateway" type="dt"/>
+            <label text="${shippingGatewayConfig?.description ?: 'No Shipping Gateway'}" type="dd"/>
+        </container>
+        <form-single name="PackCompletedForm" transition="completeShipmentPack">
+            <field name="shipmentId"><default-field><hidden/></default-field></field>
+
+            <field name="carrierAndShipmentMethod"><default-field title="Ship By">
+                <drop-down allow-empty="true" no-current-selected-key="${lowestCarrierAndShipmentMethod}">
+                    <list-options list="shippingOptions" key="${carrierPartyId}:${shipmentMethodEnumId}"
+                            text="${description ? description : (carrierPartyId != '_NA_' ? (carrierName + ' - ') : '') + shipmentMethodDescription}${shippingTotal != null ? ' ' + ec.l10n.format(shippingTotal, '#,##0.00') : ''}"/>
+                </drop-down>
+            </default-field></field>
+            <field name="getLabels" from="shippingGatewayConfig != null ? 'true' : ''"><default-field title="Get Labels">
+                <check><option key="true" text=" "/></check></default-field></field>
+            <field name="getReturnLabels" from="defaultGetReturnLabels"><default-field title="Get Return Labels">
+                <check><option key="true" text=" "/></check></default-field></field>
+
+            <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
+                <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
+                    <entity-find entity-name="moqui.basic.print.NetworkPrinter">
+                        <order-by field-name="description,printerName"/></entity-find></entity-options>
+            </drop-down></default-field></field>
+            <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
+
+            <field name="submitButtom"><default-field title="Complete Pack"><submit/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>

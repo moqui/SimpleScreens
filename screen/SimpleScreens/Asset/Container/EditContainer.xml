@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Container">
+
+    <parameter name="containerId" required="true"/>
+
+    <transition name="updateContainer"><service-call name="update#mantle.product.asset.Container"/>
+        <default-response url="."/></transition>
+    <transition name="addAssetToContainer">
+        <service-call name="update#mantle.product.asset.Asset" in-map="[assetId:assetId, containerId:containerId]"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="removeAssetFromContainer">
+        <service-call name="update#mantle.product.asset.Asset" in-map="[assetId:assetId, containerId:null]"/>
+        <default-response url="."/>
+    </transition>
+
+    <transition name="assetDetail"><default-response url="../../Asset/AssetDetail"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.asset.Container" value-field="container"/>
+        <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true"/>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="5">
+            <form-single name="UpdateContainerForm" transition="updateContainer" map="container">
+                <field name="containerId"><default-field><display/></default-field></field>
+                <field name="createdDate"><default-field><display/></default-field></field>
+                <field name="containerTypeEnumId"><default-field title="Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ContainerType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </default-field></field>
+
+                <field name="serialNumber"><default-field><text-line size="40"/></default-field></field>
+                <field name="description"><default-field><text-line size="40"/></default-field></field>
+                <field name="externalId"><default-field><text-line size="20"/></default-field></field>
+
+                <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="locationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLocationList" server-search="true" min-length="0" depends-optional="true">
+                        <depends-on field="facilityId"/></dynamic-options>
+                </drop-down></default-field></field>
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col><row-col lg="7">
+            <container-box>
+                <box-header title="Assets"/>
+                <box-toolbar>
+                    <container-dialog id="AddAssetDialog" button-text="Add Asset">
+                        <form-single name="AddAssetForm" transition="addAssetToContainer">
+                            <field name="containerId"><default-field><hidden/></default-field></field>
+                            <field name="assetId"><default-field title="Asset">
+                                <drop-down allow-empty="true"><dynamic-options transition="getAssetList" server-search="true"
+                                        min-length="0" parameter-map="[excludeZeroQoh:'true']"/></drop-down>
+                            </default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar>
+                <box-body>
+                    <form-list name="AssetListForm" list="assetList" skip-form="true">
+                        <entity-find entity-name="mantle.product.asset.AssetAndProduct" list="assetList">
+                            <econdition field-name="containerId"/>
+                            <select-field field-name="assetId,productId,pseudoId,productName"/>
+                            <order-by field-name="assetId"/>
+                        </entity-find>
+
+                        <field name="asset"><default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+                        <field name="availableToPromiseTotal"><default-field title="ATP"><display/></default-field></field>
+                        <field name="quantityOnHandTotal"><default-field title="QOH"><display/></default-field></field>
+                        <field name="product"><default-field><link url="editProduct" text="ProductNameTemplate" link-type="anchor"/></default-field></field>
+                        <field name="removeLink" align="right"><default-field title="">
+                            <link url="removeAssetFromContainer" icon="glyphicon glyphicon-trash" parameter-map="[assetId:assetId, containerId:containerId]"/>
+                        </default-field></field>
+                    </form-list>
+                </box-body>
+            </container-box>
+        </row-col></container-row>
+    </widgets>
+</screen>

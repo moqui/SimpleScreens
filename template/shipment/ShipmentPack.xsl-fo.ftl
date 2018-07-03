@@ -39,12 +39,13 @@ along with this software (see the LICENSE.md file). If not, see
     <#assign fromContactInfo = shipmentInfo.fromContactInfo!>
     <#assign toPartyDetail = shipmentInfo.toPartyDetail!>
     <#assign toContactInfo = shipmentInfo.toContactInfo!>
+    <#assign packageInfoList = shipmentInfo.packageInfoList!>
     <#assign productInfoList = shipmentInfo.productInfoList!>
 
     <fo:page-sequence master-reference="letter-portrait" initial-page-number="1" force-page-count="no-force">
         <fo:static-content flow-name="xsl-region-before">
             <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center"><@encodeText fromPartyDetail.organizationName!""/><@encodeText fromPartyDetail.firstName!""/> <@encodeText fromPartyDetail.lastName!""/></fo:block></#if>
-            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment Insert</fo:block>
+            <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment Pack Sheet</fo:block>
             <#if logoImageLocation?has_content>
                 <fo:block-container absolute-position="absolute" top="0in" left="0.1in" width="2in">
                     <fo:block text-align="left">
@@ -81,7 +82,7 @@ along with this software (see the LICENSE.md file). If not, see
             <fo:block border-top="thin solid black">
                 <fo:block text-align="center">
                     <#if fromContactInfo.postalAddress?has_content>
-                    ${(fromContactInfo.postalAddress.address1)!""}<#if fromContactInfo.postalAddress.unitNumber?has_content> #${fromContactInfo.postalAddress.unitNumber}</#if><#if fromContactInfo.postalAddress.address2?has_content>, ${fromContactInfo.postalAddress.address2}</#if>, ${fromContactInfo.postalAddress.city!""}, ${(fromContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${fromContactInfo.postalAddress.postalCode!""}<#if fromContactInfo.postalAddress.postalCodeExt?has_content>-${fromContactInfo.postalAddress.postalCodeExt}</#if><#if fromContactInfo.postalAddress.countryGeoId?has_content>, ${fromContactInfo.postalAddress.countryGeoId}</#if>
+                        <@encodeText (fromContactInfo.postalAddress.address1)!""/><#if fromContactInfo.postalAddress.unitNumber?has_content> #<@encodeText fromContactInfo.postalAddress.unitNumber/></#if><#if fromContactInfo.postalAddress.address2?has_content>, ${fromContactInfo.postalAddress.address2}</#if>, ${fromContactInfo.postalAddress.city!""}, ${(fromContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${fromContactInfo.postalAddress.postalCode!""}<#if fromContactInfo.postalAddress.postalCodeExt?has_content>-${fromContactInfo.postalAddress.postalCodeExt}</#if><#if fromContactInfo.postalAddress.countryGeoId?has_content>, ${fromContactInfo.postalAddress.countryGeoId}</#if>
                     </#if>
                     <#if fromContactInfo.telecomNumber?has_content>
                         -- <#if fromContactInfo.telecomNumber.countryCode?has_content>${fromContactInfo.telecomNumber.countryCode}-</#if><#if fromContactInfo.telecomNumber.areaCode?has_content>${fromContactInfo.telecomNumber.areaCode}-</#if>${fromContactInfo.telecomNumber.contactNumber!""}
@@ -106,9 +107,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <#else>
                                 <fo:block font-weight="bold"><@encodeText (toPartyDetail.organizationName)!""/> <@encodeText (toPartyDetail.firstName)!""/> <@encodeText (toPartyDetail.middleName)!""/> <@encodeText (toPartyDetail.lastName)!""/></fo:block>
                             </#if>
-                            <fo:block>${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
-                            <#if toContactInfo.postalAddress.address2?has_content><fo:block>${toContactInfo.postalAddress.address2}</fo:block></#if>
-                            <fo:block>${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                            <fo:block><@encodeText (toContactInfo.postalAddress.address1)!""/><#if toContactInfo.postalAddress.unitNumber?has_content> #<@encodeText toContactInfo.postalAddress.unitNumber/></#if></fo:block>
+                            <#if toContactInfo.postalAddress.address2?has_content><fo:block><@encodeText toContactInfo.postalAddress.address2/></fo:block></#if>
+                            <fo:block><@encodeText toContactInfo.postalAddress.city!""/>, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
                             <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block>${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
                         </#if>
                         <#if toContactInfo.telecomNumber?has_content>
@@ -159,6 +160,41 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:block><@encodeText shipment.handlingInstructions/></fo:block>
             </#if>
 
+            <#if productInfoList?has_content>
+                <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="10pt">
+                    <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
+                        <fo:table-cell width="3.5in" padding="${cellPadding}"><fo:block text-align="left">ID Barcode</fo:block></fo:table-cell>
+                        <fo:table-cell width="3in" padding="${cellPadding}"><fo:block text-align="left">Product</fo:block></fo:table-cell>
+                        <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="center">Quantity</fo:block></fo:table-cell>
+                    </fo:table-header>
+                    <fo:table-body>
+                    <#list productInfoList as productInfo>
+                        <fo:table-row font-size="9pt" border-top="solid black">
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">
+                                <fo:instream-foreign-object>
+                                    <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.pseudoId}">
+                                        <barcode:code128>
+                                            <barcode:height>0.4in</barcode:height>
+                                            <barcode:module-width>0.25mm</barcode:module-width>
+                                        </barcode:code128>
+                                        <barcode:human-readable>
+                                            <barcode:placement>bottom</barcode:placement>
+                                            <barcode:font-name>Helvetica</barcode:font-name>
+                                            <barcode:font-size>7pt</barcode:font-size>
+                                            <barcode:display-start-stop>false</barcode:display-start-stop>
+                                            <barcode:display-checksum>false</barcode:display-checksum>
+                                        </barcode:human-readable>
+                                    </barcode:barcode>
+                                </fo:instream-foreign-object>
+                            </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${productInfo.quantity}</fo:block></fo:table-cell>
+                        </fo:table-row>
+                    </#list>
+                    </fo:table-body>
+                </fo:table>
+            </#if>
+
             <#list packageInfoList as packageInfo><#if packageInfo.contentInfoList?has_content>
                 <#assign routeSegments = packageInfo.shipmentPackage.routeSegments!>
                 <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="0.2in">
@@ -171,7 +207,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-body>
                         <#list packageInfo.contentInfoList as contentInfo>
                             <fo:table-row font-size="10pt">
-                                <fo:table-cell padding="2pt"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", contentInfo.productInfo)}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="2pt"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", contentInfo.productInfo)}</fo:block>
+                                    <#if contentInfo.otherPartyProductId?has_content><fo:block>Your Product: ${contentInfo.otherPartyProductId}</fo:block></#if></fo:table-cell>
                                 <fo:table-cell padding="2pt"><fo:block text-align="center" font-weight="bold">${contentInfo.quantityOrdered!""}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="2pt"><fo:block text-align="center" font-weight="bold">${contentInfo.packageContent.quantity}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="2pt"><fo:block text-align="center" font-weight="bold">${contentInfo.quantityShipped!""}</fo:block></fo:table-cell>

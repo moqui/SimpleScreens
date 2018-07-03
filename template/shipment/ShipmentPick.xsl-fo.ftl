@@ -78,11 +78,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:block>${shipmentId}</fo:block>
                         <#if originFacility?has_content>
                             <fo:block font-weight="bold">Origin Facility</fo:block>
-                            <fo:block>${ec.resource.expand("FacilityNameTemplate", "", originFacility)}</fo:block>
+                            <fo:block><@encodeText ec.resource.expand("FacilityNameTemplate", "", originFacility)/></fo:block>
                         </#if>
                         <#if destinationFacility?has_content>
                             <fo:block font-weight="bold">Destination Facility</fo:block>
-                            <fo:block>${ec.resource.expand("FacilityNameTemplate", "", destinationFacility)}</fo:block>
+                            <fo:block><@encodeText ec.resource.expand("FacilityNameTemplate", "", destinationFacility)/></fo:block>
                         </#if>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="1.5in">
@@ -102,9 +102,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <fo:table-cell padding="3pt" width="3in">
                         <fo:block><@encodeText toPartyDetail.organizationName!""/> <@encodeText toPartyDetail.firstName!""/> <@encodeText toPartyDetail.lastName!""/></fo:block>
                         <#if toContactInfo.postalAddress?has_content>
-                            <fo:block font-size="8pt">${(toContactInfo.postalAddress.address1)!""}<#if toContactInfo.postalAddress.unitNumber?has_content> #${toContactInfo.postalAddress.unitNumber}</#if></fo:block>
-                            <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.address2}</fo:block></#if>
-                            <fo:block font-size="8pt">${toContactInfo.postalAddress.city!""}, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                            <fo:block font-size="8pt"><@encodeText (toContactInfo.postalAddress.address1)!""/><#if toContactInfo.postalAddress.unitNumber?has_content> #<@encodeText toContactInfo.postalAddress.unitNumber/></#if></fo:block>
+                            <#if toContactInfo.postalAddress.address2?has_content><fo:block font-size="8pt"><@encodeText toContactInfo.postalAddress.address2/></fo:block></#if>
+                            <fo:block font-size="8pt"><@encodeText toContactInfo.postalAddress.city!""/>, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
                             <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block font-size="8pt">${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
                         </#if>
                         <#if toContactInfo.telecomNumber?has_content>
@@ -118,33 +118,33 @@ along with this software (see the LICENSE.md file). If not, see
             </fo:table>
 
             <#if reservedLocationInfoList?has_content>
-                <@locationInfoTable reservedLocationInfoList "By Location - Reserved"/>
+                <@locationInfoTable reservedLocationInfoList "By Loc - Res"/>
             </#if>
             <#if otherLocationInfoList?has_content>
-                <@locationInfoTable otherLocationInfoList "By Location - Alternate"/>
+                <@locationInfoTable otherLocationInfoList "By Loc - Alt"/>
             </#if>
 
             <#if productInfoList?has_content>
                 <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="10pt">
                     <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
-                        <fo:table-cell width="0.5in" padding="${cellPadding}"><fo:block text-align="left"> </fo:block></fo:table-cell>
-                        <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="left">By Product</fo:block></fo:table-cell>
+                        <fo:table-cell width="1.4in" padding="${cellPadding}"><fo:block text-align="left">By Product</fo:block></fo:table-cell>
                         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Ar</fo:block></fo:table-cell>
                         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Ais</fo:block></fo:table-cell>
                         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Sec</fo:block></fo:table-cell>
                         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Lev</fo:block></fo:table-cell>
                         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Pos</fo:block></fo:table-cell>
+                        <fo:table-cell width="0.8in" padding="${cellPadding}"><fo:block text-align="center">Cont</fo:block></fo:table-cell>
 
-                        <fo:table-cell width="3.0in" padding="${cellPadding}"><fo:block>Lot</fo:block></fo:table-cell>
+                        <fo:table-cell width="2.8in" padding="${cellPadding}"><fo:block>Lot</fo:block></fo:table-cell>
                         <fo:table-cell width="0.5in" padding="${cellPadding}"><fo:block text-align="center">Bin</fo:block></fo:table-cell>
                         <fo:table-cell width="0.5in" padding="${cellPadding}"><fo:block text-align="right">Quantity</fo:block></fo:table-cell>
                     </fo:table-header>
                     <fo:table-body>
                     <#list productInfoList as productInfo>
                         <fo:table-row font-size="9pt" border-top="solid black">
-                            <fo:table-cell padding="${cellPadding}" number-columns-spanned="5"><fo:block text-align="center">
+                            <fo:table-cell padding="${cellPadding}" number-columns-spanned="4"><fo:block text-align="center">
                                 <fo:instream-foreign-object>
-                                    <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.productId}">
+                                    <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.pseudoId}">
                                         <barcode:code128>
                                             <barcode:height>0.4in</barcode:height>
                                             <barcode:module-width>0.25mm</barcode:module-width>
@@ -159,18 +159,18 @@ along with this software (see the LICENSE.md file). If not, see
                                     </barcode:barcode>
                                 </fo:instream-foreign-object>
                             </fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}" number-columns-spanned="4"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}" number-columns-spanned="5"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${productInfo.quantity}</fo:block></fo:table-cell>
                         </fo:table-row>
                         <#if productInfo.reservedLocationInfoList?has_content><#list productInfo.reservedLocationInfoList as locationInfo>
                             <fo:table-row font-size="9pt" border-top="thin solid black">
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">Res</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${locationInfo.description!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">(Res) <@encodeText locationInfo.description!" "/></fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.levelId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.positionId!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${(locationInfo.container.serialNumber)!(locationInfo.container.containerId)!" "}</fo:block></fo:table-cell>
 
                                 <fo:table-cell padding="${cellPadding}" number-columns-spanned="3">
                                     <fo:block><#if locationInfo.lot?has_content>${ec.resource.expand('LotNameTemplate', '', locationInfo.lot)}</#if> </fo:block></fo:table-cell>
@@ -185,13 +185,13 @@ along with this software (see the LICENSE.md file). If not, see
                         </#list></#if>
                         <#if productInfo.otherLocationInfoList?has_content><#list productInfo.otherLocationInfoList as locationInfo>
                             <fo:table-row font-size="9pt" border-top="thin solid black">
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">Alt</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${locationInfo.description!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">(Alt) <@encodeText locationInfo.description!" "/></fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.levelId!" "}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.positionId!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${(locationInfo.container.serialNumber)!(locationInfo.container.containerId)!" "}</fo:block></fo:table-cell>
 
                                 <fo:table-cell padding="${cellPadding}" number-columns-spanned="3">
                                     <fo:block><#if locationInfo.lot?has_content>${ec.resource.expand('LotNameTemplate', '', locationInfo.lot)}</#if> </fo:block></fo:table-cell>
@@ -219,35 +219,37 @@ along with this software (see the LICENSE.md file). If not, see
 <#macro locationInfoTable locationInfoList titleString>
 <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black">
     <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
-        <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="left">${titleString}</fo:block></fo:table-cell>
+        <fo:table-cell width="1.4in" padding="${cellPadding}"><fo:block text-align="left">${titleString}</fo:block></fo:table-cell>
         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Ar</fo:block></fo:table-cell>
         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Ais</fo:block></fo:table-cell>
         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Sec</fo:block></fo:table-cell>
         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Lev</fo:block></fo:table-cell>
         <fo:table-cell width="0.3in" padding="${cellPadding}"><fo:block text-align="center">Pos</fo:block></fo:table-cell>
+        <fo:table-cell width="0.6in" padding="${cellPadding}"><fo:block text-align="center">Cont</fo:block></fo:table-cell>
 
-        <fo:table-cell width="3.5in" padding="${cellPadding}"><fo:block>Lot</fo:block></fo:table-cell>
+        <fo:table-cell width="3.0in" padding="${cellPadding}"><fo:block>Lot</fo:block></fo:table-cell>
         <fo:table-cell width="0.5in" padding="${cellPadding}"><fo:block text-align="center">Bin</fo:block></fo:table-cell>
         <fo:table-cell width="0.5in" padding="${cellPadding}"><fo:block text-align="right">Quantity</fo:block></fo:table-cell>
     </fo:table-header>
     <fo:table-body>
     <#list locationInfoList as locationInfo>
         <fo:table-row font-size="9pt" border-top="solid black">
-            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${locationInfo.description!" "}</fo:block></fo:table-cell>
+            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><@encodeText locationInfo.description!" "/></fo:block></fo:table-cell>
             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.levelId!" "}</fo:block></fo:table-cell>
             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${locationInfo.positionId!" "}</fo:block></fo:table-cell>
+            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${(locationInfo.container.serialNumber)!(locationInfo.container.containerId)!" "}</fo:block></fo:table-cell>
 
             <fo:table-cell padding="${cellPadding}" number-columns-spanned="3">
                 <fo:block><#if locationInfo.lot?has_content>${ec.resource.expand('LotNameTemplate', '', locationInfo.lot)}</#if> </fo:block></fo:table-cell>
         </fo:table-row>
         <#list locationInfo.productInfoList as productInfo>
             <fo:table-row font-size="9pt">
-                <fo:table-cell padding="${cellPadding}" number-columns-spanned="5"><fo:block text-align="center">
+                <fo:table-cell padding="${cellPadding}" number-columns-spanned="4"><fo:block text-align="center">
                     <fo:instream-foreign-object>
-                        <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.productId}">
+                        <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.pseudoId}">
                             <barcode:code128>
                                 <barcode:height>0.4in</barcode:height>
                                 <barcode:module-width>0.25mm</barcode:module-width>
@@ -262,11 +264,11 @@ along with this software (see the LICENSE.md file). If not, see
                         </barcode:barcode>
                     </fo:instream-foreign-object>
                 </fo:block></fo:table-cell>
-                <fo:table-cell padding="${cellPadding}" number-columns-spanned="4"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
+                <fo:table-cell padding="${cellPadding}" number-columns-spanned="5"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
             </fo:table-row>
             <#list productInfo.quantityByBin.keySet() as binLocationNumber>
                 <fo:table-row font-size="9pt">
-                    <fo:table-cell padding="${cellPadding}" number-columns-spanned="7"><fo:block> </fo:block></fo:table-cell>
+                    <fo:table-cell padding="${cellPadding}" number-columns-spanned="8"><fo:block> </fo:block></fo:table-cell>
                     <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${binLocationNumber!" "}</fo:block></fo:table-cell>
                     <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${productInfo.quantityByBin.get(binLocationNumber!)}</fo:block></fo:table-cell>
                 </fo:table-row>

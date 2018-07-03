@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Shipping Gateways" default-menu-include="false">
+
+    <transition name="editShippingGateway"><default-response url="../EditShippingGateway"/></transition>
+    <transition name="createShippingGateway">
+        <service-call name="create#mantle.shipment.carrier.ShippingGatewayConfig"/>
+        <default-response url="../EditShippingGateway"/>
+    </transition>
+
+    <actions>
+        <set field="knownServiceNames" from="ec.service.knownServiceNames"/>
+    </actions>
+
+    <widgets>
+        <container-dialog id="NewShippingGatewayDialog" button-text="New Shipping Gateway">
+            <form-single name="NewShippingGatewayForm" transition="createShippingGateway">
+                <field name="shippingGatewayConfigId"><default-field title="ID"><text-line size="30"/></default-field></field>
+                <field name="shippingGatewayTypeEnumId"><default-field title="Gateway Type">
+                    <drop-down allow-empty="true"><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="ShippingGatewayType"/>
+                            <order-by field-name="enumId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="description"><default-field title="Description"><text-line size="30"/></default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="ShippingGatewaysForm" list="shippingGatewayList" skip-form="true" header-dialog="true" >
+            <entity-find entity-name="mantle.shipment.carrier.ShippingGatewayConfig" list="shippingGatewayList">
+                <search-form-inputs default-order-by="description"/></entity-find>
+
+            <field name="description">
+                <header-field title="Description" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                <default-field><link url="editShippingGateway" text="${description}" link-type="anchor"/></default-field>
+            </field>
+            <field name="shippingGatewayConfigId">
+                <header-field title="ID" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><link url="editShippingGateway" text="${shippingGatewayConfigId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="shippingGatewayTypeEnumId">
+                <header-field title="Gateway Type" show-order-by="true" />
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <default-field><display text=" "/></default-field>
+            </field>
+        </form-list>
+    </widgets>
+
+</screen>
