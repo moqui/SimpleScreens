@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        standalone="true" default-menu-include="false">
+
+    <parameter name="productCategoryContentId" required="true"/>
+    <parameter name="versionNameLhs"/>
+    <parameter name="versionNameRhs"/>
+
+    <actions>
+        <set field="versionNameRhs" from="versionNameRhs ?: versionNameLhs"/>
+        <entity-find-one entity-name="mantle.product.category.ProductCategoryContent" value-field="productCategoryContent"/>
+        <set field="resourceRef" from="ec.resource.getLocationReference(productCategoryContent?.contentLocation)"/>
+
+        <set field="pageTextLhs" from="resourceRef?.getText(versionNameLhs) ?: ''"/>
+        <set field="pageTextRhs" from="resourceRef?.getText(versionNameRhs) ?: ''"/>
+    </actions>
+    <widgets>
+        <container-box><box-header title="Compare versions ${versionNameLhs} and ${versionNameRhs}"/><box-body>
+            <render-mode><text type="html,vuet"><![CDATA[
+                <pre id="result" class="compare"></pre>
+                <textarea id="pageTextLhs" style="display: none;">${pageTextLhs?html}</textarea>
+                <textarea id="pageTextRhs" style="display: none;">${pageTextRhs?html}</textarea>
+
+                <script>
+    var a = document.getElementById('pageTextLhs');
+    var b = document.getElementById('pageTextRhs');
+    var result = document.getElementById('result');
+    // diffChars, diffWords, diffLines
+	var diff = JsDiff['diffChars'](a.textContent, b.textContent);
+	var fragment = document.createDocumentFragment();
+	for (var i=0; i < diff.length; i++) {
+		if (diff[i].added && diff[i + 1] && diff[i + 1].removed) {
+			var swap = diff[i];
+			diff[i] = diff[i + 1];
+			diff[i + 1] = swap;
+		}
+		var node;
+		if (diff[i].removed) {
+			node = document.createElement('del');
+			node.appendChild(document.createTextNode(diff[i].value));
+		} else if (diff[i].added) {
+			node = document.createElement('ins');
+			node.appendChild(document.createTextNode(diff[i].value));
+		} else {
+			node = document.createTextNode(diff[i].value);
+		}
+		fragment.appendChild(node);
+	}
+
+	result.textContent = '';
+	result.appendChild(fragment);
+                </script>
+            ]]></text></render-mode>
+        </box-body></container-box>
+    </widgets>
+</screen>
