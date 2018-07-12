@@ -68,13 +68,11 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="ShipmentPack.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPack" url-type="plain">
-            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/>
         </default-response>
     </transition>
     <transition name="ShipmentByPackage.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentByPackage" url-type="plain">
-            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentByPackage-${shipmentId}.pdf"/>
         </default-response>
     </transition>
@@ -140,7 +138,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <container style="text-strong"><label text="Pack Shipment "/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></container>
             </row-col><row-col xs="8" style="text-right">
                 <!-- <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/> -->
-                <link url="ShipmentPack.pdf" text="Pack Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
+                <link url="ShipmentPack.pdf" text="Insert PDF" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
+                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPack?shipmentId=${shipmentId}')">Insert Print</button>]]></text></render-mode>
 
                 <!-- Pack Completed dialog - disabled unless at least one item packed and non-empty packages have box type and weight -->
                 <container-dialog id="PackCompletedErrorDialog" button-text="Pack Completed" type="warning"
