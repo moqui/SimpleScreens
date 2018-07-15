@@ -62,6 +62,21 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="printShipmentLabels"><service-call name="mantle.shipment.ShipmentServices.print#ShipmentLabels"/>
         <default-response url="."/></transition>
+    <transition name="getShipmentLabel" read-only="true">
+        <parameter name="shipmentPackageSeqId"/><parameter name="shipmentRouteSegmentSeqId"/><parameter name="retLabel"/>
+        <actions>
+            <if condition="!shipmentId || !shipmentPackageSeqId || !shipmentRouteSegmentSeqId"><script>ec.web.sendError(404, 'ID not specified', null)</script><return/></if>
+            <entity-find-one entity-name="mantle.shipment.ShipmentPackageRouteSeg" value-field="sprs"/>
+            <if condition="retLabel == 'true'"><then>
+                <if condition="!sprs?.returnLabelUrl"><script>ec.web.sendError(404, 'No returnLabelUrl', null)</script><return/></if>
+                <script>ec.web.sendResourceResponse(sprs.returnLabelUrl)</script>
+            </then><else>
+                <if condition="!sprs?.labelUrl"><script>ec.web.sendError(404, 'No labelUrl', null)</script><return/></if>
+                <script>ec.web.sendResourceResponse(sprs.labelUrl)</script>
+            </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
 
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getPackageWeight" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
@@ -120,6 +135,22 @@ along with this software (see the LICENSE.md file). If not, see
             <if condition="shipmentPackageContentList &amp;&amp; (!shipmentPackage.shipmentBoxTypeId || !shipmentPackage.weight)">
                 <set field="packagesComplete" from="false"/><break/></if>
         </iterate>
+
+        <!-- look for label and return label URLs -->
+        <set field="labelUrlList" from="[]"/><set field="retLabelUrlList" from="[]"/>
+        <iterate list="packageRouteSegList" entry="packageRouteSeg"><script>
+            if (packageRouteSeg.labelUrl) labelUrlList.add(packageRouteSeg.labelUrl)
+            if (packageRouteSeg.returnLabelUrl) retLabelUrlList.add(packageRouteSeg.returnLabelUrl)
+        </script></iterate>
+
+        <!-- only local print (after Pack Completed dialog) if localQzPrintTs is within the last minute; still troublesome how to avoid duplicate prints on reload -->
+        <set field="localPrintAllLabels" from="false"/>
+        <if condition="ec.web.sessionAttributes.get('qzPackShipment' + shipmentId)">
+            <set field="localPrintAllLabels" from="true"/>
+            <script>ec.web.sessionAttributes.put('qzPackShipment' + shipmentId, false)</script>
+        </if>
+
+        <set field="getShipmentLabelPath" from="sri.buildUrl('getShipmentLabel').path"/>
     </actions>
     <widgets>
         <!--
@@ -163,7 +194,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="requestShipmentLabels" text="Get Labels Anyway"/>
                 </container-dialog>
 
-                <container-dialog id="PrintLabelsDialog" button-text="Print Labels" condition="hasAnyLabels">
+                <container-dialog id="PrintLabelsDialog" button-text="Net Print" condition="hasAnyLabels">
                     <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
                         <field name="shipmentId"><default-field><hidden/></default-field></field>
                         <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
@@ -177,6 +208,21 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
+                <section name="QzPrintLabelsSection" condition="labelUrlList || retLabelUrlList"><widgets><render-mode><text type="vuet"><![CDATA[
+                    <m-script>
+                        qzPrintAllLabels = function() {
+                            if (!moqui.webrootVue.qzVue) { return };
+                            moqui.printUrlLabel([
+                            <#list packageRouteSegList! as packageRouteSeg>
+                                <#if packageRouteSeg.labelUrl?has_content>'${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                                <#if packageRouteSeg.returnLabelUrl?has_content>'${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                            </#list>
+                            ]);
+                        }
+                        <#if localPrintAllLabels! == true>qzPrintAllLabels();</#if>
+                    </m-script>
+                    <button v-if="$root.qzVue" class="btn btn-default" onclick="qzPrintAllLabels();"><i class="glyphicon glyphicon-print"></i> All Labels</button>
+                ]]></text></render-mode></widgets></section>
 
                 <link url="shipShipment" text="Set Shipped" condition="shipment.statusId == 'ShipPacked'" btn-type="success"/>
             </row-col></container-row>
@@ -238,6 +284,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="shipmentPackageContentList" from="allShipmentPackageContentList.findAll({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId })"/>
                 <set field="packageRouteSeg" from="packageRouteSegList.find({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId &amp;&amp; it.shipmentRouteSegmentSeqId == firstRouteSegment.shipmentRouteSegmentSeqId })"/>
                 <set field="hasLabel" from="packageRouteSeg.gatewayLabelId || packageRouteSeg.labelImage != null || packageRouteSeg.labelUrl"/>
+                <set field="hasReturnLabel" from="packageRouteSeg.returnGatewayLabelId || packageRouteSeg.returnLabelImage != null || packageRouteSeg.returnLabelUrl"/>
                 <set field="trackingStatusEnum" from="packageRouteSeg?.trackingStatusEnum"/>
                 <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
             </actions><widgets>
@@ -315,11 +362,15 @@ along with this software (see the LICENSE.md file). If not, see
                             confirmation="Delete package ${shipmentPackage.shipmentPackageSeqId}?"
                             parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId]"/>
 
-                    <link url="${packageRouteSeg.labelUrl}" text="Download" url-type="plain" target-window="_blank"
+                    <link url="${packageRouteSeg.labelUrl}" text="Label" url-type="plain" target-window="_blank" icon="glyphicon glyphicon-download"
                             style="btn-success" condition="packageRouteSeg?.labelUrl"/>
-                    <link url="${packageRouteSeg.returnLabelUrl}" text="Download Ret" url-type="plain" target-window="_blank"
+                    <section name="QzPrintLabelSection" condition="packageRouteSeg?.labelUrl"><widgets><render-mode>
+                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Label</button>]]></text></render-mode></widgets></section>
+                    <link url="${packageRouteSeg.returnLabelUrl}" text="Ret Lbl" url-type="plain" target-window="_blank" icon="glyphicon glyphicon-download"
                             style="btn-info" condition="packageRouteSeg?.returnLabelUrl"/>
-                    <container-dialog id="PrintLabelDialog" button-text="Print" type="success"
+                    <section name="QzPrintRetLabelSection" condition="packageRouteSeg?.returnLabelUrl"><widgets><render-mode>
+                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Ret Lbl</button>]]></text></render-mode></widgets></section>
+                    <container-dialog id="PrintLabelDialog" button-text="Net Print" type="success"
                             condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null">
                         <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
                             <field name="shipmentId"><default-field><hidden/></default-field></field>
