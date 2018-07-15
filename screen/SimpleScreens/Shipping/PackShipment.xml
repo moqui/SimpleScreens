@@ -173,8 +173,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <container style="text-strong"><label text="Pack Shipment "/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></container>
             </row-col><row-col xs="8" style="text-right">
                 <!-- <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/> -->
-                <link url="ShipmentPack.pdf" text="Insert PDF" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
-                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPack?shipmentId=${shipmentId}')">Insert Print</button>]]></text></render-mode>
+                <link url="ShipmentPack.pdf" text="Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}" icon="glyphicon glyphicon-download"/>
+                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPack?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Insert</button>]]></text></render-mode>
 
                 <!-- Pack Completed dialog - disabled unless at least one item packed and non-empty packages have box type and weight -->
                 <container-dialog id="PackCompletedErrorDialog" button-text="Pack Completed" type="warning"
@@ -223,7 +223,7 @@ along with this software (see the LICENSE.md file). If not, see
                         }
                         <#if localPrintAllLabels! == true>qzPrintAllLabels();</#if>
                     </m-script>
-                    <button v-if="$root.qzVue" class="btn btn-default" onclick="qzPrintAllLabels();"><i class="glyphicon glyphicon-print"></i> All Labels</button>
+                    <button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="qzPrintAllLabels();"><i class="glyphicon glyphicon-print"></i> All Labels</button>
                 ]]></text></render-mode></widgets></section>
 
                 <link url="shipShipment" text="Set Shipped" condition="shipment.statusId == 'ShipPacked'" btn-type="success"/>
@@ -365,13 +365,13 @@ along with this software (see the LICENSE.md file). If not, see
                             parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId]"/>
 
                     <link url="${packageRouteSeg.labelUrl}" text="Label" url-type="plain" target-window="_blank" icon="glyphicon glyphicon-download"
-                            style="btn-success" condition="packageRouteSeg?.labelUrl"/>
+                            style="btn-info" condition="packageRouteSeg?.labelUrl"/>
                     <section name="QzPrintLabelSection" condition="packageRouteSeg?.labelUrl"><widgets><render-mode>
-                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Label</button>]]></text></render-mode></widgets></section>
+                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Label</button>]]></text></render-mode></widgets></section>
                     <link url="${packageRouteSeg.returnLabelUrl}" text="Ret Lbl" url-type="plain" target-window="_blank" icon="glyphicon glyphicon-download"
                             style="btn-info" condition="packageRouteSeg?.returnLabelUrl"/>
                     <section name="QzPrintRetLabelSection" condition="packageRouteSeg?.returnLabelUrl"><widgets><render-mode>
-                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Ret Lbl</button>]]></text></render-mode></widgets></section>
+                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Ret Lbl</button>]]></text></render-mode></widgets></section>
                     <container-dialog id="PrintLabelDialog" button-text="Net Print" type="success"
                             condition="(packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null) &amp;&amp; networkPrinterList">
                         <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
