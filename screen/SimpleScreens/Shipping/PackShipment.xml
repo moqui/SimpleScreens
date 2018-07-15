@@ -151,7 +151,11 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
 
         <set field="getShipmentLabelPath" from="sri.buildUrl('getShipmentLabel').path"/>
-    </actions>
+
+        <!-- get network printers list now so if empty don't display network print options -->
+        <entity-find entity-name="moqui.basic.print.NetworkPrinter" list="networkPrinterList">
+            <order-by field-name="description,printerName"/></entity-find>
+</actions>
     <widgets>
         <!--
             Usage/Flow
@@ -194,13 +198,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="requestShipmentLabels" text="Get Labels Anyway"/>
                 </container-dialog>
 
-                <container-dialog id="PrintLabelsDialog" button-text="Net Print" condition="hasAnyLabels">
+                <container-dialog id="PrintLabelsDialog" button-text="Net Print" condition="hasAnyLabels &amp;&amp; networkPrinterList">
                     <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
                         <field name="shipmentId"><default-field><hidden/></default-field></field>
                         <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
-                            <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
-                                <entity-find entity-name="moqui.basic.print.NetworkPrinter">
-                                    <order-by field-name="description,printerName"/></entity-find></entity-options>
+                            <list-options list="networkPrinterList" key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})"/>
                         </drop-down></default-field></field>
                         <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
                         <field name="returnLabels"><default-field title=""><radio no-current-selected-key="false">
@@ -371,7 +373,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <section name="QzPrintRetLabelSection" condition="packageRouteSeg?.returnLabelUrl"><widgets><render-mode>
                         <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Ret Lbl</button>]]></text></render-mode></widgets></section>
                     <container-dialog id="PrintLabelDialog" button-text="Net Print" type="success"
-                            condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null">
+                            condition="(packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null) &amp;&amp; networkPrinterList">
                         <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
                             <field name="shipmentId"><default-field><hidden/></default-field></field>
                             <field name="shipmentPackageSeqId" from="shipmentPackage.shipmentPackageSeqId">
@@ -379,9 +381,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="shipmentRouteSegmentSeqId" from="packageRouteSeg.shipmentRouteSegmentSeqId">
                                 <default-field><hidden/></default-field></field>
                             <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
-                                <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
-                                    <entity-find entity-name="moqui.basic.print.NetworkPrinter">
-                                        <order-by field-name="description,printerName"/></entity-find></entity-options>
+                                <list-options list="networkPrinterList" key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})"/>
                             </drop-down></default-field></field>
                             <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
                             <field name="returnLabels"><default-field title=""><radio no-current-selected-key="false">
