@@ -62,34 +62,22 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="printShipmentLabels"><service-call name="mantle.shipment.ShipmentServices.print#ShipmentLabels"/>
         <default-response url="."/></transition>
-    <transition name="getShipmentLabel" read-only="true">
-        <parameter name="shipmentPackageSeqId"/><parameter name="shipmentRouteSegmentSeqId"/><parameter name="retLabel"/>
-        <actions>
-            <if condition="!shipmentId || !shipmentPackageSeqId || !shipmentRouteSegmentSeqId"><script>ec.web.sendError(404, 'ID not specified', null)</script><return/></if>
-            <entity-find-one entity-name="mantle.shipment.ShipmentPackageRouteSeg" value-field="sprs"/>
-            <if condition="retLabel == 'true'"><then>
-                <if condition="!sprs?.returnLabelUrl"><script>ec.web.sendError(404, 'No returnLabelUrl', null)</script><return/></if>
-                <script>ec.web.sendResourceResponse(sprs.returnLabelUrl)</script>
-            </then><else>
-                <if condition="!sprs?.labelUrl"><script>ec.web.sendError(404, 'No labelUrl', null)</script><return/></if>
-                <script>ec.web.sendResourceResponse(sprs.labelUrl)</script>
-            </else></if>
-        </actions>
-        <default-response type="none"/>
-    </transition>
 
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getPackageWeight" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
+    <transition-include name="getShipmentLabel" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
 
     <transition name="ShipmentPack.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPack" url-type="plain">
-            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/>
-        </default-response>
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/></default-response>
     </transition>
     <transition name="ShipmentByPackage.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentByPackage" url-type="plain">
-            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentByPackage-${shipmentId}.pdf"/>
-        </default-response>
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentByPackage-${shipmentId}.pdf"/></default-response>
+    </transition>
+    <transition name="ShipmentInsert.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentInsert" url-type="plain">
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentInsert-${shipmentId}.pdf"/></default-response>
     </transition>
 
     <actions>
@@ -110,8 +98,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <script>shippingPostalAddressList.add(0, curDestPaInfo)</script></if>
             </if>
         </if>
-
-        <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
 
         <!-- maybe improve; session maintained active (or first package with no box/weight?) -->
         <set field="activePackage" from="shipmentPackageList?.find({ !it.weight || !it.shipmentBoxTypeId })"/>
@@ -136,13 +122,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="packagesComplete" from="false"/><break/></if>
         </iterate>
 
-        <!-- look for label and return label URLs -->
-        <set field="labelUrlList" from="[]"/><set field="retLabelUrlList" from="[]"/>
-        <iterate list="packageRouteSegList" entry="packageRouteSeg"><script>
-            if (packageRouteSeg.labelUrl) labelUrlList.add(packageRouteSeg.labelUrl)
-            if (packageRouteSeg.returnLabelUrl) retLabelUrlList.add(packageRouteSeg.returnLabelUrl)
-        </script></iterate>
-
         <!-- only local print (after Pack Completed dialog) if ('qzPackShipment' + shipmentId) session attribute is true, then set to false to avoid printing again -->
         <set field="localPrintAllLabels" from="false"/>
         <if condition="ec.web.sessionAttributes.get('qzPackShipment' + shipmentId)">
@@ -152,6 +131,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="getShipmentLabelPath" from="sri.buildUrl('getShipmentLabel').path"/>
 
+        <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
         <!-- get network printers list now so if empty don't display network print options -->
         <entity-find entity-name="moqui.basic.print.NetworkPrinter" list="networkPrinterList">
             <order-by field-name="description,printerName"/></entity-find>
@@ -173,8 +153,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <container style="text-strong"><label text="Pack Shipment "/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></container>
             </row-col><row-col xs="8" style="text-right">
                 <!-- <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/> -->
-                <link url="ShipmentPack.pdf" text="Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}" icon="glyphicon glyphicon-download"/>
-                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPack?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Insert</button>]]></text></render-mode>
+                <link url="ShipmentInsert.pdf" text="Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}" icon="glyphicon glyphicon-download"/>
+                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentInsert?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Insert</button>]]></text></render-mode>
 
                 <!-- Pack Completed dialog - disabled unless at least one item packed and non-empty packages have box type and weight -->
                 <container-dialog id="PackCompletedErrorDialog" button-text="Pack Completed" type="warning"
@@ -210,10 +190,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
-                <section name="QzPrintLabelsSection" condition="labelUrlList || retLabelUrlList"><widgets><render-mode><text type="vuet"><![CDATA[
+                <section name="QzPrintLabelsSection" condition="hasAnyLabels"><widgets><render-mode><text type="vuet"><![CDATA[
                     <m-script>
                         qzPrintAllLabels = function() {
-                            if (!moqui.webrootVue.qzVue) { return };
+                            if (!moqui.webrootVue.qzVue || !moqui.printUrlLabel) { return };
                             moqui.printUrlLabel([
                             <#list packageRouteSegList! as packageRouteSeg>
                                 <#if packageRouteSeg.labelUrl?has_content>'${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
