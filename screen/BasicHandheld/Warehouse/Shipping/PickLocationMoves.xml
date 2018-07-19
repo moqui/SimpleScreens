@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Pick Location Moves" default-menu-index="4">
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="moveAsset"><default-response url="//${appRoot}/Asset/MoveAsset"/></transition>
+    <transition name="selectAsset"><default-response url="//${appRoot}/Asset/SelectAsset"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <actions>
+        <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
+        <if condition="facilityId"><entity-find-one entity-name="mantle.facility.Facility" value-field="facility"/></if>
+    </actions>
+    <widgets>
+        <section name="ScanInputAndFacility" condition="facility == null"><widgets>
+            <form-single name="ActiveFacilityForm" transition="setActiveFacility">
+                <field name="facilityId"><default-field title="Active Warehouse">
+                    <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                            parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Set WH"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="facilityId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </widgets><fail-widgets>
+            <label text="Facility " type="strong" condition="facility"/>
+            <label text="${ec.resource.expand('FacilityNameTemplate', null, facility)}" type="span" condition="facility"/>
+        </fail-widgets></section>
+
+        <form-list name="PickMoveList" list="pickMoveList" skip-form="true" paginate-always-show="false">
+            <entity-find entity-name="mantle.product.issuance.AssetAndReservationSummary" list="pickMoveList">
+                <search-form-inputs default-order-by="-quantity"/>
+                <econdition field-name="locationTypeEnumId" operator="not-equals" value="FltPick" or-null="true"/>
+                <having-econditions><econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/></having-econditions>
+                <select-field field-name="productId,facilityId,locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
+            </entity-find>
+            <row-actions>
+                <!-- is there a configured Pick location for the product in the facility? -->
+                <entity-find entity-name="mantle.facility.ProductFacilityLocationDetail" list="pickLocList" distinct="true">
+                    <econdition field-name="productId"/><econdition field-name="facilityId"/>
+                    <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                    <select-field field-name="locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
+                </entity-find>
+                <!-- if no configured location(s) look for existing/prior Asset pick locations -->
+                <if condition="!pickLocList">
+                    <!-- NOTE: this could get heavy/slow over time, consider not doing here, only on individual move screen; nice for move report though -->
+                    <entity-find entity-name="mantle.product.asset.AssetLocationDetail" list="pickLocList" distinct="true">
+                        <econdition field-name="productId"/><econdition field-name="facilityId"/>
+                        <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                        <select-field field-name="locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
+                    </entity-find>
+                </if>
+            </row-actions>
+
+            <field name="productId"><header-field title="Product"/>
+                <default-field><link url="editProduct" entity-name="mantle.product.Product" text="ProductNameTemplate" link-type="anchor"/></default-field></field>
+
+            <field name="locationSeqId"><default-field title="Location">
+                <display text="${locationSeqId?:''} ${description?:''} [${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}]"/></default-field></field>
+            <field name="locationTypeEnumId"><header-field title="Loc Type" show-order-by="true"/>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+            <field name="containerId"><default-field title="Container">
+                <display-entity entity-name="mantle.product.asset.Container" text="ContainerNameTemplate"/></default-field></field>
+            <field name="lotId"><default-field title="Lot">
+                <display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field></field>
+
+            <field name="quantity"><header-field title="Res Qty" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="quantityOnHandTotal"><default-field title="QOH"><display/></default-field></field>
+
+            <field name="recLocations"><default-field title="Pick Location(s)">
+                <section-iterate name="RecLocList" list="pickLocList" entry="recLoc"><widgets>
+                    <label text="${locationSeqId?:''} ${description?:''} [${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}]"
+                            text-map="recLoc" type="div"/>
+                </widgets></section-iterate>
+            </default-field></field>
+
+            <field name="moveLink"><default-field title="Move">
+                <link url="selectAsset" text="Move"/>
+                <link url="moveAsset" text="Move Asset" condition="assetId"/>
+            </default-field></field>
+
+            <form-list-column><field-ref name="productId"/><field-ref name="locationSeqId"/><field-ref name="locationTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="quantity"/><field-ref name="quantityOnHandTotal"/></form-list-column>
+            <form-list-column><field-ref name="recLocations"/><field-ref name="moveLink"/></form-list-column>
+        </form-list>
+    </widgets>
+</screen>

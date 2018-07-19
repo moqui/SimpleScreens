@@ -108,6 +108,23 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="containerId"><entity-find-one entity-name="mantle.product.asset.Container" value-field="container"/></if>
         <if condition="locationSeqId"><entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facilityLocation"/></if>
         <if condition="productId"><entity-find-one entity-name="mantle.product.Product" value-field="product"/></if>
+
+        <if condition="productId &amp;&amp; facilityId">
+            <!-- is there a configured Pick location for the product in the facility? -->
+            <entity-find entity-name="mantle.facility.ProductFacilityLocationDetail" list="pickLocList" distinct="true">
+                <econdition field-name="productId"/><econdition field-name="facilityId"/>
+                <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                <select-field field-name="locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
+            </entity-find>
+            <!-- if no configured location(s) look for existing/prior Asset pick locations -->
+            <if condition="!pickLocList">
+                <entity-find entity-name="mantle.product.asset.AssetLocationDetail" list="pickLocList" distinct="true">
+                    <econdition field-name="productId"/><econdition field-name="facilityId"/>
+                    <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                    <select-field field-name="locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
+                </entity-find>
+            </if>
+        </if>
     </actions>
 
     <widgets>
@@ -187,6 +204,13 @@ along with this software (see the LICENSE.md file). If not, see
             <label text="Product " type="strong" condition="product"/>
             <label text="${ec.resource.expand('ProductNameTemplate', null, product)}" type="span" condition="product"/>
         </row-col></container-row>
+        <container>
+            <label text="Pick Locations " type="strong" condition="pickLocList"/>
+            <section-iterate name="RecLocList" list="pickLocList" entry="recLoc"><widgets>
+                <label text="${locationSeqId?:''} ${description?:''} [${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}]"
+                        text-map="recLoc" type="span"/>
+            </widgets></section-iterate>
+        </container>
 
         <link url="." text="Reset Selections" condition="containerId || locationSeqId || productId"
                 parameter-map="[containerId:null, locationSeqId:null, productId:null]"/>
