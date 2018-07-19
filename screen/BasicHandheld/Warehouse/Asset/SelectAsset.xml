@@ -23,12 +23,9 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="moveAsset"><default-response url="../MoveAsset"/></transition>
     <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
-    <transition name="findAsset"><default-response url="../FindAsset"/></transition>
 
-    <transition name="setActiveFacility">
-        <actions><script>ec.user.setPreference('FacilityActive', facilityId)</script></actions>
-        <default-response url="."/>
-    </transition>
+    <transition name="setActiveFacility"><actions><script>ec.user.setPreference('FacilityActive', facilityId)</script></actions>
+        <default-response url="."/></transition>
 
     <transition name="checkScanInput" read-only="true">
         <service-call name="mantle.facility.FacilityServices.get#ScannedIdGeneral"/>
@@ -127,48 +124,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-layout><field-row-big><field-ref name="facilityId"/><field-ref name="submitButton"/></field-row-big></field-layout>
             </form-single>
         </row-col></container-row>
-        <container-row style="text-center"><row-col sm="5">
-            <form-single name="SelectAssetForm" transition="moveAsset">
-                <field name="assetId"><default-field title="Lookup Asset">
-                    <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="2"/></drop-down>
-                </default-field></field>
-                <field name="submitButton"><default-field title="Move"><submit/></default-field></field>
-                <field-layout><field-row-big><field-ref name="assetId"/><field-ref name="submitButton"/></field-row-big></field-layout>
-            </form-single>
-        </row-col><row-col sm="7">
-            <form-single name="SelectLocationForm" transition=".">
-                <!-- NOTE: could be "moveContainer" but come back to this screen and allow choice of move container or select item in container -->
-                <field name="facilityId"><default-field><hidden/></default-field></field>
-                <field name="locationSeqId"><default-field title="Location">
-                    <drop-down allow-empty="true"><dynamic-options transition="getLocationList" server-search="true" min-length="0">
-                        <depends-on field="facilityId"/></dynamic-options></drop-down>
-                </default-field></field>
-                <field name="containerId"><default-field title="Container">
-                    <drop-down allow-empty="true"><dynamic-options transition="getContainerList" server-search="true" min-length="0">
-                        <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options></drop-down>
-                </default-field></field>
-                <field name="productId"><default-field title="Product">
-                    <drop-down allow-empty="true"><dynamic-options transition="getProductList" server-search="true" min-length="2"/></drop-down>
-                </default-field></field>
-                <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
-                    <dynamic-options transition="getLotList" server-search="true" min-length="2"/>
-                </drop-down></default-field></field>
-                <field name="submitButton"><default-field title="Select"><submit/></default-field></field>
-                <field-layout><field-row-big><field-ref name="locationSeqId"/><field-ref name="containerId"/>
-                    <field-ref name="productId"/><field-ref name="lotId"/><field-ref name="submitButton"/></field-row-big></field-layout>
-            </form-single>
-        </row-col></container-row>
 
-        <!--
-            General concept, show different options based on what has already been selected/scanned
-            
-            - select active Facility, save in FacilityActive preference - default to FacilityGeneralDefault
-            - main scan: Asset, Container, Location, or Product
-
-            - scan location, if needed scan product and optionally select lot, select asset or use list (show with same sort: receivedDate, -quantityOnHandTotal, -assetId)
-            - scan product, if needed scan location, ...
-            - scan container move container... or select asset(s) in container as in scan location or product?
-        -->
         <container-row><row-col sm="4">
             <label text="Location " type="strong" condition="facilityLocation"/>
             <label text="${ec.resource.expand('FacilityLocationNameTemplate', null, facilityLocation)}" type="span" condition="facilityLocation"/>
@@ -191,45 +147,23 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="." text="Reset Selections" condition="containerId || locationSeqId || productId"
                 parameter-map="[containerId:null, locationSeqId:null, productId:null]"/>
         <link url="moveContainer" text="Move Container" condition="containerId"/>
+        <!--
         <link url="findAsset" text="All Container Assets" parameter-map="[containerId:containerId, productId:productId]" condition="containerId"/>
         <link url="findAsset" text="All Location Assets" parameter-map="[facilityId:facilityId, locationSeqId:locationSeqId, productId:productId]" condition="locationSeqId"/>
+        -->
 
         <section name="MoveFormsSection" condition="product != null &amp;&amp; facilityId"><widgets>
-            <container-row><row-col md="6">
-                <form-single name="ScanMoveAssetForm" transition="moveProduct"><!-- NOTE: main scan field focused so don't focus this one like on MoveAsset: focus-field="scanLocation" -->
-                    <field name="facilityId"><default-field><hidden/></default-field></field>
-                    <field name="locationSeqId"><default-field><hidden/></default-field></field>
-                    <field name="containerId"><default-field><hidden/></default-field></field>
-                    <field name="productId"><default-field><hidden/></default-field></field>
-                    <field name="scanLocation"><default-field title="Scan Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
-                        <text-line size="20"/></default-field></field>
-                    <!-- <field name="containerId"><default-field title="Scan Container ID" tooltip="Can be Container ID or Serial Number (Plate ID)">
-                        <text-line size="20"/></default-field></field> -->
-                    <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
-                        <text-line size="20"/></default-field></field>
-                    <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
-                </form-single>
-            </row-col><row-col md="6">
-                <form-single name="EnterMoveAssetForm" transition="moveProduct">
-                    <field name="facilityId"><default-field><hidden/></default-field></field>
-                    <field name="locationSeqId"><default-field><hidden/></default-field></field>
-                    <field name="containerId"><default-field><hidden/></default-field></field>
-                    <field name="productId"><default-field><hidden/></default-field></field>
-                    <field name="toLocationSeqId"><default-field title="Location"><drop-down allow-empty="true">
-                        <dynamic-options transition="getLocationList" server-search="true" min-length="0">
-                            <depends-on field="facilityId"/></dynamic-options>
-                    </drop-down></default-field></field>
-                    <field name="toContainerId"><default-field title="Container"><drop-down>
-                        <!-- NOTE: don't allow-empty, if there is at least one container in the location it should go in a container, for movable bin support -->
-                        <!-- TODO: would be nice to allow-empty but auto-select first if there is at least one -->
-                        <dynamic-options transition="getContainerList" server-search="true" min-length="0">
-                            <depends-on field="facilityId"/><depends-on field="toLocationSeqId" parameter="locationSeqId"/></dynamic-options>
-                    </drop-down></default-field></field>
-                    <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
-                        <text-line size="10"/></default-field></field>
-                    <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
-                </form-single>
-            </row-col></container-row>
+            <form-single name="ScanMoveAssetForm" transition="moveProduct"><!-- NOTE: main scan field focused so don't focus this one like on MoveAsset: focus-field="scanLocation" -->
+                <field name="facilityId"><default-field><hidden/></default-field></field>
+                <field name="locationSeqId"><default-field><hidden/></default-field></field>
+                <field name="containerId"><default-field><hidden/></default-field></field>
+                <field name="productId"><default-field><hidden/></default-field></field>
+                <field name="scanLocation"><default-field title="Scan Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
+                    <text-line size="20"/></default-field></field>
+                <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
+                    <text-line size="20"/></default-field></field>
+                <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
+            </form-single>
         </widgets></section>
 
         <section name="ContainerSection" condition="container != null"><widgets>
@@ -242,12 +176,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/>
                         <order-by field-name="-quantityOnHandTotal"/>
                     </entity-find>
-                    <field name="assetId"><default-field title="Container Asset">
+                    <field name="assetId"><default-field title="Cont. Asset">
                         <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
                     <field name="statusId"><default-field title="Status">
                         <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
-                    <field name="receivedDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
-                    <field name="quantityOnHandTotal"><default-field title="Quantity On Hand">
+                    <field name="receivedDate"><default-field title="Received"><display format="yyyy-MM-dd"/></default-field></field>
+                    <field name="quantityOnHandTotal"><default-field title="QOH">
                         <display format="#,##0.###"/></default-field></field>
                 </form-list>
                 <label text="No product found in container" condition="!contAssetList"/>
@@ -267,12 +201,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/>
                         <order-by field-name="-quantityOnHandTotal"/>
                     </entity-find>
-                    <field name="assetId"><default-field title="Location Asset">
+                    <field name="assetId"><default-field title="Loc. Asset">
                         <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
                     <field name="statusId"><default-field title="Status">
                         <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
-                    <field name="receivedDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
-                    <field name="quantityOnHandTotal"><default-field title="Quantity On Hand">
+                    <field name="receivedDate"><default-field title="Received"><display format="yyyy-MM-dd"/></default-field></field>
+                    <field name="quantityOnHandTotal"><default-field title="QOH">
                         <display format="#,##0.###"/></default-field></field>
                 </form-list>
                 <label text="No product found in location" condition="!locAssetList"/>
@@ -303,12 +237,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/>
                         <order-by field-name="-quantityOnHandTotal"/>
                     </entity-find>
-                    <field name="assetId"><default-field title="No Location Asset">
+                    <field name="assetId"><default-field title="No Loc Asset">
                         <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
                     <field name="statusId"><default-field title="Status">
                         <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
-                    <field name="receivedDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
-                    <field name="quantityOnHandTotal"><default-field title="Quantity On Hand">
+                    <field name="receivedDate"><default-field title="Received"><display format="yyyy-MM-dd"/></default-field></field>
+                    <field name="quantityOnHandTotal"><default-field title="QOH">
                         <display format="#,##0.###"/></default-field></field>
                 </form-list>
             </widgets></section>
@@ -352,18 +286,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor"
                             parameter-map="[productId:asset.productId]"/>
                 </default-field></field>
-                <field name="facilityId" from="asset.facilityId"><default-field title="Facility">
-                    <link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"
-                            parameter-map="[facilityId:asset.facilityId]"/>
-                </default-field></field>
 
-                <field name="fromLocation"><default-field>
-                    <label text="FacilityLocationNameTemplate" text-map="fromFacLoc?:[:]" condition="fromFacLoc"/></default-field></field>
                 <field name="toLocation"><default-field>
                     <label text="FacilityLocationNameTemplate" text-map="toFacLoc?:[:]" condition="toFacLoc"/></default-field></field>
-
-                <field name="fromContainer"><default-field>
-                    <label text="ContainerNameTemplate" text-map="fromContainer?:[:]" condition="fromContainer"/></default-field></field>
                 <field name="toContainer"><default-field>
                     <label text="ContainerNameTemplate" text-map="toContainer?:[:]" condition="toContainer"/></default-field></field>
 
@@ -371,6 +296,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="moveAgain"><default-field title="">
                     <link url="moveAsset" text="Move Again" parameter-map="[assetId:asset.assetId]" link-type="anchor-button"/>
                 </default-field></field>
+
+                <form-list-column><field-ref name="assetId"/><field-ref name="productId"/></form-list-column>
+                <form-list-column><field-ref name="toLocation"/><field-ref name="toContainer"/></form-list-column>
+                <form-list-column><field-ref name="changedDate"/><field-ref name="moveAgain"/></form-list-column>
             </form-list>
         </widgets></section>
 
@@ -405,11 +334,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="containerTypeEnumId" from="container.containerTypeEnumId"><default-field title="Type">
                     <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
 
-                <field name="facilityId" from="container.facilityId"><default-field title="Facility">
-                    <link url="editFacility" text="FacilityNameTemplate" entity-name="mantle.facility.Facility" link-type="anchor"
-                            parameter-map="[facilityId:container.facilityId]"/>
-                </default-field></field>
-
                 <field name="fromLocation"><default-field>
                     <label text="FacilityLocationNameTemplate" text-map="fromFacLoc?:[:]" condition="fromFacLoc"/></default-field></field>
                 <field name="toLocation"><default-field>
@@ -419,6 +343,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="moveAgain"><default-field title="">
                     <link url="moveContainer" text="Move Again" parameter-map="[containerId:container.containerId]" link-type="anchor-button"/>
                 </default-field></field>
+
+                <form-list-column><field-ref name="container"/><field-ref name="containerTypeEnumId"/></form-list-column>
+                <form-list-column><field-ref name="fromLocation"/><field-ref name="toLocation"/></form-list-column>
+                <form-list-column><field-ref name="changedDate"/><field-ref name="moveAgain"/></form-list-column>
             </form-list>
         </widgets></section>
     </widgets>
