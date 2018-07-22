@@ -22,10 +22,10 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="create#moqui.screen.form.DbFormField" in-map="context"/></actions>
         <default-response url="."/></transition>
 
-    <transition name="updateDbFormField"><service-call name="mantle.dbform.DbFormServices.update#DbFormField"/>
+    <transition name="updateDbFormField"><service-call name="org.moqui.impl.ScreenServices.update#DbFormField"/>
         <default-response url="."/></transition>
 
-    <transition name="deleteDbFormField"><service-call name="mantle.dbform.DbFormServices.delete#DbFormField"/>
+    <transition name="deleteDbFormField"><service-call name="org.moqui.impl.ScreenServices.delete#DbFormField"/>
         <default-response url="."/></transition>
 
     <transition name="addFieldOption"><service-call name="create#moqui.screen.form.DbFormFieldOption"/>
@@ -41,11 +41,11 @@ along with this software (see the LICENSE.md file). If not, see
             <order-by field-name="layoutSequenceNum"/>
         </entity-find>
         <script>
-            fieldHavingOptionsList = [];
-            fieldHavingOptionsList.addAll(dbFormFieldList.cloneList().filterByAnd([fieldTypeEnumId: 'DBFFT_check']))
-            fieldHavingOptionsList.addAll(dbFormFieldList.cloneList().filterByAnd([fieldTypeEnumId: 'DBFFT_drop-down']))
-            fieldHavingOptionsList.addAll(dbFormFieldList.cloneList().filterByAnd([fieldTypeEnumId: 'DBFFT_radio']))
-            fieldHavingOptionsList = org.moqui.util.CollectionUtilities.orderMapList(fieldHavingOptionsList, ['layoutSequenceNum'])
+            enumFieldOptionsList = [];
+            enumFieldOptionsList.addAll(dbFormFieldList.cloneList().filterByAnd([fieldTypeEnumId: 'DBFFT_check']))
+            enumFieldOptionsList.addAll(dbFormFieldList.cloneList().filterByAnd([fieldTypeEnumId: 'DBFFT_drop-down']))
+            enumFieldOptionsList.addAll(dbFormFieldList.cloneList().filterByAnd([fieldTypeEnumId: 'DBFFT_radio']))
+            enumFieldOptionsList = org.moqui.util.CollectionUtilities.orderMapList(enumFieldOptionsList, ['layoutSequenceNum'])
         </script>
     </actions>
 
@@ -70,11 +70,19 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
             </form-single>
         </container-dialog>
-
+        <container-dialog id="SurveyPreviewContainer" button-text="Survey Form Preview">
+            <form-single name="SurveyPreview"  extends="DbForm#${formId}" dynamic="true">
+                <field name="formLocation"><default-field ><hidden default-value="DbForm#${formId}"/></default-field></field>
+                <field name="formId" from="formId"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
 
         <container-row>
             <row-col lg="6">
                 <section name="DbFormFields">
+                    <condition>
+                        <expression>dbFormFieldList</expression>
+                    </condition>
                     <widgets>
                         <form-list name="DbFormFieldList" list="dbFormFieldList" transition="updateDbFormField">
                             <field name="formId"><default-field><hidden/></default-field></field>
@@ -96,7 +104,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </section>
             </row-col>
             <row-col lg="6">
-               <section-iterate name="DbFormFieldsHavingOptions" list="fieldHavingOptionsList" entry="field">
+               <section-iterate name="EnumDbFormFieldOptions" list="enumFieldOptionsList" entry="field">
                    <widgets>
                        <section name="fieldOption">
                            <widgets>
