@@ -40,7 +40,7 @@ define({
         },
         notificationListener: function(jsonObj, webSocket) {
             // TODO: improve this to look for new message, event, and task notifications and increment their counters (or others to decrement...)
-            this.notificationCount++;
+            if (jsonObj && jsonObj.persistOnSend === true) this.notificationCount++;
         }
     },
     mounted: function() {

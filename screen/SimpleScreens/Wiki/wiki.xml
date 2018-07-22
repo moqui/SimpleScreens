@@ -63,6 +63,7 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="sri.screenUrlInfo.fullPathNameList &amp;&amp; sri.screenUrlInfo.fullPathNameList[0] == 'menuData'"><return/></if>
 
         <set field="extraPathNameList" from="sri.screenUrlInfo.extraPathNameList"/>
+        <!-- <log level="warn" message="wiki extraPathNameList ${extraPathNameList}"/> -->
         <service-call name="org.moqui.impl.WikiServices.get#WikiPageInfo" in-map="context" out-map="context"/>
 
         <!-- redirect to EditWikiPage to create instead of trying to render a page that doesn't exist -->
@@ -124,11 +125,12 @@ along with this software (see the LICENSE.md file). If not, see
                                 curFileName = nodeList_entry.getFileName()
                                 if (curFileName.contains(".")) curFileName = curFileName.substring(0, curFileName.lastIndexOf('.'))
                             </script>
-                            <set field="newIdPath" value="${treeNodeId == '#' ? '' : treeNodeId + '/'}${curFileName}"/>
-                            <!-- don't do this, framework will encode path segments: <set field="encodedPath" from="newIdPath.split('/').collect({java.net.URLEncoder.encode(it, 'UTF-8')}).join('/')"/> -->
+                            <set field="newIdPath" from="treeNodeId == '#' ? curFileName : treeNodeId + '/' + curFileName"/>
+                            <set field="encodedPath" from="newIdPath.split('/').collect({urlEncodeIfNeeded(it)}).join('/')"/>
+                            <!-- <log level="warn" message="curFileName ${curFileName} newIdPath ${newIdPath} encodedPath ${encodedPath}"/> -->
                         </actions>
 
-                        <link text="${curFileName}" url="${basePath}/${wikiSpaceId}/${newIdPath}" url-noparam="true" id="${newIdPath}"/>
+                        <link text="${curFileName}" url="${basePath}/${wikiSpaceId}/${encodedPath}" url-noparam="true" id="${newIdPath}"/>
 
                         <tree-sub-node node-name="WikiPageNode" list="childPageList"><actions>
                             <service-call name="org.moqui.impl.WikiServices.get#WikiPageInfo" out-map="curPageInfo"
@@ -158,13 +160,13 @@ along with this software (see the LICENSE.md file). If not, see
                 </widgets></section-iterate>
             </container>
             <container>
-                <label text="ID: ${wikiPageId?:''} (${wikiType})${versionName ? ' Version ' + versionName : ''}${publishedVersionName ? ' Published ' + publishedVersionName : ''}"/>
+                <label text="ID: ${wikiPageId?:''} (${wikiType})${versionName ? ' Version ' + versionName.take(12) : ''}${publishedVersionName ? ' Published ' + publishedVersionName.take(12) : ''}"/>
                 <label text="(this version published)" condition="publishedVersionName &amp;&amp; publishedVersionName == versionName" style="text-success"/>
                 <link text="Public Link" url="${ec.resource.expand(wikiSpace.publicPageUrl, null, null, false)}" url-type="plain"
                         link-type="anchor" target-window="_blank" condition="wikiSpace?.publicPageUrl"/>
             </container>
             <container-box><box-header title="${pageName?:'[No Name]'}"/><box-toolbar>
-                <link url="setPublishedVersion" text="Publish Version ${versionName}"
+                <link url="setPublishedVersion" text="Publish Version ${versionName.take(12)}"
                       condition="versionName &amp;&amp; versionName != publishedVersionName"
                       parameter-map="[wikiPageId:wikiPageId, publishedVersionName:versionName]"/>
                 <link url="editPage" text="Edit" link-type="anchor-button" icon="glyphicon glyphicon-pencil">
@@ -191,7 +193,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <condition><expression>!wikiSpace?.decoratorScreenLocation</expression></condition>
                         <actions><script>sri.baseLinkUrl(baseLinkUrl)</script></actions>
                         <widgets><render-mode><text type="html,vuet" template="true"
-                                location="${pageLocation?:''}${versionName &amp;&amp; currentVersionName != versionName ? '#' + versionName : ''}"/></render-mode></widgets>
+                                location="${pageLocation?:''}${versionName &amp;&amp; currentVersionName != versionName ? '#' + versionName.take(12) : ''}"/></render-mode></widgets>
                         <fail-widgets><include-screen location="${wikiSpace.decoratorScreenLocation}"/></fail-widgets>
                     </section>
                     <section name="ResetBaseLink"><actions><script>sri.baseLinkUrl(null)</script></actions><widgets/></section>
@@ -368,7 +370,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </actions><widgets><container>
                         <section name="PageVersionSection" condition="wph.versionName"><widgets>
                             <container>
-                                <link url="." text="Version ${wph.versionName}" link-type="anchor"><parameter name="versionName" from="wph.versionName"/></link>
+                                <link url="." text="Version ${wph.versionName.take(12)}" link-type="anchor"><parameter name="versionName" from="wph.versionName"/></link>
                                 <label text=" published" condition="wph.versionName == publishedVersionName" style="text-success"/>
                             </container>
                             <container>

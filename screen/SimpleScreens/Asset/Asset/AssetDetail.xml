@@ -23,6 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
 
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
     <transition name="editContainer"><default-response url="//${appRoot}/Asset/Container/EditContainer"/></transition>
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
@@ -54,16 +55,25 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="assetTypeEnumId"><default-field title="Type">
                     <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                <field name="classEnumId"><default-field title="Class">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="AssetClass"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </default-field></field>
+                <field name="productId"><default-field title="Product">
+                    <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor" condition="productId"/>
+                    <!-- productId update not allowed (see mantle.product.AssetServices.update#Asset), to update productId also need to re-post asset GL tx, etc
+                    <drop-down allow-empty="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                    <link url="editProduct" text="Edit Product" link-type="anchor" parameter-map="[productId:asset.productId]" condition="asset.productId"/>
+                    -->
+                </default-field></field>
 
-                <field name="receivedDate"><default-field title="Received"><display/></default-field></field>
                 <field name="quantityOnHandTotal"><default-field title="QOH">
                     <display text="${ec.l10n.format(asset.quantityOnHandTotal, null)} (${product?.'Amount#moqui.basic.Uom'?.description?:'each'})"/></default-field></field>
                 <field name="availableToPromiseTotal"><default-field title="ATP">
                     <display text="${ec.l10n.format(asset.availableToPromiseTotal, null)} (${product?.'Amount#moqui.basic.Uom'?.description?:'each'})"/></default-field></field>
 
                 <field name="facilityId"><default-field title="Facility">
-                    <display-entity entity-name="mantle.facility.Facility" text="${facilityName} [${pseudoId}]"/>
-                </default-field></field>
+                    <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field></field>
                 <field name="locationSeqId"><default-field title="Location">
                     <display text="${asset.locationSeqId?:''} ${facilityLocation?.description?:''} [${facilityLocation?.areaId?:' '}:${facilityLocation?.aisleId?:' '}:${facilityLocation?.sectionId?:' '}:${facilityLocation?.levelId?:' '}:${facilityLocation?.positionId?:' '}]"/>
                 </default-field></field>
@@ -77,19 +87,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="productionRun" text="${asset.acquireWorkEffortId}" link-type="anchor" condition="asset.acquireWorkEffortId"
                             parameter-map="[workEffortId:asset.acquireWorkEffortId]"/></conditional-field></field>
 
-                <field name="classEnumId"><default-field title="Class">
-                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                        <set field="enumTypeId" value="AssetClass"/><set field="allowEmpty" value="true"/></widget-template-include>
-                </default-field></field>
-                <field name="productId"><default-field title="Product"><drop-down allow-empty="true">
-                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
-                    <link url="editProduct" text="Edit Product" link-type="anchor" parameter-map="[productId:asset.productId]" condition="asset.productId"/>
-                </default-field></field>
                 <field name="ownerPartyId"><default-field title="Owner Party">
                     <drop-down><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
-                <field name="acquiredDate"><default-field><date-time/></default-field></field>
-                <field name="manufacturedDate"><default-field><date-time/></default-field></field>
+                <field name="receivedDate"><default-field title="Received"><display/></default-field></field>
+                <field name="acquiredDate"><default-field title="Acquired"><date-time/></default-field></field>
+                <field name="manufacturedDate"><default-field title="Manufactured"><date-time/></default-field></field>
 
                 <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
                     <dynamic-options transition="getLotList" server-search="true" min-length="2"/></drop-down></default-field></field>
@@ -118,6 +121,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <display currency-unit-field="acquireCostUomId"/></conditional-field></field>
 
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+
+                <field-layout>
+                    <field-row><field-ref name="assetId"/><field-ref name="assetTypeEnumId"/></field-row>
+                    <field-ref name="classEnumId"/><field-ref name="productId"/>
+                    <field-row><field-ref name="quantityOnHandTotal"/><field-ref name="availableToPromiseTotal"/></field-row>
+                    <fields-not-referenced/>
+                </field-layout>
             </form-single>
         </row-col><row-col lg="7">
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>

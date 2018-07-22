@@ -35,6 +35,34 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none"/>
     </transition>
+    <transition name="getShippingOptions"><actions>
+        <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="shipOptsOut"
+                in-map="[shipmentId:shipmentId, getRates:true]"/>
+        <script>
+            outList = []
+            for (sop in shipOptsOut.shippingOptions) outList.add([value:"${sop.carrierPartyId}:${sop.shipmentMethodEnumId}".toString(),
+                    label:"${sop.description ? sop.description : (sop.carrierPartyId != '_NA_' ? (sop.carrierName + ' - ') : '') + sop.shipmentMethodDescription}${sop.shippingTotal != null ? ' ' + ec.l10n.format(sop.shippingTotal, '#,##0.00') : ''}".toString()])
+            ec.web.sendJsonResponse(outList)
+        </script>
+    </actions><default-response type="none"/></transition>
+    <transition name="getShipmentLabel" read-only="true">
+        <parameter name="shipmentId"/>
+        <parameter name="shipmentPackageSeqId"/>
+        <parameter name="shipmentRouteSegmentSeqId"/>
+        <parameter name="retLabel"/>
+        <actions>
+            <if condition="!shipmentId || !shipmentPackageSeqId || !shipmentRouteSegmentSeqId"><script>ec.web.sendError(404, 'ID not specified', null)</script><return/></if>
+            <entity-find-one entity-name="mantle.shipment.ShipmentPackageRouteSeg" value-field="sprs"/>
+            <if condition="retLabel == 'true'"><then>
+                <if condition="!sprs?.returnLabelUrl"><script>ec.web.sendError(404, 'No returnLabelUrl', null)</script><return/></if>
+                <script>ec.web.sendResourceResponse(sprs.returnLabelUrl)</script>
+            </then><else>
+                <if condition="!sprs?.labelUrl"><script>ec.web.sendError(404, 'No labelUrl', null)</script><return/></if>
+                <script>ec.web.sendResourceResponse(sprs.labelUrl)</script>
+            </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
 
     <widgets/>
 </screen>
