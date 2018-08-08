@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Dashboard" default-menu-index="1">
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <transition-include name="setActiveFacility" location="component://SimpleScreens/screen/SimpleScreens/Asset/Asset/SelectAsset.xml"/>
+
+    <transition name="checkScanInput" read-only="true">
+        <service-call name="mantle.facility.FacilityServices.get#ScannedIdGeneral"/>
+        <conditional-response url="../Asset/MoveAsset"><condition><expression>assetId</expression></condition></conditional-response>
+        <default-response url="../Asset/SelectAsset"/>
+    </transition>
+
+    <actions>
+        <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
+    </actions>
+    <widgets>
+        <container style="text-center">
+            <form-single name="ActiveFacilityForm" transition="setActiveFacility">
+                <field name="facilityId"><default-field title="Active Warehouse">
+                    <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                            parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Set WH"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="facilityId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+
+            <form-single name="ScanAssetForm" transition="checkScanInput" focus-field="scanId">
+                <field name="scanId"><default-field title="Scan Asset, Cont, Loc, Prod"><text-line size="16"/></default-field></field>
+                <field name="submitButton"><default-field title="Go"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="scanId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+
+            <container><link url="../Asset/SelectAsset" text="Select Move"/></container>
+            <container><link url="../Shipping/PickLocationMoves" text="Pick Moves Needed"/></container>
+        </container>
+    </widgets>
+</screen>

@@ -1,3 +1,4 @@
+<#assign dateFormat = dateFormat!"dd MMM yyyy">
 
 Invoice ${invoiceId}
 <#if (finalizedStatusHistoryList?size > 1)>

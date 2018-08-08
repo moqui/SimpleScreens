@@ -113,17 +113,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getPackageWeight" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
-
-    <transition name="getShippingOptions"><actions>
-        <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="shipOptsOut"
-                in-map="[shipmentId:shipmentId, getRates:true]"/>
-        <script>
-            outList = []
-            for (sop in shipOptsOut.shippingOptions) outList.add([value:"${sop.carrierPartyId}:${sop.shipmentMethodEnumId}".toString(),
-                label:"${sop.description ? sop.description : (sop.carrierPartyId != '_NA_' ? (sop.carrierName + ' - ') : '') + sop.shipmentMethodDescription}${sop.shippingTotal != null ? ' ' + ec.l10n.format(sop.shippingTotal, '#,##0.00') : ''}".toString()])
-            ec.web.sendJsonResponse(outList)
-        </script>
-    </actions><default-response type="none"/></transition>
+    <transition-include name="getShippingOptions" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
+    <transition-include name="getShipmentLabel" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
 
     <transition name="EmailMessage" read-only="true"><parameter name="emailMessageId"/><actions>
         <entity-find-one entity-name="moqui.basic.email.EmailMessage" value-field="emailMessage"/>
@@ -131,27 +122,19 @@ along with this software (see the LICENSE.md file). If not, see
     </actions><default-response type="none"/></transition>
     <transition name="ShipmentPick.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPick" url-type="plain">
-            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
-            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPick-${shipmentId}.pdf"/>
-        </default-response>
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPick-${shipmentId}.pdf"/></default-response>
     </transition>
     <transition name="ShipmentPack.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPack" url-type="plain">
-            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
-            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/>
-        </default-response>
-    </transition>
-    <transition name="ShipmentInsert.pdf">
-        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentInsert" url-type="plain">
-            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
-            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentInsert-${shipmentId}.pdf"/>
-        </default-response>
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/></default-response>
     </transition>
     <transition name="ShipmentByPackage.pdf">
         <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentByPackage" url-type="plain">
-            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
-            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentByPackage-${shipmentId}.pdf"/>
-        </default-response>
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentByPackage-${shipmentId}.pdf"/></default-response>
+    </transition>
+    <transition name="ShipmentInsert.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentInsert" url-type="plain">
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentInsert-${shipmentId}.pdf"/></default-response>
     </transition>
 
     <subscreens>
@@ -212,10 +195,15 @@ along with this software (see the LICENSE.md file). If not, see
                     in-map="[shipmentId:shipmentId, getRates:false]"/>
         </if>
 
-        <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
-
         <entity-find-count entity-name="mantle.shipment.ShipmentEmailMessage" count-field="emailMessageCount">
             <econdition field-name="shipmentId"/></entity-find-count>
+
+        <set field="getShipmentLabelPath" from="sri.buildUrl('getShipmentLabel').path"/>
+
+        <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
+        <!-- get network printers list now so if empty don't display network print options -->
+        <entity-find entity-name="moqui.basic.print.NetworkPrinter" list="networkPrinterList">
+            <order-by field-name="description,printerName"/></entity-find>
     </actions>
     <widgets>
         <container-row><row-col md="6">
@@ -270,13 +258,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </fail-widgets></section>
             </widgets></section>
 
-            <container-dialog id="PrintLabelsDialog" button-text="Print Labels" condition="hasAnyLabels">
+            <container-dialog id="PrintLabelsDialog" button-text="Net Print Labels" condition="hasAnyLabels &amp;&amp; networkPrinterList">
                 <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
                     <field name="shipmentId"><default-field><hidden/></default-field></field>
                     <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
-                        <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
-                            <entity-find entity-name="moqui.basic.print.NetworkPrinter">
-                                <order-by field-name="description,printerName"/></entity-find></entity-options>
+                        <list-options list="networkPrinterList" key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})"/>
                     </drop-down></default-field></field>
                     <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
                     <field name="returnLabels"><default-field title=""><radio no-current-selected-key="false">
@@ -284,6 +270,21 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
+            <section name="QzPrintLabelsSection" condition="hasAnyLabels"><widgets><render-mode><text type="vuet"><![CDATA[
+                <m-script>
+                    qzPrintAllLabels = function() {
+                        if (!moqui.webrootVue.qzVue || !moqui.printUrlLabel) { return };
+                        moqui.printUrlLabel([
+                        <#list packageRouteSegList! as packageRouteSeg>
+                            <#if packageRouteSeg.labelUrl?has_content>'${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                            <#if packageRouteSeg.returnLabelUrl?has_content>'${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                        </#list>
+                        ]);
+                    }
+                    <#if localPrintAllLabels! == true>qzPrintAllLabels();</#if>
+                </m-script>
+                <button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="qzPrintAllLabels();"><i class="glyphicon glyphicon-print"></i> All Labels</button>
+            ]]></text></render-mode></widgets></section>
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="ShipPackedInSection" condition="isIncoming"><widgets>
                     <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
@@ -347,10 +348,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="cancelShipment" text="Cancel Shipment"/>
             </container-dialog>
             <section name="OutgoingTransferSection" condition="isOutgoing || isTransfer"><widgets>
-                <link url="ShipmentPick.pdf" text="Pick PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
-                <link url="ShipmentPack.pdf" text="Pack PDF" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
-                <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
-                <link url="ShipmentInsert.pdf" text="Insert PDF" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
+                <link url="ShipmentPick.pdf" text="Pick" icon="glyphicon glyphicon-download" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
+                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPick?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Pick</button>]]></text></render-mode>
+                <link url="ShipmentPack.pdf" text="Pack" icon="glyphicon glyphicon-download" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
+                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPack?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Pack</button>]]></text></render-mode>
+                <link url="ShipmentByPackage.pdf" text="Package" icon="glyphicon glyphicon-download" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
+                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentByPackage?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Package</button>]]></text></render-mode>
+                <link url="ShipmentInsert.pdf" text="Insert" icon="glyphicon glyphicon-download" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
+                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentInsert?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Insert</button>]]></text></render-mode>
             </widgets></section>
 
             <section-iterate name="OrderLinks" list="orderIdSet" entry="orderId"><widgets>
@@ -1161,12 +1166,16 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="${packageRouteSeg.returnTrackingUrl}" text="Carrier Ret Track" url-type="plain" btn-type="info"
                                 target-window="_blank" condition="packageRouteSeg?.returnTrackingUrl"/>
 
-                        <link url="${packageRouteSeg.labelUrl}" text="Download Label" url-type="plain" target-window="_blank"
-                                btn-type="success" condition="packageRouteSeg?.labelUrl"/>
-                        <link url="${packageRouteSeg.returnLabelUrl}" text="Download Ret Label" url-type="plain" target-window="_blank"
-                                btn-type="info" condition="packageRouteSeg?.returnLabelUrl"/>
-                        <container-dialog id="PrintLabelDialog" button-text="Print Label" type="success"
-                                condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null">
+                        <link url="${packageRouteSeg.labelUrl}" text="Label" url-type="plain" target-window="_blank"
+                                btn-type="info" icon="glyphicon glyphicon-download" condition="packageRouteSeg?.labelUrl"/>
+                        <section name="QzPrintLabelSection" condition="packageRouteSeg?.labelUrl"><widgets><render-mode>
+                            <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Label</button>]]></text></render-mode></widgets></section>
+                        <link url="${packageRouteSeg.returnLabelUrl}" text="Ret Label" url-type="plain" target-window="_blank"
+                                btn-type="info" icon="glyphicon glyphicon-download" condition="packageRouteSeg?.returnLabelUrl"/>
+                        <section name="QzPrintRetLabelSection" condition="packageRouteSeg?.returnLabelUrl"><widgets><render-mode>
+                            <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Ret Lbl</button>]]></text></render-mode></widgets></section>
+                        <container-dialog id="PrintLabelDialog" button-text="Net Print" type="success"
+                                condition="(packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null) &amp;&amp; networkPrinterList">
                             <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
                                 <field name="shipmentPackageSeqId" from="shipmentPackage.shipmentPackageSeqId">
@@ -1174,9 +1183,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="shipmentRouteSegmentSeqId" from="packageRouteSeg.shipmentRouteSegmentSeqId">
                                     <default-field><hidden/></default-field></field>
                                 <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
-                                    <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
-                                        <entity-find entity-name="moqui.basic.print.NetworkPrinter">
-                                            <order-by field-name="description,printerName"/></entity-find></entity-options>
+                                    <list-options list="networkPrinterList" key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})"/>
                                 </drop-down></default-field></field>
                                 <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
                                 <field name="returnLabels"><default-field title=""><radio no-current-selected-key="false">

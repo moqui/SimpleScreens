@@ -25,9 +25,25 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
+        <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
+        <if condition="facilityId"><entity-find-one entity-name="mantle.facility.Facility" value-field="facility"/></if>
     </actions>
     <widgets>
-        <form-list name="PickMoveList" list="pickMoveList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true">
+        <section name="ScanInputAndFacility" condition="facility == null"><widgets>
+            <form-single name="ActiveFacilityForm" transition="setActiveFacility">
+                <field name="facilityId"><default-field title="Active Warehouse">
+                    <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                            parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Set WH"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="facilityId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </widgets><fail-widgets>
+            <label text="Facility " type="strong" condition="facility"/>
+            <label text="${ec.resource.expand('FacilityNameTemplate', null, facility)}" type="span" condition="facility"/>
+        </fail-widgets></section>
+
+        <form-list name="PickMoveList" list="pickMoveList" skip-form="true" paginate-always-show="false">
             <entity-find entity-name="mantle.product.issuance.AssetAndReservationSummary" list="pickMoveList">
                 <search-form-inputs default-order-by="-quantity"/>
                 <econdition field-name="locationTypeEnumId" operator="not-equals" value="FltPick" or-null="true"/>
@@ -52,17 +68,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </if>
             </row-actions>
 
-            <field name="facilityId">
-                <header-field title="Facility" show-order-by="true"><drop-down allow-empty="true">
-                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/>
-                </drop-down></header-field>
-                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
-            </field>
-            <field name="productId"><header-field title="Product">
-                <drop-down allow-multiple="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
-            </header-field><default-field>
-                <link url="editProduct" entity-name="mantle.product.Product" text="ProductNameTemplate" link-type="anchor"/>
-            </default-field></field>
+            <field name="productId"><header-field title="Product"/>
+                <default-field><link url="editProduct" entity-name="mantle.product.Product" text="ProductNameTemplate" link-type="anchor"/></default-field></field>
 
             <field name="locationSeqId"><default-field title="Location">
                 <display text="${locationSeqId?:''} ${description?:''} [${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}]"/></default-field></field>
@@ -74,8 +81,6 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="lotId"><default-field title="Lot">
                 <display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field></field>
 
-            <field name="assetId"><default-field title="Asset">
-                <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
             <field name="quantity"><header-field title="Res Qty" show-order-by="true"/>
                 <default-field><display/></default-field></field>
             <field name="quantityOnHandTotal"><default-field title="QOH"><display/></default-field></field>
@@ -92,16 +97,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="moveAsset" text="Move Asset" condition="assetId"/>
             </default-field></field>
 
-            <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
-
-            <form-list-column><field-ref name="facilityId"/></form-list-column>
-            <form-list-column><field-ref name="productId"/></form-list-column>
-            <form-list-column><field-ref name="locationSeqId"/></form-list-column>
-            <form-list-column><field-ref name="locationTypeEnumId"/></form-list-column>
-            <form-list-column><field-ref name="quantity"/></form-list-column>
-            <form-list-column><field-ref name="quantityOnHandTotal"/></form-list-column>
-            <form-list-column><field-ref name="recLocations"/></form-list-column>
-            <form-list-column><field-ref name="moveLink"/></form-list-column>
+            <form-list-column><field-ref name="productId"/><field-ref name="locationSeqId"/><field-ref name="locationTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="quantity"/><field-ref name="quantityOnHandTotal"/></form-list-column>
+            <form-list-column><field-ref name="recLocations"/><field-ref name="moveLink"/></form-list-column>
         </form-list>
     </widgets>
 </screen>

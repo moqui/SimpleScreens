@@ -19,7 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateOrderHeader"><service-call name="mantle.order.OrderServices.update#OrderHeader"/>
         <default-response url="."/></transition>
-    <transition name="placeOrder"><service-call name="mantle.order.OrderServices.place#Order"/>
+    <transition name="placeOrder"><service-call name="mantle.order.OrderServices.place#Order" in-map="context + [requireInventory:false]"/>
         <default-response url="."/></transition>
     <transition name="approveOrder"><service-call name="mantle.order.OrderServices.approve#Order"/>
         <default-response url="."/></transition>
@@ -810,7 +810,8 @@ along with this software (see the LICENSE.md file). If not, see
                                         <dynamic-options transition="getShippingOptions"/>
                                     </drop-down>
                                 </conditional-field>
-                                <default-field><ignored/></default-field>
+                                <default-field title="Shipment Method">
+                                    <display text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}"/></default-field>
                             </field>
                             <field name="submitButton">
                                 <conditional-field condition="orderPartInfo.partEditable" title="Set Shipping Address and Info">
@@ -837,6 +838,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="orderId"><default-field><hidden/></default-field></field>
                         <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
                         <field name="updateExisting"><default-field><hidden default-value="false"/></default-field></field>
+                        <field name="requireInventory"><default-field><hidden default-value="false"/></default-field></field>
 
                         <field name="assetClassEnumId"><default-field title="Asset Class">
                             <drop-down allow-empty="true" no-current-selected-key="AsClsInventoryFin">
@@ -884,6 +886,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <form-single name="AddOtherItemForm" transition="createItem" focus-field="itemTypeEnumId">
                         <field name="orderId"><default-field><hidden/></default-field></field>
                         <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
+                        <field name="requireInventory"><default-field><hidden default-value="false"/></default-field></field>
 
                         <field name="parentItemSeqId"><default-field title="Parent Item"><drop-down allow-empty="true">
                             <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId} - ${itemDescription}"/>
@@ -979,7 +982,11 @@ along with this software (see the LICENSE.md file). If not, see
                             <set field="newerThanExpireDate" from="issuanceLotList[0].expirationDate ?: issuanceLotList[0].expectedEndOfLife"/></if>
                     </if>
                 </row-actions>
-                <field name="orderId"><default-field><hidden/></default-field></field>
+
+                <hidden-parameters>
+                    <parameter name="orderId"/>
+                    <parameter name="requireInventory" value="false"/>
+                </hidden-parameters>
 
                 <field name="orderItemSeqId"><default-field title="Item" container-style="${parentItemSeqId ? 'text-info' : ''}"><display/></default-field></field>
                 <field name="orderPartSeqId" align="center">
@@ -1088,7 +1095,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <conditional-field condition="orderItem.productId &amp;&amp; orderPartInfo.isVendorInternalOrg">
                         <section-iterate name="ReservationInfoSection" list="resInfoList" entry="resInfo"><widgets><container>
                             <link url="assetDetail" text="Asset ${resInfo.existingRes.assetId}" parameter-map="[assetId:resInfo.existingRes.assetId]" link-type="anchor"/>
-                            <label text=" Res: ${ec.l10n.format(resInfo.existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(resInfo.existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(resInfo.existingRes.quantityNotIssued, null)}" type="span"/>
+                            <label text=" - Res: ${ec.l10n.format(resInfo.existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(resInfo.existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(resInfo.existingRes.quantityNotIssued, null)}"
+                                    type="span" style="${resInfo.existingRes.quantityNotAvailable ? 'text-danger' : ''}"/>
                             <container>
                                 <label text="Lot" type="strong" condition="resInfo.assetLot?.lotId"/>
                                 <label text="${ec.resource.expand('LotNameTemplate', '', resInfo.assetLot)}" condition="resInfo.assetLot?.lotId"/>

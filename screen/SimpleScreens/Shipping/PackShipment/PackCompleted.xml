@@ -17,8 +17,12 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="shipmentId" required="true"/>
 
-    <transition name="completeShipmentPack"><service-call name="mantle.shipment.ShipmentServices.complete#ShipmentPack"/>
-        <default-response url=".."/></transition>
+    <transition name="completeShipmentPack">
+        <service-call name="mantle.shipment.ShipmentServices.complete#ShipmentPack"/>
+        <actions><if condition="localQzPrint == 'true' &amp;&amp; !ec.getMessage().hasError()">
+            <script>ec.web.sessionAttributes.put('qzPackShipment' + shipmentId, true)</script></if></actions>
+        <default-response url=".."/>
+    </transition>
 
     <actions>
         <entity-find entity-name="mantle.shipment.ShipmentRouteSegment" list="shipmentRouteSegmentList">
@@ -93,6 +97,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <order-by field-name="description,printerName"/></entity-find></entity-options>
             </drop-down></default-field></field>
             <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
+
+            <field name="localQzPrint"><default-field title="Local Print"><check all-checked="true">
+                <option key="true" text="(only if QZ Print setup)"/></check></default-field></field>
 
             <field name="submitButtom"><default-field title="Complete Pack"><submit/></default-field></field>
         </form-single>
