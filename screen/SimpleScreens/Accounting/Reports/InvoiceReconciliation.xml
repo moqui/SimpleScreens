@@ -98,15 +98,20 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
                 <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
                 <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+                <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
                 <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
                 <econditions combine="or">
+                    <!-- TODO need to constrain to itemsTotal != (amountApplied + toAmountApplied), also can't do in post filter with current entity-find under form-list -->
                     <econdition field-name="itemsTotal" operator="not-equals" to-field-name="amountApplied"/>
-                    <econdition field-name="amountApplied" operator="is-null"/>
+                    <econditions combine="and">
+                        <econdition field-name="amountApplied" operator="is-null"/>
+                        <econdition field-name="toAmountApplied" operator="is-null"/>
+                    </econditions>
                 </econditions>
-                <select-field field-name="invoiceId,itemsTotal,amountApplied"/>
+                <select-field field-name="invoiceId,itemsTotal,amountApplied,toAmountApplied"/>
             </entity-find>
             <set field="itemsTotalSum" from="invoiceAgingList.sum({ it.itemsTotal ?: 0.0 }) ?: 0.0"/>
-            <set field="amountAppliedSum" from="invoiceAgingList.sum({ it.amountApplied ?: 0.0 }) ?: 0.0"/>
+            <set field="amountAppliedSum" from="(invoiceAgingList.sum({ it.amountApplied ?: 0.0 }) ?: 0.0) + (invoiceAgingList.sum({ it.toAmountApplied ?: 0.0 }) ?: 0.0)"/>
             <set field="invoiceUnpaid" from="itemsTotalSum - amountAppliedSum"/>
 
             <entity-find entity-name="mantle.ledger.report.GlAccountOrgTimePeriodDetail" list="glSummaryList">
