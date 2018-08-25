@@ -226,24 +226,29 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-single>
                 </container-dialog>
             </box-toolbar><box-body-nopad>
-                <form-list name="FeaturesForm" list="pfaaList" transition="updateProductFeatureAppl">
+                <form-list name="FeaturesForm" list="pfaaList" transition="updateProductFeatureAppl" multi="true">
                     <entity-find entity-name="mantle.product.feature.ProductFeatureAndAppl" list="pfaaList">
                         <date-filter/><econdition field-name="productId"/>
-                        <select-field field-name="description,abbrev"/>
-                        <order-by field-name="productFeatureTypeEnumId,description"/>
+                        <select-field field-name="productId,description,abbrev"/>
+                        <order-by field-name="sequenceNum,productFeatureTypeEnumId,description"/>
                     </entity-find>
+                    <hidden-parameters><parameter name="productId"/></hidden-parameters>
+                    <field name="fromDate"><default-field><hidden/></default-field></field>
 
-                    <field name="productId"><default-field><hidden/></default-field></field>
                     <field name="productFeatureTypeEnumId"><default-field title="Type">
                         <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                    <field name="sequenceNum"><default-field title="Seq #"><text-line size="4"/></default-field></field>
                     <field name="productFeatureId"><default-field title="Feature"><display text=" "/>
                         <link url="editFeature" text="ProductFeatureNameTemplate" link-type="anchor"/>
                     </default-field></field>
                     <field name="applTypeEnumId"><default-field title="Appl. Type">
                         <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
-                    <field name="fromDate"><default-field><hidden/></default-field></field>
-                    <field name="thruDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
-                    <field name="submitButton"><default-field title="Unapply"><submit confirmation="Remove this feature?"/></default-field></field>
+
+                    <field name="removeButton"><default-field title="">
+                        <link url="updateProductFeatureAppl" icon="glyphicon glyphicon-trash" confirmation="Remove this feature?"
+                                parameter-map="[productId:productId, productFeatureId:productFeatureId, fromDate:fromDate, thruDate:ec.user.nowTimestamp]"/>
+                    </default-field></field>
+                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
 
