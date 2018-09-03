@@ -173,7 +173,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <link url="placeOrder" text="Place Order Anyway" link-type="hidden-form"/>
                     </container-dialog>
                 </widgets></section>
-                <section name="ApproveSection" condition="orderHeader.statusId  in ['OrderPlaced', 'OrderProcessing', 'OrderHold']"><widgets>
+                <section name="ApproveSection" condition="orderHeader.statusId in ['OrderPlaced', 'OrderProcessing', 'OrderHold']"><widgets>
                     <link url="approveOrder" text="Approve" link-type="hidden-form" style="btn-success"
                             condition="ec.user.hasPermission('ORDER_APPROVE') &amp;&amp; !approveWarnings"/>
                     <container-dialog id="ApproveOrderDialog" button-text="Approve Warnings" condition="approveWarnings" type="success">
@@ -588,9 +588,6 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-single>
                     </container-dialog>
 
-                    <link url="completeOrderPart" text="Complete Part" link-type="hidden-form"
-                            parameter-map="[orderPartSeqId:orderPart.orderPartSeqId]"
-                            condition="orderPartInfo.orderPart.statusId in ['OrderApproved', 'OrderSent']"/>
                     <link url="invoiceOrderPart" text="Create Invoice" link-type="hidden-form"
                             parameter-map="[orderPartSeqId:orderPart.orderPartSeqId]"
                             condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId)"/>
@@ -602,6 +599,17 @@ along with this software (see the LICENSE.md file). If not, see
                     <container type="dl" style="dl-horizontal">
                         <label text="Part Total" type="dt"/>
                         <label text="${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0, orderHeader?.currencyUomId)}" type="dd"/>
+                        <label text="Part Status" type="dt"/>
+                        <container type="dd">
+                            <label text="${orderPartInfo.partStatusItem?.description ?: ''}"/>
+                            <link url="approveOrder" text="Approve Part" link-type="hidden-form-link"
+                                    condition="orderHeader.statusId == 'OrderApproved' &amp;&amp; orderPartInfo.orderPart.statusId in ['OrderPlaced', 'OrderProcessing', 'OrderHold'] &amp;&amp; ec.user.hasPermission('ORDER_APPROVE')"
+                                    parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"/>
+                            <link url="completeOrderPart" text="Complete Part" link-type="hidden-form-link"
+                                    parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"
+                                    condition="orderPartInfo.orderPart.statusId in ['OrderApproved', 'OrderSent']"
+                                    confirmation="Force complete order part? This normally happens automatically and only when all items are shipped."/>
+                        </container>
                         <label text="Customer" type="dt"/>
                         <container type="dd">
                             <link url="editParty" text="PartyNameTemplate" text-map="orderPartInfo.customerDetail"
@@ -626,18 +634,22 @@ along with this software (see the LICENSE.md file). If not, see
                         </container>
                         <label text="Ship Method" type="dt"/>
                         <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="dd"/>
-                        <label text="Ship After" type="dt"/>
-                        <label text="${ec.l10n.format(orderPartInfo.orderPart.shipAfterDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"/>
+                        <label text="Ship After" type="dt" condition="orderPartInfo.orderPart.shipAfterDate"/>
+                        <label text="${ec.l10n.format(orderPartInfo.orderPart.shipAfterDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
+                                condition="orderPartInfo.orderPart.shipAfterDate"/>
                         <label text="Ship Before" type="dt"/>
                         <label text="${ec.l10n.format(orderPartInfo.orderPart.shipBeforeDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"/>
-                        <label text="Delivery Date" type="dt"/>
-                        <label text="${ec.l10n.format(orderPartInfo.orderPart.estimatedDeliveryDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"/>
-                        <label text="Pick Up Date" type="dt"/>
-                        <label text="${ec.l10n.format(orderPartInfo.orderPart.estimatedPickUpDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"/>
+                        <label text="Delivery Date" type="dt" condition="orderPartInfo.orderPart.estimatedDeliveryDate"/>
+                        <label text="${ec.l10n.format(orderPartInfo.orderPart.estimatedDeliveryDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
+                                condition="orderPartInfo.orderPart.estimatedDeliveryDate"/>
+                        <label text="Pick Up Date" type="dt" condition="orderPartInfo.orderPart.estimatedPickUpDate"/>
+                        <label text="${ec.l10n.format(orderPartInfo.orderPart.estimatedPickUpDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
+                                condition="orderPartInfo.orderPart.estimatedPickUpDate"/>
                         <label text="Other Party Order ID" type="dt"/>
                         <label text="${orderPartInfo.orderPart.otherPartyOrderId ?: '\u00a0'}" type="dd"/>
-                        <label text="Other Party Order Date" type="dt"/>
-                        <label text="${ec.l10n.format(orderPartInfo.orderPart.otherPartyOrderDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"/>
+                        <label text="Other Party Order Date" type="dt" condition="orderPartInfo.orderPart.otherPartyOrderDate"/>
+                        <label text="${ec.l10n.format(orderPartInfo.orderPart.otherPartyOrderDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
+                                condition="orderPartInfo.orderPart.otherPartyOrderDate"/>
                         <section name="DuplicatesByOtherPartyOrderIdSection" condition="orderPartInfo.duplicateOrderPartList"><widgets>
                             <label text="Duplicate Order Parts" type="dt" style="text-danger"/>
                             <label text="${orderPartInfo.duplicateOrderPartList.collect({ it.orderId + ':' + it.orderPartSeqId }).join(', ')}" type="dd" style="text-danger"/>
