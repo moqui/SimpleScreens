@@ -789,7 +789,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <set field="contactInfo" from="postalAddressInfo"/>
                                 <set field="checkRadio" from="(orderPart.postalContactMechId &amp;&amp; orderPart.postalContactMechId == contactInfo.postalContactMechId) || (!orderPart.postalContactMechId &amp;&amp; postalAddressInfo_index == 0)"/>
                             </actions><widgets>
-                                <container type="li" style="box-narrow">
+                                <container type="li" style="box-narrow${checkRadio ? ' active' : ''}">
                                     <render-mode><text type="html,vuet"><![CDATA[
                                         <div class="text-center"><input type="radio" name="shippingPostalContactMechId_${orderPartInfo_index}" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
                                     ]]></text></render-mode>
@@ -800,12 +800,13 @@ along with this software (see the LICENSE.md file). If not, see
                                                 postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, orderId:orderId,
                                                 facilityId:contactInfo.facilityId]"/>
                                     <container>
-                                        <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
+                                        <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}${contactInfo.postalContactMech.validateMessage?'*':''}"
+                                                type="strong" tooltip="${contactInfo.postalContactMech.validateMessage?:''}"/>
                                         <link url="validateAddress" text="Validate"
                                                 parameter-map="[orderId:orderId, partyId:customerPartyId, facilityId:contactInfo.facilityId, contactMechId:contactInfo.postalContactMechId]"
                                                 condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
                                     </container>
-                                    <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
+                                    <!-- Now in tooltip on Trust label: <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/> -->
                                 </container>
                             </widgets></section-iterate>
                         </container>

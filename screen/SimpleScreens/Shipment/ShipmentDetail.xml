@@ -414,7 +414,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <section-iterate name="ShippingAddressDestList" list="shippingPostalAddressList" entry="contactInfo"><actions>
                         <set field="checkRadio" from="(lastRouteSegment.destPostalContactMechId &amp;&amp; lastRouteSegment.destPostalContactMechId == contactInfo.postalContactMechId)"/>
                     </actions><widgets>
-                        <container type="li" style="box-narrow">
+                        <container type="li" style="box-narrow${checkRadio ? ' active' : ''}">
                             <render-mode><text type="html,vuet"><![CDATA[
                                 <div class="text-center"><input type="radio" name="shippingPostalContactMechId" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
                             ]]></text></render-mode>
@@ -425,12 +425,13 @@ along with this software (see the LICENSE.md file). If not, see
                                             postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, shipmentId:shipmentId]"/>
 
                             <container>
-                                <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
+                                <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}${contactInfo.postalContactMech.validateMessage?'*':''}"
+                                        type="strong" tooltip="${contactInfo.postalContactMech.validateMessage?:''}"/>
                                 <link url="validateAddress" text="Validate"
                                         parameter-map="[shipmentId:shipmentId, partyId:toPartyId, contactMechId:contactInfo.postalContactMechId]"
                                         condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
                             </container>
-                            <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
+                            <!-- Now in tooltip on Trust label: <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/> -->
                         </container>
                     </widgets></section-iterate>
                 </container>
@@ -459,7 +460,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <section-iterate name="ShippingAddressOriginList" list="shippingPostalAddressList" entry="contactInfo"><actions>
                         <set field="checkRadio" from="(firstRouteSegment.originPostalContactMechId &amp;&amp; firstRouteSegment.originPostalContactMechId == contactInfo.postalContactMechId)"/>
                     </actions><widgets>
-                        <container type="li" style="box-narrow">
+                        <container type="li" style="box-narrow${checkRadio ? ' active' : ''}">
                             <render-mode><text type="html,vuet"><![CDATA[
                                 <div class="text-center"><input type="radio" name="shippingPostalContactMechId" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
                             ]]></text></render-mode>
@@ -470,12 +471,13 @@ along with this software (see the LICENSE.md file). If not, see
                                             postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, shipmentId:shipmentId]"/>
 
                             <container>
-                                <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
+                                <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}${contactInfo.postalContactMech.validateMessage?'*':''}"
+                                        type="strong" tooltip="${contactInfo.postalContactMech.validateMessage?:''}"/>
                                 <link url="validateAddress" text="Validate"
                                         parameter-map="[shipmentId:shipmentId, partyId:fromPartyId, contactMechId:contactInfo.postalContactMechId]"
                                         condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
                             </container>
-                            <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
+                            <!-- Now in tooltip on Trust label: <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/> -->
                         </container>
                     </widgets></section-iterate>
                 </container>
