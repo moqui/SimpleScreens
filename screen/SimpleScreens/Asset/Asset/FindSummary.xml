@@ -21,8 +21,11 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editContainer"><default-response url="//${appRoot}/Asset/Container/EditContainer"/></transition>
     <transition name="assetOnHand"><default-response url="//${appRoot}/Accounting/Reports/AssetOnHand"/></transition>
 
-    <transition name="receiveAsset"><service-call name="mantle.product.AssetServices.receive#Asset"/>
-        <default-response url="."/></transition>
+    <transition name="receiveAsset">
+        <service-call name="mantle.product.AssetServices.receive#Asset"/>
+        <default-response url="../AssetDetail"/>
+        <error-response url="."/>
+    </transition>
     <transition name="recordChange"><service-call name="mantle.product.AssetServices.record#PhysicalInventoryChange"/>
         <default-response url=".."/></transition>
 
@@ -48,7 +51,7 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="assetOnHand" text="On Hand Report"/>
 
         <container-dialog id="ReceiveAssetDialog" button-text="Receive Direct" width="800">
-            <label text="NOTE: only receive inventory here if there is no Purchase Order and no Incoming Shipment for the inventory." type="p"/>
+            <label text="NOTE: only receive inventory here if there is no Purchase Order and no Incoming Shipment for the inventory." type="p" style="text-warning"/>
             <form-single name="ReceiveAssetForm" transition="receiveAsset">
                 <field name="productId"><default-field title="Product*"><drop-down>
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></default-field></field>
@@ -77,12 +80,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="ownerPartyId"><default-field title="Owner">
                     <label text="Default Asset Owner (${ownerPartyId}) different from Facility owner (${destinationFacility.ownerPartyId}), if not consignment inventory change now" style="text-warning"
                             condition="ownerPartyId &amp;&amp; destinationFacility?.ownerPartyId &amp;&amp; ownerPartyId != destinationFacility.ownerPartyId"/>
+                    <label text="Asset Owner will default to Facility owner" condition="!ownerPartyId"/>
                     <drop-down allow-empty="true">
                         <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,OrgInternal']"/>
                     </drop-down>
                 </default-field></field>
-                <field name="acquireCost"><default-field tooltip="Defaults to Standard Cost or Price (Unit Amount) on related order item">
-                    <text-line size="8" format="#,##0.00"/></default-field></field>
+                <field name="acquireCost"><default-field><text-line size="8" format="#,##0.00"/></default-field></field>
 
                 <field name="quantity"><default-field title="Quantity*"><text-line size="8"/></default-field></field>
 
@@ -106,12 +109,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-layout>
                     <field-ref name="productId"/>
                     <field-row><field-ref name="statusId"/><field-ref name="receivedDate"/></field-row>
+                    <field-row><field-ref name="quantity"/></field-row>
+                    <field-ref name="facilityId"/>
+                    <field-ref name="locationSeqId"/><field-ref name="containerId"/>
                     <field-ref name="mfgPartyId"/><field-ref name="lotId"/><field-ref name="lotNumber"/>
                     <field-row><field-ref name="manufacturedDate"/><field-ref name="expectedEndOfLife"/></field-row>
-                    <field-ref name="ownerPartyId"/>
-                    <field-row><field-ref name="quantity"/><field-ref name="acquireCost"/></field-row>
-                    <field-row><field-ref name="facilityId"/></field-row>
-                    <field-ref name="locationSeqId"/><field-ref name="containerId"/>
+                    <field-ref name="acquireCost"/><field-ref name="ownerPartyId"/>
                     <field-ref name="comments"/>
                     <field-ref name="submitButton"/>
                 </field-layout>
