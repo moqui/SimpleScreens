@@ -634,6 +634,8 @@ along with this software (see the LICENSE.md file). If not, see
                         </container>
                         <label text="Ship Method" type="dt"/>
                         <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="dd"/>
+                        <label text="Carrier" type="dt" condition="orderPartInfo.carrierPartyDetail"/>
+                        <label text="${ec.resource.expand('PartyNameTemplate', null, orderPartInfo.carrierPartyDetail)}" type="dd" condition="orderPartInfo.carrierPartyDetail"/>
                         <label text="Ship After" type="dt" condition="orderPartInfo.orderPart.shipAfterDate"/>
                         <label text="${ec.l10n.format(orderPartInfo.orderPart.shipAfterDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
                                 condition="orderPartInfo.orderPart.shipAfterDate"/>
@@ -828,7 +830,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </drop-down>
                                 </conditional-field>
                                 <default-field title="Shipment Method">
-                                    <display text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}"/></default-field>
+                                    <display text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}${orderPartInfo.carrierPartyDetail ? ' - ' + ec.resource.expand('PartyNameTemplate', null, orderPartInfo.carrierPartyDetail) : ''}"/></default-field>
                             </field>
                             <field name="submitButton">
                                 <conditional-field condition="orderPartInfo.partEditable" title="Set Shipping Address and Info">

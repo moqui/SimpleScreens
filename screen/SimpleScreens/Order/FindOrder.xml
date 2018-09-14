@@ -266,6 +266,20 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
+            <field name="carrierPartyId"><header-field title="Carrier">
+                <drop-down allow-multiple="true" show-not="true">
+                    <option key="_NA_" text="N/A"/>
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="Carrier"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName,firstName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down>
+            </header-field><default-field>
+                <display-entity entity-name="mantle.party.Party" text="${carrierPartyId == '_NA_' ? 'N/A' : pseudoId}"/>
+            </default-field></field>
             <field name="shipments"><default-field>
                 <section-iterate name="ShipmentListSection" list="oissList" entry="oiss"><widgets><container>
                     <link url="shipmentDetail" link-type="anchor" text="${oiss.shipmentId}" parameter-map="[shipmentId:oiss.shipmentId]"/>
@@ -316,7 +330,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="productStoreId"/></form-list-column>
             <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
                 <field-ref name="otherParties"/></form-list-column>
-            <form-list-column><field-ref name="shipmentMethodEnumId"/><field-ref name="shipments"/></form-list-column>
+            <form-list-column><field-ref name="shipmentMethodEnumId"/><field-ref name="carrierPartyId"/>
+                <field-ref name="shipments"/></form-list-column>
             <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
