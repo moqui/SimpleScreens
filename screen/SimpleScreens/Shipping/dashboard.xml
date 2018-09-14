@@ -26,13 +26,13 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- Reservation Summary -->
         <entity-find entity-name="mantle.facility.FacilityShippingReservationSummary" list="fsrsList">
             <econdition field-name="partStatusId" value="OrderApproved"/>
-            <select-field field-name="facilityId,shipmentMethodEnumId,quantity,quantityNotAvailable,quantityNotIssued"/>
+            <select-field field-name="facilityId,shipmentMethodEnumId,carrierPartyId,quantity,quantityNotAvailable,quantityNotIssued"/>
         </entity-find>
         <!-- Reservation Summary for Pick Locations -->
         <entity-find entity-name="mantle.facility.FacilityShippingReservationSummary" list="fsrsPickList">
             <econdition field-name="partStatusId" value="OrderApproved"/>
             <econdition field-name="locationTypeEnumId" value="FltPick"/>
-            <select-field field-name="facilityId,shipmentMethodEnumId,quantity,quantityNotAvailable,quantityNotIssued"/>
+            <select-field field-name="facilityId,shipmentMethodEnumId,carrierPartyId,quantity,quantityNotAvailable,quantityNotIssued"/>
         </entity-find>
     </actions>
     <widgets>
@@ -51,7 +51,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <form-list name="FacilitySummary" list="facilitySummaryList" skip-form="true" paginate-always-show="false">
             <entity-find entity-name="mantle.facility.FacilityShippingSummary">
-                <search-form-inputs default-order-by="pseudoId,shipmentMethodSequenceNum"/>
+                <search-form-inputs default-order-by="pseudoId,shipmentMethodSequenceNum,carrierPartyId"/>
                 <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
                 <econdition field-name="partStatusId" value="OrderApproved"/>
                 <econdition field-name="itemTypeEnumId" operator="in" from="itemTypeEnumIdList"/>
@@ -62,8 +62,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find-one entity-name="moqui.basic.Enumeration" value-field="shipMethEnum" cache="true">
                     <field-map field-name="enumId" from="shipmentMethodEnumId"/></entity-find-one>
                 <!-- Reservation Summary -->
-                <set field="resSummary" from="fsrsList.find({ it.facilityId == facilityId &amp;&amp; it.shipmentMethodEnumId == shipmentMethodEnumId })"/>
-                <set field="resPickSummary" from="fsrsPickList.find({ it.facilityId == facilityId &amp;&amp; it.shipmentMethodEnumId == shipmentMethodEnumId })"/>
+                <set field="resSummary" from="fsrsList.find({ it.facilityId == facilityId &amp;&amp; it.shipmentMethodEnumId == shipmentMethodEnumId &amp;&amp; it.carrierPartyId == carrierPartyId})"/>
+                <set field="resPickSummary" from="fsrsPickList.find({ it.facilityId == facilityId &amp;&amp; it.shipmentMethodEnumId == shipmentMethodEnumId &amp;&amp; it.carrierPartyId == carrierPartyId})"/>
 
                 <set field="resQuantity" from="resSummary?.quantity ?: 0.0"/>
                 <set field="resPickQuantity" from="resPickSummary?.quantity ?: 0.0"/>
@@ -77,11 +77,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="Ship Method" show-order-by="true"/>
                 <default-field><display text="${shipmentMethodSequenceNum != null ? shipmentMethodSequenceNum + ' - ' : ''}${shipMethEnum?.description ?: ''}"/></default-field>
             </field>
+            <field name="carrierPartyId">
+                <header-field title="Carrier" show-order-by="true"/>
+                <default-field><display-entity entity-name="mantle.party.Party" text="${carrierPartyId == '_NA_' ? 'N/A' : pseudoId}"/></default-field>
+            </field>
             <field name="quantityTotal"><default-field title="Order Qty"><link url="findOrder" text="${quantityTotal}" link-type="anchor"
-                    parameter-map="[orderType:'Sales', statusId:'OrderApproved', facilityId:facilityId, shipmentMethodEnumId:shipmentMethodEnumId]"/></default-field></field>
+                    parameter-map="[orderType:'Sales', statusId:'OrderApproved', facilityId:facilityId, shipmentMethodEnumId:shipmentMethodEnumId, carrierPartyId:carrierPartyId]"/></default-field></field>
 
             <!-- reserved, not available, not issued -->
-            <field name="resQuantity"><default-field title="Res Qty"><display/></default-field></field>
+            <!-- really useful? <field name="resQuantity"><default-field title="Res Qty"><display/></default-field></field> -->
             <field name="quantityNotAvailable" from="resSummary?.quantityNotAvailable"><default-field title="Not Avail">
                 <display/></default-field></field>
             <field name="quantityNotIssued" from="resSummary?.quantityNotIssued"><default-field title="Not Issued">
