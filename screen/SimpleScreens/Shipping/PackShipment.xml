@@ -266,8 +266,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="shipmentPackageContentList" from="allShipmentPackageContentList.findAll({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId })"/>
                 <set field="packageRouteSeg" from="packageRouteSegList.find({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId &amp;&amp; it.shipmentRouteSegmentSeqId == firstRouteSegment.shipmentRouteSegmentSeqId })"/>
                 <set field="hasLabel" from="packageRouteSeg.gatewayLabelId || packageRouteSeg.labelImage != null || packageRouteSeg.labelUrl"/>
-                <set field="hasReturnLabel" from="packageRouteSeg.returnGatewayLabelId || packageRouteSeg.returnLabelImage != null || packageRouteSeg.returnLabelUrl"/>
+                <set field="hasReturnLabel" from="packageRouteSeg.returnTrackingCode || packageRouteSeg.returnGatewayLabelId || packageRouteSeg.returnLabelImage != null || packageRouteSeg.returnLabelUrl"/>
                 <set field="trackingStatusEnum" from="packageRouteSeg?.trackingStatusEnum"/>
+                <set field="returnTrackingStatusEnum" from="packageRouteSeg?.returnTrackingStatusEnum"/>
                 <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
             </actions><widgets>
                 <container-box type="${shipmentBoxType &amp;&amp; shipmentPackage.weight ? 'success' : (activePackageSeqId == shipmentPackage.shipmentPackageSeqId ? 'info' : 'warning')}">
@@ -300,6 +301,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="trackingCode"><default-field><text-line size="30"/></default-field></field>
                             <!-- <field name="boxNumber"><default-field><text-line size="8"/></default-field></field> -->
                             <field name="estimatedAmount"><default-field title="Est. Cost"><text-line size="10"/></default-field></field>
+                            <field name="returnTrackingCode"><default-field title="Return Tracking"><text-line size="30"/></default-field></field>
 
                             <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                         </form-single>
@@ -390,10 +392,18 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-row>
                     <section name="LabelRefundSection" condition="packageRouteSeg?.gatewayRefundId"><widgets>
                         <container-row>
-                            <row-col sm="1"><label text="Refund" type="strong"/></row-col>
-                            <row-col sm="1"><label text="${packageRouteSeg?.gatewayRefundStatus?:'N/A'}"/></row-col>
-                            <row-col sm="1"><label text="Refund ID" type="strong"/></row-col>
-                            <row-col sm="3"><label text="${packageRouteSeg?.gatewayRefundId?:'N/A'}"/></row-col>
+                            <row-col sm="2"><label text="Refund" type="strong"/></row-col>
+                            <row-col sm="2"><label text="${packageRouteSeg?.gatewayRefundStatus?:'N/A'}"/></row-col>
+                            <row-col sm="2"><label text="Refund ID" type="strong"/></row-col>
+                            <row-col sm="6"><label text="${packageRouteSeg?.gatewayRefundId?:'N/A'}"/></row-col>
+                        </container-row>
+                    </widgets></section>
+                    <section name="LabelReturnSection" condition="hasReturnLabel"><widgets>
+                        <container-row>
+                            <row-col sm="2"><label text="Ret Tracking" type="strong"/></row-col>
+                            <row-col sm="6"><label text="${packageRouteSeg?.returnTrackingCode?:'N/A'}"/></row-col>
+                            <row-col sm="2"><label text="Ret Status" type="strong" condition="returnTrackingStatusEnum"/></row-col>
+                            <row-col sm="2"><label text="${returnTrackingStatusEnum?.description?:'N/A'}" condition="returnTrackingStatusEnum"/></row-col>
                         </container-row>
                     </widgets></section>
                 </box-body><box-body-nopad>

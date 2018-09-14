@@ -107,7 +107,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="shipmentId"/><select-field field-name="orderId"/></entity-find>
                 <!-- Tracking codes from ShipmentPackageRouteSeg -->
                 <entity-find entity-name="mantle.shipment.ShipmentPackageRouteSeg" list="sprsList" distinct="true">
-                    <econdition field-name="shipmentId"/><select-field field-name="trackingCode"/></entity-find>
+                    <econdition field-name="shipmentId"/><select-field field-name="trackingCode,returnTrackingCode"/></entity-find>
                 <!-- Orders -->
                 <entity-find entity-name="mantle.order.OrderHeader" list="orderHeaderList">
                     <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
@@ -219,6 +219,7 @@ along with this software (see the LICENSE.md file). If not, see
             </default-field></field>
 
             <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field></field>
+            <field name="returnTrackingCode"><header-field title="Return Tracking"><text-find default-operator="begins"/></header-field></field>
             <field name="orderId"><header-field><text-find default-operator="begins"/></header-field></field>
             <field name="salesChannelEnumId"><header-field title="Order Source">
                 <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -226,8 +227,9 @@ along with this software (see the LICENSE.md file). If not, see
             </header-field></field>
 
             <field name="trackingCodes"><default-field>
-                <section-iterate name="TrackingSprsList" list="sprsList" entry="sprs"><widgets>
-                    <label text="${sprs.trackingCode?:''}"/></widgets></section-iterate>
+                <section-iterate name="TrackingSprsList" list="sprsList" entry="sprs"><widgets><container>
+                    <label text="${sprs.trackingCode?:''}${sprs.returnTrackingCode ? ' R: ' + sprs.returnTrackingCode :''}"/>
+                </container></widgets></section-iterate>
             </default-field></field>
             <field name="orderIds"><default-field title="Orders">
                 <section-iterate name="OrderSisList" list="orderHeaderList" entry="orderHeader"><widgets>
