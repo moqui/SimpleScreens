@@ -163,6 +163,14 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
                     <select-field field-name="partyId,pseudoId,firstName,lastName,organizationName,description"/>
                 </entity-find>
+                <!-- Total Quantity: query separate if findQuantity_from || findQuantity_thru, will be wrong if there are items filtered by this constraint -->
+                <if condition="findQuantity_from || findQuantity_thru">
+                    <entity-find entity-name="mantle.order.OrderItemSummary" list="totalQtyList">
+                        <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
+                        <select-field field-name="quantity"/>
+                    </entity-find>
+                    <if condition="totalQtyList"><set field="quantityTotal" from="totalQtyList[0].quantity"/></if>
+                </if>
             </row-actions>
 
             <field name="orderType"><header-field><radio no-current-selected-key="Any">
