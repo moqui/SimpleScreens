@@ -17,17 +17,18 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="assetDetail"><default-response url="//apps/${appRoot}/Asset/AssetDetail"/></transition>
     <transition name="editFacility"><default-response url="//apps/${appRoot}/Facility/EditFacility"/></transition>
-    <transition name="editInvoice"><default-response url="//apps/${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
     <transition name="orderDetail"><default-response url="//apps/${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//apps/${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="picklistDetail"><default-response url="//apps/${appRoot}/Shipping/Picklist/PicklistDetail"/></transition>
     <transition name="editRun"><default-response url="//apps/${appRoot}/Manufacturing/Run/EditRun"/></transition>
 
     <transition name="editParty"><default-response url="//apps/${appRoot}/Party/EditParty"/></transition>
     <transition name="editSupplier"><default-response url="//apps/${appRoot}/Supplier/EditSupplier"/></transition>
     <transition name="editCustomer"><default-response url="//apps/${appRoot}/Customer/EditCustomer"/></transition>
+    <transition name="editProduct"><default-response url="//apps/${appRoot}/Catalog/Product/EditProduct"/></transition>
 
     <transition name="editPayment"><default-response url="//apps/${appRoot}/Accounting/Payment/EditPayment"/></transition>
-    <transition name="editProduct"><default-response url="//apps/${appRoot}/Catalog/Product/EditProduct"/></transition>
-    <transition name="shipmentDetail"><default-response url="//apps/${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="editInvoice"><default-response url="//apps/${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
     <transition name="editTransaction"><default-response url="//apps/${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
 
     <actions>
@@ -258,6 +259,31 @@ along with this software (see the LICENSE.md file). If not, see
                     <row-col md="1"><label text="Destination" type="strong"/></row-col>
                     <row-col md="3"><link url="editFacility" text="${srs?.'Destination#mantle.facility.Facility'?.facilityName?:''}"
                             parameter-map="[facilityId:srs.destinationFacilityId]" link-type="anchor" condition="srs.destinationFacilityId"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="WorkEffortSection" condition="workEffort != null"><widgets>
+            <container-box><box-header title="Work Effort ${ec.resource.expand('WorkEffortNameTemplate','',workEffort)}"/><box-toolbar>
+                <link url="editRun" text="Production Run" condition="workEffort.purposeEnumId == 'WepProductionRun'"/>
+                <link url="picklistDetail" text="Picklist" condition="workEffort.purposeEnumId == 'WepShipmentShip'"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col lg="1"><label text="Type" type="strong"/></row-col>
+                    <row-col lg="2"><label text="${workEffort.'WorkEffortType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
+                    <row-col lg="1"><label text="Status" type="strong"/></row-col>
+                    <row-col lg="3"><label text="${workEffort.'WorkEffort#moqui.basic.StatusItem'?.description?:''}"/></row-col>
+                    <row-col lg="1"><label text="Name" type="strong"/></row-col>
+                    <row-col lg="4"><label text="${workEffort.workEffortName?:''}"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col lg="1"><label text="Purpose" type="strong"/></row-col>
+                    <row-col lg="2"><label text="${workEffort.'WorkEffortPurpose#moqui.basic.Enumeration'?.description?:''}"/></row-col>
+                    <row-col lg="1"><label text="Facility" type="strong"/></row-col>
+                    <row-col lg="3"><link url="editFacility" text="${workEffort?.'mantle.facility.Facility'?.facilityName?:''}"
+                            parameter-map="[facilityId:workEffort.facilityId]" link-type="anchor" condition="workEffort.facilityId"/></row-col>
+                    <row-col lg="1"><label text="Schedule" type="strong"/></row-col>
+                    <row-col lg="4"><label text="${ec.l10n.format(workEffort.estimatedStartDate, null)} ${workEffort.estimatedWorkDuration ? ec.l10n.format(workEffort.estimatedWorkDuration, null) + ' hours' : ''}"/></row-col>
                 </container-row>
             </box-body></container-box>
         </widgets></section>
