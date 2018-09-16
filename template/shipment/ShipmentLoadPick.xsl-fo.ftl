@@ -13,6 +13,8 @@ along with this software (see the LICENSE.md file). If not, see
 
 <#-- See the mantle.shipment.ShipmentServices.get#ShipmentPickPackInfo service for data preparation -->
 
+<#assign showByProductOtherLocations = false>
+
 <#assign cellPadding = "1pt">
 <#assign dateFormat = dateFormat!"dd MMM yyyy">
 <#assign dateTimeFormat = dateTimeFormat!"yyyy-MM-dd HH:mm">
@@ -145,12 +147,12 @@ along with this software (see the LICENSE.md file). If not, see
                         </fo:table-row>
                         <#if productInfo.reservedLocationInfoList?has_content><#list productInfo.reservedLocationInfoList as locationInfo>
                             <fo:table-row font-size="9pt">
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><#if !locationInfo.locationSeqId?has_content>No Location<#else><@encodeText locationInfo.description!" "/></#if></fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.levelId!" "}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.positionId!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><#if !locationInfo.locationSeqId?has_content>No Location<#else><@encodeText locationInfo.description!locationInfo.locationSeqId/></#if></fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.areaId!"-"}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.aisleId!"-"}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.sectionId!"-"}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.levelId!"-"}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.positionId!"-"}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${(locationInfo.container.serialNumber)!(locationInfo.container.containerId)!" "}</fo:block></fo:table-cell>
 
                                 <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
@@ -166,14 +168,14 @@ along with this software (see the LICENSE.md file). If not, see
                                 </fo:table-row>
                             </#list>
                         </#list></#if>
-                        <#if productInfo.otherLocationInfoList?has_content><#list productInfo.otherLocationInfoList as locationInfo>
+                        <#if showByProductOtherLocations && productInfo.otherLocationInfoList?has_content><#list productInfo.otherLocationInfoList as locationInfo>
                             <fo:table-row font-size="9pt" border-top="thin solid black">
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><#if !locationInfo.locationSeqId?has_content>No Location<#else><@encodeText locationInfo.description!" "/></#if></fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.levelId!" "}</fo:block></fo:table-cell>
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.positionId!" "}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.areaId!"-"}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.aisleId!"-"}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.sectionId!"-"}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.levelId!"-"}</fo:block></fo:table-cell>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.positionId!"-"}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${(locationInfo.container.serialNumber)!(locationInfo.container.containerId)!" "}</fo:block></fo:table-cell>
 
                                 <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
@@ -215,12 +217,12 @@ along with this software (see the LICENSE.md file). If not, see
     <fo:table-body>
     <#list locationInfoList as locationInfo>
         <fo:table-row font-size="9pt" border-top="solid black">
-            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><#if !locationInfo.locationSeqId?has_content>No Location<#else><@encodeText locationInfo.description!" "/></#if></fo:block></fo:table-cell>
-            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.areaId!" "}</fo:block></fo:table-cell>
-            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.aisleId!" "}</fo:block></fo:table-cell>
-            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.sectionId!" "}</fo:block></fo:table-cell>
-            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.levelId!" "}</fo:block></fo:table-cell>
-            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.positionId!" "}</fo:block></fo:table-cell>
+            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left"><#if !locationInfo.locationSeqId?has_content>No Location<#else><@encodeText locationInfo.description!locationInfo.locationSeqId/></#if></fo:block></fo:table-cell>
+            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.areaId!"-"}</fo:block></fo:table-cell>
+            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.aisleId!"-"}</fo:block></fo:table-cell>
+            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.sectionId!"-"}</fo:block></fo:table-cell>
+            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.levelId!"-"}</fo:block></fo:table-cell>
+            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${locationInfo.positionId!"-"}</fo:block></fo:table-cell>
             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center" font-weight="bold">${(locationInfo.container.serialNumber)!(locationInfo.container.containerId)!" "}</fo:block></fo:table-cell>
 
             <fo:table-cell padding="${cellPadding}" number-columns-spanned="3">
