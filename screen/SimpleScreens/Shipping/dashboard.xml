@@ -54,6 +54,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <search-form-inputs default-order-by="pseudoId,shipmentMethodSequenceNum,carrierPartyId"/>
                 <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
                 <econdition field-name="partStatusId" value="OrderApproved"/>
+                <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
                 <econdition field-name="itemTypeEnumId" operator="in" from="itemTypeEnumIdList"/>
                 <select-field field-name="facilityId,pseudoId,facilityName,shipmentMethodEnumId"/>
             </entity-find>
@@ -81,7 +82,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field title="Carrier" show-order-by="true"/>
                 <default-field><display-entity entity-name="mantle.party.Party" text="${carrierPartyId == '_NA_' ? 'N/A' : pseudoId}"/></default-field>
             </field>
-            <field name="quantityTotal"><default-field title="Open Order Qty"><link url="findOrder" text="${quantityTotal}" link-type="anchor"
+            <field name="quantityTotal"><default-field title="Appr Order Qty"><link url="findOrder" link-type="anchor"
+                    text="${ec.l10n.format(quantityTotal, '#,##0.###')}"
                     parameter-map="[orderType:'Sales', statusId:'OrderApproved', facilityId:facilityId, shipmentMethodEnumId:shipmentMethodEnumId, carrierPartyId:carrierPartyId]"/></default-field></field>
 
             <!-- reserved, not available, not issued -->
@@ -94,7 +96,7 @@ along with this software (see the LICENSE.md file). If not, see
             <!-- quantity in Pick locations -->
             <field name="resPickQuantity"><default-field title="Pick Loc Qty"><display style="${(resPickQuantity == resQuantity) ? 'text-success' : 'text-danger'}"/></default-field></field>
 
-            <!-- TODO: quantity on shipment/picklist -->
+            <!-- TODO: quantity on shipment and picklist? -->
         </form-list>
     </widgets>
 </screen>
