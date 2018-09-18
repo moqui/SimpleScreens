@@ -85,6 +85,15 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="!isOutgoing &amp;&amp; !isTransfer"><return error="true" message="Shipment ${shipmentId} is not an outgoing or transfer shipment"/></if>
         <set field="statusPrePacked" from="shipment.statusId in ['ShipInput', 'ShipScheduled', 'ShipPicked']"/>
 
+        <entity-find entity-name="mantle.facility.FacilityBoxTypeDetail" list="boxTypeList">
+            <econdition field-name="facilityId" from="firstRouteSegment.originFacilityId"/>
+            <order-by field-name="description"/>
+        </entity-find>
+        <if condition="!boxTypeList">
+            <entity-find entity-name="mantle.shipment.ShipmentBoxType" list="boxTypeList">
+                <order-by field-name="description"/></entity-find>
+        </if>
+
         <set field="shippingPostalAddressList" from="[]"/>
         <if condition="isOutgoing &amp;&amp; toPartyId">
             <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="toPartyShippingInfo"
@@ -239,9 +248,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="shipmentPackageSeqId"><default-field title="" container-style="text-strong">
                         <display text="Pkg ${shipmentPackageSeqId}"/></default-field></field>
                     <field name="shipmentBoxTypeId"><default-field title=""><drop-down allow-empty="true">
-                        <entity-options key="${shipmentBoxTypeId}" text="${pseudoId}: ${description}">
-                            <entity-find entity-name="mantle.shipment.ShipmentBoxType">
-                                <order-by field-name="description"/></entity-find></entity-options>
+                        <list-options list="boxTypeList" key="${shipmentBoxTypeId}" text="${pseudoId}: ${description}"/>
                     </drop-down></default-field></field>
                     <field name="weight"><default-field title=""><text-line size="4" default-transition="getPackageWeight"
                             parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackageSeqId]">
@@ -279,13 +286,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
                             <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
 
-                            <field name="shipmentBoxTypeId"><default-field title="Box Type">
-                                <drop-down allow-empty="true">
-                                    <entity-options key="${shipmentBoxTypeId}" text="${description}">
-                                        <entity-find entity-name="mantle.shipment.ShipmentBoxType">
-                                            <order-by field-name="description"/></entity-find></entity-options>
-                                </drop-down>
-                            </default-field></field>
+                            <field name="shipmentBoxTypeId"><default-field title="Box Type"><drop-down allow-empty="true">
+                                <list-options list="boxTypeList" key="${shipmentBoxTypeId}" text="${description}"/>
+                            </drop-down></default-field></field>
                             <field name="weightUomId"><default-field title="Weight UOM">
                                 <drop-down allow-empty="true" no-current-selected-key="WT_lb">
                                     <entity-options key="${uomId}" text="${description} (${abbreviation})">

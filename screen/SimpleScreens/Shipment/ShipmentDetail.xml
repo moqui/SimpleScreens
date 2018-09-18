@@ -148,6 +148,15 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.order.OrderNote" list="orderNoteList">
             <econdition field-name="orderId" operator="in" from="orderIdSet"/><order-by field-name="-noteDate"/></entity-find>
 
+        <entity-find entity-name="mantle.facility.FacilityBoxTypeDetail" list="boxTypeList">
+            <econdition field-name="facilityId" from="firstRouteSegment.originFacilityId"/>
+            <order-by field-name="description"/>
+        </entity-find>
+        <if condition="!boxTypeList">
+            <entity-find entity-name="mantle.shipment.ShipmentBoxType" list="boxTypeList">
+                <order-by field-name="description"/></entity-find>
+        </if>
+
         <set field="shippingPostalAddressList" from="[]"/>
         <if condition="isOutgoing &amp;&amp; toPartyId">
             <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="toPartyShippingInfo"
@@ -1090,13 +1099,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
                                 <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
 
-                                <field name="shipmentBoxTypeId"><default-field title="Box Type">
-                                    <drop-down allow-empty="true">
-                                        <entity-options key="${shipmentBoxTypeId}" text="${description}">
-                                            <entity-find entity-name="mantle.shipment.ShipmentBoxType">
-                                                <order-by field-name="description"/></entity-find></entity-options>
-                                    </drop-down>
-                                </default-field></field>
+                                <field name="shipmentBoxTypeId"><default-field title="Box Type"><drop-down allow-empty="true">
+                                    <list-options list="boxTypeList" key="${shipmentBoxTypeId}" text="${description}"/>
+                                </drop-down></default-field></field>
                                 <field name="weightUomId"><default-field title="Weight UOM">
                                     <drop-down allow-empty="true" no-current-selected-key="WT_lb">
                                         <entity-options key="${uomId}" text="${description} (${abbreviation})">
