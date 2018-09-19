@@ -22,6 +22,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="checkScanInput" read-only="true">
         <service-call name="mantle.facility.FacilityServices.get#ScannedIdGeneral"/>
         <conditional-response url="../Asset/MoveAsset"><condition><expression>assetId</expression></condition></conditional-response>
+        <!-- might be nice to do something like this, but likely sequenced ID collision with assetId, possibly containerId and productId too:
+            NOTE: would also need to add Shipment lookup and set shipmentId to FacilityServices.get#ScannedIdGeneral
+        <conditional-response url="../Shipping/PackShipment"><condition><expression>shipmentId</expression></condition></conditional-response>
+        -->
         <default-response url="../Asset/SelectAsset"/>
     </transition>
 
@@ -29,22 +33,34 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
     </actions>
     <widgets>
+        <container-row><row-col md="6">
+            <container style="text-center">
+                <form-single name="ActiveFacilityForm" transition="setActiveFacility">
+                    <field name="facilityId"><default-field title="Active Warehouse">
+                        <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                                parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
+                    </default-field></field>
+                    <field name="submitButton"><default-field title="Set WH"><submit/></default-field></field>
+                    <field-layout><field-row-big><field-ref name="facilityId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+                </form-single>
+
+                <form-single name="ScanAssetForm" transition="checkScanInput" focus-field="scanId">
+                    <field name="scanId"><default-field title="Scan Asset, Cont, Loc, or Prod"><text-line size="24"/></default-field></field>
+                    <field name="submitButton"><default-field title="Move"><submit/></default-field></field>
+                    <field-layout><field-row-big><field-ref name="scanId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+                </form-single>
+            </container>
+        </row-col><row-col md="6">
+            <container style="text-center">
+                <form-single name="PackShipmentForm" transition="../Shipping/PackShipment"><!-- scanId above is focus field, so don't: focus-field="shipmentId" -->
+                    <field name="shipmentId"><default-field title="Scan Shipment ID"><text-line size="20"/></default-field></field>
+                    <field name="packButton"><default-field title="Pack Shipment"><submit/></default-field></field>
+                    <field-layout><field-row-big><field-ref name="shipmentId"/><field-ref name="packButton"/></field-row-big></field-layout>
+                </form-single>
+            </container>
+        </row-col></container-row>
+
         <container style="text-center">
-            <form-single name="ActiveFacilityForm" transition="setActiveFacility">
-                <field name="facilityId"><default-field title="Active Warehouse">
-                    <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
-                            parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
-                </default-field></field>
-                <field name="submitButton"><default-field title="Set WH"><submit/></default-field></field>
-                <field-layout><field-row-big><field-ref name="facilityId"/><field-ref name="submitButton"/></field-row-big></field-layout>
-            </form-single>
-
-            <form-single name="ScanAssetForm" transition="checkScanInput" focus-field="scanId">
-                <field name="scanId"><default-field title="Scan Asset, Cont, Loc, Prod"><text-line size="16"/></default-field></field>
-                <field name="submitButton"><default-field title="Go"><submit/></default-field></field>
-                <field-layout><field-row-big><field-ref name="scanId"/><field-ref name="submitButton"/></field-row-big></field-layout>
-            </form-single>
-
             <container>
                 <link url="../Asset/SelectAsset" text="Select Move"/>
                 <link url="../Shipping/PickLocationMoves" text="Pick Moves Needed"/>
