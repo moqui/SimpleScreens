@@ -68,15 +68,15 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getShipmentLabel" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
 
     <transition name="ShipmentPack.pdf">
-        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPack" url-type="plain">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/ShipmentPack" url-type="plain">
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/></default-response>
     </transition>
     <transition name="ShipmentByPackage.pdf">
-        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentByPackage" url-type="plain">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/ShipmentByPackage" url-type="plain">
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentByPackage-${shipmentId}.pdf"/></default-response>
     </transition>
     <transition name="ShipmentInsert.pdf">
-        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentInsert" url-type="plain">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/ShipmentInsert" url-type="plain">
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentInsert-${shipmentId}.pdf"/></default-response>
     </transition>
 
@@ -159,7 +159,11 @@ along with this software (see the LICENSE.md file). If not, see
 
         <container-row><row-col lg="6">
             <container-row><row-col xs="4">
-                <container style="text-strong"><label text="Pack Shipment "/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></container>
+                <container style="text-strong">
+                    <label text="Pack Shipment "/>
+                    <link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/>
+                    <label text=" (${statusItem.description})" condition="statusItem"/>
+                </container>
             </row-col><row-col xs="8" style="text-right">
                 <!-- <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/> -->
                 <link url="ShipmentInsert.pdf" text="Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}" icon="glyphicon glyphicon-download"/>
@@ -224,18 +228,20 @@ along with this software (see the LICENSE.md file). If not, see
                 quantity input default 1 (with up/down buttons?)
                 package drop-down with active package selected
             -->
-            <form-single name="PackScanForm" transition="packShipmentProductScan" focus-field="scanInput">
-                <field name="shipmentId"><default-field><hidden/></default-field></field>
-                <field name="quantity" from="1"><default-field title=""><text-line size="4"/></default-field></field>
-                <field name="scanInput"><default-field title=""><text-line size="25"/></default-field></field>
-                <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title=""><drop-down>
-                    <option key="" text="New"/>
-                    <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
-                </drop-down></default-field></field>
-                <field name="packButton"><default-field title="Pack Item"><submit/></default-field></field>
-                <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="scanInput"/>
-                    <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
-            </form-single>
+            <section name="PackScanSection" condition="statusPrePacked"><widgets>
+                <form-single name="PackScanForm" transition="packShipmentProductScan" focus-field="scanInput">
+                    <field name="shipmentId"><default-field><hidden/></default-field></field>
+                    <field name="quantity" from="1"><default-field title=""><text-line size="4"/></default-field></field>
+                    <field name="scanInput"><default-field title=""><text-line size="25"/></default-field></field>
+                    <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title=""><drop-down>
+                        <option key="" text="New"/>
+                        <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                    </drop-down></default-field></field>
+                    <field name="packButton"><default-field title="Pack Item"><submit/></default-field></field>
+                    <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="scanInput"/>
+                        <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
+                </form-single>
+            </widgets></section>
 
             <!-- close package form, set current package box type and weight -->
             <!-- clears active package (if box type and weight specified) so next item scan goes in new package -->
