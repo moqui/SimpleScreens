@@ -36,6 +36,7 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <set field="excludeOnPicklist" from="excludeOnPicklist ?: 'true'"/>
         <set field="includeOnPicklist" from="excludeOnPicklist == 'false'"/>
+        <set field="excludeNotPickLoc" from="excludeNotPickLoc ?: 'true'"/>
 
         <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
             <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
@@ -62,7 +63,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="quantity" operator="greater-equals" from="findQuantity_from" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
                 <econdition field-name="shipWorkEffortId" operator="is-null" ignore="includeOnPicklist"/>
-                <select-field field-name="orderPartSeqId,shipmentMethodEnumId"/>
+                <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                <having-econditions>
+                    <econdition field-name="quantityTotal" to-field-name="resQuantity" ignore="excludeNotPickLoc == 'false'"/>
+                </having-econditions>
+                <select-field field-name="orderPartSeqId,shipmentMethodEnumId,quantityTotal,resQuantity"/>
             </entity-find>
             <row-actions>
                 <!-- Shipment method description -->
@@ -92,12 +97,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <if condition="totalQtyList"><set field="quantityTotal" from="totalQtyList[0].quantity"/></if>
                 </if>
                 <!-- Pick vs other location reservations - single value, could be optimized with sub-select -->
+                <!-- now in sub-select in main query so can be filtered by:
                 <entity-find entity-name="mantle.product.issuance.AssetAndReservationSummary" list="resPickLocList">
                     <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
                     <econdition field-name="locationTypeEnumId" value="FltPick"/>
                     <select-field field-name="quantity"/>
                 </entity-find>
                 <set field="resPickLocQuantity" from="resPickLocList.first()?.quantity ?: 0.0"/>
+                -->
+                <set field="resPickLocQuantity" from="resQuantity ?: 0.0"/>
                 <set field="_rowSubmit" from="(resPickLocQuantity == quantityTotal) ? 'true' : 'false'"/>
             </row-actions>
 
@@ -139,6 +147,9 @@ along with this software (see the LICENSE.md file). If not, see
                 </container></widgets></section-iterate>
             </default-field></field>
             <field name="excludeOnPicklist"><header-field title="Exclude On Picklist">
+                <radio><option key="true" text="Yes"/><option key="false" text="No"/></radio>
+            </header-field></field>
+            <field name="excludeNotPickLoc"><header-field title="Exclude Not in Pick Loc">
                 <radio><option key="true" text="Yes"/><option key="false" text="No"/></radio>
             </header-field></field>
 
