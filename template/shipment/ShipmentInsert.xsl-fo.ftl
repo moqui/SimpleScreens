@@ -29,17 +29,23 @@ along with this software (see the LICENSE.md file). If not, see
         </fo:simple-page-master>
     </fo:layout-master-set>
 
-    <@shipmentPackPageSequence context/>
+    <#if packageInfoList?has_content>
+        <#list packageInfoList as packageInfo>
+            <@shipmentPackPageSequence context packageInfo packageInfo_index/>
+        </#list>
+    <#else>
+        <@shipmentPackPageSequence context {} 0/>
+    </#if>
 </fo:root>
 
-<#macro shipmentPackPageSequence shipmentInfo>
+<#macro shipmentPackPageSequence shipmentInfo packageInfo packageInfo_index>
     <#assign shipment = shipmentInfo.shipment!>
     <#assign shipmentId = (shipment.shipmentId)!>
     <#assign fromPartyDetail = shipmentInfo.fromPartyDetail!>
     <#assign fromContactInfo = shipmentInfo.fromContactInfo!>
     <#assign toPartyDetail = shipmentInfo.toPartyDetail!>
     <#assign toContactInfo = shipmentInfo.toContactInfo!>
-    <#assign packageInfoList = shipmentInfo.packageInfoList!>
+    <#-- <#assign packageInfoList = shipmentInfo.packageInfoList!> -->
     <#assign productInfoList = shipmentInfo.productInfoList!>
 
     <fo:page-sequence master-reference="letter-portrait" initial-page-number="1" force-page-count="no-force">
@@ -89,7 +95,8 @@ along with this software (see the LICENSE.md file). If not, see
                     </#if>
                     <#if fromContactInfo.emailAddress?has_content> -- ${fromContactInfo.emailAddress}</#if>
                 </fo:block>
-                <fo:block text-align="center">Shipment #${shipmentId} -- <#if shipment.estimatedShipDate??>${ec.l10n.format(shipment.estimatedShipDate, dateFormat)} -- </#if>Printed ${ec.l10n.format(ec.user.nowTimestamp, dateTimeFormat)} -- Page <fo:page-number/></fo:block>
+                <#-- any point in page #?  -- Page <fo:page-number/> -->
+                <fo:block text-align="center">Shipment #${shipmentId} -- <#if shipment.estimatedShipDate??>${ec.l10n.format(shipment.estimatedShipDate, dateFormat)} -- </#if>Printed ${ec.l10n.format(ec.user.nowTimestamp, dateTimeFormat)}</fo:block>
             </fo:block>
         </fo:static-content>
 
@@ -160,7 +167,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:block><@encodeText shipment.handlingInstructions/></fo:block>
             </#if>
 
-            <#list packageInfoList as packageInfo><#if packageInfo.contentInfoList?has_content>
+            <#if packageInfo?has_content && packageInfo.contentInfoList?has_content>
                 <#assign routeSegments = packageInfo.shipmentPackage.routeSegments!>
                 <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="0.2in">
                     <fo:table-header font-size="10pt" font-weight="bold" border-bottom="solid black">
@@ -181,7 +188,24 @@ along with this software (see the LICENSE.md file). If not, see
                         </#list>
                     </fo:table-body>
                 </fo:table>
-            </#if></#list>
+            <#else>
+                <#if productInfoList?has_content>
+                <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="10pt">
+                    <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
+                        <fo:table-cell width="4in" padding="${cellPadding}"><fo:block text-align="left">Product</fo:block></fo:table-cell>
+                        <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="center">Quantity</fo:block></fo:table-cell>
+                    </fo:table-header>
+                    <fo:table-body>
+                    <#list productInfoList as productInfo>
+                        <fo:table-row font-size="9pt" border-top="solid black">
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${productInfo.quantity}</fo:block></fo:table-cell>
+                        </fo:table-row>
+                    </#list>
+                    </fo:table-body>
+                </fo:table>
+                </#if>
+            </#if>
         </fo:flow>
     </fo:page-sequence>
 </#macro>
