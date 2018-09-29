@@ -31,6 +31,10 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="cancelOrder"><service-call name="mantle.order.OrderServices.cancel#Order"/>
         <default-response url="."/></transition>
+    <transition name="cancelOrderPart"><service-call name="mantle.order.OrderServices.cancel#OrderPart"/>
+        <default-response url="."/></transition>
+    <transition name="cancelOrderItem"><service-call name="mantle.order.OrderServices.cancel#OrderItem"/>
+        <default-response url="."/></transition>
     <transition name="cloneOrder"><service-call name="mantle.order.OrderServices.clone#Order"/>
         <default-response url="."/></transition>
 
@@ -606,7 +610,10 @@ along with this software (see the LICENSE.md file). If not, see
                             parameter-map="[orderPartSeqId:orderPart.orderPartSeqId]"
                             condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId)"/>
                     <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList"
-                          parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"/>
+                            confirmation="Really create return for this order part?"
+                            parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"/>
+                    <link url="cancelOrderPart" text="Close Part" link-type="hidden-form" confirmation="Really close order part? If no items shipped the part will be Cancelled. If partially shipped all items will be reduced to shipped quantity and the part will be Completed."
+                            condition="orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"/>
 
                     <label text="Warning: both vendor and customer are internal organizations" style="text-danger" type="p"
                            condition="orderPartInfo.isVendorInternalOrg &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
@@ -999,8 +1006,8 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <set field="isProductItemType" from="orderItem.itemTypeEnumId in productItemTypes"/>
                     <set field="isShippable" from="product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
-                    <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0"/>
-                    <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0"/>
+                    <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
+                    <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemCanDelete" from="(!isShippable || itemQuantityNotShipped == quantity) &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnQuantity == 0"/>
                     <!-- <log level="warn" message="itemCanDelete ${itemCanDelete} quantity ${quantity} itemQuantityNotShipped ${itemQuantityNotShipped} itemQuantityNotBilled ${itemQuantityNotBilled} returnableOut.returnQuantity ${returnableOut.returnQuantity}"/> -->
 
@@ -1124,10 +1131,12 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
 
                 <field name="notShippedBilled"><default-field title="Not Shipped/Billed">
-                    <display text="${isProductItemType ? ec.l10n.format(itemQuantityNotShipped, '') : 'N/A'} / ${ec.l10n.format(itemQuantityNotBilled, '')}"/></default-field></field>
+                    <display text="${isProductItemType ? ec.l10n.format(itemQuantityNotShipped, '') : 'N/A'} / ${ec.l10n.format(itemQuantityNotBilled, '')}"/>
+                    <label text="Cancelled: ${quantityCancelled}" condition="quantityCancelled" type="p"/>
+                </default-field></field>
 
                 <field name="assetReservations">
-                    <conditional-field condition="orderItem.productId &amp;&amp; orderPartInfo.isVendorInternalOrg">
+                    <conditional-field condition="isProductItemType &amp;&amp; orderPartInfo.isVendorInternalOrg">
                         <section-iterate name="ReservationInfoSection" list="resInfoList" entry="resInfo"><widgets><container>
                             <link url="assetDetail" text="Asset ${resInfo.existingRes.assetId}" parameter-map="[assetId:resInfo.existingRes.assetId]" link-type="anchor"/>
                             <label text=" - Res: ${ec.l10n.format(resInfo.existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(resInfo.existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(resInfo.existingRes.quantityNotIssued, null)}"
@@ -1176,6 +1185,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="deleteItem" text="Delete" condition="itemCanDelete" confirmation="Delete item?"/>
                 </conditional-field><default-field title=""/></field>
 
+                <field name="closeButton"><default-field title="">
+                    <link url="cancelOrderItem" text="Close Item" link-type="hidden-form" confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity will be cancelled."
+                            condition="isProductItemType &amp;&amp; itemQuantityNotShipped &amp;&amp; orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"
+                            parameter-map="[orderItem:null]"/>
+                </default-field></field>
+
                 <form-list-column><field-ref name="orderItemSeqId"/><field-ref name="orderPartSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
                 <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="productId"/><field-ref name="productLink"/>
                     <field-ref name="otherPartyProductId"/></form-list-column>
@@ -1185,7 +1200,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-list-column><field-ref name="notShippedBilled"/><field-ref name="assetReservations"/><field-ref name="standardCost"/></form-list-column>
                 <form-list-column><field-ref name="itemTotal"/><field-ref name="itemPlusChildrenTotal"/></form-list-column>
                 <form-list-column><field-ref name="returns"/><field-ref name="returnItem"/></form-list-column>
-                <form-list-column><field-ref name="submitButton"/></form-list-column>
+                <form-list-column><field-ref name="submitButton"/><field-ref name="closeButton"/></form-list-column>
             </form-list>
         </widgets></section-iterate>
         <render-mode><text type="html,vuet"><![CDATA[<script>$(function () { $('[data-toggle="popover"]').popover(); })</script>]]></text></render-mode>
