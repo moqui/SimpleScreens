@@ -35,7 +35,6 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <set field="excludeOnPicklist" from="excludeOnPicklist ?: 'true'"/>
-        <set field="includeOnPicklist" from="excludeOnPicklist == 'false'"/>
         <set field="excludeNotPickLoc" from="excludeNotPickLoc ?: 'true'"/>
 
         <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
@@ -52,7 +51,7 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
                 <search-form-inputs default-order-by="shipmentMethodSequenceNum,placedDate,orderId,orderPartSeqId"
                         skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType,facilityId,workEffortId">
-                    <default-parameters statusId="OrderApproved"/></search-form-inputs>
+                    <default-parameters partStatusId="OrderApproved"/></search-form-inputs>
                 <!-- NOTE: note limiting by date, ie placedDate_poffset="-3" placedDate_period="30d" -->
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
@@ -62,12 +61,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="productId" operator="in" from="findProductId" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="greater-equals" from="findQuantity_from" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
-                <econdition field-name="shipWorkEffortId" operator="is-null" ignore="includeOnPicklist"/>
+                <econdition field-name="shipWorkEffortId" operator="is-null" ignore="excludeOnPicklist == 'false'"/>
                 <econdition field-name="locationTypeEnumId" value="FltPick"/>
                 <having-econditions>
                     <econdition field-name="quantityTotal" to-field-name="resQuantity" ignore="excludeNotPickLoc == 'false'"/>
+                    <!-- useless when filtering by pick locations: <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="onlyInventoryUnavailable != 'true'"/> -->
+                    <econdition field-name="issuedQuantity" operator="greater" from="0.0" ignore="onlyPartlyShipped != 'true'"/>
                 </having-econditions>
-                <select-field field-name="orderPartSeqId,shipmentMethodEnumId,quantityTotal,resQuantity"/>
+                <!-- NOTE: always need to select resQuantity,issuedQuantity if having conditions are used (EntityFindBuilder doesn't yet add these to sub-select automatically) -->
+                <select-field field-name="orderPartSeqId,shipmentMethodEnumId,quantityTotal,resQuantity,issuedQuantity"/>
             </entity-find>
             <row-actions>
                 <!-- Shipment method description -->
@@ -152,6 +154,14 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="excludeNotPickLoc"><header-field title="Exclude Not in Pick Loc">
                 <radio><option key="true" text="Yes"/><option key="false" text="No"/></radio>
             </header-field></field>
+            <field name="onlyPartlyShipped"><header-field title="Shipped">
+                <check><option key="true" text="Only Partly Shipped"/></check>
+            </header-field></field>
+            <!-- useless when filtering by pick locations:
+            <field name="onlyInventoryUnavailable"><header-field title="Inventory">
+                <check><option key="true" text="Only with Unavailable"/></check>
+            </header-field></field>
+            -->
 
             <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
@@ -175,7 +185,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
 
-            <field name="statusId">
+            <field name="partStatusId">
                 <header-field title="Status" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
                         <set field="statusTypeId" value="OrderHeader"/><set field="allowMultiple" value="true"/></widget-template-include>
@@ -254,6 +264,16 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="resPickLocQuantity" align="right">
                 <default-field title="Pick Loc Qty"><display style="text-strong ${(resPickLocQuantity == quantityTotal) ? 'text-success' : 'text-danger'}"/></default-field></field>
             <field name="findQuantity"><header-field title="Item Quantity"><range-find/></header-field></field>
+            <!-- useless when filtering by pick locations:
+            <field name="quantityNotAvailable" align="right">
+                <header-field show-order-by="true" title="Not Avail"/>
+                <default-field container-style="${quantityNotAvailable ? 'text-danger' : ''}"><display/></default-field>
+            </field>
+            -->
+            <field name="issuedQuantity" align="right">
+                <header-field show-order-by="true" title="Shipped"/>
+                <default-field><display/></default-field>
+            </field>
 
             <field name="purchaseItemTypeEnumId"><header-field title="Purchase Item Type">
                 <drop-down allow-multiple="true">
@@ -294,7 +314,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <form-list-column><field-ref name="orderId"/><field-ref name="otherPartyOrderId"/>
                 <field-ref name="salesChannelEnumId"/></form-list-column>
-            <form-list-column><field-ref name="statusId"/><field-ref name="facilityId"/>
+            <form-list-column><field-ref name="partStatusId"/><field-ref name="facilityId"/>
                 <field-ref name="productStoreId"/></form-list-column>
             <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
                 <field-ref name="otherParties"/></form-list-column>
