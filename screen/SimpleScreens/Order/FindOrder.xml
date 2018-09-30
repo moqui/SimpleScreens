@@ -42,8 +42,10 @@ along with this software (see the LICENSE.md file). If not, see
             <if condition="productStore != null">
                 <entity-find-one entity-name="mantle.party.PartyDetail" value-field="orgParty">
                     <field-map field-name="partyId" from="productStore.organizationPartyId"/></entity-find-one>
-                <script>ec.web.sendJsonResponse([[value:orgParty.partyId, label:ec.resource.expand("PartyNameTemplate", "", orgParty)]])</script>
-                <return/>
+                <if condition="orgParty != null">
+                    <script>ec.web.sendJsonResponse([[value:orgParty.partyId, label:ec.resource.expand("PartyNameTemplate", "", orgParty)]])</script>
+                    <return/>
+                </if>
             </if>
         </if>
         <entity-find entity-name="mantle.party.PartyDetailAndRole" list="partyList">
@@ -70,8 +72,20 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="vendorRole" value="Supplier,Vendor,VendorBillFrom"/>
         <set field="customerRole" value="Customer,CustomerBillTo"/>
 
+        <!-- default store, make sure exists (and exists for this user) -->
         <set field="defaultProductStoreId" from="ec.user.getPreference('OrderSalesStoreDefault')"/>
+        <if condition="defaultProductStoreId">
+            <entity-find-one entity-name="mantle.product.store.ProductStore" value-field="defaultProductStore">
+                <field-map field-name="productStoreId" from="defaultProductStoreId"/></entity-find-one>
+            <if condition="defaultProductStore == null"><set field="defaultProductStoreId" from="null"/></if>
+        </if>
+        <!-- default facility, make sure exists (and exists for this user) -->
         <set field="defaultFacilityId" from="ec.user.getPreference('FacilityGeneralDefault')"/>
+        <if condition="defaultFacilityId">
+            <entity-find-one entity-name="mantle.facility.Facility" value-field="defaultFacility">
+                <field-map field-name="facilityId" from="defaultFacilityId"/></entity-find-one>
+            <if condition="defaultFacility == null"><set field="defaultFacilityId" from="null"/></if>
+        </if>
     </actions>
     <widgets>
         <container-row><row-col md="5">
