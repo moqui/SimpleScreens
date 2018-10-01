@@ -36,8 +36,23 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="productFeatureId2"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productFeatureId:' + productFeatureId2"/></if>
         <if condition="productCategoryId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productCategoryId:' + productCategoryId"/></if>
 
-        <if condition="orderByField"><set field="orderByFields" from="[orderByField]"/></if>
+        <!-- if we have activeOrgId or filterOrgIds see if user has active org or user org filters -->
+        <set field="activeOrgId" from="ec.user.context?.activeOrgId"/>
+        <set field="filterOrgIds" from="ec.user.context?.filterOrgIds"/>
+        <if condition="activeOrgId || filterOrgIds">
+            <set field="findFilters" from="ec.artifactExecution.getFindFiltersForUser('mantle.product.Product')"/>
+            <if condition="findFilters"><set field="entityFilterSetId" from="findFilters[0].entityFilterSetId"/></if>
+        </if>
+        <!-- <log level="warn" message="Doing product search with activeOrgId ${activeOrgId} filterOrgIds ${filterOrgIds} entityFilterSetId ${entityFilterSetId}"/> -->
+        <script><![CDATA[
+            if ('MANTLE_USER_ORG'.equals(entityFilterSetId) && filterOrgIds) {
+                queryString = (queryString ? queryString + ' AND ' : '' ) + 'ownerPartyId:(' + filterOrgIds.join(' OR ') + ')'
+            } else if ('MANTLE_ACTIVE_ORG'.equals(entityFilterSetId) && activeOrgId) {
+                queryString = (queryString ? queryString + ' AND ' : '' ) + 'ownerPartyId:(' + activeOrgId + ' OR _NA_)'
+            }
+        ]]></script>
 
+        <if condition="orderByField"><set field="orderByFields" from="[orderByField]"/></if>
         <if condition="queryString">
             <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
                     in-map="context + [indexName:indexName, documentType:documentType]"/>
