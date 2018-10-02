@@ -500,9 +500,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <expression>quantityNotShippedByPart.get(orderPart.orderPartSeqId) &amp;&amp;
                             (orderHeader.statusId == "OrderApproved" || orderHeader.statusId == "OrderSent")</expression>
                     </condition><actions>
-                        <!-- find Shipments going to same Facility -->
+                        <!-- find Shipments from same vendor going to same address and ship method, in Input or Scheduled status -->
                         <entity-find entity-name="mantle.shipment.ShipmentSegmentFacilityStatus" list="ssfsList">
-                            <econdition field-name="destinationFacilityId" from="orderPartInfo.orderPart.facilityId"/>
+                            <econdition field-name="destPostalContactMechId" from="orderPartInfo.orderPart.postalContactMechId"/>
+                            <econdition field-name="shipmentMethodEnumId" from="orderPartInfo.orderPart.shipmentMethodEnumId"/>
                             <econdition field-name="fromPartyId" from="orderPartInfo.orderPart.vendorPartyId"/>
                             <econdition field-name="statusId" operator="in" value="ShipInput,ShipScheduled"/>
                             <order-by field-name="shipmentId"/>
