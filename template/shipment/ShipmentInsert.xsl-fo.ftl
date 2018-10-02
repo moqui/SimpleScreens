@@ -191,23 +191,33 @@ along with this software (see the LICENSE.md file). If not, see
                         </#list>
                     </fo:table-body>
                 </fo:table>
-            <#else>
-                <#if productInfoList?has_content>
-                <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="10pt">
-                    <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
-                        <fo:table-cell width="4in" padding="${cellPadding}"><fo:block text-align="left">Product</fo:block></fo:table-cell>
-                        <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="center">Quantity</fo:block></fo:table-cell>
-                    </fo:table-header>
-                    <fo:table-body>
-                    <#list productInfoList as productInfo>
-                        <fo:table-row font-size="9pt" border-top="solid black">
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${productInfo.quantity}</fo:block></fo:table-cell>
-                        </fo:table-row>
-                    </#list>
-                    </fo:table-body>
-                </fo:table>
-                </#if>
+            </#if>
+
+            <#if productInfoList?has_content>
+            <fo:table table-layout="fixed" width="7.5in" border-bottom="solid black" margin-top="0.2in">
+                <fo:table-header font-size="9pt" font-weight="bold" border-bottom="solid black">
+                    <fo:table-cell width="4in" padding="${cellPadding}"><fo:block text-align="left">Product in All Packages</fo:block></fo:table-cell>
+                    <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="center">Quantity</fo:block></fo:table-cell>
+                    <fo:table-cell width="1.5in" padding="${cellPadding}"><fo:block text-align="center">Price</fo:block></fo:table-cell>
+                </fo:table-header>
+                <fo:table-body>
+                <#list productInfoList as productInfo>
+                    <fo:table-row font-size="9pt" border-top="solid black">
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${productInfo.quantity}</fo:block></fo:table-cell>
+                        <fo:table-cell padding="${cellPadding}">
+                            <#if productInfo.priceQuantityMap?size == 1>
+                                <fo:block text-align="center">${ec.l10n.format(productInfo.priceQuantityMap.keySet()?first, "#,##0.00#")}</fo:block>
+                            <#else>
+                                <#list productInfo.priceQuantityMap.keySet() as curPrice>
+                                <fo:block text-align="center">${ec.l10n.format(productInfo.priceQuantityMap.get(curPrice), "#,##0.###")} @ ${ec.l10n.format(curPrice, "#,##0.00#")}</fo:block>
+                                </#list>
+                            </#if>
+                        </fo:table-cell>
+                    </fo:table-row>
+                </#list>
+                </fo:table-body>
+            </fo:table>
             </#if>
         </fo:flow>
     </fo:page-sequence>
