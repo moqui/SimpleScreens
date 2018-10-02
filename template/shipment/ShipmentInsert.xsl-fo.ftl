@@ -143,7 +143,10 @@ along with this software (see the LICENSE.md file). If not, see
                         </#if>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="2.5in">
-                        <#if carrierParty?has_content || shipmentMethodEnum?has_content>
+                        <#if carrierShipmentMethod?has_content>
+                            <fo:block font-weight="bold">Shipping Method</fo:block>
+                            <fo:block>${carrierShipmentMethod.description!}</fo:block>
+                        <#elseif carrierParty?has_content || shipmentMethodEnum?has_content>
                             <fo:block font-weight="bold">Shipping Method</fo:block>
                             <fo:block><#if carrierParty?has_content && carrierParty.partyId != "_NA_">${carrierParty.pseudoId} </#if> ${(shipmentMethodEnum.description)!""}</fo:block>
                         </#if>
