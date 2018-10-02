@@ -150,7 +150,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <#if orderPartList?has_content>
                             <fo:block font-weight="bold">Order</fo:block>
                             <#list orderPartList as orderPart>
-                                <fo:block>${orderPart.orderId}:${orderPart.orderPartSeqId}<#if orderPart.otherPartyOrderId?has_content> - PO ${orderPart.otherPartyOrderId}</#if></fo:block>
+                                <fo:block>${orderPart.displayId!orderPart.orderId}:${orderPart.orderPartSeqId}<#if orderPart.otherPartyOrderId?has_content> - PO ${orderPart.otherPartyOrderId}</#if></fo:block>
                             </#list>
                         </#if>
                         <#if invoiceList?has_content>
