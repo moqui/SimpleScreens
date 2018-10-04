@@ -37,16 +37,19 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- get shipping options with rates, select option with matching shipmentMethodEnumId and lowest shippingTotal -->
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="context"
                 in-map="[shipmentId:shipmentId, getRates:true]"/>
+        <set field="curShipmentMethodEnumId" from="firstRouteSegment.shipmentMethodEnumId"/>
         <set field="lowestCarrierAndShipmentMethod" from="firstRouteSegment.carrierPartyId ? firstRouteSegment.carrierPartyId + ':' + firstRouteSegment.shipmentMethodEnumId : ''"/>
         <set field="lowestRate" from="10000.0"/>
         <iterate list="shippingOptions" entry="shipOption">
             <set field="shippingTotalBd" from="shipOption.shippingTotal ? new BigDecimal(shipOption.shippingTotal) : null"/>
-            <if condition="shippingTotalBd &amp;&amp; shippingTotalBd &lt; lowestRate">
+            <if condition="shippingTotalBd &amp;&amp; shippingTotalBd &lt; lowestRate &amp;&amp; (!curShipmentMethodEnumId || curShipmentMethodEnumId == shipOption.shipmentMethodEnumId)">
                 <set field="lowestCarrierAndShipmentMethod" from="shipOption.carrierPartyId + ':' + shipOption.shipmentMethodEnumId"/>
                 <set field="lowestRate" from="shippingTotalBd"/>
             </if>
         </iterate>
 
+        <entity-find entity-name="moqui.basic.print.NetworkPrinter" list="networkPrinterList">
+            <order-by field-name="description,printerName"/></entity-find>
         <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
 
         <!-- Get PsstGetReturnLabels setting from ProductStore(s) through order(s) -->
@@ -91,12 +94,11 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="getReturnLabels" from="defaultGetReturnLabels"><default-field title="Get Return Labels">
                 <check><option key="true" text=" "/></check></default-field></field>
 
-            <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
-                <entity-options key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})">
-                    <entity-find entity-name="moqui.basic.print.NetworkPrinter">
-                        <order-by field-name="description,printerName"/></entity-find></entity-options>
-            </drop-down></default-field></field>
-            <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
+            <field name="networkPrinterId" from="defaultNetworkPrinterId"><conditional-field title="Printer" condition="networkPrinterList">
+                <drop-down><list-options list="networkPrinterList" key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})"/></drop-down>
+            </conditional-field></field>
+            <field name="makeDefaultPrinter"><conditional-field title="Make Default" condition="networkPrinterList">
+                <check><option key="true" text=" "/></check></conditional-field></field>
 
             <field name="localQzPrint"><default-field title="Local Print"><check all-checked="true">
                 <option key="true" text="(only if QZ Print setup)"/></check></default-field></field>

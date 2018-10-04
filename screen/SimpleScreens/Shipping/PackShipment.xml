@@ -62,6 +62,10 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="printShipmentLabels"><service-call name="mantle.shipment.ShipmentServices.print#ShipmentLabels"/>
         <default-response url="."/></transition>
+    <transition name="removeShipmentLabelInfo"><service-call name="mantle.shipment.CarrierServices.remove#ShipmentLabelInfo"/>
+        <default-response url="."/></transition>
+    <transition name="removeShipmentReturnLabelInfo"><service-call name="mantle.shipment.CarrierServices.remove#ShipmentReturnLabelInfo"/>
+        <default-response url="."/></transition>
 
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getPackageWeight" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
@@ -182,7 +186,9 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <dynamic-dialog id="PackCompletedDialog" button-text="Pack Completed" transition="PackCompleted" type="success"
                         condition="statusPrePacked &amp;&amp; anyItemPacked &amp;&amp; packagesComplete"/>
-
+                <dynamic-dialog id="PackCompletedDialog" button-text="Get Labels" transition="PackCompleted" type="success"
+                        condition="!statusPrePacked &amp;&amp; anyItemPacked &amp;&amp; packagesComplete &amp;&amp; !hasAllLabels"/>
+                <!-- use Get Labels button above, basically Pack Completed dialog again:
                 <link url="requestShipmentLabels" text="Get Labels"
                         condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; destContactMechValid &amp;&amp; shipment.statusId in ['ShipPacked', 'ShipShipped']"/>
                 <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning"
@@ -190,6 +196,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text="Warning: destination address is incomplete or invalid according to address validation." style="text-warning"/>
                     <link url="requestShipmentLabels" text="Get Labels Anyway"/>
                 </container-dialog>
+                -->
 
                 <container-dialog id="PrintLabelsDialog" button-text="Net Print" condition="hasAnyLabels &amp;&amp; networkPrinterList">
                     <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
@@ -221,7 +228,8 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <link url="shipShipment" text="Set Shipped" condition="shipment.statusId == 'ShipPacked'" btn-type="success"/>
             </row-col></container-row>
-            <!-- needed? small manual set carrier/method form -->
+
+            <!-- needed? no, request labels dialog allows carrier/method set: small manual set carrier/method form -->
 
             <!--
                 scan input (product or asset ID, other product IDs like SKU/UPC/etc), auto-focused
@@ -348,6 +356,16 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-single>
                     </container-dialog>
 
+                    <link url="removeShipmentLabelInfo" text="Reset Label" btn-type="danger"
+                            confirmation="Clear label data? This will allow getting a new label, and system keeps a history of label IDs, but otherwise current label will no longer be tracked. Use only when there are errors, etc with the label."
+                            condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId"
+                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
+                                    shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
+                    <link url="removeShipmentReturnLabelInfo" text="Reset Ret Label" btn-type="danger"
+                            confirmation="Clear return label data? This will allow getting a new label, and system keeps a history of label IDs, but otherwise current label will no longer be tracked. Use only when there are errors, etc with the label."
+                            condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.returnGatewayLabelId"
+                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
+                                    shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
                     <link url="resetShipmentPackage" text="Reset" confirmation="Reset box type, weight, and contents?"
                             style="btn-danger" condition="!packageRouteSeg?.labelUrl"
                             parameter-map="[shipmentId:packageAndRouteSeg.shipmentId, shipmentPackageSeqId:packageAndRouteSeg.shipmentPackageSeqId]"/>
