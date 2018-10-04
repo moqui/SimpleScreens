@@ -206,7 +206,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${productInfo.quantity}</fo:block></fo:table-cell>
                         <fo:table-cell padding="${cellPadding}">
-                            <#if productInfo.priceQuantityMap?size == 1>
+                            <#if productInfo.priceQuantityMap.size() == 1>
                                 <fo:block text-align="center">${ec.l10n.format(productInfo.priceQuantityMap.keySet()?first, "#,##0.00#")}</fo:block>
                             <#else>
                                 <#list productInfo.priceQuantityMap.keySet() as curPrice>
