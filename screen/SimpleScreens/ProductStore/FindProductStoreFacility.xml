@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Facilities" default-menu-index="6">
+
+
+    <parameter name="productStoreId" required="true"/>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="updateProductStoreFacility">
+        <service-call name="update#mantle.product.store.ProductStoreFacility"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createProductStoreFacility">
+        <service-call name="create#mantle.product.store.ProductStoreFacility"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="deleteProductStoreFacility">
+        <service-call name="delete#mantle.product.store.ProductStoreFacility"/>
+        <default-response url="."/>
+    </transition>
+
+    <actions>
+        <entity-find entity-name="mantle.product.store.ProductStoreFacility" list="storeFacilityList">
+            <search-form-inputs default-order-by="facilityId"/>
+            <econdition field-name="productStoreId" />
+        </entity-find>
+    </actions>
+
+    <widgets>
+        <container-dialog id="NewStoreFacilityDialog" button-text="New Store Facility">
+            <form-single name="NewStoreFacilityForm" transition="createProductStoreFacility">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                <field name="facilityId"><default-field title="Facility">
+                    <drop-down><entity-options key="${facilityId}" text="${facilityName}">
+                        <entity-find entity-name="mantle.facility.Facility">
+                            <order-by field-name="facilityId"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="fromDate"><default-field><date-time type="date-time"/></default-field></field>
+                <field name="thruDate"><default-field><date-time type="date-time"/></default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="StoreFacilityFormList" list="storeFacilityList" transition="updateProductStoreFacility">
+            <field name="productStoreId"><default-field><hidden/></default-field></field>
+            <field name="facilityId">
+                <header-field title="Facility" show-order-by="case-insensitive"/>
+                <default-field>
+                    <display text=" "/><link url="editFacility" text="${facilityName}" entity-name="mantle.facility.Facility" link-type="anchor"/>
+                </default-field>
+            </field>
+            <field name="fromDate">
+                <header-field title="From Date" show-order-by="case-insensitive"/>
+                <default-field><display/></default-field>
+            </field>
+            <field name="thruDate">
+                <header-field title="Thru Date" show-order-by="case-insensitive"/>
+                <default-field><date-time type="date-time"/></default-field>
+            </field>
+            <field name="sequenceNum">
+                <header-field title="Sequence Num" show-order-by="case-insensitive"/>
+                <default-field><text-line size="4" format="#"/></default-field>
+            </field>
+            <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
+            <field name="deleteButton" align="right"><default-field title="">
+                <link url="deleteProductStoreFacility" icon="glyphicon glyphicon-trash"
+                      parameter-map="[productStoreId:productStoreId, facilityId:facilityId, fromDate:fromDate]"
+                      confirmation="Are you sure you want to remove this Facility?"/>
+            </default-field></field>
+        </form-list>
+    </widgets>
+</screen>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Assignments" default-menu-index="8">
+
+    <parameter name="assetId" required="true"/>
+
+    <transition name="addUser">
+        <service-call name="create#mantle.product.asset.AssetPartyAssignment" in-map="context"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="updateUser">
+        <service-call name="update#mantle.product.asset.AssetPartyAssignment" in-map="context"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="editUser"><default-response url="//hmadmin/User/EditUser"/></transition>
+
+    <transition name="getPersonList">
+        <actions>
+            <entity-find entity-name="mantle.party.PersonAndUserAccount" list="pauList" limit="20">
+                <econditions combine="or">
+                    <econdition field-name="firstName" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="lastName" operator="like" value="%${term}%" ignore-case="true"/>
+                    <econdition field-name="username" operator="like" value="%${term}%" ignore-case="true"/>
+                </econditions>
+                <order-by field-name="^firstName"/><order-by field-name="^lastName"/><order-by field-name="^username"/>
+            </entity-find>
+            <script>
+                def outList = []
+                for (def pau in pauList)
+                    outList.add([value:pau.partyId, label:"${pau.firstName} ${pau.lastName} (${pau.username})".toString()])
+                ec.web.sendJsonResponse(outList)
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <actions>
+        <entity-find entity-name="mantle.product.maintenance.AssetAndPartyDetail" list="rpapList">
+            <search-form-inputs default-order-by="firstName,lastName,organizationName"/>
+            <econdition field-name="assetId"/>
+        </entity-find>
+    </actions>
+    <widgets>
+        <container-dialog id="AddUserDialog" button-text="Add User">
+            <form-single name="AddUserForm" transition="addUser">
+                <field name="assetId"><default-field><hidden/></default-field></field>
+
+                <field name="partyId"><default-field title="Person">
+                    <text-line ac-transition="getPersonList" ac-min-length="2" size="15"/>
+                </default-field></field>
+                <field name="roleTypeId"><default-field title="Role">
+                    <drop-down>
+                        <entity-options key="${roleTypeId}" text="${description}">
+                            <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                                <econdition field-name="roleGroupEnumId" value="RgpPerson"/>
+                                <order-by field-name="description"/></entity-find></entity-options>
+                    </drop-down>
+                </default-field></field>
+
+                <field name="fromDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                <field name="thruDate"><default-field><date-time/></default-field></field>
+
+                <field name="submitButton"><default-field title="Add Assignment"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="UpdateUserForm" list="rpapList" transition="updateUser">
+            <field name="assetId"><default-field><hidden/></default-field></field>
+            <field name="partyId"><default-field><hidden/></default-field></field>
+
+            <field name="username"><header-field show-order-by="case-insensitive"/>
+                <default-field><link url="editUser" text="${username}" link-type="anchor" condition="username"/></default-field></field>
+            <field name="firstName"><header-field title="First##Name" show-order-by="case-insensitive"/>
+                <default-field><display also-hidden="false"/></default-field></field>
+            <field name="lastName"><header-field title="Last##Name" show-order-by="case-insensitive"/>
+                <default-field><display also-hidden="false"/></default-field></field>
+            <field name="organizationName"><header-field title="Organization" show-order-by="case-insensitive"/><default-field>
+                <display also-hidden="false"/></default-field></field>
+
+            <field name="roleTypeId"><header-field title="Role" show-order-by="true"/>
+                <default-field><display-entity entity-name="RoleType" text="${description}"/></default-field>
+            </field>
+            <field name="fromDate"><header-field show-order-by="true"/><default-field><display/></default-field></field>
+            <field name="thruDate"><header-field show-order-by="true"/><default-field><date-time/></default-field></field>
+            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>

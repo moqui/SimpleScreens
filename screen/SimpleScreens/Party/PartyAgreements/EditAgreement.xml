@@ -26,6 +26,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateAgreement"><service-call name="update#mantle.party.agreement.Agreement"/><default-response url="."/></transition>
     <transition name="createTerm"><service-call name="create#mantle.party.agreement.AgreementTerm"/><default-response url="."/></transition>
     <transition name="deleteTerm"><service-call name="delete#mantle.party.agreement.AgreementTerm"/><default-response url="."/></transition>
+    <transition name="createAgreementItem"><service-call name="create#mantle.party.agreement.AgreementItem"/><default-response url="."/></transition>
+    <transition name="deleteAgreementItem"><service-call name="delete#mantle.party.agreement.AgreementItem"/><default-response url="."/></transition>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <transition name="createContent"><service-call name="mantle.party.AgreementServices.create#AgreementContent"/>
         <default-response url="."/></transition>
@@ -119,6 +122,50 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <form-list-column><field-ref name="settlementTermId"/><field-ref name="termTypeEnumId"/></form-list-column>
                     <form-list-column><field-ref name="termNumber"/><field-ref name="termText"/></form-list-column>
+                    <form-list-column><field-ref name="deleteButton"/></form-list-column>
+                </form-list>
+            </box-body-nopad></container-box>
+
+            <container-box><box-header title="Items"/><box-toolbar>
+                <container-dialog id="AddAgreementItemDialog" button-text="Add Agreement Item">
+                    <form-single name="AddAgreementItem" transition="createAgreementItem">
+                        <field name="agreementId"><default-field><hidden/></default-field></field>
+
+                        <field name="agreementItemTypeEnumId"><default-field title="Type">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                <set field="enumTypeId" value="AgreementItemType"/><set field="allowEmpty" value="true"/></widget-template-include>
+                        </default-field></field>
+                        <field name="productId"><default-field title="Product">
+                            <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0">
+                                <depends-on field="assetClassEnumId"/></dynamic-options></drop-down>
+                        </default-field></field>
+                        <field name="quantity"><default-field><text-line/></default-field></field>
+                        <field name="fromDate"><default-field><date-time/></default-field></field>
+                        <field name="thruDate"><default-field><date-time/></default-field></field>
+                        <field name="itemText"><default-field><text-area/></default-field></field>
+
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body-nopad>
+                <form-list name="AgreementItemList" list="agreementItemList" skip-form="true">
+                    <entity-find entity-name="mantle.party.agreement.AgreementItem" list="agreementItemList">
+                        <econdition field-name="agreementId"/></entity-find>
+                    <field name="agreementId"><default-field><hidden/></default-field></field>
+                    <field name="agreementItemSeqId"><default-field title="Item"><hidden/></default-field></field>
+                    <field name="productId"><default-field><display/></default-field></field>
+                    <field name="quantity"><default-field><display/></default-field></field>
+                    <field name="itemText"><default-field><display/></default-field></field>
+                    <field name="agreementItemTypeEnumId"><default-field title="Item Type">
+                        <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                    <field name="fromDate"><default-field><display/></default-field></field>
+                    <field name="thruDate"><default-field><display/></default-field></field>
+                    <field name="deleteButton" align="right"><default-field title="">
+                        <link url="deleteAgreementItem" icon="glyphicon glyphicon-trash" parameter-map="[agreementId:agreementId,agreementItemId:agreementItemId]"/></default-field></field>
+                    <form-list-column><field-ref name="agreementItemSeqId"/></form-list-column>
+                    <form-list-column><field-ref name="productId"/><field-ref name="quantity"/></form-list-column>
+                    <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
+                    <form-list-column><field-ref name="agreementItemTypeEnumId"/><field-ref name="itemText"/></form-list-column>
                     <form-list-column><field-ref name="deleteButton"/></form-list-column>
                 </form-list>
             </box-body-nopad></container-box>
