@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Fields" default-menu-index="2">
+
+    <parameter name="formId" required="true"/>
+
+    <transition name="addDbFormField"><actions>
+        <set field="fieldName" from="org.moqui.util.StringUtilities.prettyToCamelCase(title, false)"/>
+        <service-call name="create#moqui.screen.form.DbFormField" in-map="context"/></actions>
+        <default-response url="."/></transition>
+
+    <transition name="updateDbFormField"><service-call name="org.moqui.impl.ScreenServices.update#DbFormField"/>
+        <default-response url="."/></transition>
+
+    <transition name="deleteDbFormField"><service-call name="org.moqui.impl.ScreenServices.delete#DbFormField"/>
+        <default-response url="."/></transition>
+
+    <transition name="addFieldOption"><service-call name="create#moqui.screen.form.DbFormFieldOption"/>
+        <default-response url="."/></transition>
+    <transition name="updateFieldOption"><service-call name="update#moqui.screen.form.DbFormFieldOption" multi="true" in-map="context"/>
+        <default-response url="."/></transition>
+    <transition name="deleteFieldOption"><service-call name="delete#moqui.screen.form.DbFormFieldOption"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <entity-find entity-name="moqui.screen.form.DbFormField" list="dbFormFieldList">
+            <econdition field-name="formId" from="formId"/>
+            <order-by field-name="layoutSequenceNum"/>
+        </entity-find>
+        <script>
+            enumFieldOptionsList = [];
+            enumFieldOptionsList.addAll(dbFormFieldList.cloneList().filterByAnd([fieldTypeEnumId: 'DBFFT_check']))
+            enumFieldOptionsList.addAll(dbFormFieldList.cloneList().filterByAnd([fieldTypeEnumId: 'DBFFT_drop-down']))
+            enumFieldOptionsList.addAll(dbFormFieldList.cloneList().filterByAnd([fieldTypeEnumId: 'DBFFT_radio']))
+            enumFieldOptionsList = org.moqui.util.CollectionUtilities.orderMapList(enumFieldOptionsList, ['layoutSequenceNum'])
+        </script>
+    </actions>
+
+    <widgets>
+        <container-dialog id="NewDbFormFieldDialog" button-text="Add Survey Field">
+            <form-single name="NewDbFormFieldForm"  transition="addDbFormField">
+                <field name="formId"><default-field title="Survey ID">
+                    <hidden/></default-field></field>
+                <field name="title"><default-field title="Title">
+                    <text-line size="50"></text-line></default-field></field>
+                <field name="fieldName" from="org.moqui.util.StringUtilities.prettyToCamelCase(title, false)"><default-field title="">
+                    <hidden/></default-field></field>
+                <field name="fieldTypeEnumId"><default-field title="Type">
+                    <drop-down><entity-options key="${enumId}"
+                                               text="${description ?: enumId}">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="DbFormFieldType"/>
+                            <order-by field-name="description,enumId"/></entity-find></entity-options>
+                    </drop-down></default-field></field>
+                <field name="layoutSequenceNum"><default-field title="Layout Sequence">
+                    <text-line size="10"></text-line></default-field></field>
+                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="SurveyPreviewContainer" button-text="Survey Form Preview">
+            <form-single name="SurveyPreview"  extends="DbForm#${formId}" dynamic="true">
+                <field name="formLocation"><default-field ><hidden default-value="DbForm#${formId}"/></default-field></field>
+                <field name="formId" from="formId"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <container-row>
+            <row-col lg="6">
+                <section name="DbFormFields">
+                    <condition>
+                        <expression>dbFormFieldList</expression>
+                    </condition>
+                    <widgets>
+                        <form-list name="DbFormFieldList" list="dbFormFieldList" transition="updateDbFormField">
+                            <field name="formId"><default-field><hidden/></default-field></field>
+                            <field name="fieldName"><default-field><hidden/></default-field></field>
+                            <field name="title"><default-field><text-line size="20"/></default-field></field>
+                            <field name="fieldTypeEnumId"><default-field title="Type">
+                                <drop-down><entity-options key="${enumId}"
+                                                           text="${description ?: enumId}">
+                                    <entity-find entity-name="moqui.basic.Enumeration">
+                                        <econdition field-name="enumTypeId" value="DbFormFieldType"/>
+                                        <order-by field-name="description,enumId"/></entity-find></entity-options>
+                                </drop-down></default-field></field>
+                            <field name="layoutSequenceNum"><default-field title="Sequence"><text-line size="5"/></default-field></field>
+                            <field name="submitButton" align="right"><default-field><submit text="Update"/>
+                                <link url="deleteDbFormField" icon="glyphicon glyphicon-trash"
+                                      parameter-map="[formId:formId, fieldName:fieldName]" confirmation="Are you sure you want to remove this Field?"/></default-field></field>
+                        </form-list>
+                    </widgets>
+                </section>
+            </row-col>
+            <row-col lg="6">
+               <section-iterate name="EnumDbFormFieldOptions" list="enumFieldOptionsList" entry="field">
+                   <widgets>
+                       <section name="fieldOption">
+                           <widgets>
+                               <container-box><box-header title="${field.title}"/><box-toolbar>
+                                   <container-dialog id="NewFieldOptionDialog" button-text="Add Option">
+                                       <form-single name="NewFieldOptionForm" transition="addFieldOption">
+                                           <field name="formId"  ><default-field title="">
+                                               <hidden/></default-field></field>
+                                           <field name="fieldName" from="field.fieldName"><default-field title="">
+                                               <hidden/></default-field></field>
+                                           <field name="title" from="field.title"><default-field><display/></default-field></field>
+                                           <field name="keyValue"><default-field><text-line size="20" /></default-field></field>
+                                           <field name="text"><default-field title="Description"><text-line size="50" /></default-field></field>
+                                           <field name="sequenceNum"><default-field><text-line size="5" /></default-field></field>
+                                           <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                                       </form-single></container-dialog></box-toolbar>
+                                   <box-body>
+                                       <form-list name="FieldOptionForm" list="fieldOptionList" multi="true" transition="updateFieldOption">
+                                           <entity-find entity-name="moqui.screen.form.DbFormFieldOption" list="fieldOptionList">
+                                               <econdition field-name="formId" from="field.formId"/>
+                                               <econdition field-name="fieldName" from="field.fieldName"/>
+                                               <order-by field-name="sequenceNum"/>
+                                           </entity-find>
+                                           <field name="formId"><default-field><hidden/></default-field></field>
+                                           <field name="fieldName"><default-field><hidden/></default-field></field>
+                                           <field name="sequenceNum"><default-field title="Sequence"><display/></default-field></field>
+                                           <field name="keyValue"><default-field><text-line size="10" /></default-field></field>
+                                           <field name="text"><default-field title="Description"><text-line size="30"/></default-field></field>
+                                           <field name="deleteButton" align="right"><default-field title="">
+                                               <link url="deleteFieldOption" icon="glyphicon glyphicon-trash"
+                                                     parameter-map="[formId:formId, fieldName:fieldName, sequenceNum:sequenceNum]"
+                                                     confirmation="Are you sure you want to remove this Field Option?"/></default-field></field>
+                                           <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
+                                       </form-list>
+                                   </box-body>
+                               </container-box>
+                           </widgets>
+                       </section>
+                   </widgets>
+               </section-iterate>
+            </row-col>
+        </container-row>
+    </widgets>
+</screen>

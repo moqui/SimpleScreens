@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Responses" default-menu-index="3">
+
+    <parameter name="formId" required="true"/>
+
+    <transition name="createFormResponse">
+        <service-call name="org.moqui.impl.ScreenServices.create#FormResponse"
+                      in-map="[formLocation:formLocation, formId:formId, responseMap:ec.web.parameters]"/>
+        <default-response url="../EditSurvey"/>
+    </transition>
+    <transition name="responseDetails"><default-response url="../ResponseDetails"/></transition>
+
+    <actions>
+        <entity-find entity-name="moqui.screen.form.FormResponse" list="responseList">
+            <search-form-inputs default-order-by="-responseDate"/>
+            <econdition field-name="formId"/>
+        </entity-find>
+    </actions>
+    <widgets>
+        <form-list name="ResponseListForm" list="responseList">
+            <field name="formResponseId">
+                <default-field  title="Survey Response ID"><link url="responseDetails" text="${formResponseId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="formLocation">
+                <header-field title="Form" show-order-by="case-insensitive"><text-find hide-options="true"/></header-field>
+                <default-field><display also-hidden="false"/></default-field>
+            </field>
+            <field name="userId">
+                <header-field title="User ID" show-order-by="case-insensitive"><text-find hide-options="true"/></header-field>
+                <default-field><display also-hidden="false"/></default-field>
+            </field>
+            <field name="responseDate">
+                <header-field title="Date" show-order-by="true"><date-period/></header-field>
+                <default-field title=""><display/></default-field>
+            </field>
+        </form-list>
+    </widgets>
+</screen>

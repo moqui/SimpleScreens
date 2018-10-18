@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns=""
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Response Stats" default-menu-index="5">
+    <parameter name="formId" required="true"/>
+
+    <actions>
+        <service-call name="org.moqui.impl.ScreenServices.get#FormResponseStats" in-map="context" out-map="context"/>
+    </actions>
+    <widgets>
+        <container-row>
+            <row-col sm="2"><label text="Total Survey Response:" type="strong"/></row-col>
+            <row-col sm="2"><label text="${formResponseCount}" type="strong"/></row-col>
+        </container-row>
+        <container-row>
+            <row-col lg="6">
+                <section name="DbFormFields">
+                    <condition>
+                        <expression>textDbFormFieldResponseCountList</expression>
+                    </condition>
+                    <widgets>
+                        <form-list name="TextDbFormFieldResponseCountList" list="textDbFormFieldResponseCountList">
+                            <field name="title"><default-field><display/></default-field></field>
+                            <field name="count"><default-field><display/></default-field></field>
+                        </form-list>
+                    </widgets>
+                </section>
+            </row-col>
+            <row-col lg="6">
+                <section-iterate name="EnumDbFormFieldResponseCountList" list="enumDbFormFieldResponseCountList" entry="field">
+                    <widgets>
+                        <section name="enumDbFormFieldResponse">
+                            <widgets>
+                                <container-box><box-header title="${field.title}"/>
+                                    <box-body>
+                                        <form-list name="FieldOptionForm" list="field.fieldOptionList">
+                                            <field name="text"><default-field><display/></default-field></field>
+                                            <field name="count"><default-field><display/></default-field></field>
+                                        </form-list>
+                                    </box-body>
+                                </container-box>
+                            </widgets>
+                        </section>
+                    </widgets>
+                </section-iterate>
+            </row-col>
+        </container-row>
+    </widgets>
+</screen>
