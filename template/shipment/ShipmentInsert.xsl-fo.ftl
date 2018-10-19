@@ -116,7 +116,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </#if>
                             <fo:block><@encodeText (toContactInfo.postalAddress.address1)!""/><#if toContactInfo.postalAddress.unitNumber?has_content> #<@encodeText toContactInfo.postalAddress.unitNumber/></#if></fo:block>
                             <#if toContactInfo.postalAddress.address2?has_content><fo:block><@encodeText toContactInfo.postalAddress.address2/></fo:block></#if>
-                            <fo:block><@encodeText toContactInfo.postalAddress.city!""/>, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                            <fo:block><@encodeText toContactInfo.postalAddress.city!""/>, ${(toContactInfo.postalAddressStateGeo.geoCodeAlpha2)!(toContactInfo.postalAddressStateGeo.geoName)!""} ${toContactInfo.postalAddress.postalCode!""}<#if toContactInfo.postalAddress.postalCodeExt?has_content>-${toContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
                             <#if toContactInfo.postalAddress.countryGeoId?has_content><fo:block>${toContactInfo.postalAddress.countryGeoId}</fo:block></#if>
                         </#if>
                         <#if toContactInfo.telecomNumber?has_content>

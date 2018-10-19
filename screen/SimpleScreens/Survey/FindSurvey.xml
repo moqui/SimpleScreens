@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false">
+
+    <transition name="createSurvey"><service-call name="create#moqui.screen.form.DbForm"/>
+        <default-response url="../EditSurvey"/></transition>
+    <transition name="editSurvey"><default-response url="../EditSurvey"/></transition>
+
+    <actions>
+        <set field="purposeEnumId" value="DbfpSurvey"/>
+        <entity-find entity-name="moqui.screen.form.DbForm" list="surveyList">
+            <search-form-inputs default-order-by="description"/>
+            <econdition field-name="purposeEnumId" from="purposeEnumId"/></entity-find>
+    </actions>
+    <widgets>
+        <container-box>
+            <box-header title="Survey"/>
+            <box-toolbar>
+                <container-dialog id="NewSurveyContainer" button-text="New Survey">
+                    <form-single name="NewSurveyForm" transition="createSurvey">
+                        <field name="purposeEnumId"><default-field><hidden/></default-field></field>
+                        <field name="description"><default-field><text-line size="70"/></default-field></field>
+                        <field name="comments"><default-field><text-area cols="60" rows="6"/></default-field></field>
+                        <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar>
+            <box-body-nopad>
+                <form-list name="SurveyList" list="surveyList" skip-form="true" header-dialog="true" select-columns="true"
+                           saved-finds="true" show-csv-button="true">
+                    <field name="formId">
+                        <header-field title="Survey ID" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
+                        <default-field><link url="editSurvey" text="${formId}" link-type="anchor"/></default-field>
+                    </field>
+                    <field name="description">
+                        <header-field title="Description" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                        <default-field><link url="editSurvey" text="${description}" link-type="anchor"/></default-field>
+                    </field>
+                    <field name="comments">
+                        <header-field title="Comments" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
+                        <default-field><display text="${comments}"/></default-field>
+                    </field>
+                    <field name="submitButton">
+                        <header-field title="Find"><submit/></header-field>
+                        <default-field><display text=" "/></default-field>
+                    </field>
+                </form-list>
+            </box-body-nopad>
+        </container-box>
+    </widgets>
+</screen>

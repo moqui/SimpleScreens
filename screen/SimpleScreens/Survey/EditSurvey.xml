@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Survey" default-menu-index="1">
+
+    <parameter name="formId" required="true"/>
+
+    <transition name="updateSurvey"><service-call name="update#moqui.screen.form.DbForm"/>
+        <default-response url="."/></transition>
+
+    <transition name="addUserGroup"><service-call name="create#moqui.screen.form.DbFormUserGroup"/>
+        <default-response url="."/></transition>
+
+    <transition name="deleteDbFormUserGroup"><service-call name="delete#moqui.screen.form.DbFormUserGroup"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <set field="formLocation" value="DbForm#${formId}"/>
+        <entity-find-one entity-name="moqui.screen.form.DbForm" value-field="survey">
+            <field-map field-name="formId" from="formId"/>
+        </entity-find-one>
+    </actions>
+
+    <widgets>
+        <container-row><row-col lg="7">
+            <form-single name="EditSurveyForm" map="survey" transition="updateSurvey">
+                <field name="formId"><default-field title="Survey ID">
+                    <display text="${formId}"/>
+                </default-field></field>
+                <field name="description"><default-field title="Description"><text-line size="70"/></default-field></field>
+                <field name="comments"><default-field><text-area cols="60" rows="6"/></default-field></field>
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single></row-col>
+
+            <row-col lg="5" style="position: right;">
+                <section name="UserGroupSection">
+                    <widgets>
+                        <container-box><box-header title="User Groups"/><box-toolbar>
+                            <container-dialog id="NewUserGroupDialog" button-text="Add User Group">
+                                <form-single name="NewUserGroupForm" transition="addUserGroup">
+                                    <field name="formId"><default-field title="Survey ID">
+                                        <hidden/>
+                                    </default-field></field>
+                                    <field name="userGroupId"><default-field title="User Group ID">
+                                        <drop-down><entity-options key="${userGroupId}"
+                                                                   text="${description ? description : userGroupId}">
+                                            <entity-find entity-name="moqui.security.UserGroup">
+                                                <econdition field-name="groupTypeEnumId" value="UgtPopcAdmin"/>
+                                                <order-by field-name="description,userGroupId,groupTypeEnumId"/></entity-find>
+                                        </entity-options></drop-down>
+                                    </default-field></field>
+                                    <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                                </form-single>
+                            </container-dialog></box-toolbar>
+                            <box-body>
+                                <form-list name="UserGroupForm" list="userGroupList">
+                                    <entity-find entity-name="moqui.screen.form.DbFormAndUserGroup" list="dbFormUserGroupList">
+                                        <econdition field-name="formId"/>
+                                        <select-field field-name="description"/>
+                                        <order-by field-name="description,groupTypeEnumId"/>
+                                    </entity-find>
+                                    <field name="formId"><default-field><hidden/></default-field></field>
+                                    <field name="userGroupId"><default-field><hidden/></default-field></field>
+                                    <field name="description"><default-field title="User Group">
+                                        <display text="${description ? description : userGroupId}"/>
+                                    </default-field></field>
+                                    <field name="deleteButton" align="right"><default-field title="">
+                                        <link url="deleteDbFormUserGroup" icon="glyphicon glyphicon-trash"
+                                              parameter-map="[formId:formId, userGroupId:userGroupId]"
+                                              confirmation="Are you sure you want to remove this User Group?"/>
+                                    </default-field></field>
+                                </form-list>
+                            </box-body>
+                        </container-box>
+                    </widgets>
+                </section>
+            </row-col>
+        </container-row>
+    </widgets>
+</screen>
