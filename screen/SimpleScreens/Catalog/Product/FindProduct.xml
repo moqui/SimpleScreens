@@ -29,6 +29,16 @@ along with this software (see the LICENSE.md file). If not, see
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="ProductType"/></widget-template-include>
                 </default-field></field>
+                <field name="ownerPartyId"><default-field title="Owned By Org"><drop-down>
+                    <option key="_NA_" text="N/A"/>
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
             </form-single>
         </container-dialog>
@@ -91,6 +101,20 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
 
+            <field name="ownerPartyId">
+                <header-field title="Owned By Org"><drop-down allow-empty="true">
+                    <option key="_NA_" text="N/A"/>
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></header-field>
+                <conditional-field condition="ownerPartyId == '_NA_'"><display text=" "/></conditional-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
+            </field>
             <field name="prodIdents"><default-field title="Other IDs">
                 <section-iterate name="OtherProductIdSection" list="prodIdentList" entry="prodIdent"><widgets>
                     <label text="${prodIdent.idValue} (${prodIdent.type?.description ?: ''})" type="div"/>
@@ -113,7 +137,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/></form-list-column>
             <form-list-column><field-ref name="productTypeEnumId"/><field-ref name="productClassEnumId"/></form-list-column>
             <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="assetClassEnumId"/></form-list-column>
-            <form-list-column><field-ref name="prodIdents"/></form-list-column>
+            <form-list-column><field-ref name="ownerPartyId"/><field-ref name="prodIdents"/></form-list-column>
             <form-list-column><field-ref name="prodAssocFroms"/></form-list-column>
         </form-list>
     </widgets>
