@@ -34,9 +34,31 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="shippingGatewayConfigId" from="firstRouteSegment.shippingGatewayConfigId ?: ec.user.getPreference('DefaultShipmentGatewayConfigId')"/>
         <if condition="shippingGatewayConfigId"><entity-find-one entity-name="mantle.shipment.carrier.ShippingGatewayConfig" value-field="shippingGatewayConfig"/></if>
 
+        <!-- Get settings from ProductStore(s) through order(s) -->
+        <entity-find entity-name="mantle.product.store.ProductStoreSettingLookup" list="settingsLookupList" distinct="true">
+            <date-filter/><econdition field-name="shipmentId"/>
+            <econdition field-name="settingTypeEnumId" operator="in" value="PsstGetReturnLabels,PsstShipRestrictCarriers"/>
+            <select-field field-name="productStoreId,settingTypeEnumId,settingValue"/>
+        </entity-find>
+        <set field="retLabelSettings" from="settingsLookupList.findAll({it.settingTypeEnumId == 'PsstGetReturnLabels'})*.settingValue"/>
+        <set field="defaultGetReturnLabels" from="retLabelSettings.contains('true') ? 'true' : ''"/>
+
+        <set field="restrictCarrierProductStoreId" from="null"/>
+        <iterate list="settingsLookupList.findAll({it.settingTypeEnumId == 'PsstShipRestrictCarriers'})" entry="restrictCarrierSetting">
+            <if condition="restrictCarrierSetting.settingValue == 'true'">
+                <set field="restrictCarrierProductStoreId" from="restrictCarrierSetting.productStoreId"/>
+            </if>
+        </iterate>
+
         <!-- get shipping options with rates, select option with matching shipmentMethodEnumId and lowest shippingTotal -->
+        <set field="carrierPartyIdList" from="null"/>
+        <if condition="restrictCarrierProductStoreId">
+            <entity-find entity-name="mantle.product.store.ProductStoreShippingGateway" list="storeShippingGatewayList" cache="true">
+                <econdition field-name="productStoreId" from="restrictCarrierProductStoreId"/></entity-find>
+            <set field="carrierPartyIdList" from="storeShippingGatewayList*.carrierPartyId"/>
+        </if>
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="context"
-                in-map="[shipmentId:shipmentId, getRates:true]"/>
+                in-map="[shipmentId:shipmentId, carrierPartyIdList:carrierPartyIdList, getRates:true]"/>
         <set field="curShipmentMethodEnumId" from="firstRouteSegment.shipmentMethodEnumId"/>
         <set field="lowestCarrierAndShipmentMethod" from="firstRouteSegment.carrierPartyId ? firstRouteSegment.carrierPartyId + ':' + firstRouteSegment.shipmentMethodEnumId : ''"/>
         <set field="lowestRate" from="10000.0"/>
@@ -51,15 +73,6 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="moqui.basic.print.NetworkPrinter" list="networkPrinterList">
             <order-by field-name="description,printerName"/></entity-find>
         <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
-
-        <!-- Get PsstGetReturnLabels setting from ProductStore(s) through order(s) -->
-        <entity-find entity-name="mantle.product.store.ProductStoreSettingLookup" list="retLabelLookupList" distinct="true">
-            <date-filter/><econdition field-name="shipmentId"/>
-            <econdition field-name="settingTypeEnumId" value="PsstGetReturnLabels"/>
-            <select-field field-name="settingValue"/>
-        </entity-find>
-        <set field="retLabelSettings" from="retLabelLookupList*.settingValue"/>
-        <set field="defaultGetReturnLabels" from="retLabelSettings.contains('true') ? 'true' : ''"/>
     </actions>
     <widgets>
         <!--
