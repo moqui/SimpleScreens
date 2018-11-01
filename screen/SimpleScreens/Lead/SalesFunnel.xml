@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Sales Funnel" menu-image="/ssstatic/images/Customer.png" default-menu-index="3" >
+
+    <actions>
+        <set field="orderByField" value="combinedName"/>
+        <set field="found" value="no"/>
+        <service-call name="mantle.party.PartyServices.search#Party" in-map="context" out-map="context"/>
+        <entity-find entity-name="StatusItem" list="statusList">
+            <econdition field-name="statusTypeId" value="Customer"/>
+            <order-by field-name="sequenceNum"/>
+        </entity-find>
+        <set field="table" from="[]"/>
+        <set field="count" value="0" type="Integer"/>
+        <iterate list="statusList" entry="statusItem">
+            <set field="count" from="count++"/>
+            <set field="row" from="[:]"/>
+            <set field="row.first" value="yes"/>
+            <set field="row.statusId" from="statusItem.statusId"/>
+            <set field="row.description" from="statusItem.description"/>
+            <set field="row.count" from="count"/>
+            <script>table.add(row)</script>
+            <set field="found" value="no"/>
+            <iterate entry="document" list="documentList">
+                <set field="row" from="[:]"/>
+                <if condition="document_index>10"><break/></if>
+                <if condition="statusItem.statusId.equals(document.customerStatusId)">
+                    <set field="row.partyId" from="document.partyId"/>
+                    <set field="row.combinedName" from="document.combinedName"/>
+                    <script>table.add(row)</script>
+                    <set field="found" value="yes"/>
+                </if>
+            </iterate>
+            <if condition="found == 'no'">
+                <set field="row" from="[:]"/>
+                <set field="row.combinedName" value="no leads found"/>
+                <set field="row.partyId" value=""/>
+                <script>table.add(row)</script>
+            </if>
+            <set field="row" from="[:]"/>
+            <set field="row.first" value="no"/>
+            <script>table.add(row)</script>
+        </iterate>
+    </actions>
+
+    <widgets>
+        <render-mode>
+            <text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Lead/SalesFunnel.html.ftl"/>
+        </render-mode>
+    </widgets>
+</screen>

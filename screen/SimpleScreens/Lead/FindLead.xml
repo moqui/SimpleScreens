@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="true" menu-image="/ssstatic/images/Customer.png" default-menu-index="1">
+
+    <transition name="createLeadAndOrg"><service-call name="mantle.party.PartyServices.create#LeadAndOrganization"/>
+        <default-response url="../FindLead"/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getGeoCountryStates" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getPartyClassificationList" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
+
+    <actions>
+        <set field="orderByField" value="combinedName"/>
+        <service-call name="mantle.party.PartyServices.search#Party" in-map="context" out-map="context"/>
+    </actions>
+    <widgets>
+        <container-dialog id="CreateLeadDialog" button-text="New Lead and Organization">
+            <form-single name="CreateLeadForm" transition="createLeadAndOrg">
+                <field name="firstName"><default-field title="" tooltip="First Name"><text-line size="30"/></default-field></field>
+                <field name="lastName"><default-field title="" tooltip="Last Name"><text-line size="30"/></default-field></field>
+                <field name="emailAddress"><default-field title="Email"><text-line size="40"/></default-field></field>
+
+                <field name="countryCode"><default-field title="" tooltip="Country Code">
+                    <label text="+"/><text-line size="3" maxlength="3" default-value="${ec.user.getPreference('TelecomNumber.DefaultCountryCode') ?: '1'}"/></default-field></field>
+                <field name="areaCode"><default-field  title="" tooltip="Area Code">
+                    <label text="-"/><text-line size="3" maxlength="3"/></default-field></field>
+                <field name="contactNumber"><default-field  title="" tooltip="Phone Number">
+                    <label text="-"/><text-line size="8" maxlength="8"/></default-field></field>
+
+                <field name="address1"><default-field title="Address 1"><text-line size="30"/></default-field></field>
+                <field name="unitNumber"><default-field title="Unit"><text-line size="10"/></default-field></field>
+                <field name="address2"><default-field title="Address 2"><text-line size="30"/></default-field></field>
+                <field name="city"><default-field title="" tooltip="City"><text-line size="16"/></default-field></field>
+
+                <field name="countryGeoId"><default-field title="">
+                    <drop-down no-current-selected-key="USA">
+                        <entity-options key="${geoId}" text="${geoName}">
+                            <entity-find entity-name="moqui.basic.Geo" list="geoList">
+                                <econdition field-name="geoTypeEnumId" value="GEOT_COUNTRY"/>
+                                <order-by field-name="geoName"/></entity-find>
+                        </entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="stateProvinceGeoId"><default-field title="">
+                    <drop-down><dynamic-options transition="getGeoCountryStates" value-field="geoId">
+                        <depends-on field="countryGeoId"/></dynamic-options></drop-down>
+                </default-field></field>
+                <field name="postalCode"><default-field title="" tooltip="Zip/Postal Code"><text-line size="8"/></default-field></field>
+                <field name="postalCodeExt"><default-field title="" tooltip="Zip/Postal Code Extension"><text-line size="4"/></default-field></field>
+
+                <field name="organizationPartyId"><default-field title="Existing Company Name" tooltip="Existing Company">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="partyTypeEnumId" value="PtyOrganization"/>
+                                <econdition field-name="roleTypeId" value="Customer"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </default-field></field>
+                <field name="organizationName"><default-field title="New Company Name"><text-line size="30"/></default-field></field>
+
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+
+                <field-layout>
+                    <field-row-big title="Lead Name"><field-ref name="firstName"/>
+                        <field-ref name="lastName"/></field-row-big>
+                    <field-ref name="emailAddress"/>
+
+                    <field-ref name="organizationPartyId"/>
+                    <field-ref name="organizationName"/>
+                    <field-row-big title="Phone"><field-ref name="countryCode"/><field-ref name="areaCode"/>
+                        <field-ref name="contactNumber"/></field-row-big>
+
+                    <field-row><field-ref name="address1"/><field-ref name="unitNumber"/></field-row>
+                    <field-ref name="address2"/>
+                    <field-row-big title="City/Zip"><field-ref name="city"/>
+                        <field-ref name="postalCode"/><field-ref name="postalCodeExt"/></field-row-big>
+                    <field-row-big title="Country/State"><field-ref name="countryGeoId"/>
+                        <field-ref name="stateProvinceGeoId"/></field-row-big>
+
+                    <field-ref name="submitButton"/>
+                </field-layout>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="LeadListForm" list="documentList" skip-form="false" header-dialog="true">
+            <row-actions><!-- get first company name -->
+                <entity-find list="organizations" entity-name="mantle.party.PartyToAndRelationship">
+                    <econdition field-name="fromPartyId" from="partyId"/>
+                    <econdition field-name="relationshipTypeEnumId" value="PrtContact"/>
+                </entity-find>
+                <if condition="!organizations">
+                    <set field="companyName" value="Not found"/>
+                    <else>
+                        <set field="companyName" value="${organizations[0].organizationName}[${organizations[0].toPartyId}]"/>
+                    </else>
+                </if>
+            </row-actions>
+            <field name="combinedName">
+                <header-field title="Name" show-order-by="true"><text-line size="40"/></header-field>
+                <default-field><link url="../EditLead" text="${combinedName} [${partyId}]" link-type="anchor"/></default-field>
+            </field>
+            <field name="companyName">
+                <default-field><display/></default-field></field>
+            <field name="customerStatusId">
+                <header-field title="Status" ><drop-down><entity-options>
+                    <entity-find entity-name="StatusItem"><econdition field-name="statusTypeId" value="Customer"/></entity-find>
+                    </entity-options></drop-down></header-field>
+                <default-field title="LeadStatus"><display-entity entity-name="StatusItem" key-field-name="statusId"/></default-field>
+            </field>
+            <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+
+        <container-row><row-col md="2" style="text-right"><label text="Current Search String" type="strong"/></row-col>
+            <row-col><label text="${queryString?:'No Current Search'}"/></row-col></container-row>
+    </widgets>
+</screen>
