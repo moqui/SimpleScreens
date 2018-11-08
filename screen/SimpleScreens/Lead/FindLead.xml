@@ -20,13 +20,15 @@ along with this software (see the LICENSE.md file). If not, see
             <if condition="organizationName">
                 <service-call name="mantle.party.PartyServices.create#Organization" in-map="true" out-map="outOrg"/>
                 <set field="accountPartyId" from="outOrg.partyId"/>
+                <service-call name="mantle.party.PartyServices.ensure#PartyRole" in-map="[partyId:accountPartyId, roleTypeId:'Account']"/>
             </if>
             <entity-find entity-name="moqui.basic.StatusItem" list="statusItems" limit="1">
                 <econdition field-name="statusTypeId" value="Customer"/>
                 <order-by field-name="sequenceNum"/>
             </entity-find>
             <set field="customerStatusId" from="statusItems[0].statusId"/>
-            <service-call name="mantle.party.PartyServices.create#PersonCustomer" in-map="true" out-map="context"/></actions>
+            <service-call name="mantle.party.PartyServices.create#PersonCustomer" in-map="true" out-map="context"/>
+            <service-call name="mantle.party.PartyServices.ensure#PartyRole" in-map="[partyId:partyId, roleTypeId:'Contact']"/></actions>
         <default-response url="../EditLead"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>

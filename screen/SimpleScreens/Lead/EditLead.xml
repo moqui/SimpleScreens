@@ -60,6 +60,8 @@ along with this software (see the LICENSE.md file). If not, see
         </entity-find>
         <entity-find-count entity-name="mantle.request.RequestAndParty" count-field="requestCount">
             <date-filter/><econdition field-name="partyId"/></entity-find-count>
+        <entity-find entity-name="mantle.party.PartyRole" list="partyRoleList"><econdition field-name="partyId"/></entity-find>
+        <set field="roleTypeIdList" from="partyRoleList*.roleTypeId"/>
     </actions>
     <widgets>
         <container-row><row-col lg="6">
@@ -131,66 +133,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-single>
             </fail-widgets></section>
         </row-col><row-col lg="6">
-            <section name="RelPartyListSection" condition="party?.partyTypeEnumId == 'PtyPerson'"><actions>
-            </actions><widgets>
-                <container-box type="info"><box-header title="List of related Companies"/><box-toolbar>
-                    <container-dialog id="AddCompanyDialog" button-text="Add Company">
-                        <form-single name="AddCompanyForm" transition="addCompanyOrContact">
-                            <field name="partyId"><default-field><hidden/></default-field></field>
-                            <field name="fromPartyId"><default-field><hidden default-value="${partyId}"/></default-field></field>
-                            <field name="fromRoleTypeId"><default-field><hidden default-value="Employee"/></default-field></field>
-                            <field name="toRoleTypeId"><default-field><hidden default-value="Customer"/></default-field></field>
-                            <field name="relationshipTypeEnumId"><default-field><hidden default-value="PrtContact"/></default-field></field>
-                            <field name="toPartyId"><default-field title="Company"><drop-down>
-                                <dynamic-options transition="searchPartyList" server-search="true" min-length="2"
-                                    parameter-map="[roleTypeId:'Customer',partyTypeEnumId:'PtyOrganization']"/>
-                            </drop-down></default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <form-list name="CompanyList" list="companyRelList" list-entry="companyRel" skip-header="true" skip-form="true">
-                        <field name="fromRoleTypeId" from="companyRel.fromRoleTypeId"><default-field title="Role">
-                            <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
-                        <field name="toPartyId"><default-field>
-                            <link url="." text="PartyNameTemplate" text-map="companyRel" link-type="anchor"
-                                    parameter-map="[partyId:companyRel.toPartyId]"/></default-field></field>
-                        <field name="removeButton" align="right"><default-field title="">
-                            <link url="deleteCompanyOrContact" icon="glyphicon glyphicon-trash"
-                                parameter-map="[partyRelationshipId:companyRel.partyRelationshipId]"
-                                    confirmation="Are you sure you want to remove this company from this contact?"/></default-field></field>
-                    </form-list>
-                </box-body></container-box>
-            </widgets><fail-widgets>
-                <container-box type="info"><box-header title="List of related Contacts"/><box-toolbar>
-                    <container-dialog id="AddContactDialog" button-text="Add Contact">
-                        <form-single name="AddContactForm" transition="addCompanyOrContact">
-                            <field name="partyId"><default-field><hidden/></default-field></field>
-                            <field name="toPartyId"><default-field><hidden default-value="${partyId}"/></default-field></field>
-                            <field name="fromRoleTypeId"><default-field><hidden default-value="Employee"/></default-field></field>
-                            <field name="toRoleTypeId"><default-field><hidden default-value="Customer"/></default-field></field>
-                            <field name="relationshipTypeEnumId"><default-field><hidden default-value="PrtContact"/></default-field></field>
-                            <field name="fromPartyId"><default-field title="Contact"><drop-down>
-                                <dynamic-options transition="searchPartyList" server-search="true" min-length="2"
-                                    parameter-map="[roleTypeId:'Employee',partyTypeEnumId:'PtyOrganization']"/>
-                            </drop-down></default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <form-list name="ContactList" list="contactRelList" list-entry="contactRel" skip-header="true" skip-form="true">
-                        <field name="toRoleTypeId" from="contactRel.fromRoleTypeId"><default-field title="Role">
-                            <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
-                        <field name="fromPartyId"><default-field>
-                            <link url="." text="PartyNameTemplate" text-map="contactRel" link-type="anchor"
-                                    parameter-map="[partyId:contactRel.fromPartyId]"/></default-field></field>
-                        <field name="removeButton" align="right"><default-field title="">
-                            <link url="deleteCompanyOrContact" icon="glyphicon glyphicon-trash"
-                                parameter-map="[partyRelationshipId:contactRel.partyRelationshipId]"
-                                    confirmation="Are you sure you want to remove this contact from the company?"/></default-field></field>
-                    </form-list>
-                </box-body></container-box>
-            </fail-widgets></section>
+            <section-include name="ContactRelListSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+            <section-include name="AccountRelListSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
             <section-include name="ContactInfoSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
             <section-include name="NotesSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
             <section-include name="ContentSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
