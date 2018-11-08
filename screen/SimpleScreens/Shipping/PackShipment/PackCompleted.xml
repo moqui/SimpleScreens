@@ -73,6 +73,32 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="moqui.basic.print.NetworkPrinter" list="networkPrinterList">
             <order-by field-name="description,printerName"/></entity-find>
         <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
+
+        <!-- get order carrier and method info -->
+        <entity-find entity-name="mantle.shipment.ShipmentItemSourceOrderItem" list="sisOrderItemList" distinct="true">
+            <econdition field-name="shipmentId"/>
+            <econdition field-name="orderId" operator="is-not-null"/>
+            <econdition field-name="orderPartSeqId" operator="is-not-null"/>
+            <select-field field-name="orderId,orderPartSeqId"/>
+        </entity-find>
+        <if condition="sisOrderItemList">
+            <entity-find-one entity-name="mantle.order.OrderPart" value-field="firstOrderPart">
+                <field-map field-name="orderId" from="sisOrderItemList[0].orderId"/>
+                <field-map field-name="orderPartSeqId" from="sisOrderItemList[0].orderPartSeqId"/>
+            </entity-find-one>
+            <if condition="firstOrderPart != null">
+                <if condition="firstOrderPart.carrierPartyId &amp;&amp; firstOrderPart.carrierPartyId != '_NA_'">
+                    <entity-find-one entity-name="mantle.party.PartyDetail" value-field="orderCarrierDetail" cache="true">
+                        <field-map field-name="partyId" from="firstOrderPart.carrierPartyId"/></entity-find-one>
+                </if>
+                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="orderShipmentMethodEnum">
+                    <field-map field-name="enumId" from="firstOrderPart.shipmentMethodEnumId"/></entity-find-one>
+                <entity-find-one entity-name="mantle.shipment.carrier.CarrierShipmentMethod" value-field="orderCarrierShipmentMethod">
+                    <field-map field-name="carrierPartyId" from="firstOrderPart.carrierPartyId"/>
+                    <field-map field-name="shipmentMethodEnumId" from="firstOrderPart.shipmentMethodEnumId"/>
+                </entity-find-one>
+            </if>
+        </if>
     </actions>
     <widgets>
         <!--
@@ -92,6 +118,8 @@ along with this software (see the LICENSE.md file). If not, see
         <container type="dl" style="dl-horizontal">
             <label text="Shipping Gateway" type="dt"/>
             <label text="${shippingGatewayConfig?.description ?: 'No Shipping Gateway'}" type="dd"/>
+            <label text="Order Ship By" type="dt"/>
+            <label text="${orderCarrierShipmentMethod?.description ? orderCarrierShipmentMethod.description : (orderCarrierDetail ? orderCarrierDetail.pseudoId : 'N/A') + ' ' + (orderShipmentMethodEnum ? orderShipmentMethodEnum.description : 'None')}" type="dd"/>
         </container>
         <form-single name="PackCompletedForm" transition="completeShipmentPack">
             <field name="shipmentId"><default-field><hidden/></default-field></field>
