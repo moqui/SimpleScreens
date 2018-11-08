@@ -15,7 +15,18 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-include="true" menu-image="/ssstatic/images/Customer.png" default-menu-index="1">
 
-    <transition name="createLeadAndOrg"><service-call name="mantle.party.PartyServices.create#LeadAndOrganization"/>
+    <transition name="createLeadAndOrg">
+        <actions>
+            <if condition="organizationName">
+                <service-call name="mantle.party.PartyServices.create#Organization" in-map="true" out-map="outOrg"/>
+                <set field="accountPartyId" from="outOrg.partyId"/>
+            </if>
+            <entity-find entity-name="moqui.basic.StatusItem" list="statusItems" limit="1">
+                <econdition field-name="statusTypeId" value="Customer"/>
+                <order-by field-name="sequenceNum"/>
+            </entity-find>
+            <set field="customerStatusId" from="statusItems[0].statusId"/>
+            <service-call name="mantle.party.PartyServices.create#PersonCustomer" in-map="true" out-map="context"/></actions>
         <default-response url="../EditLead"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
@@ -30,6 +41,7 @@ along with this software (see the LICENSE.md file). If not, see
         <container-dialog id="CreateLeadDialog" button-text="New Lead and Organization">
             <form-single name="CreateLeadForm" transition="createLeadAndOrg">
                 <field name="firstName"><default-field title="" tooltip="First Name"><text-line size="30"/></default-field></field>
+                <field name="middleName"><default-field title="" tooltip="Middle Name"><text-line size="30"/></default-field></field>
                 <field name="lastName"><default-field title="" tooltip="Last Name"><text-line size="30"/></default-field></field>
                 <field name="emailAddress"><default-field title="Email"><text-line size="40"/></default-field></field>
 
@@ -61,7 +73,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="postalCode"><default-field title="" tooltip="Zip/Postal Code"><text-line size="8"/></default-field></field>
                 <field name="postalCodeExt"><default-field title="" tooltip="Zip/Postal Code Extension"><text-line size="4"/></default-field></field>
 
-                <field name="organizationPartyId"><default-field title="Existing Company Name" tooltip="Existing Company">
+                <field name="accountPartyId"><default-field title="Existing Company Name" tooltip="Existing Company">
                     <drop-down allow-empty="true">
                         <entity-options key="${partyId}" text="PartyNameTemplate">
                             <entity-find entity-name="mantle.party.PartyDetailAndRole">
@@ -78,11 +90,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
 
                 <field-layout>
-                    <field-row-big title="Lead Name"><field-ref name="firstName"/>
-                        <field-ref name="lastName"/></field-row-big>
+                    <field-row-big title="Lead Name"><field-ref name="firstName"/><field-ref name="middleName"/><field-ref name="lastName"/></field-row-big>
                     <field-ref name="emailAddress"/>
 
-                    <field-ref name="organizationPartyId"/>
+                    <field-ref name="accountPartyId"/>
                     <field-ref name="organizationName"/>
                     <field-row-big title="Phone"><field-ref name="countryCode"/><field-ref name="areaCode"/>
                         <field-ref name="contactNumber"/></field-row-big>
@@ -108,22 +119,26 @@ along with this software (see the LICENSE.md file). If not, see
                 <if condition="!organizations">
                     <set field="companyName" value="Not found"/>
                     <else>
-                        <set field="companyName" value="${organizations[0].organizationName}[${organizations[0].toPartyId}]"/>
+                        <set field="companyName" value="${organizations[0].organizationName}"/>
+                        <set field="companyPartyId" value="${organizations[0].toPartyId}"/>
                     </else>
                 </if>
+                <filter-map-list list="contactMechs" to-list="emailList">
+                    <field-map field-name="contactMechTypeEnumId" value="CmtEmailAddress"/>
+                </filter-map-list>
             </row-actions>
             <field name="combinedName">
                 <header-field title="Name" show-order-by="true"><text-line size="40"/></header-field>
-                <default-field><link url="../EditLead" text="${combinedName} [${partyId}]" link-type="anchor"/></default-field>
-            </field>
-            <field name="companyName">
-                <default-field><display/></default-field></field>
+                <default-field><link url="../EditLead" text="${combinedName} [${partyId}]" link-type="anchor"/></default-field></field>
+            <field name="emailAddress">
+                <default-field><link url="mailto:${emailList[0].infoString}" text="${emailList[0].infoString}" link-type="anchor" url-type="plain"/></default-field></field>
+            <field name="companyPartyId">
+                <default-field><link url="../EditLead" text="${companyName} [${companyPartyId}]" link-type="anchor"/></default-field></field>
             <field name="customerStatusId">
-                <header-field title="Status" ><drop-down><entity-options>
+                <header-field title="Status"><drop-down><entity-options>
                     <entity-find entity-name="StatusItem"><econdition field-name="statusTypeId" value="Customer"/></entity-find>
                     </entity-options></drop-down></header-field>
-                <default-field title="LeadStatus"><display-entity entity-name="StatusItem" key-field-name="statusId"/></default-field>
-            </field>
+                <default-field title="LeadStatus"><display-entity entity-name="StatusItem" key-field-name="statusId"/></default-field></field>
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>
 
