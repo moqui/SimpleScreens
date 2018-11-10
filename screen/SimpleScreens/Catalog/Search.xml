@@ -46,6 +46,7 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="assetTypeEnumId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'assetTypeEnumId:' + assetTypeEnumId"/></if>
         <if condition="assetClassEnumId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'assetClassEnumId:' + assetClassEnumId"/></if>
         <if condition="amountUomId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'amountUomId:' + amountUomId"/></if>
+        <if condition="ownerPartyId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'ownerPartyId:' + ownerPartyId"/></if>
 
         <if condition="productFeatureId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'features.productFeatureId:' + productFeatureId"/></if>
         <if condition="productFeatureId2"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'features.productFeatureId:' + productFeatureId2"/></if>
@@ -81,42 +82,6 @@ along with this software (see the LICENSE.md file). If not, see
             <order-by field-name="typeDescription,categoryName"/></entity-find>
     </actions>
     <widgets>
-        <container-dialog id="FindOptionsDialog" button-text="Find Options">
-            <form-single name="FindOptions" transition=".">
-                <field name="queryString" from="originalQueryString"><default-field title="Any Field"><text-line size="40"/></default-field></field>
-
-                <field name="pseudoId"><default-field title="ID"><text-line size="15"/></default-field></field>
-                <field name="name"><default-field title="Name"><text-line size="40"/></default-field></field>
-                <field name="idValue"><default-field title="Other IDs"><text-line size="15"/></default-field></field>
-
-                <field name="productTypeEnumId">
-                    <default-field title="Product Type">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                            <set field="enumTypeId" value="ProductType"/><set field="allowEmpty" value="true"/></widget-template-include>
-                    </default-field>
-                </field>
-                <field name="amountUomId"><default-field title="Amount UOM">
-                    <drop-down allow-empty="true"><entity-options key="${uomId}" text="${description} [${uomId}]">
-                        <entity-find entity-name="moqui.basic.Uom">
-                            <econdition field-name="uomId" operator="in" from="amountUomIds"/>
-                            <order-by field-name="description"/></entity-find>
-                    </entity-options></drop-down>
-                </default-field></field>
-
-                <field name="productFeatureId"><default-field title="Feature">
-                    <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
-                </default-field></field>
-                <field name="productFeatureId2"><default-field title="Feature 2">
-                    <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
-                </default-field></field>
-                <field name="productCategoryId"><default-field title="Category">
-                    <drop-down allow-empty="true"><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
-                </default-field></field>
-
-                <field name="submitButton"><default-field title="Find"><submit/></default-field></field>
-            </form-single>
-        </container-dialog>
-
         <container-dialog id="AddCategoryContainer" button-text="Add All to Category" condition="productIds">
             <form-single name="AddCategoryForm" transition="addProductCategory">
                 <field name="queryString"><default-field><hidden/></default-field></field>
@@ -180,19 +145,25 @@ along with this software (see the LICENSE.md file). If not, see
                     size="80" id="ProductsForm_header_term" class="form-control" form="ProductsForm_header"></div>
             </div></div>
         ]]></text></render-mode>
-        <form-list name="ProductsForm" list="documentList" list-entry="document" skip-form="true">
+        <form-list name="ProductsForm" list="documentList" list-entry="document" skip-form="true" header-dialog="true" select-columns="true">
             <row-actions>
                 <set field="productId" from="document._id"/>
                 <script>if (document) context.putAll(document)</script>
             </row-actions>
+
+            <!-- using custom html field above the form:
+            <field name="queryString" from="originalQueryString"><header-field title="Any Field"><text-line size="40"/></header-field></field> -->
+
             <field name="pseudoId">
-                <header-field title="ID" show-order-by="true"><text-line size="10"/></header-field>
+                <header-field title="ID" show-order-by="true"><text-line size="40"/></header-field>
                 <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
             </field>
             <field name="name">
-                <header-field title="Name" show-order-by="true"><text-line size="30"/></header-field>
+                <header-field title="Name" show-order-by="true"><text-line size="60"/></header-field>
                 <default-field><link url="editProduct" text="${name}" link-type="anchor"/></default-field>
             </field>
+
+            <field name="idValue"><header-field title="Other IDs"><text-line size="40"/></header-field></field>
 
             <field name="productTypeEnumId">
                 <header-field title="Product Type" show-order-by="true">
@@ -200,6 +171,21 @@ along with this software (see the LICENSE.md file). If not, see
                         <set field="enumTypeId" value="ProductType"/><set field="allowEmpty" value="true"/></widget-template-include>
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="ownerPartyId">
+                <header-field title="Product Owner" show-order-by="true">
+                    <drop-down allow-empty="true">
+                        <option key="_NA_" text="N/A"/>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
             <field name="amountUomId">
                 <header-field title="Amount/UOM" show-order-by="true">
@@ -212,10 +198,17 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.Uom" text="${amountFixed?:''} ${description} [${uomId}]"/></default-field>
             </field>
 
-            <field name="submitButton">
-                <header-field title="Find"><submit/></header-field>
-                <default-field><display text=" "/></default-field>
-            </field>
+            <field name="productFeatureId"><header-field title="Feature">
+                <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
+            </header-field></field>
+            <field name="productFeatureId2"><header-field title="Feature 2">
+                <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
+            </header-field></field>
+            <field name="productCategoryId"><header-field title="Category">
+                <drop-down allow-empty="true"><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
+            </header-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>
         <label text="Full search string: ${queryString?:''}" type="p"/>
     </widgets>
