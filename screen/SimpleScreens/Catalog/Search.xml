@@ -20,6 +20,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="findProduct"><default-response url="."/></transition>
     <transition name="editProduct"><default-response url="../Product/EditProduct"/></transition>
 
+    <transition-include name="getFeatureList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getCategoryList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
     <actions>
         <set field="indexName" from="searchIndexName ?: 'mantle'"/>
         <set field="documentType" from="searchProductDocType ?: 'MantleProduct'"/>
@@ -32,9 +35,9 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="productTypeEnumId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productTypeEnumId:' + productTypeEnumId"/></if>
         <if condition="amountUomId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'amountUomId:' + amountUomId"/></if>
 
-        <if condition="productFeatureId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productFeatureId:' + productFeatureId"/></if>
-        <if condition="productFeatureId2"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productFeatureId:' + productFeatureId2"/></if>
-        <if condition="productCategoryId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productCategoryId:' + productCategoryId"/></if>
+        <if condition="productFeatureId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'features.productFeatureId:' + productFeatureId"/></if>
+        <if condition="productFeatureId2"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'features.productFeatureId:' + productFeatureId2"/></if>
+        <if condition="productCategoryId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'categories.productCategoryId:' + productCategoryId"/></if>
 
         <!-- if we have activeOrgId or filterOrgIds see if user has active org or user org filters -->
         <set field="activeOrgId" from="ec.user.context?.activeOrgId"/>
@@ -62,8 +65,6 @@ along with this software (see the LICENSE.md file). If not, see
             <select-field field-name="amountUomId"/></entity-find>
         <set field="amountUomIds" from="amountUomList.amountUomId"/>
 
-        <entity-find entity-name="mantle.product.feature.ProductFeatureAndType" list="allFeatureList">
-            <order-by field-name="typeDescription,abbrev,description"/></entity-find>
         <entity-find entity-name="mantle.product.category.ProductCategoryAndType" list="allCategoryList">
             <order-by field-name="typeDescription,categoryName"/></entity-find>
     </actions>
@@ -91,16 +92,13 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field></field>
 
                 <field name="productFeatureId"><default-field title="Feature">
-                    <drop-down allow-empty="true"><list-options list="allFeatureList" key="${productFeatureId}"
-                            text="${typeDescription} - ${description} [${abbrev ?: productFeatureId}]"/></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
                 <field name="productFeatureId2"><default-field title="Feature 2">
-                    <drop-down allow-empty="true"><list-options list="allFeatureList" key="${productFeatureId}"
-                            text="${typeDescription} - ${description} [${abbrev ?: productFeatureId}]"/></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
                 <field name="productCategoryId"><default-field title="Category">
-                    <drop-down allow-empty="true"><list-options list="allCategoryList" key="${productCategoryId}"
-                            text="${typeDescription} - ${categoryName} [${pseudoId}]"/></drop-down>
+                    <drop-down allow-empty="true"><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
 
                 <field name="submitButton"><default-field title="Find"><submit/></default-field></field>
