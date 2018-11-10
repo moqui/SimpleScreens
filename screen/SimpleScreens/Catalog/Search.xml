@@ -23,7 +23,17 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getFeatureList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getCategoryList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
+    <transition name="addProductCategory"><service-call name="mantle.product.ProductServices.add#ProductsToCategory"/>
+        <default-response url="."/></transition>
+    <transition name="removeProductCategory"><service-call name="mantle.product.ProductServices.remove#ProductsFromCategory"/>
+        <default-response url="."/></transition>
+    <transition name="addProductFeature"><service-call name="mantle.product.ProductServices.add#FeatureToProducts"/>
+        <default-response url="."/></transition>
+    <transition name="removeProductFeature"><service-call name="mantle.product.ProductServices.remove#FeatureFromProducts"/>
+        <default-response url="."/></transition>
+
     <actions>
+        <set field="pageSize" from="pageSize ?: 50"/>
         <set field="indexName" from="searchIndexName ?: 'mantle'"/>
         <set field="documentType" from="searchProductDocType ?: 'MantleProduct'"/>
 
@@ -33,6 +43,8 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="name"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'name:\&quot;' + name + '*\&quot;'"/></if>
         <if condition="idValue"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'idValue:' + idValue"/></if>
         <if condition="productTypeEnumId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productTypeEnumId:' + productTypeEnumId"/></if>
+        <if condition="assetTypeEnumId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'assetTypeEnumId:' + assetTypeEnumId"/></if>
+        <if condition="assetClassEnumId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'assetClassEnumId:' + assetClassEnumId"/></if>
         <if condition="amountUomId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'amountUomId:' + amountUomId"/></if>
 
         <if condition="productFeatureId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'features.productFeatureId:' + productFeatureId"/></if>
@@ -59,7 +71,7 @@ along with this software (see the LICENSE.md file). If not, see
                     in-map="context + [indexName:indexName, documentType:documentType]"/>
         </if>
 
-        <set field="productIds" from="documentList?._id"/>
+        <set field="productIds" from="documentList ? documentList*._id : null"/>
 
         <entity-find entity-name="mantle.product.Product" list="amountUomList" distinct="true">
             <select-field field-name="amountUomId"/></entity-find>
@@ -104,6 +116,60 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="submitButton"><default-field title="Find"><submit/></default-field></field>
             </form-single>
         </container-dialog>
+
+        <container-dialog id="AddCategoryContainer" button-text="Add All to Category" condition="productIds">
+            <form-single name="AddCategoryForm" transition="addProductCategory">
+                <field name="queryString"><default-field><hidden/></default-field></field>
+                <field name="productInfo"><default-field><display text="${productIds?.size() ?: '0'} Products"/></default-field></field>
+                <field name="productCategoryId"><default-field title="Category">
+                    <drop-down><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Add All"><submit/></default-field></field>
+                <field name="productIdList" from="productIds.join(',')"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="RemoveCategoryContainer" button-text="Remove All from Category" condition="productIds">
+            <form-single name="RemoveCategoryForm" transition="removeProductCategory">
+                <field name="queryString"><default-field><hidden/></default-field></field>
+                <field name="productInfo"><default-field><display text="${productIds?.size() ?: '0'} Products"/></default-field></field>
+                <field name="productCategoryId"><default-field title="Category">
+                    <drop-down><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Remove All"><submit/></default-field></field>
+                <field name="productIdList" from="productIds.join(',')"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <container-dialog id="AddFeatureContainer" button-text="Add Feature to All" condition="productIds">
+            <form-single name="AddFeatureForm" transition="addProductFeature">
+                <field name="queryString"><default-field><hidden/></default-field></field>
+                <field name="productInfo"><default-field><display text="${productIds?.size() ?: '0'} Products"/></default-field></field>
+                <field name="productFeatureId"><default-field title="Feature">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="applTypeEnumId"><default-field title="Appl. Type"><drop-down no-current-selected-key="PfatStandard">
+                    <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                        <econdition field-name="enumTypeId" value="ProductFeatureApplType"/>
+                        <order-by field-name="description"/>
+                    </entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+                <field name="submitButton"><default-field title="Add to All"><submit/></default-field></field>
+                <field name="productIdList" from="productIds.join(',')"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="RemoveFeatureContainer" button-text="Remove Feature from All" condition="productIds">
+            <form-single name="RemoveFeatureForm" transition="removeProductFeature">
+                <field name="queryString"><default-field><hidden/></default-field></field>
+                <field name="productInfo"><default-field><display text="${productIds?.size() ?: '0'} Products"/></default-field></field>
+                <field name="productFeatureId"><default-field title="Feature">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Remove from All"><submit/></default-field></field>
+                <field name="productIdList" from="productIds.join(',')"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+
         <link url="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax"
                 url-type="plain" link-type="anchor" target-window="_blank" text="Search String Reference"/>
 
@@ -111,7 +177,7 @@ along with this software (see the LICENSE.md file). If not, see
             <div class="row"><div class="form-group">
                 <label class="control-label col-lg-2 text-right" for="ProductsForm-header-term">${ec.l10n.localize('Search Any Field')}</label>
                 <div class="col-lg-10"><input type="text" name="queryString" value="${(originalQueryString!'')?html}"
-                    size="60" id="ProductsForm_header_term" class="form-control" form="ProductsForm_header"></div>
+                    size="80" id="ProductsForm_header_term" class="form-control" form="ProductsForm_header"></div>
             </div></div>
         ]]></text></render-mode>
         <form-list name="ProductsForm" list="documentList" list-entry="document" skip-form="true">
