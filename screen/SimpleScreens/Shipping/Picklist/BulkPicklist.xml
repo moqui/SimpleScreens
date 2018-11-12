@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Bulk Create Picklists" default-menu-include="false">
+
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+
+    <transition name="createPicklists" begin-transaction="false">
+        <service-call name="mantle.work.ShipmentWorkServices.create#ShipmentLoadsForOrders"/>
+        <default-response url="."/>
+    </transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <actions>
+        <set field="excludeOnPicklist" from="excludeOnPicklist ?: 'true'"/>
+        <set field="excludeNotPickLoc" from="excludeNotPickLoc ?: 'true'"/>
+
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="itemTypeEnumIdList" from="productItemTypeEgms*.enumId"/>
+
+        <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
+    </actions>
+    <widgets>
+        <label text="Use Find Options to search for orders and when you have the set you want use the form to create picklists." type="p"/>
+        <section name="CheckOptionsSection" condition="facilityId"><widgets>
+            <form-single name="CreatePicklistsForm" transition="createPicklists" pass-through-parameters="true">
+                <field name="facilityId"><default-field title="Facility">
+                    <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field></field>
+                <field name="workEffortName"><default-field title="Name Prefix"><text-line size="30"/></default-field></field>
+                <field name="ordersPerPicklist"><default-field title="Orders per Pick"><text-line size="8"/></default-field></field>
+                <field name="estimatedStartDate" from="ec.user.nowTimestamp">
+                    <default-field title="Start Date"><date-time/></default-field></field>
+                <field name="estimatedWorkDuration"><default-field title="Est. Hours">
+                    <text-line size="4" default-value="1"/></default-field></field>
+
+                <field name="submitButton"><default-field title="Create Picklists">
+                    <submit confirmation="Do the current find options and orders displayed match what you want to create picklists for?"/>
+                </default-field></field>
+
+                <field-layout><field-row-big><field-ref name="facilityId"/><field-ref name="workEffortName"/><field-ref name="ordersPerPicklist"/>
+                    <field-ref name="estimatedStartDate"/><field-ref name="estimatedWorkDuration"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </widgets><fail-widgets>
+            <label text="You must at least select a Facility." style="text-warning" type="p"/>
+        </fail-widgets></section>
+
+        <form-list name="AddOrderList" list="orderList" skip-form="true" multi="false"
+                header-dialog="true" select-columns="true" saved-finds="true"
+                extends="component://SimpleScreens/screen/SimpleScreens/Shipping/Picklist/AddOrder.xml#AddOrderList">
+
+            <hidden-parameters><parameter name="workEffortId" from="null"/></hidden-parameters>
+
+            <field name="_useRowSubmit"><default-field><ignored/></default-field></field>
+            <field name="_rowSubmit"><default-field><ignored/></default-field></field>
+            <field name="binLocationNumber"><default-field><ignored/></default-field></field>
+
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <default-field><ignored/></default-field>
+            </field>
+
+            <form-list-column><field-ref name="shipmentMethodSequenceNum"/><field-ref name="carrierPartyId"/>
+                <field-ref name="shipments"/></form-list-column>
+            <form-list-column><field-ref name="placedDate"/><field-ref name="shipBeforeDate"/>
+                <field-ref name="entryDate"/></form-list-column>
+
+            <form-list-column><field-ref name="orderId"/><field-ref name="otherPartyOrderId"/>
+                <field-ref name="salesChannelEnumId"/></form-list-column>
+            <form-list-column><field-ref name="partStatusId"/><field-ref name="facilityId"/>
+                <field-ref name="productStoreId"/></form-list-column>
+            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
+                <field-ref name="otherParties"/></form-list-column>
+            <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/>
+                <field-ref name="resPickLocQuantity"/></form-list-column>
+        </form-list>
+    </widgets>
+</screen>

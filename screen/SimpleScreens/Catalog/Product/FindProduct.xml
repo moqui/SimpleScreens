@@ -20,6 +20,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="../EditProduct"/></transition>
 
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getFeatureList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getCategoryList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <widgets>
         <container-dialog id="NewProductDialog" button-text="New Product">
@@ -29,6 +31,16 @@ along with this software (see the LICENSE.md file). If not, see
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="ProductType"/></widget-template-include>
                 </default-field></field>
+                <field name="ownerPartyId"><default-field title="Owned By Org"><drop-down>
+                    <option key="_NA_" text="N/A"/>
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
             </form-single>
         </container-dialog>
@@ -37,6 +49,8 @@ along with this software (see the LICENSE.md file). If not, see
                    saved-finds="true" show-csv-button="true">
             <entity-find entity-name="mantle.product.ProductFindView" list="productList" cache="false">
                 <search-form-inputs default-order-by="productName"/>
+                <date-filter from-field-name="categoryFromDate" thru-field-name="categoryThruDate" ignore="!productCategoryId"/>
+                <date-filter from-field-name="featureFromDate" thru-field-name="featureThruDate" ignore="!productFeatureId"/>
                 <select-field field-name="productId"/>
             </entity-find>
             <row-actions>
@@ -91,6 +105,20 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
 
+            <field name="ownerPartyId">
+                <header-field title="Owned By Org"><drop-down allow-empty="true">
+                    <option key="_NA_" text="N/A"/>
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></header-field>
+                <conditional-field condition="ownerPartyId == '_NA_'"><display text=" "/></conditional-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
+            </field>
             <field name="prodIdents"><default-field title="Other IDs">
                 <section-iterate name="OtherProductIdSection" list="prodIdentList" entry="prodIdent"><widgets>
                     <label text="${prodIdent.idValue} (${prodIdent.type?.description ?: ''})" type="div"/>
@@ -108,12 +136,19 @@ along with this software (see the LICENSE.md file). If not, see
                 <drop-down allow-multiple="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
             </header-field></field>
 
+            <field name="productFeatureId"><header-field title="Feature">
+                <drop-down allow-multiple="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
+            </header-field></field>
+            <field name="productCategoryId"><header-field title="Category">
+                <drop-down allow-multiple="true"><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
+            </header-field></field>
+
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/></form-list-column>
             <form-list-column><field-ref name="productTypeEnumId"/><field-ref name="productClassEnumId"/></form-list-column>
             <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="assetClassEnumId"/></form-list-column>
-            <form-list-column><field-ref name="prodIdents"/></form-list-column>
+            <form-list-column><field-ref name="ownerPartyId"/><field-ref name="prodIdents"/></form-list-column>
             <form-list-column><field-ref name="prodAssocFroms"/></form-list-column>
         </form-list>
     </widgets>

@@ -61,14 +61,13 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
                 <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
                 <econditions combine="or">
-                    <!-- TODO need to constrain to itemsTotal != (amountApplied + toAmountApplied), also can't do in post filter with current entity-find under form-list -->
-                    <econdition field-name="itemsTotal" operator="not-equals" to-field-name="amountApplied"/>
+                    <econdition field-name="itemsTotal" operator="not-equals" to-field-name="totalAmountApplied"/>
                     <econditions combine="and">
                         <econdition field-name="amountApplied" operator="is-null"/>
                         <econdition field-name="toAmountApplied" operator="is-null"/>
                     </econditions>
                 </econditions>
-                <select-field field-name="fromPartyId,toPartyId,invoiceId,invoiceDate,dueDate,itemsTotal,amountApplied,toAmountApplied"/>
+                <select-field field-name="fromPartyId,toPartyId,invoiceId,invoiceDate,dueDate,itemsTotal,amountApplied,toAmountApplied,totalAmountApplied"/>
             </entity-find>
             <row-actions>
                 <script><![CDATA[
@@ -151,7 +150,11 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="periodRemaining" from="agingList[5]" align="right" show-total="true" aggregate="sum"><header-field title="&gt; ${periodDays*4} days"/>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
             <field name="unpaidAmount" align="right" show-total="true" aggregate="sum">
+                <default-field title="Unpaid"><display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="itemsTotal" align="right" show-total="true" aggregate="sum">
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
+            <field name="totalAmountApplied" align="right" show-total="true" aggregate="sum">
+                <default-field title="Applied"><display currency-unit-field="currencyUomId"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
 
@@ -167,6 +170,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="period4"/></form-list-column>
             <form-list-column><field-ref name="periodRemaining"/></form-list-column>
             <form-list-column><field-ref name="unpaidAmount"/></form-list-column>
+            <!-- not displayed by default: <form-list-column><field-ref name="itemsTotal"/><field-ref name="totalAmountApplied"/></form-list-column> -->
         </form-list>
     </widgets>
 </screen>

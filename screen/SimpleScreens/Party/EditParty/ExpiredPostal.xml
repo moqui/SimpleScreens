@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="partyId" required="true"/>
+
+    <transition name="unremoveContactInfo"><service-call name="mantle.party.ContactServices.undelete#PartyContactMech"/>
+        <default-response url=".."/></transition>
+
+    <widgets>
+        <form-list name="PcmListForm" list="pcmList" skip-form="true">
+            <entity-find entity-name="mantle.party.contact.PartyContactMechPostalAddress" list="pcmList" limit="50">
+                <econdition field-name="partyId"/>
+                <econdition field-name="contactMechTypeEnumId" value="CmtPostalAddress"/>
+                <econdition field-name="thruDate" operator="less" from="ec.user.nowTimestamp"/>
+                <select-field field-name="partyId,contactMechId,contactMechPurposeId,fromDate,stateGeoName,stateGeoCodeAlpha2"/>
+                <order-by field-name="-thruDate"/>
+            </entity-find>
+
+            <field name="fromDate"><default-field><display/></default-field></field>
+            <field name="thruDate"><default-field container-style="text-danger"><display/></default-field></field>
+            <field name="contactMechPurposeId"><default-field title="Purpose">
+                <display-entity entity-name="mantle.party.contact.ContactMechPurpose"/></default-field></field>
+
+            <field name="address1"><default-field title="Address 1"><display/></default-field></field>
+            <field name="unitNumber"><default-field title="Unit"><display/></default-field></field>
+            <field name="postalCode"><default-field title="Postal"><display/></default-field></field>
+            <field name="postalCodeExt"><default-field title="Ext"><display/></default-field></field>
+            <field name="stateProvinceGeoId"><default-field title="State">
+                <display text="${stateGeoCodeAlpha2 ?: stateGeoName ?: stateProvinceGeoId}"/></default-field></field>
+            <field name="countryGeoId"><default-field title="Country"><display/></default-field></field>
+
+            <field name="unremoveLink"><default-field title="">
+                <link url="unremoveContactInfo" text="Restore" confirmation="Restore address?"
+                        parameter-map="[partyId:partyId, contactMechId:contactMechId, contactMechPurposeId:contactMechPurposeId, fromDate:fromDate]"/>
+            </default-field></field>
+
+            <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
+            <form-list-column><field-ref name="contactMechPurposeId"/></form-list-column>
+            <form-list-column><field-ref name="address1"/><field-ref name="unitNumber"/></form-list-column>
+            <form-list-column><field-ref name="postalCode"/><field-ref name="postalCodeExt"/></form-list-column>
+            <form-list-column><field-ref name="stateProvinceGeoId"/><field-ref name="countryGeoId"/></form-list-column>
+            <form-list-column><field-ref name="unremoveLink"/></form-list-column>
+        </form-list>
+    </widgets>
+</screen>
