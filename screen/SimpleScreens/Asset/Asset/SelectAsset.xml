@@ -20,6 +20,8 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="containerId"/>
     <parameter name="productId"/>
     <parameter name="lotId"/>
+    <parameter name="quantity"/>
+    <parameter name="toScanLocation"/>
 
     <transition name="moveAsset"><default-response url="../MoveAsset"/></transition>
     <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
@@ -123,6 +125,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="locationTypeEnumId" value="FltPick"/>
                     <select-field field-name="locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
                 </entity-find>
+            </if>
+        </if>
+
+        <if condition="toScanLocation &amp;&amp; facilityId">
+            <service-call name="mantle.product.AssetServices.check#ScanLocation" out-map="toScanOut"
+                    in-map="[facilityId:facilityId, scanLocation:toScanLocation]"/>
+            <if condition="!toScanOut.locationSeqId &amp;&amp; !toScanOut.containerId">
+                <set field="createContainerId" from="toScanLocation"/>
+                <set field="toScanLocation" from="null"/>
             </if>
         </if>
     </actions>
@@ -230,10 +241,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="locationSeqId"><default-field><hidden/></default-field></field>
                     <field name="containerId"><default-field><hidden/></default-field></field>
                     <field name="productId"><default-field><hidden/></default-field></field>
+                    <field name="createContMessage"><conditional-field condition="createContainerId" title="">
+                        <label text="Scanned ID was not a known location or container, scan a location to create a container with the ID" style="text-warning"/>
+                    </conditional-field></field>
                     <field name="toScanLocation"><default-field title="Scan Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
                         <text-line size="20"/></default-field></field>
                     <!-- <field name="containerId"><default-field title="Scan Container ID" tooltip="Can be Container ID or Serial Number (Plate ID)">
                         <text-line size="20"/></default-field></field> -->
+                    <field name="createContainerId"><default-field title="Create Container ID">
+                        <text-line size="20"/></default-field></field>
                     <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
                         <text-line size="20"/></default-field></field>
                     <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
@@ -254,9 +270,16 @@ along with this software (see the LICENSE.md file). If not, see
                         <dynamic-options transition="getContainerList" server-search="true" min-length="0">
                             <depends-on field="facilityId"/><depends-on field="toLocationSeqId" parameter="locationSeqId"/></dynamic-options>
                     </drop-down></default-field></field>
+                    <field name="createContainerId"><default-field title="Create Container ID">
+                        <text-line size="20"/></default-field></field>
                     <field name="quantity"><default-field title="Quantity">
                         <text-line size="10"/></default-field></field>
                     <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
+                    <field-layout>
+                        <fields-not-referenced/>
+                        <field-row><field-ref name="quantity"/><field-ref name="createContainerId"/></field-row>
+                        <field-ref name="submitButton"/>
+                    </field-layout>
                 </form-single>
             </row-col></container-row>
         </widgets></section>
