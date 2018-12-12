@@ -114,6 +114,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="deleteItem"><service-call name="mantle.order.OrderServices.delete#OrderItem"/>
         <default-response url="."/></transition>
 
+    <transition name="removeOrderItemReservations"><service-call name="mantle.product.AssetServices.remove#OrderItemReservations"/>
+        <default-response url="."/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getProductPrice" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
@@ -1154,6 +1157,8 @@ along with this software (see the LICENSE.md file). If not, see
                                 type="div" style="text-danger"/>
                         <dynamic-dialog id="ItemReserveDialog" button-text="Reserve Assets" transition="ItemReserve" width="960"
                                 condition="orderPartInfo.partEditable || orderPartInfo.orderPart.statusId == 'OrderApproved'"/>
+                        <link url="removeOrderItemReservations" text="" btn-type="danger" icon="glyphicon glyphicon-trash"
+                                confirmation="Remove inventory reservations for item ${orderItemSeqId}?"/>
                     </conditional-field>
                     <default-field><display text=" "/></default-field>
                 </field>
@@ -1181,13 +1186,15 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
 
                 <field name="submitButton"><conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'">
-                    <submit text="Update"/><link url="deleteItem" text="Delete" condition="itemCanDelete" confirmation="Delete item?"/>
+                    <submit text="Update"/>
+                    <link url="deleteItem" text="" btn-type="danger" icon="glyphicon glyphicon-trash" condition="itemCanDelete" confirmation="Delete item ${orderItemSeqId}?"/>
                 </conditional-field><conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo == 'Y'">
-                    <link url="deleteItem" text="Delete" condition="itemCanDelete" confirmation="Delete item?"/>
+                    <link url="deleteItem" text="" btn-type="danger" icon="glyphicon glyphicon-trash" condition="itemCanDelete" confirmation="Delete item ${orderItemSeqId}?"/>
                 </conditional-field><default-field title=""/></field>
 
                 <field name="closeButton"><default-field title="">
-                    <link url="cancelOrderItem" text="Close Item" link-type="hidden-form" confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity will be cancelled."
+                    <link url="cancelOrderItem" text="Close" btn-type="warning" link-type="hidden-form"
+                            confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity will be cancelled."
                             condition="isProductItemType &amp;&amp; itemQuantityNotShipped &amp;&amp; orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"
                             parameter-map="[orderItem:null]"/>
                 </default-field></field>
