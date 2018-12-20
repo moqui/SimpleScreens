@@ -33,6 +33,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="shipShipment"><service-call name="mantle.shipment.ShipmentServices.ship#Shipment"/>
         <default-response url="."/></transition>
+    <transition name="cancelShipment"><service-call name="mantle.shipment.ShipmentServices.cancel#Shipment"/>
+        <default-response url="."/></transition>
 
     <transition name="updateItem"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentItem"/>
         <default-response url="."/></transition>
@@ -169,6 +171,22 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text=" (${statusItem.description})" condition="statusItem"/>
                 </container>
             </row-col><row-col xs="8" style="text-right">
+                <container-dialog id="CancelDialog" button-text="Cancel" type="danger"
+                                  condition="!(shipment.statusId in ['ShipDelivered', 'ShipRejected', 'ShipCancelled'])">
+                    <label text="Invoices associated with this shipment will be CANCELLED: ${invoiceIdSet.join(', ')}"
+                           condition="isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-danger"/>
+                    <label text="Invoices (found ${invoiceIdSet.size()} associated with this shipment) will not be changed, must be cancelled manually"
+                           condition="!isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-warning"/>
+                    <label text="Items have been packed/issued, these will be un-packed and returned to inventory" condition="anyItemPacked" type="p" style="text-danger"/>
+                    <label text="Items have been received, all receipt quantities will be set to zero" condition="anyReceived" type="p" style="text-danger"/>
+                    <label text="Labels will not be refunded automatically, refund manually if needed" condition="hasAnyLabels" type="p" style="text-warning"/>
+                    <label text="Payments associated with this shipment through order or invoice will not be changed" type="p" style="text-warning"/>
+                    <label text="Emails have been sent, these cannot be unsent" type="p" style="text-danger" condition="emailMessageCount"/>
+
+                    <label text="Are you sure you want to cancel this shipment?"/>
+                    <link url="cancelShipment" text="Cancel Shipment"/>
+                </container-dialog>
+
                 <!-- <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/> -->
                 <link url="ShipmentInsert.pdf" text="Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}" icon="glyphicon glyphicon-download"/>
                 <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentInsert?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Insert</button>]]></text></render-mode>
