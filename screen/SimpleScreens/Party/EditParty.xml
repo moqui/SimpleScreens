@@ -223,14 +223,17 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find entity-name="mantle.party.Party" list="mergedFromList">
                     <econdition field-name="mergedToPartyId" from="partyId"/></entity-find>
             </actions><widgets>
-                <label text="Duplicates found (by ${party.hasDuplicates == 'Y' ? 'address/name, phone/name, ' : ''}identification, email, or birth date and name)" type="p" style="text-danger"
-                        condition="party.hasDuplicates == 'Y' || hasDuplicates"/>
+                <label text="Duplicates found (by ${party.hasDuplicates == 'Y' ? 'address/name, phone/name, ' : ''}identification, email, or birth date and name)"
+                        type="div" style="text-danger" condition="party.hasDuplicates == 'Y' || hasDuplicates"/>
                 <container><link url="." text="This party was merged into ${party.mergedToPartyId}" link-type="anchor"
                         parameter-map="[partyId:party.mergedToPartyId]" condition="party.mergedToPartyId"/></container>
-                <section-iterate name="MergedFromList" list="mergedFromList" entry="mergedFrom"><widgets>
-                    <container><link url="." text="This party has data merged from ${mergedFrom.partyId}" link-type="anchor"
-                            parameter-map="[partyId:mergedFrom.partyId]"/></container>
-                </widgets></section-iterate>
+                <container>
+                    <label text="This party has data merged from parties: " condition="mergedFromList"/>
+                    <section-iterate name="MergedFromList" list="mergedFromList" entry="mergedFrom"><widgets>
+                        <link url="." text="${mergedFrom.partyId} " link-type="anchor"
+                                parameter-map="[partyId:mergedFrom.partyId]"/>
+                    </widgets></section-iterate>
+                </container>
             </widgets></section>
             <section name="EditPartySection" condition="party?.partyTypeEnumId == 'PtyOrganization'"><widgets>
                 <form-single name="EditOrganizationForm" map="party" transition="updateParty">
