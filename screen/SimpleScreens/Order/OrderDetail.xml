@@ -327,8 +327,27 @@ along with this software (see the LICENSE.md file). If not, see
             </row-col><row-col lg="6">
                 <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
+                <section name="CustomerNotesSection"><actions>
+                    <entity-find entity-name="mantle.party.PartyNote" list="customerNoteList">
+                        <econdition field-name="partyId" from="firstPartInfo.orderPart.customerPartyId"/>
+                        <order-by field-name="-noteDate"/>
+                    </entity-find>
+                </actions><widgets>
+                    <section name="CustomerNotesInner" condition="customerNoteList"><widgets>
+                        <container-box type="danger"><box-header title="Customer Notes"/><box-body>
+                            <section-iterate name="CustomerNoteIterate" list="customerNoteList" entry="partyNote"><actions>
+                                <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                                    <field-map field-name="userId" from="partyNote.userId"/></entity-find-one>
+                            </actions><widgets>
+                                <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: partyNote.userId}) at ${ec.l10n.format(partyNote.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
+                                <label text="${partyNote.noteText}" type="p"/>
+                            </widgets></section-iterate>
+                        </box-body></container-box>
+                    </widgets></section>
+                </widgets></section>
+
                 <section name="NotesSection"><widgets>
-                    <container-box><box-header title="Notes"/><box-toolbar>
+                    <container-box><box-header title="Order Notes"/><box-toolbar>
                         <container-dialog id="NewNoteDialog" button-text="Add Note">
                             <form-single name="NewNoteForm" transition="createNote">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
@@ -356,15 +375,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </widgets></section-iterate>
                     </box-body></container-box>
                 </widgets></section>
-                <!-- TODO
-                <section name="CustomerNotesSection"><actions>
-                    <entity-find entity-name="mantle.party.PartyNote" list="customerNoteList">
-                        <econdition field-name="partyId" from="firstPartInfo.orderPart.customerPartyId"/>
-                        <order-by field-name="-noteDate"/>
-                    </entity-find>
-                </actions><widgets>
-                </widgets></section>
-                -->
+
                 <section name="ContentSection"><actions>
                     <entity-find entity-name="mantle.order.OrderContent" list="contentList">
                         <econdition field-name="orderId"/><order-by field-name="-contentDate"/></entity-find>

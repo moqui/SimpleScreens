@@ -676,8 +676,27 @@ along with this software (see the LICENSE.md file). If not, see
 
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
+            <section name="CustomerNotesSection" condition="isOutgoing"><actions>
+                <entity-find entity-name="mantle.party.PartyNote" list="customerNoteList">
+                    <econdition field-name="partyId" from="shipment.toPartyId"/>
+                    <order-by field-name="-noteDate"/>
+                </entity-find>
+            </actions><widgets>
+                <section name="CustomerNotesInner" condition="customerNoteList"><widgets>
+                    <container-box type="danger"><box-header title="Customer Notes"/><box-body>
+                        <section-iterate name="CustomerNoteIterate" list="customerNoteList" entry="partyNote"><actions>
+                            <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                                <field-map field-name="userId" from="partyNote.userId"/></entity-find-one>
+                        </actions><widgets>
+                            <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: partyNote.userId}) at ${ec.l10n.format(partyNote.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
+                            <label text="${partyNote.noteText}" type="p"/>
+                        </widgets></section-iterate>
+                    </box-body></container-box>
+                </widgets></section>
+            </widgets></section>
+
             <section name="OrderNotesSection" condition="orderNoteList"><widgets>
-                <container-box><box-header title="Order Notes"/><box-body>
+                <container-box type="danger"><box-header title="Order Notes"/><box-body>
                     <section-iterate name="NoteIterateSection" list="orderNoteList" entry="note"><actions>
                         <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
                             <field-map field-name="userId" from="note.userId"/></entity-find-one>
