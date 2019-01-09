@@ -24,15 +24,49 @@ along with this software (see the LICENSE.md file). If not, see
                       in-map="context + [dataDocumentId:'MantleWikiPage']"/>
         <default-response url="."/>
     </transition>
+    <transition name="cloneWikiSpace" begin-transaction="false">
+        <service-call name="org.moqui.impl.WikiServices.clone#WikiSpace"/>
+        <default-response url="."/>
+    </transition>
 
     <actions>
         <entity-find-one entity-name="moqui.resource.wiki.WikiSpace" value-field="wikiSpace"/>
     </actions>
     <widgets>
-        <container>
-            <link text="View Space" url="../wiki/${wikiSpaceId}" link-type="anchor-button"/>
-            <link text="Index Space Pages" url="indexPages" link-type="hidden-form"/>
-        </container>
+        <link text="View Space" url="../wiki/${wikiSpaceId}" link-type="anchor-button"/>
+        <link text="Index Space Pages" url="indexPages" link-type="hidden-form"/>
+
+        <container-dialog id="CloneSpaceDialog" button-text="Clone Space">
+            <form-single name="CloneSpace" transition="cloneWikiSpace">
+                <field name="baseWikiSpaceId" from="wikiSpaceId"><default-field title="Base Space ID">
+                    <display/></default-field></field>
+                <field name="wikiSpaceId"><default-field title="New Space ID">
+                    <text-line size="8" maxlength="8"/></default-field></field>
+                <field name="description" from="wikiSpace.description"><default-field>
+                    <text-line size="40"/></default-field></field>
+
+                <field name="rootPageDirectory"><default-field>
+                    <drop-down combo-box="true">
+                        <option key="dbresource://WikiSpace"/>
+                        <option key="WikiSpace" text="runtime/WikiSpace"/>
+                        <option key="content://main/WikiSpace"/>
+                    </drop-down>
+                </default-field></field>
+                <field name="rootPageLocation"><default-field title="Root Page Override" tooltip="Select a root page directory unless you know what you're doing and really need this, should end in filename with extension based on wiki type like .md">
+                    <text-line size="60"/>
+                </default-field></field>
+
+                <field name="copyAttachments"><default-field>
+                    <radio no-current-selected-key="true"><option key="true" text="Yes"/><option key="false" text="No"/></radio>
+                </default-field></field>
+                <field name="publishNew"><default-field>
+                    <radio no-current-selected-key="true"><option key="true" text="Yes"/><option key="false" text="No"/></radio>
+                </default-field></field>
+
+                <field name="submitButton"><default-field title="Clone Space"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
         <form-single name="EditSpace" map="wikiSpace" transition="updateSpace">
             <field name="wikiSpaceId"><default-field><hidden/></default-field></field>
 
