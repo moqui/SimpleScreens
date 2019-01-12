@@ -1038,8 +1038,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <set field="isShippable" from="product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
-                    <set field="itemCanDelete" from="(!isShippable || itemQuantityNotShipped == quantity) &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnQuantity == 0"/>
-                    <!-- <log level="warn" message="itemCanDelete ${itemCanDelete} quantity ${quantity} itemQuantityNotShipped ${itemQuantityNotShipped} itemQuantityNotBilled ${itemQuantityNotBilled} returnableOut.returnQuantity ${returnableOut.returnQuantity}"/> -->
+                    <set field="itemCanDelete" from="(!isShippable || itemQuantityNotShipped == quantity) &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnedQuantity == 0"/>
+                    <!-- <log level="warn" message="itemCanDelete ${itemCanDelete} quantity ${quantity} itemQuantityNotShipped ${itemQuantityNotShipped} itemQuantityNotBilled ${itemQuantityNotBilled} returnableOut.returnedQuantity ${returnableOut.returnedQuantity}"/> -->
 
                     <set field="newerThanExpireDate" from="null"/>
                     <if condition="orderPartInfo.newerInventory &amp;&amp; orderPartInfo.orderPart.customerPartyId">
@@ -1197,11 +1197,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
 
                 <field name="returns"><default-field>
-                    <label text="Billed:${returnableOut.invoiceQuantity}" type="div"/>
-                    <label text="Returned:${returnableOut.returnQuantity}" type="div"/>
+                    <label text="Billed:${returnableOut.isProductItemType ? returnableOut.invoiceQuantity : returnableOut.invoiceTotal}" type="div"/>
+                    <label text="Returned:${returnableOut.isProductItemType ? returnableOut.returnedQuantity : returnableOut.returnedTotal}" type="div"/>
                     <section-iterate name="ReturnLinkSection" list="returnIdSet" entry="returnId"><widgets>
                         <link url="editReturn" text="#${returnId}" link-type="anchor"/></widgets></section-iterate>
-                    <label text="Returnable:${returnableOut.returnableQuantity}" type="div"/>
+                    <label text="Returnable:${returnableOut.isProductItemType ? returnableOut.returnableQuantity : returnableOut.returnableTotal}" type="div"/>
                 </default-field></field>
                 <field name="returnItem">
                     <conditional-field condition="orderPartInfo.openReturnList &amp;&amp; returnableOut.returnableQuantity &gt; 0">
