@@ -20,9 +20,12 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="containerId"/>
     <parameter name="productId"/>
     <parameter name="lotId"/>
+    <parameter name="quantity"/>
+    <parameter name="toScanLocation"/>
 
     <transition name="moveAsset"><default-response url="../MoveAsset"/></transition>
-    <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
+    <!-- NOTE: no access to AssetDetail, go to MoveAsset screen in this mini-app -->
+    <transition name="assetDetail"><default-response url="../MoveAsset"/></transition>
 
     <transition name="setActiveFacility"><actions><script>ec.user.setPreference('FacilityActive', facilityId)</script></actions>
         <default-response url="."/></transition>
@@ -38,10 +41,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="moveProduct"><service-call name="mantle.product.AssetServices.move#Product"/>
         <default-response url="."/></transition>
 
-    <transition name="editContainer"><default-response url="../../Container/EditContainer"/></transition>
-    <transition name="moveContainer"><default-response url="../../Container/MoveContainer"/></transition>
-    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
-    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <!-- <transition name="moveContainer"><default-response url="../../Container/MoveContainer"/></transition> -->
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
@@ -119,18 +119,32 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
 
         <set field="canMove" from="product != null &amp;&amp; facility != null"/>
+
+        <if condition="toScanLocation &amp;&amp; facilityId">
+            <service-call name="mantle.product.AssetServices.check#ScanLocation" out-map="toScanOut"
+                    in-map="[facilityId:facilityId, scanLocation:toScanLocation]"/>
+            <if condition="!toScanOut.locationSeqId &amp;&amp; !toScanOut.containerId">
+                <set field="createContainerId" from="toScanLocation"/>
+                <set field="toScanLocation" from="null"/>
+            </if>
+        </if>
     </actions>
 
     <widgets>
-        <section name="ScanInputAndFacility" condition="!canMove"><widgets>
+        <section name="ScanInputAndFacility"><widgets><!-- always display, allow additional scans, no: condition="!canMove" -->
             <container-row style="text-center"><row-col sm="5">
                 <form-single name="ScanAssetForm" transition="checkScanInput" focus-field="scanId">
+                    <field name="facilityId"><default-field><hidden/></default-field></field>
+                    <field name="locationSeqId"><default-field><hidden/></default-field></field>
+                    <field name="containerId"><default-field><hidden/></default-field></field>
+                    <field name="productId"><default-field><hidden/></default-field></field>
                     <field name="scanId"><default-field title="Scan Asset, Cont, Loc, Prod"><text-line size="16"/></default-field></field>
                     <field name="submitButton"><default-field title="Go"><submit/></default-field></field>
                     <field-layout><field-row-big><field-ref name="scanId"/><field-ref name="submitButton"/></field-row-big></field-layout>
                 </form-single>
             </row-col><row-col sm="7">
                 <form-single name="ActiveFacilityForm" transition="setActiveFacility">
+                    <field name="productId"><default-field><hidden/></default-field></field>
                     <field name="facilityId"><default-field title="Active Warehouse">
                         <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
                                 parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
@@ -185,9 +199,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="locationSeqId"><default-field><hidden/></default-field></field>
                 <field name="containerId"><default-field><hidden/></default-field></field>
                 <field name="productId"><default-field><hidden/></default-field></field>
-                <field name="scanLocation"><default-field title="Scan To Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
+                <field name="quantity"><default-field title="Quantity">
                     <text-line size="20"/></default-field></field>
-                <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
+                <field name="createContMessage"><conditional-field condition="createContainerId" title="">
+                    <label text="Scanned ID was not a known location or container, scan a location to create a container with the ID" style="text-warning"/>
+                </conditional-field></field>
+                <field name="toScanLocation"><default-field title="Scan To Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
+                    <text-line size="20"/></default-field></field>
+                <field name="createContainerId"><default-field title="Create Container ID">
                     <text-line size="20"/></default-field></field>
                 <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
             </form-single>
@@ -304,8 +323,9 @@ along with this software (see the LICENSE.md file). If not, see
                             parameter-map="[assetId:asset.assetId]"/>
                 </default-field></field>
                 <field name="productId" from="asset.productId"><default-field title="Product">
-                    <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor"
-                            parameter-map="[productId:asset.productId]"/>
+                    <link url="." text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor"
+                            parameter-map="[productId:asset.productId, facilityId:toFacLoc?.facilityId,
+                                locationSeqId:toFacLoc?.locationSeqId, containerId:toContainer?.containerId]"/>
                 </default-field></field>
 
                 <field name="toLocation"><default-field>
@@ -314,13 +334,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text="ContainerNameTemplate" text-map="toContainer?:[:]" condition="toContainer"/></default-field></field>
 
                 <field name="changedDate"><default-field title="Date Moved"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
+                <!-- can now use Asset link to MoveAgain
                 <field name="moveAgain"><default-field title="">
                     <link url="moveAsset" text="Move Again" parameter-map="[assetId:asset.assetId]" link-type="anchor-button"/>
                 </default-field></field>
+                -->
 
                 <form-list-column><field-ref name="assetId"/><field-ref name="productId"/></form-list-column>
                 <form-list-column><field-ref name="toLocation"/><field-ref name="toContainer"/></form-list-column>
-                <form-list-column><field-ref name="changedDate"/><field-ref name="moveAgain"/></form-list-column>
+                <form-list-column><field-ref name="changedDate"/><!--<field-ref name="moveAgain"/>--></form-list-column>
             </form-list>
         </widgets></section>
 
@@ -349,8 +371,8 @@ along with this software (see the LICENSE.md file). If not, see
                     </entity-find-one>
                 </row-actions>
 
-                <field name="container"><default-field><link url="editContainer" text="${container.serialNumber ?: container.containerId}"
-                        parameter-map="[containerId:container.containerId]" link-type="anchor"/></default-field></field>
+                <field name="container"><default-field><display text="${container.serialNumber ?: container.containerId}"
+                        parameter-map="[containerId:container.containerId]"/></default-field></field>
 
                 <field name="containerTypeEnumId" from="container.containerTypeEnumId"><default-field title="Type">
                     <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
@@ -361,13 +383,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text="FacilityLocationNameTemplate" text-map="toFacLoc?:[:]" condition="toFacLoc"/></default-field></field>
 
                 <field name="changedDate"><default-field title="Date Moved"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
+                <!-- not currently supported in this mini app
                 <field name="moveAgain"><default-field title="">
                     <link url="moveContainer" text="Move Again" parameter-map="[containerId:container.containerId]" link-type="anchor-button"/>
                 </default-field></field>
+                -->
 
                 <form-list-column><field-ref name="container"/><field-ref name="containerTypeEnumId"/></form-list-column>
                 <form-list-column><field-ref name="fromLocation"/><field-ref name="toLocation"/></form-list-column>
-                <form-list-column><field-ref name="changedDate"/><field-ref name="moveAgain"/></form-list-column>
+                <form-list-column><field-ref name="changedDate"/><!--<field-ref name="moveAgain"/>--></form-list-column>
             </form-list>
         </widgets></section>
     </widgets>

@@ -20,7 +20,20 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="findProduct"><default-response url="."/></transition>
     <transition name="editProduct"><default-response url="../Product/EditProduct"/></transition>
 
+    <transition-include name="getFeatureList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getCategoryList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <transition name="addProductCategory"><service-call name="mantle.product.ProductServices.add#ProductsToCategory"/>
+        <default-response url="."/></transition>
+    <transition name="removeProductCategory"><service-call name="mantle.product.ProductServices.remove#ProductsFromCategory"/>
+        <default-response url="."/></transition>
+    <transition name="addProductFeature"><service-call name="mantle.product.ProductServices.add#FeatureToProducts"/>
+        <default-response url="."/></transition>
+    <transition name="removeProductFeature"><service-call name="mantle.product.ProductServices.remove#FeatureFromProducts"/>
+        <default-response url="."/></transition>
+
     <actions>
+        <set field="pageSize" from="pageSize ?: 50"/>
         <set field="indexName" from="searchIndexName ?: 'mantle'"/>
         <set field="documentType" from="searchProductDocType ?: 'MantleProduct'"/>
 
@@ -30,90 +43,127 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="name"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'name:\&quot;' + name + '*\&quot;'"/></if>
         <if condition="idValue"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'idValue:' + idValue"/></if>
         <if condition="productTypeEnumId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productTypeEnumId:' + productTypeEnumId"/></if>
+        <if condition="assetTypeEnumId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'assetTypeEnumId:' + assetTypeEnumId"/></if>
+        <if condition="assetClassEnumId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'assetClassEnumId:' + assetClassEnumId"/></if>
         <if condition="amountUomId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'amountUomId:' + amountUomId"/></if>
+        <if condition="ownerPartyId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'ownerPartyId:' + ownerPartyId"/></if>
 
-        <if condition="productFeatureId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productFeatureId:' + productFeatureId"/></if>
-        <if condition="productFeatureId2"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productFeatureId:' + productFeatureId2"/></if>
-        <if condition="productCategoryId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'productCategoryId:' + productCategoryId"/></if>
+        <if condition="productFeatureId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'features.productFeatureId:' + productFeatureId"/></if>
+        <if condition="productFeatureId2"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'features.productFeatureId:' + productFeatureId2"/></if>
+        <if condition="productCategoryId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'categories.productCategoryId:' + productCategoryId"/></if>
+
+        <!-- if we have activeOrgId or filterOrgIds see if user has active org or user org filters -->
+        <set field="activeOrgId" from="ec.user.context?.activeOrgId"/>
+        <set field="filterOrgIds" from="ec.user.context?.filterOrgIds"/>
+        <set field="findFilters" from="ec.artifactExecution.getFindFiltersForUser('mantle.product.Product')"/>
+        <if condition="findFilters"><set field="entityFilterSetId" from="findFilters[0].entityFilterSetId"/></if>
+        <!-- <log level="warn" message="Doing product search with activeOrgId ${activeOrgId} filterOrgIds ${filterOrgIds} entityFilterSetId ${entityFilterSetId}"/> -->
+        <script><![CDATA[
+            if ('MANTLE_USER_ORG'.equals(entityFilterSetId)) {
+                queryString = (queryString ? queryString + ' AND ' : '' ) + 'ownerPartyId:(' + filterOrgIds.join(' OR ') + ')'
+            } else if ('MANTLE_ACTIVE_ORG'.equals(entityFilterSetId) && activeOrgId) {
+                queryString = (queryString ? queryString + ' AND ' : '' ) + 'ownerPartyId:(' + activeOrgId + ' OR _NA_)'
+            }
+        ]]></script>
 
         <if condition="orderByField"><set field="orderByFields" from="[orderByField]"/></if>
-
         <if condition="queryString">
             <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
                     in-map="context + [indexName:indexName, documentType:documentType]"/>
         </if>
 
-        <set field="productIds" from="documentList?._id"/>
+        <set field="productIds" from="documentList ? documentList*._id : null"/>
 
         <entity-find entity-name="mantle.product.Product" list="amountUomList" distinct="true">
             <select-field field-name="amountUomId"/></entity-find>
         <set field="amountUomIds" from="amountUomList.amountUomId"/>
 
-        <entity-find entity-name="mantle.product.feature.ProductFeatureAndType" list="allFeatureList">
-            <order-by field-name="typeDescription,abbrev,description"/></entity-find>
         <entity-find entity-name="mantle.product.category.ProductCategoryAndType" list="allCategoryList">
             <order-by field-name="typeDescription,categoryName"/></entity-find>
     </actions>
     <widgets>
-        <container-dialog id="FindOptionsDialog" button-text="Find Options">
-            <form-single name="FindOptions" transition=".">
-                <field name="queryString" from="originalQueryString"><default-field title="Any Field"><text-line size="40"/></default-field></field>
-
-                <field name="pseudoId"><default-field title="ID"><text-line size="15"/></default-field></field>
-                <field name="name"><default-field title="Name"><text-line size="40"/></default-field></field>
-                <field name="idValue"><default-field title="Other IDs"><text-line size="15"/></default-field></field>
-
-                <field name="productTypeEnumId">
-                    <default-field title="Product Type">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                            <set field="enumTypeId" value="ProductType"/><set field="allowEmpty" value="true"/></widget-template-include>
-                    </default-field>
-                </field>
-                <field name="amountUomId"><default-field title="Amount UOM">
-                    <drop-down allow-empty="true"><entity-options key="${uomId}" text="${description} [${uomId}]">
-                        <entity-find entity-name="moqui.basic.Uom">
-                            <econdition field-name="uomId" operator="in" from="amountUomIds"/>
-                            <order-by field-name="description"/></entity-find>
-                    </entity-options></drop-down>
-                </default-field></field>
-
-                <field name="productFeatureId"><default-field title="Feature">
-                    <drop-down allow-empty="true"><list-options list="allFeatureList" key="${productFeatureId}"
-                            text="${typeDescription} - ${description} [${abbrev ?: productFeatureId}]"/></drop-down>
-                </default-field></field>
-                <field name="productFeatureId2"><default-field title="Feature 2">
-                    <drop-down allow-empty="true"><list-options list="allFeatureList" key="${productFeatureId}"
-                            text="${typeDescription} - ${description} [${abbrev ?: productFeatureId}]"/></drop-down>
-                </default-field></field>
+        <container-dialog id="AddCategoryContainer" button-text="Add All to Category" condition="productIds">
+            <form-single name="AddCategoryForm" transition="addProductCategory">
+                <field name="queryString"><default-field><hidden/></default-field></field>
+                <field name="productInfo"><default-field><display text="${productIds?.size() ?: '0'} Products"/></default-field></field>
                 <field name="productCategoryId"><default-field title="Category">
-                    <drop-down allow-empty="true"><list-options list="allCategoryList" key="${productCategoryId}"
-                            text="${typeDescription} - ${categoryName} [${pseudoId}]"/></drop-down>
+                    <drop-down><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
-
-                <field name="submitButton"><default-field title="Find"><submit/></default-field></field>
+                <field name="submitButton"><default-field title="Add All"><submit/></default-field></field>
+                <field name="productIdList" from="productIds.join(',')"><default-field><hidden/></default-field></field>
             </form-single>
         </container-dialog>
+        <container-dialog id="RemoveCategoryContainer" button-text="Remove All from Category" condition="productIds">
+            <form-single name="RemoveCategoryForm" transition="removeProductCategory">
+                <field name="queryString"><default-field><hidden/></default-field></field>
+                <field name="productInfo"><default-field><display text="${productIds?.size() ?: '0'} Products"/></default-field></field>
+                <field name="productCategoryId"><default-field title="Category">
+                    <drop-down><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Remove All"><submit/></default-field></field>
+                <field name="productIdList" from="productIds.join(',')"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <container-dialog id="AddFeatureContainer" button-text="Add Feature to All" condition="productIds">
+            <form-single name="AddFeatureForm" transition="addProductFeature">
+                <field name="queryString"><default-field><hidden/></default-field></field>
+                <field name="productInfo"><default-field><display text="${productIds?.size() ?: '0'} Products"/></default-field></field>
+                <field name="productFeatureId"><default-field title="Feature">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="applTypeEnumId"><default-field title="Appl. Type"><drop-down no-current-selected-key="PfatStandard">
+                    <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                        <econdition field-name="enumTypeId" value="ProductFeatureApplType"/>
+                        <order-by field-name="description"/>
+                    </entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+                <field name="submitButton"><default-field title="Add to All"><submit/></default-field></field>
+                <field name="productIdList" from="productIds.join(',')"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="RemoveFeatureContainer" button-text="Remove Feature from All" condition="productIds">
+            <form-single name="RemoveFeatureForm" transition="removeProductFeature">
+                <field name="queryString"><default-field><hidden/></default-field></field>
+                <field name="productInfo"><default-field><display text="${productIds?.size() ?: '0'} Products"/></default-field></field>
+                <field name="productFeatureId"><default-field title="Feature">
+                    <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Remove from All"><submit/></default-field></field>
+                <field name="productIdList" from="productIds.join(',')"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <link url="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax"
+                url-type="plain" link-type="anchor" target-window="_blank" text="Search String Reference"/>
 
         <render-mode><text type="html,vuet"><![CDATA[
             <div class="row"><div class="form-group">
                 <label class="control-label col-lg-2 text-right" for="ProductsForm-header-term">${ec.l10n.localize('Search Any Field')}</label>
                 <div class="col-lg-10"><input type="text" name="queryString" value="${(originalQueryString!'')?html}"
-                    size="60" id="ProductsForm_header_term" class="form-control" form="ProductsForm_header"></div>
+                    size="80" id="ProductsForm_header_term" class="form-control" form="ProductsForm_header"></div>
             </div></div>
         ]]></text></render-mode>
-        <form-list name="ProductsForm" list="documentList" list-entry="document" skip-form="true">
+        <form-list name="ProductsForm" list="documentList" list-entry="document" skip-form="true" header-dialog="true" select-columns="true">
             <row-actions>
                 <set field="productId" from="document._id"/>
                 <script>if (document) context.putAll(document)</script>
             </row-actions>
+
+            <!-- using custom html field above the form:
+            <field name="queryString" from="originalQueryString"><header-field title="Any Field"><text-line size="40"/></header-field></field> -->
+
             <field name="pseudoId">
-                <header-field title="ID" show-order-by="true"><text-line size="10"/></header-field>
+                <header-field title="ID" show-order-by="true"><text-line size="40"/></header-field>
                 <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
             </field>
             <field name="name">
-                <header-field title="Name" show-order-by="true"><text-line size="30"/></header-field>
+                <header-field title="Name" show-order-by="true"><text-line size="60"/></header-field>
                 <default-field><link url="editProduct" text="${name}" link-type="anchor"/></default-field>
             </field>
+
+            <field name="idValue"><header-field title="Other IDs"><text-line size="40"/></header-field></field>
 
             <field name="productTypeEnumId">
                 <header-field title="Product Type" show-order-by="true">
@@ -121,6 +171,21 @@ along with this software (see the LICENSE.md file). If not, see
                         <set field="enumTypeId" value="ProductType"/><set field="allowEmpty" value="true"/></widget-template-include>
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="ownerPartyId">
+                <header-field title="Product Owner" show-order-by="true">
+                    <drop-down allow-empty="true">
+                        <option key="_NA_" text="N/A"/>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
             <field name="amountUomId">
                 <header-field title="Amount/UOM" show-order-by="true">
@@ -130,13 +195,20 @@ along with this software (see the LICENSE.md file). If not, see
                             <order-by field-name="description"/></entity-find>
                     </entity-options></drop-down>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Uom" text="${amountFixed?:''} ${description} [${uomId}]"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.Uom" text="${amountFixed?:''} ${description}"/></default-field>
             </field>
 
-            <field name="submitButton">
-                <header-field title="Find"><submit/></header-field>
-                <default-field><display text=" "/></default-field>
-            </field>
+            <field name="productFeatureId"><header-field title="Feature">
+                <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
+            </header-field></field>
+            <field name="productFeatureId2"><header-field title="Feature 2">
+                <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
+            </header-field></field>
+            <field name="productCategoryId"><header-field title="Category">
+                <drop-down allow-empty="true"><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
+            </header-field></field>
+
+            <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>
         <label text="Full search string: ${queryString?:''}" type="p"/>
     </widgets>

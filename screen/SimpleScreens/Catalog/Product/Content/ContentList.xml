@@ -37,6 +37,12 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="localeStringList" from="[]"/>
         <iterate list="Locale.getAvailableLocales()" entry="lcl"><script>localeStringList.add([locale:lcl.toString(), name:lcl.getDisplayName(ec.user.locale)])</script></iterate>
         <order-map-list list="localeStringList"><order-by field-name="name"/></order-map-list>
+
+        <entity-find entity-name="mantle.product.feature.ProductFeatureAndAppl" list="pfaaList">
+            <date-filter/><econdition field-name="productId"/>
+            <select-field field-name="productFeatureId,typeDescription,description,abbrev"/>
+            <order-by field-name="typeDescription,sequenceNum,description"/>
+        </entity-find>
     </actions>
     <widgets>
         <container-box><box-header title="Content List"/><box-toolbar>
@@ -49,9 +55,12 @@ along with this software (see the LICENSE.md file). If not, see
                     </default-field></field>
                     <field name="sequenceNum"><default-field><text-line size="4"/></default-field></field>
                     <field name="contentFile"><default-field><file/></default-field></field>
-                    <field name="locale"><default-field>
-                        <drop-down allow-empty="true"><list-options list="localeStringList" key="${locale}" text="${locale}: ${name}"/></drop-down>
-                    </default-field></field>
+                    <field name="locale"><default-field><drop-down allow-empty="true">
+                        <list-options list="localeStringList" key="${locale}" text="${locale}: ${name}"/>
+                    </drop-down></default-field></field>
+                    <field name="productFeatureId"><default-field title="Feature"><drop-down allow-empty="true">
+                        <list-options list="pfaaList" key="${productFeatureId}" text="ProductFeatureAndTypeTemplate"/>
+                    </drop-down></default-field></field>
                     <field name="fromDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
                     <field name="thruDate"><default-field><date-time/></default-field></field>
                     <field name="description"><default-field><text-line size="60"/></default-field></field>
@@ -110,16 +119,32 @@ along with this software (see the LICENSE.md file). If not, see
                         <drop-down allow-empty="true"><list-options list="localeStringList" key="${locale}" text="${locale}: ${name}"/></drop-down></header-field>
                     <default-field><display/></default-field>
                 </field>
+                <field name="productFeatureId"><header-field title="Feature"><drop-down allow-empty="true">
+                    <list-options list="pfaaList" key="${productFeatureId}" text="ProductFeatureAndTypeTemplate"/>
+                </drop-down></header-field><default-field>
+                    <display-entity entity-name="mantle.product.feature.ProductFeatureAndType" text="ProductFeatureAndTypeTemplate"/>
+                </default-field></field>
                 <field name="userId"><header-field title="User" show-order-by="true"/>
                     <default-field><display-entity entity-name="mantle.party.PersonWithUserAccount" text="UsernameTemplate"/></default-field></field>
-                <field name="fromDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
+                <field name="fromDate"><header-field show-order-by="true"><date-period/></header-field>
                     <default-field><display/></default-field></field>
-                <field name="thruDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
+                <field name="thruDate"><header-field show-order-by="true"><date-period/></header-field>
                     <default-field><display/></default-field></field>
                 <field name="description"><header-field show-order-by="true"/>
                     <default-field><display/></default-field></field>
                 <field name="contentLocation"><header-field title="Location" show-order-by="true"><text-find hide-options="true"/></header-field>
                     <default-field tooltip="${contentLocation}"><display text="${contentLocation ? contentLocation.substring(contentLocation.lastIndexOf('/')+1) : 'No location set'}"/></default-field></field>
+
+                <form-list-column><field-ref name="download"/></form-list-column>
+                <form-list-column><field-ref name="detail"/></form-list-column>
+                <form-list-column><field-ref name="productContentId"/></form-list-column>
+                <form-list-column><field-ref name="productContentTypeEnumId"/></form-list-column>
+                <form-list-column><field-ref name="sequenceNum"/></form-list-column>
+                <form-list-column><field-ref name="locale"/></form-list-column>
+                <form-list-column><field-ref name="productFeatureId"/></form-list-column>
+                <form-list-column><field-ref name="userId"/></form-list-column>
+                <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
+                <form-list-column><field-ref name="description"/><field-ref name="contentLocation"/></form-list-column>
             </form-list>
         </box-body></container-box>
     </widgets>

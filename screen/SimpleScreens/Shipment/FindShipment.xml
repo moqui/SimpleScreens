@@ -20,7 +20,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="shipmentDetail"><default-response url="../ShipmentDetail"/></transition>
     <transition name="packShipmentScreen"><default-response url="//${appRoot}/Shipping/PackShipment"/></transition>
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
-    <transition name="picklistDetail"><default-response url="//${appRoot}/Picking/PicklistDetail"/></transition>
+    <transition name="picklistDetail"><default-response url="//${appRoot}/Shipping/Picklist/PicklistDetail"/></transition>
 
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
@@ -28,6 +28,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
@@ -95,6 +96,7 @@ along with this software (see the LICENSE.md file). If not, see
                             entryDate_poffset="-3" entryDate_period="30d"/></search-form-inputs>
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
+                <econdition field-name="productId" operator="in" from="findProductId" ignore-if-empty="true"/>
                 <select-field field-name="shipmentId"/>
             </entity-find>
             <row-actions>
@@ -107,7 +109,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="shipmentId"/><select-field field-name="orderId"/></entity-find>
                 <!-- Tracking codes from ShipmentPackageRouteSeg -->
                 <entity-find entity-name="mantle.shipment.ShipmentPackageRouteSeg" list="sprsList" distinct="true">
-                    <econdition field-name="shipmentId"/><select-field field-name="trackingCode"/></entity-find>
+                    <econdition field-name="shipmentId"/><select-field field-name="trackingCode,returnTrackingCode"/></entity-find>
                 <!-- Orders -->
                 <entity-find entity-name="mantle.order.OrderHeader" list="orderHeaderList">
                     <econdition field-name="orderId" operator="in" from="sisList*.orderId"/>
@@ -156,6 +158,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="picklistDetail" text="${shipWorkEffortId}" link-type="anchor"
                         parameter-map="[workEffortId:shipWorkEffortId]" condition="shipWorkEffortId"/></default-field>
             </field>
+
+            <field name="findProductId"><header-field title="Product">
+                <drop-down allow-multiple="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+            </header-field></field>
+
+            <field name="shipAfterDate"><header-field title="Ship After" show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="shipBeforeDate"><header-field title="Ship Before" show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
 
             <field name="originFacilityId">
                 <header-field title="Origin Facility">
@@ -214,6 +225,7 @@ along with this software (see the LICENSE.md file). If not, see
             </default-field></field>
 
             <field name="trackingCode"><header-field><text-find default-operator="begins"/></header-field></field>
+            <field name="returnTrackingCode"><header-field title="Return Tracking"><text-find default-operator="begins"/></header-field></field>
             <field name="orderId"><header-field><text-find default-operator="begins"/></header-field></field>
             <field name="salesChannelEnumId"><header-field title="Order Source">
                 <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -221,8 +233,9 @@ along with this software (see the LICENSE.md file). If not, see
             </header-field></field>
 
             <field name="trackingCodes"><default-field>
-                <section-iterate name="TrackingSprsList" list="sprsList" entry="sprs"><widgets>
-                    <label text="${sprs.trackingCode?:''}"/></widgets></section-iterate>
+                <section-iterate name="TrackingSprsList" list="sprsList" entry="sprs"><widgets><container>
+                    <label text="${sprs.trackingCode?:''}${sprs.returnTrackingCode ? ' R: ' + sprs.returnTrackingCode :''}"/>
+                </container></widgets></section-iterate>
             </default-field></field>
             <field name="orderIds"><default-field title="Orders">
                 <section-iterate name="OrderSisList" list="orderHeaderList" entry="orderHeader"><widgets>
@@ -247,6 +260,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="shipmentId"/><field-ref name="shipmentMethodEnumId"/>
                 <field-ref name="shipmentTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="entryDate"/><field-ref name="statusId"/><field-ref name="shipWorkEffortId"/></form-list-column>
+            <form-list-column><field-ref name="shipAfterDate"/><field-ref name="shipBeforeDate"/></form-list-column>
             <form-list-column><field-ref name="originFacilityId"/><field-ref name="destinationFacilityId"/></form-list-column>
             <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/><field-ref name="orderParties"/></form-list-column>
             <form-list-column><field-ref name="otherPartyOrderId"/><field-ref name="orderIds"/><field-ref name="trackingCodes"/></form-list-column>

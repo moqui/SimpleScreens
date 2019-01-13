@@ -24,7 +24,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
     <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
-    <transition name="picklistDetail"><default-response url="//${appRoot}/Picking/PicklistDetail"/></transition>
+    <transition name="picklistDetail"><default-response url="//${appRoot}/Shipping/Picklist/PicklistDetail"/></transition>
 
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
@@ -32,6 +32,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
 
     <transition name="shipShipment"><service-call name="mantle.shipment.ShipmentServices.ship#Shipment"/>
+        <default-response url="."/></transition>
+    <transition name="cancelShipment"><service-call name="mantle.shipment.ShipmentServices.cancel#Shipment"/>
         <default-response url="."/></transition>
 
     <transition name="updateItem"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentItem"/>
@@ -62,21 +64,25 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="printShipmentLabels"><service-call name="mantle.shipment.ShipmentServices.print#ShipmentLabels"/>
         <default-response url="."/></transition>
+    <transition name="removeShipmentLabelInfo"><service-call name="mantle.shipment.CarrierServices.remove#ShipmentLabelInfo"/>
+        <default-response url="."/></transition>
+    <transition name="removeShipmentReturnLabelInfo"><service-call name="mantle.shipment.CarrierServices.remove#ShipmentReturnLabelInfo"/>
+        <default-response url="."/></transition>
 
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getPackageWeight" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
     <transition-include name="getShipmentLabel" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
 
     <transition name="ShipmentPack.pdf">
-        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentPack" url-type="plain">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/ShipmentPack" url-type="plain">
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/></default-response>
     </transition>
     <transition name="ShipmentByPackage.pdf">
-        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentByPackage" url-type="plain">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/ShipmentByPackage" url-type="plain">
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentByPackage-${shipmentId}.pdf"/></default-response>
     </transition>
     <transition name="ShipmentInsert.pdf">
-        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipment/ShipmentInsert" url-type="plain">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/ShipmentInsert" url-type="plain">
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentInsert-${shipmentId}.pdf"/></default-response>
     </transition>
 
@@ -84,6 +90,15 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
         <if condition="!isOutgoing &amp;&amp; !isTransfer"><return error="true" message="Shipment ${shipmentId} is not an outgoing or transfer shipment"/></if>
         <set field="statusPrePacked" from="shipment.statusId in ['ShipInput', 'ShipScheduled', 'ShipPicked']"/>
+
+        <entity-find entity-name="mantle.facility.FacilityBoxTypeDetail" list="boxTypeList">
+            <econdition field-name="facilityId" from="firstRouteSegment.originFacilityId"/>
+            <order-by field-name="description"/>
+        </entity-find>
+        <if condition="!boxTypeList">
+            <entity-find entity-name="mantle.shipment.ShipmentBoxType" list="boxTypeList">
+                <order-by field-name="description"/></entity-find>
+        </if>
 
         <set field="shippingPostalAddressList" from="[]"/>
         <if condition="isOutgoing &amp;&amp; toPartyId">
@@ -150,8 +165,28 @@ along with this software (see the LICENSE.md file). If not, see
 
         <container-row><row-col lg="6">
             <container-row><row-col xs="4">
-                <container style="text-strong"><label text="Pack Shipment "/><link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/></container>
+                <container style="text-strong">
+                    <label text="Pack Shipment "/>
+                    <link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/>
+                    <label text=" (${statusItem.description})" condition="statusItem"/>
+                </container>
             </row-col><row-col xs="8" style="text-right">
+                <container-dialog id="CancelDialog" button-text="Cancel" type="danger"
+                                  condition="!(shipment.statusId in ['ShipDelivered', 'ShipRejected', 'ShipCancelled'])">
+                    <label text="Invoices associated with this shipment will be CANCELLED: ${invoiceIdSet.join(', ')}"
+                           condition="isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-danger"/>
+                    <label text="Invoices (found ${invoiceIdSet.size()} associated with this shipment) will not be changed, must be cancelled manually"
+                           condition="!isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-warning"/>
+                    <label text="Items have been packed/issued, these will be un-packed and returned to inventory" condition="anyItemPacked" type="p" style="text-danger"/>
+                    <label text="Items have been received, all receipt quantities will be set to zero" condition="anyReceived" type="p" style="text-danger"/>
+                    <label text="Labels will not be refunded automatically, refund manually if needed" condition="hasAnyLabels" type="p" style="text-warning"/>
+                    <label text="Payments associated with this shipment through order or invoice will not be changed" type="p" style="text-warning"/>
+                    <label text="Emails have been sent, these cannot be unsent" type="p" style="text-danger" condition="emailMessageCount"/>
+
+                    <label text="Are you sure you want to cancel this shipment?"/>
+                    <link url="cancelShipment" text="Cancel Shipment"/>
+                </container-dialog>
+
                 <!-- <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/> -->
                 <link url="ShipmentInsert.pdf" text="Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}" icon="glyphicon glyphicon-download"/>
                 <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentInsert?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Insert</button>]]></text></render-mode>
@@ -169,7 +204,9 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <dynamic-dialog id="PackCompletedDialog" button-text="Pack Completed" transition="PackCompleted" type="success"
                         condition="statusPrePacked &amp;&amp; anyItemPacked &amp;&amp; packagesComplete"/>
-
+                <dynamic-dialog id="PackCompletedDialog" button-text="Get Labels" transition="PackCompleted" type="success"
+                        condition="!statusPrePacked &amp;&amp; anyItemPacked &amp;&amp; packagesComplete &amp;&amp; !hasAllLabels"/>
+                <!-- use Get Labels button above, basically Pack Completed dialog again:
                 <link url="requestShipmentLabels" text="Get Labels"
                         condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; destContactMechValid &amp;&amp; shipment.statusId in ['ShipPacked', 'ShipShipped']"/>
                 <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning"
@@ -177,6 +214,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text="Warning: destination address is incomplete or invalid according to address validation." style="text-warning"/>
                     <link url="requestShipmentLabels" text="Get Labels Anyway"/>
                 </container-dialog>
+                -->
 
                 <container-dialog id="PrintLabelsDialog" button-text="Net Print" condition="hasAnyLabels &amp;&amp; networkPrinterList">
                     <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
@@ -208,25 +246,28 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <link url="shipShipment" text="Set Shipped" condition="shipment.statusId == 'ShipPacked'" btn-type="success"/>
             </row-col></container-row>
-            <!-- needed? small manual set carrier/method form -->
+
+            <!-- needed? no, request labels dialog allows carrier/method set: small manual set carrier/method form -->
 
             <!--
                 scan input (product or asset ID, other product IDs like SKU/UPC/etc), auto-focused
                 quantity input default 1 (with up/down buttons?)
                 package drop-down with active package selected
             -->
-            <form-single name="PackScanForm" transition="packShipmentProductScan" focus-field="scanInput">
-                <field name="shipmentId"><default-field><hidden/></default-field></field>
-                <field name="quantity" from="1"><default-field title=""><text-line size="4"/></default-field></field>
-                <field name="scanInput"><default-field title=""><text-line size="25"/></default-field></field>
-                <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title=""><drop-down>
-                    <option key="" text="New"/>
-                    <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
-                </drop-down></default-field></field>
-                <field name="packButton"><default-field title="Pack Item"><submit/></default-field></field>
-                <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="scanInput"/>
-                    <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
-            </form-single>
+            <section name="PackScanSection" condition="statusPrePacked"><widgets>
+                <form-single name="PackScanForm" transition="packShipmentProductScan" focus-field="scanInput">
+                    <field name="shipmentId"><default-field><hidden/></default-field></field>
+                    <field name="quantity" from="1"><default-field title=""><text-line size="4"/></default-field></field>
+                    <field name="scanInput"><default-field title=""><text-line size="25"/></default-field></field>
+                    <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title=""><drop-down>
+                        <option key="" text="New"/>
+                        <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                    </drop-down></default-field></field>
+                    <field name="packButton"><default-field title="Pack Item"><submit/></default-field></field>
+                    <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="scanInput"/>
+                        <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
+                </form-single>
+            </widgets></section>
 
             <!-- close package form, set current package box type and weight -->
             <!-- clears active package (if box type and weight specified) so next item scan goes in new package -->
@@ -239,9 +280,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="shipmentPackageSeqId"><default-field title="" container-style="text-strong">
                         <display text="Pkg ${shipmentPackageSeqId}"/></default-field></field>
                     <field name="shipmentBoxTypeId"><default-field title=""><drop-down allow-empty="true">
-                        <entity-options key="${shipmentBoxTypeId}" text="${pseudoId}: ${description}">
-                            <entity-find entity-name="mantle.shipment.ShipmentBoxType">
-                                <order-by field-name="description"/></entity-find></entity-options>
+                        <list-options list="boxTypeList" key="${shipmentBoxTypeId}" text="${pseudoId}: ${description}"/>
                     </drop-down></default-field></field>
                     <field name="weight"><default-field title=""><text-line size="4" default-transition="getPackageWeight"
                             parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackageSeqId]">
@@ -266,8 +305,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="shipmentPackageContentList" from="allShipmentPackageContentList.findAll({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId })"/>
                 <set field="packageRouteSeg" from="packageRouteSegList.find({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId &amp;&amp; it.shipmentRouteSegmentSeqId == firstRouteSegment.shipmentRouteSegmentSeqId })"/>
                 <set field="hasLabel" from="packageRouteSeg.gatewayLabelId || packageRouteSeg.labelImage != null || packageRouteSeg.labelUrl"/>
-                <set field="hasReturnLabel" from="packageRouteSeg.returnGatewayLabelId || packageRouteSeg.returnLabelImage != null || packageRouteSeg.returnLabelUrl"/>
+                <set field="hasReturnLabel" from="packageRouteSeg.returnTrackingCode || packageRouteSeg.returnGatewayLabelId || packageRouteSeg.returnLabelImage != null || packageRouteSeg.returnLabelUrl"/>
                 <set field="trackingStatusEnum" from="packageRouteSeg?.trackingStatusEnum"/>
+                <set field="returnTrackingStatusEnum" from="packageRouteSeg?.returnTrackingStatusEnum"/>
                 <script>packageAndRouteSeg = new HashMap(shipmentPackage); packageAndRouteSeg.putAll(packageRouteSeg)</script>
             </actions><widgets>
                 <container-box type="${shipmentBoxType &amp;&amp; shipmentPackage.weight ? 'success' : (activePackageSeqId == shipmentPackage.shipmentPackageSeqId ? 'info' : 'warning')}">
@@ -278,13 +318,9 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
                             <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
 
-                            <field name="shipmentBoxTypeId"><default-field title="Box Type">
-                                <drop-down allow-empty="true">
-                                    <entity-options key="${shipmentBoxTypeId}" text="${description}">
-                                        <entity-find entity-name="mantle.shipment.ShipmentBoxType">
-                                            <order-by field-name="description"/></entity-find></entity-options>
-                                </drop-down>
-                            </default-field></field>
+                            <field name="shipmentBoxTypeId"><default-field title="Box Type"><drop-down allow-empty="true">
+                                <list-options list="boxTypeList" key="${shipmentBoxTypeId}" text="${description}"/>
+                            </drop-down></default-field></field>
                             <field name="weightUomId"><default-field title="Weight UOM">
                                 <drop-down allow-empty="true" no-current-selected-key="WT_lb">
                                     <entity-options key="${uomId}" text="${description} (${abbreviation})">
@@ -300,6 +336,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="trackingCode"><default-field><text-line size="30"/></default-field></field>
                             <!-- <field name="boxNumber"><default-field><text-line size="8"/></default-field></field> -->
                             <field name="estimatedAmount"><default-field title="Est. Cost"><text-line size="10"/></default-field></field>
+                            <field name="returnTrackingCode"><default-field title="Return Tracking"><text-line size="30"/></default-field></field>
 
                             <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                         </form-single>
@@ -337,7 +374,17 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-single>
                     </container-dialog>
 
-                    <link url="resetShipmentPackage" text="Reset" confirmation="Reset box type, weight, and contents?"
+                    <link url="removeShipmentLabelInfo" text="Reset Label" btn-type="danger"
+                            confirmation="Clear label data? This will allow getting a new label, and system keeps a history of label IDs, but otherwise current label will no longer be tracked. Use only when there are errors, etc with the label."
+                            condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId"
+                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
+                                    shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
+                    <link url="removeShipmentReturnLabelInfo" text="Reset Ret Label" btn-type="danger"
+                            confirmation="Clear return label data? This will allow getting a new label, and system keeps a history of label IDs, but otherwise current label will no longer be tracked. Use only when there are errors, etc with the label."
+                            condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.returnGatewayLabelId"
+                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
+                                    shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
+                    <link url="resetShipmentPackage" text="Reset Pkg" confirmation="Reset box type, weight, and contents?"
                             style="btn-danger" condition="!packageRouteSeg?.labelUrl"
                             parameter-map="[shipmentId:packageAndRouteSeg.shipmentId, shipmentPackageSeqId:packageAndRouteSeg.shipmentPackageSeqId]"/>
                     <link url="deletePackage" text="Delete" condition="!shipmentPackageContentList" style="btn-danger"
@@ -390,10 +437,18 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-row>
                     <section name="LabelRefundSection" condition="packageRouteSeg?.gatewayRefundId"><widgets>
                         <container-row>
-                            <row-col sm="1"><label text="Refund" type="strong"/></row-col>
-                            <row-col sm="1"><label text="${packageRouteSeg?.gatewayRefundStatus?:'N/A'}"/></row-col>
-                            <row-col sm="1"><label text="Refund ID" type="strong"/></row-col>
-                            <row-col sm="3"><label text="${packageRouteSeg?.gatewayRefundId?:'N/A'}"/></row-col>
+                            <row-col sm="2"><label text="Refund" type="strong"/></row-col>
+                            <row-col sm="2"><label text="${packageRouteSeg?.gatewayRefundStatus?:'N/A'}"/></row-col>
+                            <row-col sm="2"><label text="Refund ID" type="strong"/></row-col>
+                            <row-col sm="6"><label text="${packageRouteSeg?.gatewayRefundId?:'N/A'}"/></row-col>
+                        </container-row>
+                    </widgets></section>
+                    <section name="LabelReturnSection" condition="hasReturnLabel"><widgets>
+                        <container-row>
+                            <row-col sm="2"><label text="Ret Tracking" type="strong"/></row-col>
+                            <row-col sm="6"><label text="${packageRouteSeg?.returnTrackingCode?:'N/A'}"/></row-col>
+                            <row-col sm="2"><label text="Ret Status" type="strong" condition="returnTrackingStatusEnum"/></row-col>
+                            <row-col sm="2"><label text="${returnTrackingStatusEnum?.description?:'N/A'}" condition="returnTrackingStatusEnum"/></row-col>
                         </container-row>
                     </widgets></section>
                 </box-body><box-body-nopad>
@@ -425,7 +480,9 @@ along with this software (see the LICENSE.md file). If not, see
             <!-- shipment info like address, etc -->
             <container-row><row-col md="6">
                 <container-row><row-col xs="3" style="text-right"><label text="Ship By" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod?.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + ' ' + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
+                    <row-col xs="9"><label text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + ' ' + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
+                <container-row><row-col xs="3" style="text-right"><label text="Order" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${orderCarrierShipmentMethod?.description ? orderCarrierShipmentMethod.description : (orderCarrierDetail ? orderCarrierDetail.pseudoId : 'N/A') + ' ' + (orderShipmentMethodEnum ? orderShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
                 <section name="ShippedShippingInfo" condition="curDestPaInfo"><actions><set field="contactInfo" from="curDestPaInfo"/></actions><widgets>
                     <container-row><row-col xs="3" style="text-right"><label text="Dest" type="strong"/></row-col><row-col xs="9">
                         <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>

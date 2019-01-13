@@ -17,16 +17,18 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="assetDetail"><default-response url="//apps/${appRoot}/Asset/AssetDetail"/></transition>
     <transition name="editFacility"><default-response url="//apps/${appRoot}/Facility/EditFacility"/></transition>
-    <transition name="editInvoice"><default-response url="//apps/${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
     <transition name="orderDetail"><default-response url="//apps/${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//apps/${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="picklistDetail"><default-response url="//apps/${appRoot}/Shipping/Picklist/PicklistDetail"/></transition>
+    <transition name="editRun"><default-response url="//apps/${appRoot}/Manufacturing/Run/EditRun"/></transition>
 
     <transition name="editParty"><default-response url="//apps/${appRoot}/Party/EditParty"/></transition>
     <transition name="editSupplier"><default-response url="//apps/${appRoot}/Supplier/EditSupplier"/></transition>
     <transition name="editCustomer"><default-response url="//apps/${appRoot}/Customer/EditCustomer"/></transition>
+    <transition name="editProduct"><default-response url="//apps/${appRoot}/Catalog/Product/EditProduct"/></transition>
 
     <transition name="editPayment"><default-response url="//apps/${appRoot}/Accounting/Payment/EditPayment"/></transition>
-    <transition name="editProduct"><default-response url="//apps/${appRoot}/Catalog/Product/EditProduct"/></transition>
-    <transition name="shipmentDetail"><default-response url="//apps/${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="editInvoice"><default-response url="//apps/${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
     <transition name="editTransaction"><default-response url="//apps/${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
 
     <actions>
@@ -49,263 +51,244 @@ along with this software (see the LICENSE.md file). If not, see
         </form-single>
 
         <label text="Results for ID '${lookupId}'" type="h4" condition="lookupId"/>
-        <section name="AssetSection" condition="asset">
-            <actions>
-                <set field="aprod" from="asset.'mantle.product.Product'"/>
-                <set field="facLoc" from="asset.'mantle.facility.FacilityLocation'"/>
-            </actions>
-            <widgets>
-                <container-box>
-                    <box-header title="Asset ${assetId}"/>
-                    <box-toolbar>
-                        <link url="assetDetail" text="Asset"/>
-                        <!-- <link url="equipmentDetail" text="Equipment" condition="asset.assetTypeEnumId == 'AstTpEquipment'"/> -->
-                    </box-toolbar>
-                    <box-body>
-                        <container-row>
-                            <row-col md="1"><label text="Type" type="strong"/></row-col>
-                            <row-col md="2"><label text="${asset.'AssetType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="Facility" type="strong"/></row-col>
-                            <row-col md="2"><link url="editFacility" text="${asset.'mantle.facility.Facility'?.facilityName?:''}"
-                                    parameter-map="[facilityId:asset.facilityId]" link-type="anchor" condition="asset.facilityId"/></row-col>
-                            <row-col md="1"><label text="ATP/QOH" type="strong"/></row-col>
-                            <row-col md="2"><label text="${ec.l10n.format(asset.availableToPromiseTotal, null)}/${ec.l10n.format(asset.quantityOnHandTotal, null)} (${aprod.'Amount#moqui.basic.Uom'?.description?:'each'})"/></row-col>
-                            <row-col md="2"><link url="runDetail" text="WorkEffortNameTemplate" text-map="[workEffortId:asset.acquireWorkEffortId]"
-                                    parameter-map="[workEffortId:asset.acquireWorkEffortId]" link-type="anchor" condition="asset.acquireWorkEffortId"/></row-col>
-                        </container-row>
-                        <container-row>
-                            <row-col md="1"><label text="Product" type="strong"/></row-col>
-                            <row-col md="2"><link url="editProduct" text="ProductNameTemplate" text-map="aprod" parameter-map="[productId:asset.productId]" link-type="anchor"/></row-col>
-                            <row-col md="1"><label text="Location" type="strong"/></row-col>
-                            <row-col md="2"><label text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></row-col>
-                            <row-col md="1"><label text="Received" type="strong"/></row-col>
-                            <row-col md="2"><label text="${ec.l10n.format(asset.receivedDate, null)}"/></row-col>
-                            <row-col md="1"><label text="From Shipment" type="strong"/></row-col>
-                            <row-col md="2"><link url="shipmentDetail" text="${asset.acquireShipmentId}"
-                                    parameter-map="[shipmentId:asset.acquireShipmentId]" link-type="anchor" condition="asset.acquireShipmentId"/></row-col>
-                        </container-row>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
-        <section name="FacilitySection" condition="facility">
-            <actions>
-                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail">
-                    <field-map field-name="partyId" from="facility.ownerPartyId"/></entity-find-one>
-            </actions>
-            <widgets>
-                <container-box>
-                    <box-header title="Facility: ${ec.resource.expand('FacilityNameTemplate','',facility)}"/>
-                    <box-toolbar>
-                        <link url="editFacility" text="Facility"/>
-                    </box-toolbar>
-                    <box-body>
-                        <container-row>
-                            <row-col md="1"><label text="Type" type="strong"/></row-col>
-                            <row-col md="2"><label text="${facility.'FacilityType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="Owner" type="strong"/></row-col>
-                            <row-col md="2"><link url="editParty" text="PartyNameTemplate" text-map="partyDetail"
-                                    parameter-map="[partyId:facility.ownerPartyId]" link-type="anchor" condition="partyDetail"/></row-col>
-                        </container-row>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
-        <section name="InvoiceSection" condition="invoice">
-            <actions>
-                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="fromParty">
-                    <field-map field-name="partyId" from="invoice.fromPartyId"/></entity-find-one>
-                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="toParty">
-                    <field-map field-name="partyId" from="invoice.toPartyId"/></entity-find-one>
-            </actions>
-            <widgets>
-                <container-box>
-                    <box-header title="Invoice ${invoiceId}"/>
-                    <box-toolbar>
-                        <link url="editInvoice" text="Invoice"/>
-                    </box-toolbar>
-                    <box-body>
-                        <container-row>
-                            <row-col md="1"><label text="Date" type="strong"/></row-col>
-                            <row-col md="2"><label text="${ec.l10n.format(invoice.invoiceDate, null)}"/></row-col>
-                            <row-col md="1"><label text="From" type="strong"/></row-col>
-                            <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="fromParty"
-                                    parameter-map="[partyId:fromParty?.partyId]" link-type="anchor" condition="fromParty"/></row-col>
-                            <row-col md="1"><label text="Description" type="strong"/></row-col>
-                            <row-col md="4"><label text="${invoice.description?:''}"/></row-col>
-                        </container-row>
-                        <container-row>
-                            <row-col md="1"><label text="Status" type="strong"/></row-col>
-                            <row-col md="2"><label text="${invoice.'Invoice#moqui.basic.StatusItem'?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="To" type="strong"/></row-col>
-                            <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="toParty"
-                                    parameter-map="[partyId:toParty?.partyId]" link-type="anchor" condition="toParty"/></row-col>
-                        </container-row>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
-        <section name="OrderSection" condition="orderHeader">
-            <actions>
-                <set field="orderStatus" from="orderHeader.status"/>
-            </actions>
-            <widgets>
-                <container-box>
-                    <box-header title="Order ${orderId}"/>
-                    <box-toolbar><link url="orderDetail" text="Order"/></box-toolbar>
-                    <box-body>
-                        <container-row>
-                            <row-col md="1"><label text="Status" type="strong"/></row-col>
-                            <row-col md="2"><label text="${orderStatus?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="Total" type="strong"/></row-col>
-                            <row-col md="2"><label text="${ec.l10n.formatCurrency(orderHeader.grandTotal, orderHeader.currencyUomId)}"/></row-col>
-                        </container-row>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
-        <section name="PartySection" condition="party">
-            <actions>
-                <entity-find entity-name="mantle.party.PartyRole" list="roleList"><econdition field-name="partyId"/></entity-find>
-                <filter-map-list list="roleList" to-list="supplierRoleList"><field-map field-name="roleTypeId" value="Supplier"/></filter-map-list>
-                <filter-map-list list="roleList" to-list="customerRoleList"><field-map field-name="roleTypeId" value="Customer"/></filter-map-list>
-                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="typeEnum">
-                    <field-map field-name="enumId" from="party.partyTypeEnumId"/></entity-find-one>
-            </actions>
-            <widgets>
-                <container-box>
-                    <box-header title="Party: ${ec.resource.expand('PartyNameTemplate','',party)}"/>
-                    <box-toolbar>
-                        <link url="editParty" text="Party"/>
-                        <link url="editSupplier" text="Supplier" condition="supplierRoleList"/>
-                        <link url="editCustomer" text="Customer" condition="customerRoleList"/>
-                    </box-toolbar>
-                    <box-body>
-                        <container-row>
-                            <row-col md="1"><label text="Type" type="strong"/></row-col>
-                            <row-col md="2"><label text="${typeEnum?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="Roles" type="strong"/></row-col>
-                            <row-col md="8">
-                                <section-iterate name="RoleList" list="roleList" entry="role">
-                                    <widgets><label text="${role.'mantle.party.RoleType'.description?:''}${role_has_next ? ', ' : ''}"/></widgets></section-iterate>
-                            </row-col>
-                        </container-row>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
-        <section name="PaymentSection" condition="payment">
-            <actions>
-                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="fromParty">
-                    <field-map field-name="partyId" from="payment.fromPartyId"/></entity-find-one>
-                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="toParty">
-                    <field-map field-name="partyId" from="payment.toPartyId"/></entity-find-one>
-            </actions>
-            <widgets>
-                <container-box>
-                    <box-header title="Payment ${paymentId}"/>
-                    <box-toolbar>
-                        <link url="editPayment" text="Payment"/>
-                    </box-toolbar>
-                    <box-body>
-                        <container-row>
-                            <row-col md="1"><label text="Date" type="strong"/></row-col>
-                            <row-col md="2"><label text="${ec.l10n.format(payment.effectiveDate, null)}"/></row-col>
-                            <row-col md="1"><label text="From" type="strong"/></row-col>
-                            <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="fromParty"
-                                    parameter-map="[partyId:fromParty?.partyId]" link-type="anchor" condition="fromParty"/></row-col>
-                            <row-col md="1"><label text="Type" type="strong"/></row-col>
-                            <row-col md="2"><label text="${payment.'PaymentType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="Reference" type="strong"/></row-col>
-                            <row-col md="1"><label text="${payment.paymentRefNum?:''}"/></row-col>
-                        </container-row>
-                        <container-row>
-                            <row-col md="1"><label text="Status" type="strong"/></row-col>
-                            <row-col md="2"><label text="${payment.'Payment#moqui.basic.StatusItem'?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="To" type="strong"/></row-col>
-                            <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="toParty"
-                                    parameter-map="[partyId:toParty?.partyId]" link-type="anchor" condition="toParty"/></row-col>
-                            <row-col md="1"><label text="Instrument" type="strong"/></row-col>
-                            <row-col md="2"><label text="${payment.instrument?.description?:''}"/></row-col>
-                        </container-row>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
-        <section name="ProductSection" condition="product">
-            <widgets>
-                <container-box>
-                    <box-header title="Product: ${ec.resource.expand('ProductNameTemplate','',product)}"/>
-                    <box-toolbar>
-                        <link url="editProduct" text="Product"/>
-                        <!-- <link url="equipmentEditProduct" text="Equipment" condition="product.assetTypeEnumId == 'AstTpEquipment'"/> -->
-                    </box-toolbar>
-                    <box-body>
-                        <container-row>
-                            <row-col md="1"><label text="Type" type="strong"/></row-col>
-                            <row-col md="2"><label text="${product.'ProductType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="Amount/UOM" type="strong"/></row-col>
-                            <row-col md="2"><label text="ProductAmountNameTemplate" text-map="pantMap"/></row-col>
-                            <row-col md="1"><label text="Description" type="strong"/></row-col>
-                            <row-col md="5"><label text="${product.description?:''}"/></row-col>
-                        </container-row>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
-        <section name="ShipmentSection" condition="shipment">
-            <actions>
-                <!--
-                <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="incomingTypeOut"
-                        in-map="[parentEnumId:'ShpTpIncoming']"/>
-                <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="outgoingTypeOut"
-                        in-map="[parentEnumId:'ShpTpOutgoing']"/>
-                -->
-                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="fromParty">
-                    <field-map field-name="partyId" from="shipment.fromPartyId"/></entity-find-one>
-                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="toParty">
-                    <field-map field-name="partyId" from="shipment.toPartyId"/></entity-find-one>
 
-                <!-- assume one route segment -->
-                <entity-find-one entity-name="mantle.shipment.ShipmentRouteSegment" value-field="srs">
-                    <field-map field-name="shipmentId"/></entity-find-one>
-            </actions>
-            <widgets>
-                <container-box>
-                    <box-header title="Shipment ${shipmentId}"/>
-                    <box-toolbar>
-                        <link url="shipmentDetail" text="Shipment"/>
-                    </box-toolbar>
-                    <box-body>
-                        <container-row>
-                            <row-col md="1"><label text="Type" type="strong"/></row-col>
-                            <row-col md="1"><label text="${shipment.'ShipmentType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="Ready" type="strong"/></row-col>
-                            <row-col md="1"><label text="${ec.l10n.format(shipment.estimatedReadyDate, null)}"/></row-col>
-                            <row-col md="1"><label text="From" type="strong"/></row-col>
-                            <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="fromParty"
-                                    parameter-map="[partyId:fromParty?.partyId]" link-type="anchor" condition="fromParty"/></row-col>
-                            <row-col md="1"><label text="Origin" type="strong"/></row-col>
-                            <row-col md="3"><link url="editFacility" text="${srs?.'Origin#mantle.facility.Facility'?.facilityName?:''}"
-                                    parameter-map="[facilityId:srs.originFacilityId]" link-type="anchor" condition="srs.originFacilityId"/></row-col>
-                        </container-row>
-                        <container-row>
-                            <row-col md="1"><label text="Status" type="strong"/></row-col>
-                            <row-col md="1"><label text="${shipment.'Shipment#moqui.basic.StatusItem'?.description?:''}"/></row-col>
-                            <row-col md="1"><label text="Arrival" type="strong"/></row-col>
-                            <row-col md="1"><label text="${ec.l10n.format(shipment.estimatedArrivalDate, null)}"/></row-col>
-                            <row-col md="1"><label text="To" type="strong"/></row-col>
-                            <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="toParty"
-                                    parameter-map="[partyId:toParty?.partyId]" link-type="anchor" condition="toParty"/></row-col>
-                            <row-col md="1"><label text="Destination" type="strong"/></row-col>
-                            <row-col md="3"><link url="editFacility" text="${srs?.'Destination#mantle.facility.Facility'?.facilityName?:''}"
-                                    parameter-map="[facilityId:srs.destinationFacilityId]" link-type="anchor" condition="srs.destinationFacilityId"/></row-col>
-                        </container-row>
-                    </box-body>
-                </container-box>
-            </widgets>
-        </section>
-        <section name="AcctgTransSection" condition="acctgTrans"><actions>
+        <section name="AssetSection" condition="asset != null"><actions>
+            <set field="aprod" from="asset.'mantle.product.Product'"/>
+            <set field="facLoc" from="asset.'mantle.facility.FacilityLocation'"/>
+        </actions><widgets>
+            <container-box><box-header title="Asset ${assetId}"/><box-toolbar>
+                <link url="assetDetail" text="Asset"/>
+                <!-- <link url="equipmentDetail" text="Equipment" condition="asset.assetTypeEnumId == 'AstTpEquipment'"/> -->
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col md="1"><label text="Type" type="strong"/></row-col>
+                    <row-col md="2"><label text="${asset.'AssetType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Facility" type="strong"/></row-col>
+                    <row-col md="2"><link url="editFacility" text="${asset.'mantle.facility.Facility'?.facilityName?:''}"
+                            parameter-map="[facilityId:asset.facilityId]" link-type="anchor" condition="asset.facilityId"/></row-col>
+                    <row-col md="1"><label text="ATP/QOH" type="strong"/></row-col>
+                    <row-col md="2"><label text="${ec.l10n.format(asset.availableToPromiseTotal, null)}/${ec.l10n.format(asset.quantityOnHandTotal, null)} (${aprod.'Amount#moqui.basic.Uom'?.description?:'each'})"/></row-col>
+                    <row-col md="2"><link url="editRun" text="WorkEffortNameTemplate" text-map="[workEffortId:asset.acquireWorkEffortId]"
+                            parameter-map="[workEffortId:asset.acquireWorkEffortId]" link-type="anchor" condition="asset.acquireWorkEffortId"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col md="1"><label text="Product" type="strong"/></row-col>
+                    <row-col md="2"><link url="editProduct" text="ProductNameTemplate" text-map="aprod" parameter-map="[productId:asset.productId]" link-type="anchor"/></row-col>
+                    <row-col md="1"><label text="Location" type="strong"/></row-col>
+                    <row-col md="2"><label text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></row-col>
+                    <row-col md="1"><label text="Received" type="strong"/></row-col>
+                    <row-col md="2"><label text="${ec.l10n.format(asset.receivedDate, null)}"/></row-col>
+                    <row-col md="1"><label text="From Shipment" type="strong"/></row-col>
+                    <row-col md="2"><link url="shipmentDetail" text="${asset.acquireShipmentId}"
+                            parameter-map="[shipmentId:asset.acquireShipmentId]" link-type="anchor" condition="asset.acquireShipmentId"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="FacilitySection" condition="facility != null"><actions>
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail">
+                <field-map field-name="partyId" from="facility.ownerPartyId"/></entity-find-one>
+        </actions><widgets>
+            <container-box><box-header title="Facility: ${ec.resource.expand('FacilityNameTemplate','',facility)}"/><box-toolbar>
+                <link url="editFacility" text="Facility"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col md="1"><label text="Type" type="strong"/></row-col>
+                    <row-col md="2"><label text="${facility.'FacilityType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Owner" type="strong"/></row-col>
+                    <row-col md="2"><link url="editParty" text="PartyNameTemplate" text-map="partyDetail"
+                            parameter-map="[partyId:facility.ownerPartyId]" link-type="anchor" condition="partyDetail"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="InvoiceSection" condition="invoice != null"><actions>
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="fromParty">
+                <field-map field-name="partyId" from="invoice.fromPartyId"/></entity-find-one>
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="toParty">
+                <field-map field-name="partyId" from="invoice.toPartyId"/></entity-find-one>
+        </actions><widgets>
+            <container-box><box-header title="Invoice ${invoiceId}"/><box-toolbar>
+                <link url="editInvoice" text="Invoice"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col md="1"><label text="Date" type="strong"/></row-col>
+                    <row-col md="2"><label text="${ec.l10n.format(invoice.invoiceDate, null)}"/></row-col>
+                    <row-col md="1"><label text="From" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="fromParty"
+                            parameter-map="[partyId:fromParty?.partyId]" link-type="anchor" condition="fromParty"/></row-col>
+                    <row-col md="1"><label text="Description" type="strong"/></row-col>
+                    <row-col md="4"><label text="${invoice.description?:''}"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col md="1"><label text="Status" type="strong"/></row-col>
+                    <row-col md="2"><label text="${invoice.'Invoice#moqui.basic.StatusItem'?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="To" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="toParty"
+                            parameter-map="[partyId:toParty?.partyId]" link-type="anchor" condition="toParty"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="OrderSection" condition="orderHeader != null"><actions>
+            <set field="orderStatus" from="orderHeader.status"/>
+        </actions><widgets>
+            <container-box><box-header title="Order ${orderId}"/><box-toolbar>
+                <link url="orderDetail" text="Order"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col md="1"><label text="Status" type="strong"/></row-col>
+                    <row-col md="2"><label text="${orderStatus?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Total" type="strong"/></row-col>
+                    <row-col md="2"><label text="${ec.l10n.formatCurrency(orderHeader.grandTotal, orderHeader.currencyUomId)}"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="PartySection" condition="party != null"><actions>
+            <entity-find entity-name="mantle.party.PartyRole" list="roleList"><econdition field-name="partyId"/></entity-find>
+            <filter-map-list list="roleList" to-list="supplierRoleList"><field-map field-name="roleTypeId" value="Supplier"/></filter-map-list>
+            <filter-map-list list="roleList" to-list="customerRoleList"><field-map field-name="roleTypeId" value="Customer"/></filter-map-list>
+            <entity-find-one entity-name="moqui.basic.Enumeration" value-field="typeEnum">
+                <field-map field-name="enumId" from="party.partyTypeEnumId"/></entity-find-one>
+        </actions><widgets>
+            <container-box><box-header title="Party: ${ec.resource.expand('PartyNameTemplate','',party)}"/><box-toolbar>
+                <link url="editParty" text="Party"/>
+                <link url="editSupplier" text="Supplier" condition="supplierRoleList"/>
+                <link url="editCustomer" text="Customer" condition="customerRoleList"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col md="1"><label text="Type" type="strong"/></row-col>
+                    <row-col md="2"><label text="${typeEnum?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Roles" type="strong"/></row-col>
+                    <row-col md="8">
+                        <section-iterate name="RoleList" list="roleList" entry="role">
+                            <widgets><label text="${role.'mantle.party.RoleType'.description?:''}${role_has_next ? ', ' : ''}"/></widgets></section-iterate>
+                    </row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="PaymentSection" condition="payment != null"><actions>
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="fromParty">
+                <field-map field-name="partyId" from="payment.fromPartyId"/></entity-find-one>
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="toParty">
+                <field-map field-name="partyId" from="payment.toPartyId"/></entity-find-one>
+        </actions><widgets>
+            <container-box><box-header title="Payment ${paymentId}"/><box-toolbar>
+                <link url="editPayment" text="Payment"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col md="1"><label text="Date" type="strong"/></row-col>
+                    <row-col md="2"><label text="${ec.l10n.format(payment.effectiveDate, null)}"/></row-col>
+                    <row-col md="1"><label text="From" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="fromParty"
+                            parameter-map="[partyId:fromParty?.partyId]" link-type="anchor" condition="fromParty"/></row-col>
+                    <row-col md="1"><label text="Type" type="strong"/></row-col>
+                    <row-col md="2"><label text="${payment.'PaymentType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Reference" type="strong"/></row-col>
+                    <row-col md="1"><label text="${payment.paymentRefNum?:''}"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col md="1"><label text="Status" type="strong"/></row-col>
+                    <row-col md="2"><label text="${payment.'Payment#moqui.basic.StatusItem'?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="To" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="toParty"
+                            parameter-map="[partyId:toParty?.partyId]" link-type="anchor" condition="toParty"/></row-col>
+                    <row-col md="1"><label text="Instrument" type="strong"/></row-col>
+                    <row-col md="2"><label text="${payment.instrument?.description?:''}"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="ProductSection" condition="product != null"><widgets>
+            <container-box><box-header title="Product: ${ec.resource.expand('ProductNameTemplate','',product)}"/><box-toolbar>
+                <link url="editProduct" text="Product"/>
+                <!-- <link url="equipmentEditProduct" text="Equipment" condition="product.assetTypeEnumId == 'AstTpEquipment'"/> -->
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col md="1"><label text="Type" type="strong"/></row-col>
+                    <row-col md="2"><label text="${product.'ProductType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Amount/UOM" type="strong"/></row-col>
+                    <row-col md="2"><label text="ProductAmountNameTemplate" text-map="pantMap"/></row-col>
+                    <row-col md="1"><label text="Description" type="strong"/></row-col>
+                    <row-col md="5"><label text="${product.description?:''}"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="ShipmentSection" condition="shipment != null"><actions>
+            <!--
+            <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="incomingTypeOut"
+                    in-map="[parentEnumId:'ShpTpIncoming']"/>
+            <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="outgoingTypeOut"
+                    in-map="[parentEnumId:'ShpTpOutgoing']"/>
+            -->
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="fromParty">
+                <field-map field-name="partyId" from="shipment.fromPartyId"/></entity-find-one>
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="toParty">
+                <field-map field-name="partyId" from="shipment.toPartyId"/></entity-find-one>
+
+            <!-- assume one route segment -->
+            <entity-find-one entity-name="mantle.shipment.ShipmentRouteSegment" value-field="srs">
+                <field-map field-name="shipmentId"/></entity-find-one>
+        </actions><widgets>
+            <container-box><box-header title="Shipment ${shipmentId}"/><box-toolbar>
+                <link url="shipmentDetail" text="Shipment"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col md="1"><label text="Type" type="strong"/></row-col>
+                    <row-col md="1"><label text="${shipment.'ShipmentType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Ready" type="strong"/></row-col>
+                    <row-col md="1"><label text="${ec.l10n.format(shipment.estimatedReadyDate, null)}"/></row-col>
+                    <row-col md="1"><label text="From" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="fromParty"
+                            parameter-map="[partyId:fromParty?.partyId]" link-type="anchor" condition="fromParty"/></row-col>
+                    <row-col md="1"><label text="Origin" type="strong"/></row-col>
+                    <row-col md="3"><link url="editFacility" text="${srs?.'Origin#mantle.facility.Facility'?.facilityName?:''}"
+                            parameter-map="[facilityId:srs.originFacilityId]" link-type="anchor" condition="srs.originFacilityId"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col md="1"><label text="Status" type="strong"/></row-col>
+                    <row-col md="1"><label text="${shipment.'Shipment#moqui.basic.StatusItem'?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Arrival" type="strong"/></row-col>
+                    <row-col md="1"><label text="${ec.l10n.format(shipment.estimatedArrivalDate, null)}"/></row-col>
+                    <row-col md="1"><label text="To" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="toParty"
+                            parameter-map="[partyId:toParty?.partyId]" link-type="anchor" condition="toParty"/></row-col>
+                    <row-col md="1"><label text="Destination" type="strong"/></row-col>
+                    <row-col md="3"><link url="editFacility" text="${srs?.'Destination#mantle.facility.Facility'?.facilityName?:''}"
+                            parameter-map="[facilityId:srs.destinationFacilityId]" link-type="anchor" condition="srs.destinationFacilityId"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="WorkEffortSection" condition="workEffort != null"><widgets>
+            <container-box><box-header title="Work Effort ${ec.resource.expand('WorkEffortNameTemplate','',workEffort)}"/><box-toolbar>
+                <link url="editRun" text="Production Run" condition="workEffort.purposeEnumId == 'WepProductionRun'"/>
+                <link url="picklistDetail" text="Picklist" condition="workEffort.purposeEnumId == 'WepShipmentShip'"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col lg="1"><label text="Type" type="strong"/></row-col>
+                    <row-col lg="2"><label text="${workEffort.'WorkEffortType#moqui.basic.Enumeration'?.description?:''}"/></row-col>
+                    <row-col lg="1"><label text="Status" type="strong"/></row-col>
+                    <row-col lg="3"><label text="${workEffort.'WorkEffort#moqui.basic.StatusItem'?.description?:''}"/></row-col>
+                    <row-col lg="1"><label text="Name" type="strong"/></row-col>
+                    <row-col lg="4"><label text="${workEffort.workEffortName?:''}"/></row-col>
+                </container-row>
+                <container-row>
+                    <row-col lg="1"><label text="Purpose" type="strong"/></row-col>
+                    <row-col lg="2"><label text="${workEffort.'WorkEffortPurpose#moqui.basic.Enumeration'?.description?:''}"/></row-col>
+                    <row-col lg="1"><label text="Facility" type="strong"/></row-col>
+                    <row-col lg="3"><link url="editFacility" text="${workEffort?.'mantle.facility.Facility'?.facilityName?:''}"
+                            parameter-map="[facilityId:workEffort.facilityId]" link-type="anchor" condition="workEffort.facilityId"/></row-col>
+                    <row-col lg="1"><label text="Schedule" type="strong"/></row-col>
+                    <row-col lg="4"><label text="${ec.l10n.format(workEffort.estimatedStartDate, null)} ${workEffort.estimatedWorkDuration ? ec.l10n.format(workEffort.estimatedWorkDuration, null) + ' hours' : ''}"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="AcctgTransSection" condition="acctgTrans != null"><actions>
             <entity-find-one entity-name="moqui.basic.Enumeration" value-field="typeEnum">
                 <field-map field-name="enumId" from="acctgTrans.acctgTransTypeEnumId"/></entity-find-one>
         </actions><widgets>

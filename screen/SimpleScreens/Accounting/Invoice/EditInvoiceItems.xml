@@ -161,11 +161,13 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="quantity"><conditional-field condition="invoiceEditable"><text-line size="4"/></conditional-field>
                 <default-field><display/></default-field></field>
             <field name="amount"><conditional-field condition="invoiceEditable"><text-line size="8"/></conditional-field>
-                <default-field><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
-            <field name="itemDate"><default-field><date-time/></default-field></field>
+                <default-field><display format="#,##0.00##"/></default-field></field>
+            <field name="itemDate"><conditional-field condition="invoiceEditable || isAdjustment != 'Y'"><date-time/></conditional-field>
+                <default-field><display/></default-field></field>
 
-            <field name="total" from="((quantity != null ? quantity : 1.0) * (amount ?: 0.0))">
-                <default-field><display currency-unit-field="invoice.currencyUomId"/></default-field></field>
+            <!-- NOTE: CurrencyRoundingMarker scale here may vary by currency, make configurable -->
+            <field name="total" from="(((quantity != null ? quantity : 1.0) * (amount ?: 0.0)) as BigDecimal).setScale(2, BigDecimal.ROUND_HALF_UP)" align="right">
+                <default-field><display format="#,##0.00##"/></default-field></field>
             <field name="isAdjustment"><default-field title="Is Adjust"><display/></default-field></field>
 
             <field name="deleteButton"><default-field title="">

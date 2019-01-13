@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" default-menu-title="Receive Direct">
+
+    <parameter name="facilityId"/>
+    <parameter name="locationSeqId"/>
+    <parameter name="containerId"/>
+    <parameter name="productId"/>
+    <parameter name="lotId"/>
+
+    <transition name="setActiveFacility"><actions><script>ec.user.setPreference('FacilityActive', facilityId)</script></actions>
+        <default-response url="."/></transition>
+
+    <transition name="checkScanInput" read-only="true">
+        <service-call name="mantle.facility.FacilityServices.get#ScannedIdGeneral"/>
+        <conditional-response url="../MoveAsset"><condition><expression>assetId</expression></condition></conditional-response>
+        <!-- stay on this screen to choose move container or asset in container, ie don't do this:
+            <conditional-response url="../../Container/MoveContainer"><condition><expression>containerId</expression></condition></conditional-response> -->
+        <default-response url="."/>
+    </transition>
+
+    <transition name="receiveAsset">
+        <service-call name="mantle.product.AssetServices.receive#Asset"/>
+        <default-response url="../MoveAsset"/>
+        <error-response url="."/>
+    </transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <actions>
+        <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
+
+        <!-- look up the basics if we have IDs -->
+        <if condition="facilityId"><entity-find-one entity-name="mantle.facility.Facility" value-field="facility"/></if>
+        <if condition="containerId"><entity-find-one entity-name="mantle.product.asset.Container" value-field="container"/></if>
+        <if condition="locationSeqId"><entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facilityLocation"/></if>
+        <if condition="productId"><entity-find-one entity-name="mantle.product.Product" value-field="product"/></if>
+
+    </actions>
+
+    <widgets>
+        <container-row style="text-center"><row-col sm="5">
+            <form-single name="ScanAssetForm" transition="checkScanInput" focus-field="scanId">
+                <field name="facilityId"><default-field><hidden/></default-field></field>
+                <field name="locationSeqId"><default-field><hidden/></default-field></field>
+                <field name="containerId"><default-field><hidden/></default-field></field>
+                <field name="productId"><default-field><hidden/></default-field></field>
+                <field name="scanId"><default-field title="Scan Prod, Loc, Cont"><text-line size="16"/></default-field></field>
+                <field name="submitButton"><default-field title="Go"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="scanId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+            <link url="." text="Reset Selections" condition="containerId || locationSeqId || productId"
+                    parameter-map="[containerId:null, locationSeqId:null, productId:null]"/>
+        </row-col><row-col sm="7">
+            <form-single name="ActiveFacilityForm" transition="setActiveFacility">
+                <field name="productId"><default-field><hidden/></default-field></field>
+                <field name="facilityId"><default-field title="Active Warehouse">
+                    <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                            parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Set WH"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="facilityId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+            </form-single>
+        </row-col></container-row>
+
+        <label text="NOTE: only receive inventory here if there is no Purchase Order and no Incoming Shipment for the inventory." type="p" style="text-warning"/>
+
+        <form-single name="ReceiveAssetForm" transition="receiveAsset">
+            <field name="productId"><default-field title="Product*"><drop-down>
+                <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></default-field></field>
+            <field name="statusId"><default-field title="Status" tooltip="For inventory defaults to Available, otherwise defaults to In Storage">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                    <set field="statusTypeId" value="Asset"/><set field="allowEmpty" value="true"/>
+                    <set field="noCurrentSelectedKey" value="AstAvailable"/>
+                </widget-template-include>
+            </default-field></field>
+
+            <field name="receivedDate" from="ec.user.nowTimestamp"><default-field title="Received Date"><date-time/></default-field></field>
+
+            <field name="mfgPartyId"><default-field title="Manufacturer"><drop-down allow-empty="true">
+                <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,Manufacturer']"/>
+            </drop-down></default-field></field>
+            <field name="lotId"><default-field title="Lot" tooltip="Select an existing Lot, for new enter Lot Number (and Dates) below">
+                <drop-down allow-empty="true"><dynamic-options transition="getLotList" server-search="true" min-length="0">
+                    <depends-on field="mfgPartyId"/></dynamic-options></drop-down>
+            </default-field></field>
+
+            <field name="lotNumber"><default-field tooltip="For new lot enter Lot Number (and Dates), for existing select above">
+                <text-line size="20"/></default-field></field>
+            <field name="manufacturedDate"><default-field title="Manufactured"><date-time type="date"/></default-field></field>
+            <field name="expectedEndOfLife"><default-field title="Expiration"><date-time type="date"/></default-field></field>
+
+            <field name="ownerPartyId"><default-field title="Owner">
+                <label text="Asset Owner will default to Facility owner" condition="!ownerPartyId"/>
+                <drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,OrgInternal']"/>
+                </drop-down>
+            </default-field></field>
+            <field name="acquireCost"><default-field><text-line size="8" format="#,##0.00"/></default-field></field>
+
+            <field name="quantity"><default-field title="Quantity*"><text-line size="8"/></default-field></field>
+
+            <field name="facilityId"><default-field title="Facility*"><drop-down>
+                <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></default-field></field>
+            <field name="locationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                <dynamic-options transition="getLocationList" server-search="true" min-length="0">
+                    <depends-on field="facilityId"/></dynamic-options>
+            </drop-down></default-field></field>
+            <field name="containerId"><default-field title="Container"><drop-down>
+                <!-- NOTE: don't allow-empty, if there is at least one container in the location it should go in a container, for movable bin support -->
+                <!-- TODO: would be nice to allow-empty but auto-select first if there is at least one -->
+                <dynamic-options transition="getContainerList" server-search="true" min-length="0">
+                    <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options>
+            </drop-down></default-field></field>
+
+            <field name="comments"><default-field title="Notes"><text-area cols="80" rows="3"/></default-field></field>
+
+            <field name="submitButton"><default-field title="Receive"><submit/></default-field></field>
+
+            <field-layout>
+                <field-ref name="productId"/>
+                <field-row><field-ref name="statusId"/><field-ref name="receivedDate"/></field-row>
+                <field-row><field-ref name="quantity"/></field-row>
+                <field-ref name="facilityId"/>
+                <field-ref name="locationSeqId"/><field-ref name="containerId"/>
+                <field-ref name="mfgPartyId"/><field-ref name="lotId"/><field-ref name="lotNumber"/>
+                <field-row><field-ref name="manufacturedDate"/><field-ref name="expectedEndOfLife"/></field-row>
+                <field-ref name="acquireCost"/><field-ref name="ownerPartyId"/>
+                <field-ref name="comments"/>
+                <field-ref name="submitButton"/>
+            </field-layout>
+        </form-single>
+    </widgets>
+</screen>

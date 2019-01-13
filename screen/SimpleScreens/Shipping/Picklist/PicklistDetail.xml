@@ -210,6 +210,50 @@ along with this software (see the LICENSE.md file). If not, see
         </box-body></container-box>
 
         <container-box>
+            <box-header><label text="People Assigned" type="h5"/></box-header>
+            <box-toolbar>
+                <container-dialog id="AddPartyAssignDialog" button-text="Add Person">
+                    <form-single name="AddPartyAssignForm" transition="addAssignment">
+                        <field name="workEffortId"><default-field><hidden/></default-field></field>
+                        <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+
+                        <field name="partyId"><default-field title="Person"><drop-down>
+                            <dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                                    parameter-map="[roleTypeId:'Employee,Worker']"/>
+                        </drop-down></default-field></field>
+                        <field name="roleTypeId"><default-field><hidden default-value="_NA_"/></default-field></field>
+                        <field name="statusId" from="null"><default-field title="Status">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                                <set field="statusTypeId" value="WorkEffortParty"/><set field="noCurrentSelectedKey" value="WeptAssigned"/></widget-template-include>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Add Assignment"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar>
+            <box-body>
+                <form-list name="UpdateAssignForm" list="weapdList" transition="updateAssignment">
+                    <row-actions>
+                        <entity-find-one entity-name="moqui.basic.StatusItem" value-field="currentStatus"/>
+                    </row-actions>
+                    <field name="workEffortId"><default-field><hidden/></default-field></field>
+                    <field name="partyId"><default-field><hidden/></default-field></field>
+                    <field name="fromDate"><default-field><hidden/></default-field></field>
+
+                    <field name="name"><header-field/><default-field>
+                        <link url="editParty" text="PartyNameTemplate" link-type="anchor"/></default-field></field>
+                    <field name="username"><default-field><link url="editParty" text="${username?:'--'}" link-type="anchor"/></default-field></field>
+
+                    <field name="roleTypeId"><default-field><hidden/></default-field></field>
+                    <field name="statusId"><default-field title="Status">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusTransitionDropDown">
+                            <set field="currentDescription" from="currentStatus?.description"/>
+                            <set field="statusId"/></widget-template-include>
+                    </default-field></field>
+                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                </form-list>
+            </box-body>
+        </container-box>
+        <container-box>
             <box-header><label text="Equipment" type="h5"/></box-header>
             <box-toolbar>
                 <container-dialog id="AddAsset" button-text="Add Equipment">
@@ -272,51 +316,6 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-box>
                     </widgets>
                 </section-iterate>
-            </box-body>
-        </container-box>
-
-        <container-box>
-            <box-header><label text="People Assigned" type="h5"/></box-header>
-            <box-toolbar>
-                <container-dialog id="AddPartyAssignDialog" button-text="Add Person">
-                    <form-single name="AddPartyAssignForm" transition="addAssignment">
-                        <field name="workEffortId"><default-field><hidden/></default-field></field>
-                        <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
-
-                        <field name="partyId"><default-field title="Person"><drop-down>
-                            <dynamic-options transition="searchPartyList" server-search="true" min-length="0"
-                                    parameter-map="[roleTypeId:'Employee,Worker']"/>
-                        </drop-down></default-field></field>
-                        <field name="roleTypeId"><default-field><hidden default-value="_NA_"/></default-field></field>
-                        <field name="statusId" from="null"><default-field title="Status">
-                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                                <set field="statusTypeId" value="WorkEffortParty"/><set field="noCurrentSelectedKey" value="WeptAssigned"/></widget-template-include>
-                        </default-field></field>
-                        <field name="submitButton"><default-field title="Add Assignment"><submit/></default-field></field>
-                    </form-single>
-                </container-dialog>
-            </box-toolbar>
-            <box-body>
-                <form-list name="UpdateAssignForm" list="weapdList" transition="updateAssignment">
-                    <row-actions>
-                        <entity-find-one entity-name="moqui.basic.StatusItem" value-field="currentStatus"/>
-                    </row-actions>
-                    <field name="workEffortId"><default-field><hidden/></default-field></field>
-                    <field name="partyId"><default-field><hidden/></default-field></field>
-                    <field name="fromDate"><default-field><hidden/></default-field></field>
-
-                    <field name="name"><header-field/><default-field>
-                        <link url="editParty" text="PartyNameTemplate" link-type="anchor"/></default-field></field>
-                    <field name="username"><default-field><link url="editParty" text="${username?:'--'}" link-type="anchor"/></default-field></field>
-
-                    <field name="roleTypeId"><default-field><hidden/></default-field></field>
-                    <field name="statusId"><default-field title="Status">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusTransitionDropDown">
-                            <set field="currentDescription" from="currentStatus?.description"/>
-                            <set field="statusId"/></widget-template-include>
-                    </default-field></field>
-                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                </form-list>
             </box-body>
         </container-box>
     </widgets>

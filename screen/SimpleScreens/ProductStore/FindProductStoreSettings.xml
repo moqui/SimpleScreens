@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Settings" default-menu-index="6">
+
+
+    <parameter name="productStoreId" required="true"/>
+
+    <transition name="createStoreSetting"><service-call name="create#mantle.product.store.ProductStoreSetting"/>
+        <default-response url="."/></transition>
+    <transition name="updateStoreSetting"><service-call name="update#mantle.product.store.ProductStoreSetting"/>
+        <default-response url="."/></transition>
+    <transition name="deleteStoreSetting"><service-call name="delete#mantle.product.store.ProductStoreSetting"/>
+        <default-response url="."/></transition>
+
+    <widgets>
+        <container-dialog id="NewStoreSettingDialog" button-text="New Store Setting">
+            <form-single name="NewStoreSettingForm" transition="createStoreSetting">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                <field name="settingTypeEnumId"><default-field title="Setting Type">
+                    <drop-down><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="ProductStoreSettingType"/>
+                            <order-by field-name="sequenceNum,description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="fromDate" from="ec.user.nowTimestamp"><default-field>
+                    <date-time type="date-time"/></default-field></field>
+                <field name="settingValue"><default-field title="Value"><text-line size="80"/></default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="StoreSettingsForm" list="storeSettings" header-dialog="true" transition="updateStoreSetting">
+            <entity-find entity-name="mantle.product.store.ProductStoreSetting" list="storeSettings">
+                <search-form-inputs default-order-by="settingTypeEnumId"/>
+                <econdition field-name="productStoreId"/>
+            </entity-find>
+
+            <field name="productStoreId"><default-field><hidden/></default-field></field>
+
+            <field name="settingTypeEnumId">
+                <header-field title="Setting Type" show-order-by="true">
+                    <drop-down allow-multiple="true">
+                        <entity-options key="${enumId}" text="EnumerationNameTemplate"><entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="ProductStoreSettingType"/>
+                            <order-by field-name="sequenceNum,description"/>
+                        </entity-find></entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="settingValue">
+                <header-field title="Value" show-order-by="case-insensitive"><text-find size="40" hide-options="true"/></header-field>
+                <default-field><text-line size="60"/></default-field>
+            </field>
+            <field name="fromDate">
+                <header-field title="From Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="thruDate">
+                <header-field title="Thru Date" show-order-by="case-insensitive"><date-period allow-empty="true"/></header-field>
+                <default-field><date-time type="date-time"/></default-field>
+            </field>
+            <field name="submitButton" align="right"><default-field title="Update"><submit/></default-field></field>
+            <field name="deleteButton" align="right"><default-field title="">
+                <link url="deleteStoreSetting" icon="glyphicon glyphicon-trash"
+                      parameter-map="[productStoreId:productStoreId, settingTypeEnumId:settingTypeEnumId, fromDate:fromDate]"
+                      confirmation="Are you sure you want to remove this Setting?"/>
+            </default-field></field>
+        </form-list>
+    </widgets>
+</screen>

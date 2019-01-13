@@ -32,16 +32,22 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="orderByField" from="null"/>
         <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
             <search-form-inputs/>
-            <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent,InvoicePmtRecvd"/>
+            <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent,InvoiceAcked,InvoicePmtRecvd"/>
             <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
             <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
             <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+            <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
             <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
             <econditions combine="or">
+                <!-- NOTE would be nice to constrain to itemsTotal != (amountApplied + toAmountApplied), do in post filter -->
                 <econdition field-name="itemsTotal" operator="not-equals" to-field-name="amountApplied"/>
-                <econdition field-name="amountApplied" operator="is-null"/>
+                <econditions combine="and">
+                    <econdition field-name="amountApplied" operator="is-null"/>
+                    <econdition field-name="toAmountApplied" operator="is-null"/>
+                </econditions>
             </econditions>
-            <select-field field-name="fromPartyId,toPartyId,toPseudoId,toName,invoiceId,invoiceDate,dueDate,itemsTotal,amountApplied"/>
+            <select-field field-name="fromPartyId,toPartyId,toPseudoId,toName,invoiceId,invoiceDate,dueDate"/>
+            <select-field field-name="itemsTotal,amountApplied,toAmountApplied"/>
         </entity-find>
         <entity-find entity-name="mantle.account.payment.PaymentAndApplicationSummary" list="paymentAndAppList">
             <econdition field-name="fromPartyId" from="toPartyId" ignore-if-empty="true"/>
@@ -51,61 +57,74 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="amount" operator="greater" from="0.0"/>
             <econdition field-name="effectiveDate" operator="less-equals" from="asOfDate"/>
             <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+            <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
             <econditions combine="or">
+                <!-- NOTE would be nice to constrain to amount != (amountApplied + toAmountApplied), do in post filter -->
                 <econdition field-name="amount" operator="not-equals" to-field-name="amountApplied"/>
-                <econdition field-name="amountApplied" operator="is-null"/>
+                <econditions combine="and">
+                    <econdition field-name="amountApplied" operator="is-null"/>
+                    <econdition field-name="toAmountApplied" operator="is-null"/>
+                </econditions>
             </econditions>
-            <select-field field-name="fromPartyId,toPartyId,paymentId,amount,amountApplied"/>
+            <select-field field-name="fromPartyId,toPartyId,paymentId,amount,amountApplied,toAmountApplied"/>
         </entity-find>
         <set field="orderByField" from="orderBySave"/>
 
         <set field="agingInfoByToPartyId" from="[:]"/>
         <set field="totalsRow" from="[toName:'Totals']"/>
-        <iterate list="invoiceAgingList" entry="invoice"><script><![CDATA[
-            String toPartyId = invoice.toPartyId
-            Map toPartyInfo = agingInfoByToPartyId.get(toPartyId)
-            if (toPartyInfo == null) {
-                toPartyInfo = invoice.getMap()
-                agingInfoByToPartyId.put(toPartyId, toPartyInfo)
-                toPartyInfo.count = 1
-            } else {
-                toPartyInfo.count++
-            }
+        <script><![CDATA[
+            for (invoice in invoiceAgingList) {
+                BigDecimal unpaidAmount = invoice.itemsTotal - (invoice.amountApplied ?: 0.0) - (invoice.toAmountApplied ?: 0.0)
+                if (unpaidAmount == 0.0) continue
 
-            BigDecimal unpaidAmount = invoice.itemsTotal - (invoice.amountApplied ?: 0.0)
-            Timestamp dateTs = invoice.get(dateField)
-            Integer dateDays = dateTs != null ? asOfDate - dateTs : null
-            Integer dateIdx = dateDays != null ? (dateDays < 0 ? 0 :
-                    ((dateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1) : null
-            if (dateIdx != null && dateIdx > 4) dateIdx = 4
-            if (dateIdx != null) {
-                addToBigDecimalInMap("period" + dateIdx, unpaidAmount, toPartyInfo)
-                addToBigDecimalInMap("period" + dateIdx, unpaidAmount, totalsRow)
-            }
-            addToBigDecimalInMap("unpaidAmount", unpaidAmount, toPartyInfo)
-            addToBigDecimalInMap("unpaidAmount", unpaidAmount, totalsRow)
-            addToBigDecimalInMap("balanceDue", unpaidAmount, toPartyInfo)
-            addToBigDecimalInMap("balanceDue", unpaidAmount, totalsRow)
-            addToListInMap("invoiceIds", invoice.invoiceId, toPartyInfo)
-        ]]></script></iterate>
+                String toPartyId = invoice.toPartyId
+                Map toPartyInfo = agingInfoByToPartyId.get(toPartyId)
+                if (toPartyInfo == null) {
+                    toPartyInfo = invoice.getMap()
+                    agingInfoByToPartyId.put(toPartyId, toPartyInfo)
+                    toPartyInfo.count = 1
+                } else {
+                    toPartyInfo.count++
+                }
 
-        <iterate list="paymentAndAppList" entry="payment"><script><![CDATA[
-            String toPartyId = payment.fromPartyId // yes, fromPartyId; invoice.toPartyId = payment.fromPartyId
-            Map toPartyInfo = agingInfoByToPartyId.get(toPartyId)
-            if (toPartyInfo == null) {
-                Map party = ec.entity.find("mantle.party.PartyDetail").condition("partyId", toPartyId).one()
-                toPartyInfo = [toPartyId:toPartyId, toPseudoId:party.pseudoId,
-                        toName:"${party.firstName ? party.firstName + ' ' : ''}${party.lastName?:''}${party.organizationName?:''}".toString()]
-                agingInfoByToPartyId.put(toPartyId, toPartyInfo)
+                Timestamp dateTs = invoice.get(dateField)
+                Integer dateDays = dateTs != null ? asOfDate - dateTs : null
+                Integer dateIdx = dateDays != null ? (dateDays < 0 ? 0 :
+                        ((dateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1) : null
+                if (dateIdx != null && dateIdx > 4) dateIdx = 4
+                if (dateIdx != null) {
+                    addToBigDecimalInMap("period" + dateIdx, unpaidAmount, toPartyInfo)
+                    addToBigDecimalInMap("period" + dateIdx, unpaidAmount, totalsRow)
+                }
+                addToBigDecimalInMap("unpaidAmount", unpaidAmount, toPartyInfo)
+                addToBigDecimalInMap("unpaidAmount", unpaidAmount, totalsRow)
+                addToBigDecimalInMap("balanceDue", unpaidAmount, toPartyInfo)
+                addToBigDecimalInMap("balanceDue", unpaidAmount, totalsRow)
+                addToListInMap("invoiceIds", invoice.invoiceId, toPartyInfo)
             }
+        ]]></script>
 
-            BigDecimal unappliedAmount = payment.amount - (payment.amountApplied ?: 0.0)
-            addToBigDecimalInMap("unappliedTotal", unappliedAmount, toPartyInfo)
-            addToBigDecimalInMap("unappliedTotal", unappliedAmount, totalsRow)
-            addToBigDecimalInMap("balanceDue", -unappliedAmount, toPartyInfo)
-            addToBigDecimalInMap("balanceDue", -unappliedAmount, totalsRow)
-            addToListInMap("paymentIds", payment.paymentId, toPartyInfo)
-        ]]></script></iterate>
+        <script><![CDATA[
+            for (payment in paymentAndAppList) {
+                BigDecimal unappliedAmount = payment.amount - (payment.amountApplied ?: 0.0) - (payment.toAmountApplied ?: 0.0)
+                if (unappliedAmount == 0.0) continue
+
+                String toPartyId = payment.fromPartyId // yes, fromPartyId; invoice.toPartyId = payment.fromPartyId
+                Map toPartyInfo = agingInfoByToPartyId.get(toPartyId)
+                if (toPartyInfo == null) {
+                    Map party = ec.entity.find("mantle.party.PartyDetail").condition("partyId", toPartyId).one()
+                    toPartyInfo = [toPartyId:toPartyId, toPseudoId:party.pseudoId,
+                            toName:"${party.firstName ? party.firstName + ' ' : ''}${party.lastName?:''}${party.organizationName?:''}".toString()]
+                    agingInfoByToPartyId.put(toPartyId, toPartyInfo)
+                }
+
+                addToBigDecimalInMap("unappliedTotal", unappliedAmount, toPartyInfo)
+                addToBigDecimalInMap("unappliedTotal", unappliedAmount, totalsRow)
+                addToBigDecimalInMap("balanceDue", -unappliedAmount, toPartyInfo)
+                addToBigDecimalInMap("balanceDue", -unappliedAmount, totalsRow)
+                addToListInMap("paymentIds", payment.paymentId, toPartyInfo)
+            }
+        ]]></script>
 
         <!-- make and sort the list -->
         <set field="agingInfoList" from="new ArrayList(agingInfoByToPartyId.values())"/>

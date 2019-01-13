@@ -19,6 +19,10 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateReturnItem"><service-call name="update#mantle.order.return.ReturnItem"/>
         <default-response url="."/></transition>
+    <transition name="processReturnItemResponses"><service-call name="mantle.order.ReturnServices.process#ReturnItemResponses"/>
+        <default-response url="."/></transition>
+    <transition name="receiveReturnWithoutShipment"><service-call name="mantle.order.ReturnServices.receive#ReturnWithoutShipment"/>
+        <default-response url="."/></transition>
 
     <transition name="salesOrderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="editFinancialAccount"><default-response url="//${appRoot}/Accounting/FinancialAccount/EditFinancialAccount"/></transition>
@@ -26,12 +30,26 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="mantle.order.return.ReturnHeader" value-field="returnHeader"/>
+        <if condition="returnHeader == null"><return error="true" message="Return not found with ID ${returnId}"/></if>
         <set field="returnChangeable" from="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved']"/>
 
         <entity-find entity-name="mantle.order.return.ReturnItem" list="returnItemList">
             <econdition field-name="returnId"/></entity-find>
+
+        <set field="allResponses" from="true"/>
+        <set field="allReceived" from="true"/>
+        <iterate list="returnItemList" entry="returnItem">
+            <if condition="returnItem.responseDate == null"><set field="allResponses" from="false"/></if>
+            <if condition="returnItem.statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved', 'ReturnShipped']">
+                <set field="allReceived" from="false"/></if>
+        </iterate>
     </actions>
     <widgets>
+        <link url="processReturnItemResponses" text="Process Item Responses" condition="!allResponses"
+                confirmation="Will process items not yet processed in Received and Completed statuses or with Immediate=Y in Approved and Shipped statuses"/>
+        <link url="receiveReturnWithoutShipment" text="Receive without Shipment" condition="!allReceived"
+                confirmation="Are you sure, and are all return quantities correct? This will cancel the return shipment, receive full quantity of all Approved or Shipped items, and process item responses."/>
+
         <form-list name="ReturnItemList" list="returnItemList" transition="updateReturnItem">
             <row-actions>
                 <set field="itemChangeable" from="statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved']"/>
@@ -103,16 +121,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title=""><display text=" "/></default-field>
             </field>
 
-            <form-list-column><field-ref name="returnItemSeqId"/><field-ref name="statusId"/></form-list-column>
-            <form-list-column><field-ref name="returnReasonEnumId"/></form-list-column>
+            <form-list-column><field-ref name="returnItemSeqId"/></form-list-column>
+            <form-list-column><field-ref name="statusId"/><field-ref name="orderItem"/><field-ref name="itemTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="returnReasonEnumId"/><field-ref name="returnPrice"/></form-list-column>
             <form-list-column><field-ref name="returnResponseEnumId"/><field-ref name="responseImmediate"/></form-list-column>
-            <form-list-column><field-ref name="orderItem"/><field-ref name="itemTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="productId"/><field-ref name="description"/></form-list-column>
             <form-list-column><field-ref name="returnQuantity"/><field-ref name="inventoryStatusId"/></form-list-column>
-            <form-list-column><field-ref name="returnPrice"/></form-list-column>
-            <form-list-column><field-ref name="receivedQuantity"/><field-ref name="responseDate"/></form-list-column>
+            <form-list-column><field-ref name="receivedQuantity"/><field-ref name="responseDate"/><field-ref name="replacementOrderId"/></form-list-column>
             <form-list-column><field-ref name="responseAmount"/><field-ref name="finAccountTransId"/><field-ref name="refundPaymentId"/></form-list-column>
-            <form-list-column><field-ref name="replacementOrderId"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
     </widgets>

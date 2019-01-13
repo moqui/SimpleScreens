@@ -118,6 +118,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
+        <if condition="party == null"><return error="true" message="Party not found with ID ${partyId}"/></if>
+
         <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
             <field-map field-name="partyId"/></entity-find-one>
 
@@ -149,8 +151,6 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container-row><row-col lg="6">
-            <!-- TODO EmailMessage tab -->
-
             <link url="findRequest" text="Requests" badge="${requestCount}" parameter-map="[partyId:partyId]" condition="requestCount"/>
             <link url="findOrder" text="Sales Orders" badge="${customerOrderPartCount}" parameter-map="[customerPartyId:partyId]" condition="customerOrderPartCount"/>
             <link url="findOrder" text="Purchase Orders" badge="${vendorOrderPartCount}" parameter-map="[vendorPartyId:partyId]" condition="vendorOrderPartCount"/>
@@ -223,14 +223,17 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find entity-name="mantle.party.Party" list="mergedFromList">
                     <econdition field-name="mergedToPartyId" from="partyId"/></entity-find>
             </actions><widgets>
-                <label text="Duplicates found (by ${party.hasDuplicates == 'Y' ? 'address/name, phone/name, ' : ''}identification, email, or birth date and name)" type="p" style="text-danger"
-                        condition="party.hasDuplicates == 'Y' || hasDuplicates"/>
+                <label text="Duplicates found (by ${party.hasDuplicates == 'Y' ? 'address/name, phone/name, ' : ''}identification, email, or birth date and name)"
+                        type="div" style="text-danger" condition="party.hasDuplicates == 'Y' || hasDuplicates"/>
                 <container><link url="." text="This party was merged into ${party.mergedToPartyId}" link-type="anchor"
                         parameter-map="[partyId:party.mergedToPartyId]" condition="party.mergedToPartyId"/></container>
-                <section-iterate name="MergedFromList" list="mergedFromList" entry="mergedFrom"><widgets>
-                    <container><link url="." text="This party has data merged from ${mergedFrom.partyId}" link-type="anchor"
-                            parameter-map="[partyId:mergedFrom.partyId]"/></container>
-                </widgets></section-iterate>
+                <container>
+                    <label text="This party has data merged from parties: " condition="mergedFromList"/>
+                    <section-iterate name="MergedFromList" list="mergedFromList" entry="mergedFrom"><widgets>
+                        <link url="." text="${mergedFrom.partyId} " link-type="anchor"
+                                parameter-map="[partyId:mergedFrom.partyId]"/>
+                    </widgets></section-iterate>
+                </container>
             </widgets></section>
             <section name="EditPartySection" condition="party?.partyTypeEnumId == 'PtyOrganization'"><widgets>
                 <form-single name="EditOrganizationForm" map="party" transition="updateParty">
@@ -238,9 +241,20 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="pseudoId"><default-field title="ID"><text-line size="15"/></default-field></field>
                     <field name="organizationName"><default-field><text-line size="60"/></default-field></field>
                     <field name="externalId"><default-field><text-line size="20"/></default-field></field>
-                    <field name="gatewayCimId"><default-field title="CIM ID"><text-line size="20"/></default-field></field>
+
                     <field name="disabled"><default-field><drop-down>
                         <option key="N"/><option key="Y"/></drop-down></default-field></field>
+                    <field name="gatewayCimId"><default-field title="CIM ID"><text-line size="20"/></default-field></field>
+                    <field name="ownerPartyId"><default-field title="Owned By Org"><drop-down allow-empty="true">
+                        <option key="_NA_" text="N/A"/>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
                     <field name="comments"><default-field title="Internal Comments"><text-area rows="3" cols="120"/></default-field></field>
                     <field name="shippingInstructions"><default-field><text-area rows="5" cols="120"/></default-field></field>
 
@@ -255,9 +269,20 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="lastName"><default-field><text-line size="30"/></default-field></field>
                     <field name="birthDate"><default-field><date-time type="date"/></default-field></field>
                     <field name="externalId"><default-field><text-line size="20"/></default-field></field>
-                    <field name="gatewayCimId"><default-field title="CIM ID"><text-line size="20"/></default-field></field>
+
                     <field name="disabled"><default-field><drop-down>
                         <option key="N"/><option key="Y"/></drop-down></default-field></field>
+                    <field name="gatewayCimId"><default-field title="CIM ID"><text-line size="20"/></default-field></field>
+                    <field name="ownerPartyId"><default-field title="Owned By Org"><drop-down allow-empty="true">
+                        <option key="_NA_" text="N/A"/>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
                     <field name="comments"><default-field title="Internal Comments"><text-area rows="3" cols="80"/></default-field></field>
                     <field name="shippingInstructions"><default-field><text-area rows="3" cols="80"/></default-field></field>
 
@@ -267,6 +292,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fields-not-referenced/>
                         <field-row><field-ref name="birthDate"/><field-ref name="externalId"/></field-row>
                         <field-row><field-ref name="disabled"/><field-ref name="gatewayCimId"/></field-row>
+                        <field-ref name="ownerPartyId"/>
                         <field-ref name="comments"/><field-ref name="shippingInstructions"/>
                         <field-ref name="submitButton"/>
                     </field-layout>
@@ -582,6 +608,12 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="accountPartyId"><default-field title="Sales Account"><drop-down>
                                 <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Account']"/>
                             </drop-down></default-field></field>
+                            <field name="fromRoleTypeId"><default-field title="Role">
+                                <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                                    <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                                        <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
+                                        <order-by field-name="description"/></entity-find></entity-options></drop-down>
+                            </default-field></field>
                             <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                         </form-single>
                     </container-dialog>
@@ -723,6 +755,7 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
 
         </row-col><row-col lg="6">
+            <!-- ========== Right Column ========== -->
 
             <section name="NotesSection"><actions>
                 <entity-find entity-name="mantle.party.PartyNote" list="partyNoteList">
@@ -763,6 +796,9 @@ along with this software (see the LICENSE.md file). If not, see
                         in-map="[partyId:partyId, getAll:true]"/>
             </actions><widgets>
                 <container-box type="info"><box-header title="Email and Phone"/><box-toolbar>
+                    <dynamic-dialog id="ExpiredOtherDialog" button-text="Old Email/Phone" transition="ExpiredContactOther"
+                            parameter-map="[partyId:partyId]"/>
+
                     <dynamic-dialog id="AddEmailInfo" button-text="Add Email" transition="UpdateContactInfo"
                             parameter-map="[partyId:partyId, createEmail:'true']"/>
                     <dynamic-dialog id="AddPhoneInfo" button-text="Add Phone" transition="UpdateContactInfo"
@@ -841,6 +877,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body></container-box>
 
                 <container-box type="info"><box-header title="Postal Addresses"/><box-toolbar>
+                    <dynamic-dialog id="ExpiredPostalDialog" button-text="Old Addresses" transition="ExpiredPostal"
+                            width="840" parameter-map="[partyId:partyId]"/>
                     <dynamic-dialog id="AddAddressInfo" button-text="Add Address" transition="UpdateContactInfo"
                             width="840" parameter-map="[partyId:partyId, createPostal:'true']"/>
                 </box-toolbar><box-body>

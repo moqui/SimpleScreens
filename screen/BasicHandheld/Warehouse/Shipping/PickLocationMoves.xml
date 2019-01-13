@@ -21,6 +21,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="selectAsset"><default-response url="//${appRoot}/Asset/SelectAsset"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
 
+    <transition-include name="setActiveFacility" location="component://SimpleScreens/screen/SimpleScreens/Asset/Asset/SelectAsset.xml"/>
+
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
@@ -83,7 +85,9 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="quantity"><header-field title="Res Qty" show-order-by="true"/>
                 <default-field><display/></default-field></field>
+            <!-- leave out for now, probably not needed/useful; from AssetAndReservationSummary query gets wrong number as it is added repeatedly for each applicable reservation:
             <field name="quantityOnHandTotal"><default-field title="QOH"><display/></default-field></field>
+            -->
 
             <field name="recLocations"><default-field title="Pick Location(s)">
                 <section-iterate name="RecLocList" list="pickLocList" entry="recLoc"><widgets>
@@ -93,12 +97,12 @@ along with this software (see the LICENSE.md file). If not, see
             </default-field></field>
 
             <field name="moveLink"><default-field title="Move">
-                <link url="selectAsset" text="Move"/>
-                <link url="moveAsset" text="Move Asset" condition="assetId"/>
+                <link url="selectAsset" text="Move" parameter-map="[quantity:quantity]"/>
+                <link url="moveAsset" text="Move Asset" condition="assetId" parameter-map="[quantity:quantity]"/>
             </default-field></field>
 
             <form-list-column><field-ref name="productId"/><field-ref name="locationSeqId"/><field-ref name="locationTypeEnumId"/></form-list-column>
-            <form-list-column><field-ref name="quantity"/><field-ref name="quantityOnHandTotal"/></form-list-column>
+            <form-list-column><field-ref name="quantity"/><!--<field-ref name="quantityOnHandTotal"/>--></form-list-column>
             <form-list-column><field-ref name="recLocations"/><field-ref name="moveLink"/></form-list-column>
         </form-list>
     </widgets>

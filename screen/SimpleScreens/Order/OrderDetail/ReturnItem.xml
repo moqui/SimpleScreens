@@ -31,6 +31,8 @@ along with this software (see the LICENSE.md file). If not, see
         <form-single name="ReturnItem" transition="addOrderItemToReturn">
             <field name="orderId"><default-field><hidden/></default-field></field>
             <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+            <field name="itemTypeEnumId" from="orderItem.itemTypeEnumId"><default-field title="Type">
+                <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
 
             <field name="productId" from="orderItem.productId">
                 <conditional-field condition="orderItem.productId" title="Product">
@@ -38,21 +40,37 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><ignored/></default-field>
             </field>
 
-            <field name="orderQuantity" from="orderItem.quantity"><default-field><display/></default-field></field>
-            <field name="billedQuantity" from="returnableOut.invoiceQuantity"><default-field><display/></default-field></field>
-            <field name="returnedQuantity" from="returnableOut.returnQuantity"><default-field><display/></default-field></field>
-            <field name="returnableQuantity" from="returnableOut.returnableQuantity"><default-field><display/></default-field></field>
+            <field name="orderQuantity" from="returnableOut.orderQuantity"><conditional-field condition="returnableOut.isProductItemType">
+                <display/></conditional-field></field>
+            <field name="billedQuantity" from="returnableOut.invoiceQuantity"><conditional-field condition="returnableOut.isProductItemType">
+                <display/></conditional-field></field>
+            <field name="returnedQuantity" from="returnableOut.returnedQuantity"><conditional-field condition="returnableOut.isProductItemType">
+                <display/></conditional-field></field>
+            <field name="returnableQuantity" from="returnableOut.returnableQuantity"><conditional-field condition="returnableOut.isProductItemType">
+                <display/></conditional-field></field>
+
+            <field name="orderTotal" from="returnableOut.orderTotal"><conditional-field condition="!returnableOut.isProductItemType">
+                <display format="#,##0.00"/></conditional-field></field>
+            <field name="billedTotal" from="returnableOut.invoiceTotal"><conditional-field condition="!returnableOut.isProductItemType">
+                <display format="#,##0.00"/></conditional-field></field>
+            <field name="returnedTotal" from="returnableOut.returnedTotal"><conditional-field condition="!returnableOut.isProductItemType">
+                <display format="#,##0.00"/></conditional-field></field>
+            <field name="returnableTotal" from="returnableOut.returnableTotal"><conditional-field condition="!returnableOut.isProductItemType">
+                <display format="#,##0.00"/></conditional-field></field>
 
             <field name="returnId"><default-field title="Return"><drop-down>
                 <list-options list="openReturnsOut.openReturnList" key="${returnId}" text="#${returnId} ${ec.l10n.format(entryDate, '')}"/>
             </drop-down></default-field></field>
 
-            <field name="returnQuantity" from="returnableOut.returnableQuantity"><default-field><text-line size="6"/></default-field></field>
-            <field name="inventoryStatusId"><default-field title="Inventory Status">
+            <field name="returnQuantity" from="returnableOut.returnableQuantity"><conditional-field condition="returnableOut.isProductItemType">
+                <text-line size="6"/></conditional-field></field>
+            <field name="inventoryStatusId"><conditional-field title="Inventory Status" condition="returnableOut.isProductItemType">
                 <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                    <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstAvailable"/>
-                    <set field="style" value=" "/></widget-template-include>
-            </default-field></field>
+                    <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstAvailable"/></widget-template-include>
+            </conditional-field></field>
+            <field name="responseAmount" from="returnableOut.returnableTotal"><conditional-field title="Refund Amount" condition="!returnableOut.isProductItemType">
+                <text-line size="6"/></conditional-field></field>
+
             <field name="returnReasonEnumId"><default-field title="Reason">
                 <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                     <set field="enumTypeId" value="ReturnReason"/><set field="style" value=" "/></widget-template-include>
@@ -65,6 +83,23 @@ along with this software (see the LICENSE.md file). If not, see
                 <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
 
             <field name="submitButton"><default-field title="Add to Return"><submit/></default-field></field>
+
+            <field-layout>
+                <field-row><field-ref name="orderItemSeqId"/><field-ref name="itemTypeEnumId"/></field-row>
+                <field-ref name="productId"/>
+
+                <field-row><field-ref name="orderQuantity"/><field-ref name="billedQuantity"/></field-row>
+                <field-row><field-ref name="returnableQuantity"/><field-ref name="returnedQuantity"/></field-row>
+                <field-row><field-ref name="orderTotal"/><field-ref name="billedTotal"/></field-row>
+                <field-row><field-ref name="returnableTotal"/><field-ref name="returnedTotal"/></field-row>
+
+                <field-ref name="returnId"/>
+                <field-row><field-ref name="returnQuantity"/><field-ref name="inventoryStatusId"/></field-row>
+                <field-ref name="responseAmount"/>
+                <field-ref name="returnReasonEnumId"/>
+                <field-row><field-ref name="returnResponseEnumId"/><field-ref name="responseImmediate"/></field-row>
+                <fields-not-referenced/>
+            </field-layout>
         </form-single>
     </widgets>
 </screen>

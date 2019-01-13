@@ -19,6 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <actions>
+        <set field="interval" from="interval ?: 'w'"/>
         <set field="maPeriods" from="(maPeriods ?: '0') as Integer"/>
 
         <service-call name="mantle.sales.SalesReportServices.get#SalesOrderSummary" out-map="context"
@@ -136,7 +137,7 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-dialog id="SummaryOptionsDialog" button-text="Summary Options">
             <form-single name="SummaryOptions">
-                <field name="interval"><default-field><drop-down><option key="w" text="Week"/><option key="M" text="Month"/>
+                <field name="interval"><default-field><drop-down><option key="d" text="Day"/><option key="w" text="Week"/><option key="M" text="Month"/>
                     <option key="q" text="Quarter"/><option key="y" text="Year"/></drop-down></default-field></field>
                 <field name="intervalCount"><default-field title="Periods"><text-line size="2" default-value="13"/></default-field></field>
                 <field name="thruDate"><default-field><date-time type="date"/></default-field></field>
@@ -170,7 +171,7 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
         <container>
-            <label text="Sales Summary for ${intervalCount?:13} ${[w:'Weeks', M:'Months', q:'Quarters', y:'Years'].get(interval?:'w')}${thruDate ? ' thru ' + ec.l10n.format(thruDate, 'dd MMM yyyy') : ''}${maPeriods ? ' with ' + maPeriods + ' Period MA' : ''}" type="h3"/>
+            <label text="Sales Summary for ${intervalCount?:13} ${[d:'Days', w:'Weeks', M:'Months', q:'Quarters', y:'Years'].get(interval?:'w')}${thruDate ? ' thru ' + ec.l10n.format(thruDate, 'dd MMM yyyy') : ''}${maPeriods ? ' with ' + maPeriods + ' Period MA' : ''}" type="h3"/>
             <label text="Vendors: ${selectedVendorPartyList.collect({ ec.resource.expand('PartyNameTemplate', '', it) }).join(', ')}" condition="selectedVendorPartyList" type="h5"/>
             <label text="Stores: ${selectedProductStoreList.collect({ it.productStoreId + ': ' + it.storeName }).join(', ')}" condition="selectedProductStoreList" type="h5"/>
             <label text="Customer Classes: ${selectedClassificationList*.description.join(', ')}" condition="selectedClassificationList" type="h5"/>

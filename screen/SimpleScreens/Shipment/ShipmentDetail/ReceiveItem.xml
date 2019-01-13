@@ -76,9 +76,17 @@ along with this software (see the LICENSE.md file). If not, see
                 </if>
             </if>
         </iterate>
-        <!-- if no ownerPartyId from order customer default to owned by whoever it was shipped from; for third party consignment inventory -->
-        <!-- NOTE: not sure if this is good to do automatically vs Facility.ownerPartyId -->
-        <if condition="!ownerPartyId"><set field="ownerPartyId" from="shipment.fromPartyId"/></if>
+        <if condition="shipment.shipmentTypeEnumId == 'ShpTpSalesReturn'"><then>
+            <if condition="!ownerPartyId">
+                <entity-find-one entity-name="mantle.facility.Facility" value-field="destFacility"/>
+                <set field="ownerPartyId" from="destFacility.ownerPartyId"/>
+            </if>
+        </then><else>
+            <!-- if no ownerPartyId from order customer default to owned by whoever it was shipped from; for third party consignment inventory -->
+            <!-- NOTE: not sure if this is good to do automatically vs Facility.ownerPartyId -->
+            <if condition="!ownerPartyId"><set field="ownerPartyId" from="shipment.fromPartyId"/></if>
+            <if condition="!mfgPartyId"><set field="mfgPartyId" from="shipment.fromPartyId"/></if>
+        </else></if>
 
         <!-- special case for transfer shipments with AssetIssuance before receipt -->
         <entity-find entity-name="mantle.product.issuance.AssetIssuance" list="assetIssuanceList">
@@ -108,7 +116,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="receivedDate" from="ec.user.nowTimestamp"><default-field title="Received Date"><date-time/></default-field></field>
 
-            <field name="mfgPartyId" from="shipment.fromPartyId"><default-field title="Manufacturer"><drop-down allow-empty="true">
+            <field name="mfgPartyId"><default-field title="Manufacturer"><drop-down allow-empty="true">
                 <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,Manufacturer']"/>
             </drop-down></default-field></field>
             <field name="lotId"><default-field title="Lot" tooltip="Select an existing Lot, for new enter Lot Number (and Dates) below">

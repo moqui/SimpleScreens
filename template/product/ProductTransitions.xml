@@ -38,6 +38,13 @@ along with this software (see the LICENSE.md file). If not, see
                     ec.web.sendJsonResponse(outList)
                 </script>
             </then><else>
+                <!-- if we have activeOrgId or filterOrgIds see if user has active org or user org filters -->
+                <set field="activeOrgId" from="ec.user.context?.activeOrgId"/>
+                <set field="filterOrgIds" from="ec.user.context?.filterOrgIds"/>
+                <set field="findFilters" from="ec.artifactExecution.getFindFiltersForUser('mantle.product.Product')"/>
+                <if condition="findFilters"><set field="entityFilterSetId" from="findFilters[0].entityFilterSetId"/></if>
+                <!-- <log level="warn" message="Doing product search with activeOrgId ${activeOrgId} filterOrgIds ${filterOrgIds} entityFilterSetId ${entityFilterSetId}"/> -->
+
                 <script><![CDATA[
                     StringBuilder termSb = new StringBuilder()
                     if (term) {
@@ -58,6 +65,12 @@ along with this software (see the LICENSE.md file). If not, see
                     if (productClassEnumId) termSb.append(' AND productClassEnumId:').append(productClassEnumId)
                     if (assetTypeEnumId) termSb.append(' AND assetTypeEnumId:').append(assetTypeEnumId)
                     if (assetClassEnumId) termSb.append(' AND assetClassEnumId:').append(assetClassEnumId)
+
+                    if ('MANTLE_USER_ORG'.equals(entityFilterSetId)) {
+                        termSb.append(' AND ownerPartyId:(' + filterOrgIds.join(' OR ') + ')')
+                    } else if ('MANTLE_ACTIVE_ORG'.equals(entityFilterSetId) && activeOrgId) {
+                        termSb.append(' AND ownerPartyId:(' + activeOrgId + ' OR _NA_)')
+                    }
                 ]]></script>
                 <!-- <log level="warn" message="Doing product search with queryString [${termSb.toString()}], indexName:${indexName}, documentType:${documentType}"/> -->
                 <set field="orderByFields" from="term ? null : ['pseudoId']"/>
@@ -112,6 +125,39 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="none"/>
     </transition>
+    <transition name="getCategoryList">
+        <parameter name="term"/>
+        <parameter name="productCategoryTypeEnumId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.category.ProductCategoryAndType" value-field="productCategory">
+                <field-map field-name="productCategoryId" from="term"/></entity-find-one>
+            <if condition="productCategory != null"><then>
+                <script>
+                    def outList = [[value:productCategory.productCategoryId, label:ec.resource.expand('ProductCategoryNameTemplate','',productCategory)]]
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </then><else>
+                <entity-find entity-name="mantle.product.category.ProductCategoryAndType" list="productCategoryList" limit="40">
+                    <econdition field-name="productCategoryTypeEnumId" ignore-if-empty="true"/>
+                    <econditions combine="or">
+                        <econdition field-name="productCategoryId" operator="like" value="%${term}%"/>
+                        <econdition field-name="pseudoId" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="categoryName" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
+                    </econditions>
+                    <select-field field-name="productCategoryId,productCategoryTypeEnumId,typeDescription,pseudoId,categoryName"/>
+                    <order-by field-name="typeDescription,pseudoId,categoryName"/>
+                </entity-find>
+                <script>
+                    def outList = []
+                    for (productCategory in productCategoryList)
+                        outList.add([value:productCategory.productCategoryId, label:ec.resource.expand('ProductCategoryNameTemplate','',productCategory)])
+                    ec.web.sendJsonResponse(outList)
+                </script>
+            </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
     <transition name="getFeatureList">
         <parameter name="term"/>
         <parameter name="productFeatureTypeEnumId"/>
@@ -129,7 +175,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <econditions combine="or">
                         <econdition field-name="productFeatureId" operator="like" value="%${term}%"/>
                         <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
-                        <econdition field-name="abbrev" operator="like" value="%${term}%"/>
+                        <econdition field-name="abbrev" operator="like" value="%${term}%" ignore-case="true"/>
                         <econdition field-name="idCode" operator="like" value="%${term}%" ignore-case="true"/>
                     </econditions>
                     <select-field field-name="productFeatureId,productFeatureTypeEnumId,typeDescription,description,abbrev,idCode"/>

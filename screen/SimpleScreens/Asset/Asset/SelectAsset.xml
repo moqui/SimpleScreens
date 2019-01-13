@@ -20,6 +20,8 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="containerId"/>
     <parameter name="productId"/>
     <parameter name="lotId"/>
+    <parameter name="quantity"/>
+    <parameter name="toScanLocation"/>
 
     <transition name="moveAsset"><default-response url="../MoveAsset"/></transition>
     <transition name="assetDetail"><default-response url="../AssetDetail"/></transition>
@@ -125,17 +127,31 @@ along with this software (see the LICENSE.md file). If not, see
                 </entity-find>
             </if>
         </if>
+
+        <if condition="toScanLocation &amp;&amp; facilityId">
+            <service-call name="mantle.product.AssetServices.check#ScanLocation" out-map="toScanOut"
+                    in-map="[facilityId:facilityId, scanLocation:toScanLocation]"/>
+            <if condition="!toScanOut.locationSeqId &amp;&amp; !toScanOut.containerId">
+                <set field="createContainerId" from="toScanLocation"/>
+                <set field="toScanLocation" from="null"/>
+            </if>
+        </if>
     </actions>
 
     <widgets>
         <container-row style="text-center"><row-col sm="5">
             <form-single name="ScanAssetForm" transition="checkScanInput" focus-field="scanId">
+                <field name="facilityId"><default-field><hidden/></default-field></field>
+                <field name="locationSeqId"><default-field><hidden/></default-field></field>
+                <field name="containerId"><default-field><hidden/></default-field></field>
+                <field name="productId"><default-field><hidden/></default-field></field>
                 <field name="scanId"><default-field title="Scan Asset, Container, Location, Product"><text-line size="20"/></default-field></field>
                 <field name="submitButton"><default-field title="Select"><submit/></default-field></field>
                 <field-layout><field-row-big><field-ref name="scanId"/><field-ref name="submitButton"/></field-row-big></field-layout>
             </form-single>
         </row-col><row-col sm="7">
             <form-single name="ActiveFacilityForm" transition="setActiveFacility">
+                <field name="productId"><default-field><hidden/></default-field></field>
                 <field name="facilityId"><default-field title="Active Warehouse">
                     <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
                             parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
@@ -225,10 +241,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="locationSeqId"><default-field><hidden/></default-field></field>
                     <field name="containerId"><default-field><hidden/></default-field></field>
                     <field name="productId"><default-field><hidden/></default-field></field>
-                    <field name="scanLocation"><default-field title="Scan Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
+                    <field name="createContMessage"><conditional-field condition="createContainerId" title="">
+                        <label text="Scanned ID was not a known location or container, scan a location to create a container with the ID" style="text-warning"/>
+                    </conditional-field></field>
+                    <field name="toScanLocation"><default-field title="Scan Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
                         <text-line size="20"/></default-field></field>
                     <!-- <field name="containerId"><default-field title="Scan Container ID" tooltip="Can be Container ID or Serial Number (Plate ID)">
                         <text-line size="20"/></default-field></field> -->
+                    <field name="createContainerId"><default-field title="Create Container ID">
+                        <text-line size="20"/></default-field></field>
                     <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
                         <text-line size="20"/></default-field></field>
                     <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
@@ -249,9 +270,16 @@ along with this software (see the LICENSE.md file). If not, see
                         <dynamic-options transition="getContainerList" server-search="true" min-length="0">
                             <depends-on field="facilityId"/><depends-on field="toLocationSeqId" parameter="locationSeqId"/></dynamic-options>
                     </drop-down></default-field></field>
-                    <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
+                    <field name="createContainerId"><default-field title="Create Container ID">
+                        <text-line size="20"/></default-field></field>
+                    <field name="quantity"><default-field title="Quantity">
                         <text-line size="10"/></default-field></field>
                     <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
+                    <field-layout>
+                        <fields-not-referenced/>
+                        <field-row><field-ref name="quantity"/><field-ref name="createContainerId"/></field-row>
+                        <field-ref name="submitButton"/>
+                    </field-layout>
                 </form-single>
             </row-col></container-row>
         </widgets></section>

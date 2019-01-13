@@ -34,6 +34,10 @@ along with this software (see the LICENSE.md file). If not, see
     <@loadPick.shipmentLoadPickPageSequence/>
 
     <#list shipmentPickPackInfoList as shipmentPickPackInfo>
-        <@shipmentPack.shipmentPackPageSequence shipmentPickPackInfo/>
+        <#-- only print if Input or Scheduled, if already Picked/Packed/etc or is Rejected or Cancelled don't include -->
+        <#assign curStatusId = shipmentPickPackInfo.shipment.statusId>
+        <#if curStatusId == "ShipInput" || curStatusId == "ShipScheduled">
+            <@shipmentPack.shipmentPackPageSequence shipmentPickPackInfo/>
+        </#if>
     </#list>
 </fo:root>
