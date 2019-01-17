@@ -20,6 +20,8 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="containerId"/>
     <parameter name="productId"/>
     <parameter name="lotId"/>
+    <parameter name="quantity"/>
+    <parameter name="toScanLocation"/>
 
     <transition name="moveAsset"><default-response url="../MoveAsset"/></transition>
     <!-- NOTE: no access to AssetDetail, go to MoveAsset screen in this mini-app -->
@@ -117,6 +119,15 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
 
         <set field="canMove" from="product != null &amp;&amp; facility != null"/>
+
+        <if condition="toScanLocation &amp;&amp; facilityId">
+            <service-call name="mantle.product.AssetServices.check#ScanLocation" out-map="toScanOut"
+                    in-map="[facilityId:facilityId, scanLocation:toScanLocation]"/>
+            <if condition="!toScanOut.locationSeqId &amp;&amp; !toScanOut.containerId">
+                <set field="createContainerId" from="toScanLocation"/>
+                <set field="toScanLocation" from="null"/>
+            </if>
+        </if>
     </actions>
 
     <widgets>
@@ -190,7 +201,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="productId"><default-field><hidden/></default-field></field>
                 <field name="quantity"><default-field title="Quantity">
                     <text-line size="20"/></default-field></field>
+                <field name="createContMessage"><conditional-field condition="createContainerId" title="">
+                    <label text="Scanned ID was not a known location or container, scan a location to create a container with the ID" style="text-warning"/>
+                </conditional-field></field>
                 <field name="toScanLocation"><default-field title="Scan To Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
+                    <text-line size="20"/></default-field></field>
+                <field name="createContainerId"><default-field title="Create Container ID">
                     <text-line size="20"/></default-field></field>
                 <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
             </form-single>

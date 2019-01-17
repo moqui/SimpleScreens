@@ -114,6 +114,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="deleteItem"><service-call name="mantle.order.OrderServices.delete#OrderItem"/>
         <default-response url="."/></transition>
 
+    <transition name="removeOrderItemReservations"><service-call name="mantle.product.AssetServices.remove#OrderItemReservations"/>
+        <default-response url="."/></transition>
+
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getProductPrice" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
@@ -324,8 +327,27 @@ along with this software (see the LICENSE.md file). If not, see
             </row-col><row-col lg="6">
                 <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
+                <section name="CustomerNotesSection"><actions>
+                    <entity-find entity-name="mantle.party.PartyNote" list="customerNoteList">
+                        <econdition field-name="partyId" from="firstPartInfo.orderPart.customerPartyId"/>
+                        <order-by field-name="-noteDate"/>
+                    </entity-find>
+                </actions><widgets>
+                    <section name="CustomerNotesInner" condition="customerNoteList"><widgets>
+                        <container-box type="danger"><box-header title="Customer Notes"/><box-body>
+                            <section-iterate name="CustomerNoteIterate" list="customerNoteList" entry="partyNote"><actions>
+                                <entity-find-one entity-name="mantle.party.PersonWithUserAccount" value-field="paua">
+                                    <field-map field-name="userId" from="partyNote.userId"/></entity-find-one>
+                            </actions><widgets>
+                                <label text="By ${paua?.firstName?:''} ${paua?.lastName?:''} (${paua?.username ?: partyNote.userId}) at ${ec.l10n.format(partyNote.noteDate, 'yyyy-MM-dd HH:mm')}" type="strong"/>
+                                <label text="${partyNote.noteText}" type="p"/>
+                            </widgets></section-iterate>
+                        </box-body></container-box>
+                    </widgets></section>
+                </widgets></section>
+
                 <section name="NotesSection"><widgets>
-                    <container-box><box-header title="Notes"/><box-toolbar>
+                    <container-box><box-header title="Order Notes"/><box-toolbar>
                         <container-dialog id="NewNoteDialog" button-text="Add Note">
                             <form-single name="NewNoteForm" transition="createNote">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
@@ -353,6 +375,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </widgets></section-iterate>
                     </box-body></container-box>
                 </widgets></section>
+
                 <section name="ContentSection"><actions>
                     <entity-find entity-name="mantle.order.OrderContent" list="contentList">
                         <econdition field-name="orderId"/><order-by field-name="-contentDate"/></entity-find>
@@ -497,7 +520,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <container><label text="${orderPartInfo.isVendorInternalOrg ? 'Sales' : 'Purchase'} Order Part ${orderPart.orderPartSeqId}" type="strong"/></container>
 
                     <section name="ShipOrderPartSection"><condition>
-                        <expression>quantityNotShippedByPart.get(orderPart.orderPartSeqId) &amp;&amp;
+                        <expression>quantityNotShippedByPart.get(orderPart.orderPartSeqId) &gt; 0 &amp;&amp;
                             (orderHeader.statusId == "OrderApproved" || orderHeader.statusId == "OrderSent")</expression>
                     </condition><actions>
                         <!-- find Shipments from same vendor going to same address and ship method, in Input or Scheduled status -->
@@ -564,6 +587,10 @@ along with this software (see the LICENSE.md file). If not, see
                                     <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
                                 <field name="disableTaxCalc"><default-field>
                                     <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+                                <field name="reservationAutoEnumId"><default-field title="Auto Res.">
+                                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                        <set field="enumTypeId" value="AssetReservationAuto"/><set field="allowEmpty" value="true"/></widget-template-include>
+                                </default-field></field>
                                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                             </form-single>
                         </container-dialog>
@@ -686,6 +713,8 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="${orderPartInfo.orderPart.isGift ?: 'N'}" type="dd"/>
                         <label text="Gift Message" type="dt"/>
                         <label text="${orderPartInfo.orderPart.giftMessage ?: '\u00a0'}" type="dd"/>
+                        <label text="Auto Reservation" type="dt" condition="orderPartInfo.orderPart.reservationAutoEnumId"/>
+                        <label text="${orderPartInfo.orderPart.reservationAutoEnum?.description}" type="dd" condition="orderPartInfo.orderPart.reservationAutoEnumId"/>
                         <label text="Facility " type="dt"/>
                         <container type="dd">
                             <link url="editFacility" text="FacilityNameTemplate" text-map="orderPartInfo.facility"
@@ -1008,9 +1037,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <set field="isProductItemType" from="orderItem.itemTypeEnumId in productItemTypes"/>
                     <set field="isShippable" from="product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
+                    <set field="itemTotalNotBilled" from="totalNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
-                    <set field="itemCanDelete" from="(!isShippable || itemQuantityNotShipped == quantity) &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnQuantity == 0"/>
-                    <!-- <log level="warn" message="itemCanDelete ${itemCanDelete} quantity ${quantity} itemQuantityNotShipped ${itemQuantityNotShipped} itemQuantityNotBilled ${itemQuantityNotBilled} returnableOut.returnQuantity ${returnableOut.returnQuantity}"/> -->
+                    <set field="itemCanDelete" from="(!isShippable || itemQuantityNotShipped == quantity) &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnedQuantity == 0"/>
+                    <!-- <log level="warn" message="itemCanDelete ${itemCanDelete} quantity ${quantity} itemQuantityNotShipped ${itemQuantityNotShipped} itemQuantityNotBilled ${itemQuantityNotBilled} returnableOut.returnedQuantity ${returnableOut.returnedQuantity}"/> -->
 
                     <set field="newerThanExpireDate" from="null"/>
                     <if condition="orderPartInfo.newerInventory &amp;&amp; orderPartInfo.orderPart.customerPartyId">
@@ -1132,7 +1162,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
 
                 <field name="notShippedBilled"><default-field title="Not Shipped/Billed">
-                    <display text="${isProductItemType ? ec.l10n.format(itemQuantityNotShipped, '') : 'N/A'} / ${ec.l10n.format(itemQuantityNotBilled, '')}"/>
+                    <label text="${ec.l10n.format(itemQuantityNotShipped, '#,##0.###')} / ${ec.l10n.format(itemQuantityNotBilled, '#,##0.###')}"
+                            condition="isProductItemType" type="div"/>
+                    <label text="N/A / ${ec.l10n.format(itemTotalNotBilled, '#,##0.00')}"
+                            condition="!isProductItemType" type="div"/>
                     <label text="Cancelled: ${quantityCancelled}" condition="quantityCancelled" type="p"/>
                 </default-field></field>
 
@@ -1154,6 +1187,8 @@ along with this software (see the LICENSE.md file). If not, see
                                 type="div" style="text-danger"/>
                         <dynamic-dialog id="ItemReserveDialog" button-text="Reserve Assets" transition="ItemReserve" width="960"
                                 condition="orderPartInfo.partEditable || orderPartInfo.orderPart.statusId == 'OrderApproved'"/>
+                        <link url="removeOrderItemReservations" text="" btn-type="danger" icon="glyphicon glyphicon-trash" condition="resInfoList"
+                                confirmation="Remove inventory reservations for item ${orderItemSeqId}?"/>
                     </conditional-field>
                     <default-field><display text=" "/></default-field>
                 </field>
@@ -1166,11 +1201,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
 
                 <field name="returns"><default-field>
-                    <label text="Billed:${returnableOut.invoiceQuantity}" type="div"/>
-                    <label text="Returned:${returnableOut.returnQuantity}" type="div"/>
+                    <label text="Billed:${returnableOut.isProductItemType ? ec.l10n.format(returnableOut.invoiceQuantity, '#,##0.###') : ec.l10n.format(returnableOut.invoiceTotal, '#,##0.00')}" type="div"/>
+                    <label text="Returned:${returnableOut.isProductItemType ? ec.l10n.format(returnableOut.returnedQuantity, '#,##0.###') : ec.l10n.format(returnableOut.returnedTotal, '#,##0.00')}" type="div"/>
                     <section-iterate name="ReturnLinkSection" list="returnIdSet" entry="returnId"><widgets>
                         <link url="editReturn" text="#${returnId}" link-type="anchor"/></widgets></section-iterate>
-                    <label text="Returnable:${returnableOut.returnableQuantity}" type="div"/>
+                    <label text="Returnable:${returnableOut.isProductItemType ? ec.l10n.format(returnableOut.returnableQuantity, '#,##0.###') : ec.l10n.format(returnableOut.returnableTotal, '#,##0.00')}" type="div"/>
                 </default-field></field>
                 <field name="returnItem">
                     <conditional-field condition="orderPartInfo.openReturnList &amp;&amp; returnableOut.returnableQuantity &gt; 0">
@@ -1181,13 +1216,15 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
 
                 <field name="submitButton"><conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo != 'Y'">
-                    <submit text="Update"/><link url="deleteItem" text="Delete" condition="itemCanDelete" confirmation="Delete item?"/>
+                    <submit text="Update"/>
+                    <link url="deleteItem" text="" btn-type="danger" icon="glyphicon glyphicon-trash" condition="itemCanDelete" confirmation="Delete item ${orderItemSeqId}?"/>
                 </conditional-field><conditional-field condition="orderPartInfo.partEditable &amp;&amp; isPromo == 'Y'">
-                    <link url="deleteItem" text="Delete" condition="itemCanDelete" confirmation="Delete item?"/>
+                    <link url="deleteItem" text="" btn-type="danger" icon="glyphicon glyphicon-trash" condition="itemCanDelete" confirmation="Delete item ${orderItemSeqId}?"/>
                 </conditional-field><default-field title=""/></field>
 
                 <field name="closeButton"><default-field title="">
-                    <link url="cancelOrderItem" text="Close Item" link-type="hidden-form" confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity will be cancelled."
+                    <link url="cancelOrderItem" text="Close" btn-type="warning" link-type="hidden-form"
+                            confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity will be cancelled."
                             condition="isProductItemType &amp;&amp; itemQuantityNotShipped &amp;&amp; orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"
                             parameter-map="[orderItem:null]"/>
                 </default-field></field>

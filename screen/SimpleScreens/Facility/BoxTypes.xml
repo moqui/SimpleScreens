@@ -15,6 +15,8 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Box Types" default-menu-include="false">
 
+    <transition name="createBoxType"><service-call name="create#mantle.shipment.ShipmentBoxType"/>
+        <default-response url="."/></transition>
     <transition name="updateBoxType"><service-call name="update#mantle.shipment.ShipmentBoxType"/>
         <default-response url="."/></transition>
 
@@ -28,56 +30,113 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <link url="BoxTypes.pdf" text="Box Types PDF"/>
-        <form-list name="BoxTypeList" list="boxTypeList" header-dialog="true" select-columns="true" transition="updateBoxType">
+
+        <form-list name="BoxTypeList" list="boxTypeList" header-dialog="true" select-columns="true" transition="updateBoxType"
+                transition-first-row="createBoxType">
             <entity-find entity-name="mantle.shipment.ShipmentBoxType" list="boxTypeList">
                 <search-form-inputs default-order-by="pseudoId"/>
             </entity-find>
 
             <field name="shipmentBoxTypeId"><default-field><hidden/></default-field></field>
 
-            <field name="pseudoId"><header-field title="ID" show-order-by="case-insensitive"><text-find hide-options="true"/></header-field>
-                <default-field><text-line size="25"/></default-field></field>
-            <field name="description"><header-field show-order-by="case-insensitive"><text-find hide-options="true"/></header-field>
-                <default-field><text-line size="40"/></default-field></field>
-            <field name="gatewayBoxId"><header-field show-order-by="case-insensitive"><text-find hide-options="true"/></header-field>
-                <default-field><text-line size="25"/></default-field></field>
+            <field name="pseudoId">
+                <header-field title="ID" show-order-by="case-insensitive"><text-find hide-options="true"/></header-field>
+                <first-row-field><text-line size="25"/></first-row-field>
+                <default-field><text-line size="25"/></default-field>
+            </field>
+            <field name="description">
+                <header-field show-order-by="case-insensitive"><text-find hide-options="true"/></header-field>
+                <first-row-field><text-line size="40"/></first-row-field>
+                <default-field><text-line size="40"/></default-field>
+            </field>
+            <field name="gatewayBoxId">
+                <header-field show-order-by="case-insensitive"><text-find hide-options="true"/></header-field>
+                <first-row-field><text-line size="25"/></first-row-field>
+                <default-field><text-line size="25"/></default-field>
+            </field>
 
-            <field name="dimensionUomId"><default-field title="Dimension UOM"><drop-down no-current-selected-key="LEN_in">
-                <entity-options key="${uomId}" text="${description} (${abbreviation})">
-                    <entity-find entity-name="moqui.basic.Uom"><econdition field-name="uomTypeEnumId" value="UT_LENGTH_MEASURE"/>
-                        <order-by field-name="description"/></entity-find>
-                </entity-options>
-            </drop-down></default-field></field>
-            <field name="boxLength"><header-field title="Length" show-order-by="true"/>
-                <default-field><text-line size="5"/></default-field></field>
-            <field name="boxWidth"><header-field title="Width" show-order-by="true"/>
-                <default-field><text-line size="5"/></default-field></field>
-            <field name="boxHeight"><header-field title="Height" show-order-by="true"/>
-                <default-field><text-line size="5"/></default-field></field>
+            <field name="dimensionUomId">
+                <first-row-field><drop-down no-current-selected-key="LEN_in">
+                    <entity-options key="${uomId}" text="${description} (${abbreviation})">
+                        <entity-find entity-name="moqui.basic.Uom"><econdition field-name="uomTypeEnumId" value="UT_LENGTH_MEASURE"/>
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options>
+                </drop-down></first-row-field>
+                <default-field title="Dimension UOM"><drop-down no-current-selected-key="LEN_in">
+                    <entity-options key="${uomId}" text="${description} (${abbreviation})">
+                        <entity-find entity-name="moqui.basic.Uom"><econdition field-name="uomTypeEnumId" value="UT_LENGTH_MEASURE"/>
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options>
+                </drop-down></default-field>
+            </field>
+            <field name="boxLength">
+                <header-field title="Length" show-order-by="true"/>
+                <first-row-field><text-line size="5"/></first-row-field>
+                <default-field><text-line size="5"/></default-field>
+            </field>
+            <field name="boxWidth">
+                <header-field title="Width" show-order-by="true"/>
+                <first-row-field><text-line size="5"/></first-row-field>
+                <default-field><text-line size="5"/></default-field>
+            </field>
+            <field name="boxHeight">
+                <header-field title="Height" show-order-by="true"/>
+                <first-row-field><text-line size="5"/></first-row-field>
+                <default-field><text-line size="5"/></default-field>
+            </field>
 
-            <field name="weightUomId"><default-field title="Weight UOM"><drop-down no-current-selected-key="WT_lb">
-                <entity-options key="${uomId}" text="${description} (${abbreviation})">
-                    <entity-find entity-name="moqui.basic.Uom"><econdition field-name="uomTypeEnumId" value="UT_WEIGHT_MEASURE"/>
-                        <order-by field-name="description"/></entity-find>
-                </entity-options>
-            </drop-down></default-field></field>
-            <field name="boxWeight"><header-field title="Weight" show-order-by="true"/>
-                <default-field><text-line size="5"/></default-field></field>
-            <field name="defaultGrossWeight"><header-field title="Gross Weight" show-order-by="true"/>
-                <default-field><text-line size="5"/></default-field></field>
+            <field name="weightUomId">
+                <first-row-field><drop-down no-current-selected-key="WT_lb">
+                    <entity-options key="${uomId}" text="${description} (${abbreviation})">
+                        <entity-find entity-name="moqui.basic.Uom"><econdition field-name="uomTypeEnumId" value="UT_WEIGHT_MEASURE"/>
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options>
+                </drop-down></first-row-field>
+                <default-field title="Weight UOM"><drop-down no-current-selected-key="WT_lb">
+                    <entity-options key="${uomId}" text="${description} (${abbreviation})">
+                        <entity-find entity-name="moqui.basic.Uom"><econdition field-name="uomTypeEnumId" value="UT_WEIGHT_MEASURE"/>
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options>
+                </drop-down></default-field>
+            </field>
+            <field name="boxWeight">
+                <header-field title="Weight" show-order-by="true"/>
+                <first-row-field><text-line size="5"/></first-row-field>
+                <default-field><text-line size="5"/></default-field>
+            </field>
+            <field name="defaultGrossWeight">
+                <header-field title="Gross Weight" show-order-by="true"/>
+                <first-row-field><text-line size="5"/></first-row-field>
+                <default-field><text-line size="5"/></default-field>
+            </field>
 
-            <field name="capacityUomId"><default-field title="Capacity UOM"><drop-down no-current-selected-key="WT_lb">
-                <entity-options key="${uomId}" text="${description} (${abbreviation})">
-                    <entity-find entity-name="moqui.basic.Uom">
-                        <econdition field-name="uomTypeEnumId" operator="in" value="UT_WEIGHT_MEASURE,UT_VOLUME_DRY_MEAS"/>
-                        <order-by field-name="uomTypeEnumId,description"/></entity-find>
-                </entity-options>
-            </drop-down></default-field></field>
-            <field name="boxCapacity"><header-field title="Capacity" show-order-by="true"/>
-                <default-field><text-line size="5"/></default-field></field>
+            <field name="capacityUomId">
+                <first-row-field><drop-down no-current-selected-key="WT_lb">
+                    <entity-options key="${uomId}" text="${description} (${abbreviation})">
+                        <entity-find entity-name="moqui.basic.Uom">
+                            <econdition field-name="uomTypeEnumId" operator="in" value="UT_WEIGHT_MEASURE,UT_VOLUME_DRY_MEAS"/>
+                            <order-by field-name="uomTypeEnumId,description"/></entity-find>
+                    </entity-options>
+                </drop-down></first-row-field>
+                <default-field title="Capacity UOM"><drop-down no-current-selected-key="WT_lb">
+                    <entity-options key="${uomId}" text="${description} (${abbreviation})">
+                        <entity-find entity-name="moqui.basic.Uom">
+                            <econdition field-name="uomTypeEnumId" operator="in" value="UT_WEIGHT_MEASURE,UT_VOLUME_DRY_MEAS"/>
+                            <order-by field-name="uomTypeEnumId,description"/></entity-find>
+                    </entity-options>
+                </drop-down></default-field>
+            </field>
+            <field name="boxCapacity">
+                <header-field title="Capacity" show-order-by="true"/>
+                <first-row-field><text-line size="5"/></first-row-field>
+                <default-field><text-line size="5"/></default-field>
+            </field>
 
-            <field name="submitButton"><header-field title="Find"><submit/></header-field>
-                <default-field title="Update"><submit/></default-field></field>
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <first-row-field><submit text="Create"/></first-row-field>
+                <default-field><submit text="Update"/></default-field>
+            </field>
 
             <form-list-column><field-ref name="pseudoId"/><field-ref name="description"/><field-ref name="gatewayBoxId"/></form-list-column>
             <form-list-column><field-ref name="dimensionUomId"/><field-ref name="weightUomId"/></form-list-column>

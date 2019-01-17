@@ -63,11 +63,14 @@ along with this software (see the LICENSE.md file). If not, see
     </actions><default-response type="none"/></transition>
 
     <actions>
-        <set field="itemTypeEnumId" from="salesItemTypeEnumId ?: purchaseItemTypeEnumId"/>
-        <if condition="!itemTypeEnumId">
-            <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
-                <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
-            <set field="itemTypeEnumId" from="productItemTypeEgms*.enumId.join(',')"/>
+        <set field="onlyProductQuantityBool" from="'true'.equals(onlyProductQuantity)"/>
+        <if condition="onlyProductQuantityBool">
+            <set field="itemTypeEnumId" from="salesItemTypeEnumId ?: purchaseItemTypeEnumId"/>
+            <if condition="!itemTypeEnumId">
+                <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+                    <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+                <set field="itemTypeEnumId" from="productItemTypeEgms*.enumId.join(',')"/>
+            </if>
         </if>
 
         <set field="orderType" from="orderType ?: 'Any'"/>
@@ -194,8 +197,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="issuedQuantity" operator="greater" from="0.0" ignore="onlyPartlyShipped != 'true'"/>
                     <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="onlyInventoryUnavailable != 'true'"/>
                 </having-econditions>
-                <!-- NOTE: always need to select issuedQuantity,quantityNotAvailable if having conditions are used (EntityFindBuilder doesn't yet add these to sub-select automatically) -->
-                <select-field field-name="orderPartSeqId,issuedQuantity,quantityNotAvailable"/>
+                <!-- NOTE: need to select issuedQuantity,quantityNotAvailable if having conditions are used (EntityFindBuilder doesn't yet add these to sub-select automatically) -->
+                <select-field field-name="orderPartSeqId${onlyPartlyShipped=='true' ? ',issuedQuantity' : ''}${onlyInventoryUnavailable=='true' ? ',quantityNotAvailable' : ''}"/>
             </entity-find>
             <row-actions>
                 <!-- Customer Classification -->
@@ -230,6 +233,9 @@ along with this software (see the LICENSE.md file). If not, see
             </header-field></field>
             <field name="onlyInventoryUnavailable"><header-field title="Inventory">
                 <check><option key="true" text="Only with Unavailable"/></check>
+            </header-field></field>
+            <field name="onlyProductQuantity"><header-field title="Quantity">
+                <check><option key="true" text="Only count Product"/></check>
             </header-field></field>
 
             <field name="orderId"><header-field title="Order" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
@@ -361,11 +367,11 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="findQuantity"><header-field title="Item Quantity"><range-find/></header-field></field>
             <field name="quantityNotAvailable" align="right" show-total="sum">
-                <header-field show-order-by="true" title="Not Avail"/>
+                <header-field show-order-by="true" title="Qty Not Avail"/>
                 <default-field container-style="${quantityNotAvailable ? 'text-danger' : ''}"><display/></default-field>
             </field>
             <field name="issuedQuantity" align="right" show-total="sum">
-                <header-field show-order-by="true" title="Shipped"/>
+                <header-field show-order-by="true" title="Qty Shipped"/>
                 <default-field><display/></default-field>
             </field>
 
@@ -406,8 +412,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="otherParties"/></form-list-column>
             <form-list-column><field-ref name="shipmentMethodEnumId"/><field-ref name="carrierPartyId"/>
                 <field-ref name="shipments"/></form-list-column>
-            <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/>
-                <field-ref name="quantityNotAvailable"/><!-- <field-ref name="issuedQuantity"/> --></form-list-column>
+            <form-list-column><field-ref name="partTotal"/><!-- <field-ref name="quantityTotal"/> -->
+                <!-- <field-ref name="quantityNotAvailable"/><field-ref name="issuedQuantity"/> --></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
     </widgets>

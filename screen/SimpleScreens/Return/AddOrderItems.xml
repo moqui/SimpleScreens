@@ -25,6 +25,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="mantle.order.return.ReturnHeader" value-field="returnHeader"/>
+        <if condition="returnHeader == null"><return error="true" message="Return not found with ID ${returnId}"/></if>
+
         <set field="returnChangeable" from="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved']"/>
         <if condition="returnChangeable">
             <service-call name="mantle.order.ReturnServices.find#ReturnableOrderItems" out-map="context"
@@ -49,7 +51,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="productId"><default-field title="Product">
                     <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
 
-                <field name="returnQuantity" from="returnableQuantity"><default-field>
+                <field name="returnQuantity" from="isProductItemType ? returnableQuantity : 1.0"><default-field>
+                    <text-line size="6"/></default-field></field>
+                <field name="responseAmount" from="!isProductItemType ? returnableTotal : null"><default-field title="Refund Amount">
                     <text-line size="6"/></default-field></field>
                 <field name="inventoryStatusId"><default-field title="Inventory Status">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">

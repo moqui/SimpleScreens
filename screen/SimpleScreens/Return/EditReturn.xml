@@ -19,7 +19,11 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateReturn"><service-call name="update#mantle.order.return.ReturnHeader"/>
         <default-response url="."/></transition>
+    <transition name="requestReturn"><service-call name="mantle.order.ReturnServices.request#Return"/>
+        <default-response url="."/></transition>
     <transition name="approveReturn"><service-call name="mantle.order.ReturnServices.approve#Return"/>
+        <default-response url="."/></transition>
+    <transition name="cancelReturn"><service-call name="mantle.order.ReturnServices.cancel#Return"/>
         <default-response url="."/></transition>
 
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
@@ -63,8 +67,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 <order-by field-name="pseudoId"/></entity-find></entity-options></drop-down>
                         <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/>
                     </conditional-field>
-                    <default-field title="Warehouse"><link url="editFacility" entity-name="mantle.facility.Facility"
-                                                           text="FacilityNameTemplate" link-type="anchor"/></default-field>
+                    <default-field title="Warehouse">
+                        <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/>
+                    </default-field>
                 </field>
 
                 <field name="finAccountId">
@@ -83,22 +88,20 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field><ignored/></default-field>
                 </field>
                 <field name="postalContactMechId">
-                    <conditional-field title="Shipping Address" condition="returnChangeable">
-                        <drop-down allow-empty="true">
-                            <list-options list="postalAddressList" key="${contactMechId}" text="PostalAddressSimpleTemplate"/>
-                        </drop-down>
-                    </conditional-field>
-                    <default-field title="Shipping Address"><display-entity entity-name="mantle.party.contact.PartyContactMechPostalAddress"
-                                                                            text="PostalAddressSimpleTemplate"/></default-field>
+                    <conditional-field title="Shipping Address" condition="returnChangeable"><drop-down allow-empty="true">
+                        <list-options list="postalAddressList" key="${contactMechId}" text="PostalAddressSimpleTemplate"/>
+                    </drop-down></conditional-field>
+                    <default-field title="Shipping Address">
+                        <display-entity entity-name="mantle.party.contact.PartyContactMechPostalAddress" text="PostalAddressSimpleTemplate"/>
+                    </default-field>
                 </field>
                 <field name="telecomContactMechId">
-                    <conditional-field title="Shipping Phone" condition="returnChangeable">
-                        <drop-down allow-empty="true">
-                            <list-options list="telecomNumberList" key="${contactMechId}" text="TelecomNumberSimpleTemplate"/>
-                        </drop-down>
-                    </conditional-field>
-                    <default-field title="Shipping Phone"><display-entity entity-name="mantle.party.contact.PartyContactMechTelecomNumber"
-                                                                          text="TelecomNumberSimpleTemplate"/></default-field>
+                    <conditional-field title="Shipping Phone" condition="returnChangeable"><drop-down allow-empty="true">
+                        <list-options list="telecomNumberList" key="${contactMechId}" text="TelecomNumberSimpleTemplate"/>
+                    </drop-down></conditional-field>
+                    <default-field title="Shipping Phone">
+                        <display-entity entity-name="mantle.party.contact.PartyContactMechTelecomNumber" text="TelecomNumberSimpleTemplate"/>
+                    </default-field>
                 </field>
 
                 <field name="shipmentMethodEnumId">
@@ -114,8 +117,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
             </form-single>
         </row-col><row-col lg="6">
-            <link url="approveReturn" condition="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested']"
-                    text="Approve Return"/>
+            <link url="requestReturn" condition="returnHeader.statusId == 'ReturnCreated'" text="Set Requested"/>
+            <link url="approveReturn" condition="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested']" text="Approve"
+                    confirmation="Approve this return?"/>
+            <link url="cancelReturn" condition="!(returnHeader.statusId in ['ReturnManResp', 'ReturnCompleted', 'ReturnCancelled'])" text="Cancel"
+                    confirmation="Are you sure you want to cancel this return?"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
         </row-col></container-row>
     </widgets>
