@@ -23,6 +23,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="receiveReturnWithoutShipment"><service-call name="mantle.order.ReturnServices.receive#ReturnWithoutShipment"/>
         <default-response url="."/></transition>
+    <transition name="deleteReturnItem"><service-call name="mantle.order.ReturnServices.delete#ReturnItem"/>
+        <default-response url="."/></transition>
 
     <transition name="salesOrderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="editFinancialAccount"><default-response url="//${appRoot}/Accounting/FinancialAccount/EditFinancialAccount"/></transition>
@@ -118,7 +120,12 @@ along with this software (see the LICENSE.md file). If not, see
                       parameter-map="[paymentId:refundPaymentId]"/></default-field></field>
 
             <field name="submitButton">
-                <conditional-field title="Update" condition="itemChangeable"><submit/></conditional-field>
+                <conditional-field title="Update" condition="itemChangeable">
+                    <submit/>
+                    <link url="deleteReturnItem" text="" btn-type="danger" icon="glyphicon glyphicon-trash"
+                            condition="statusId in ['ReturnCreated', 'ReturnRequested']"
+                            confirmation="Delete item ${returnItemSeqId}?"/>
+                </conditional-field>
                 <default-field title=""><display text=" "/></default-field>
             </field>
 
