@@ -36,14 +36,31 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="returnChangeable" from="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved']"/>
 
         <entity-find entity-name="mantle.order.return.ReturnItem" list="returnItemList">
-            <econdition field-name="returnId"/></entity-find>
+            <econdition field-name="returnId"/>
+            <order-by field-name="returnItemSeqId"/>
+        </entity-find>
+
+        <!-- put items with parentItemSeqId in the list after their parent -->
+        <script><![CDATA[
+            returnItemWithChildrenSet = new HashSet()
+            List reverseList = returnItemList.cloneList().orderByFields(["-returnItemSeqId"])
+            for (returnItem in reverseList) {
+                if (returnItem.parentItemSeqId) {
+                    returnItemWithChildrenSet.add(returnItem.parentItemSeqId)
+                    returnItemList.move(returnItemList.indexMatching([returnItemSeqId:returnItem.returnItemSeqId]),
+                            returnItemList.indexMatching([returnItemSeqId:returnItem.parentItemSeqId])+1)
+                }
+            }
+        ]]></script>
 
         <set field="allResponses" from="true"/>
         <set field="allReceived" from="true"/>
+        <set field="rootItemList" from="[]"/>
         <iterate list="returnItemList" entry="returnItem">
             <if condition="returnItem.responseDate == null"><set field="allResponses" from="false"/></if>
             <if condition="returnItem.statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved', 'ReturnShipped']">
                 <set field="allReceived" from="false"/></if>
+            <if condition="!returnItem.parentItemSeqId"><script>rootItemList.add(returnItem)</script></if>
         </iterate>
     </actions>
     <widgets>
@@ -62,7 +79,12 @@ along with this software (see the LICENSE.md file). If not, see
             </row-actions>
             <field name="returnId"><default-field><hidden/></default-field></field>
             <field name="returnItemSeqId"><default-field title="Item"><display/></default-field></field>
-            <field name="parentItemSeqId"><default-field title="Parent"><display/></default-field></field>
+            <field name="parentItemSeqId" align="center">
+                <conditional-field condition="itemChangeable"><drop-down allow-empty="true">
+                    <list-options list="rootItemList.findAll({it.returnItemSeqId!=returnItemSeqId})" key="${returnItemSeqId}" text="${returnItemSeqId}"/>
+                </drop-down></conditional-field>
+                <default-field title="Parent"><display/></default-field>
+            </field>
             <field name="statusId"><default-field title="Status">
                 <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
             <field name="returnReasonEnumId">
