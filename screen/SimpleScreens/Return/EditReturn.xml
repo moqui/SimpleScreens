@@ -49,6 +49,30 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="shipmentDetail" text="Return Shipment #${shipmentId}" link-type="anchor-button"/>
             </widgets></section-iterate>
 
+            <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
+                <form-list name="AuditLogList" list="auditLogList" skip-form="true">
+                    <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
+                        <econdition field-name="changedEntityName" operator="in"
+                                from="['mantle.order.return.ReturnHeader', 'mantle.order.return.ReturnItem']"/>
+                        <econdition field-name="changedFieldName" operator="not-equals" value="statusId"/>
+                        <econdition field-name="pkPrimaryValue" from="returnId"/>
+                        <select-field field-name="changedEntityName"/>
+                        <order-by field-name="-changedDate,pkSecondaryValue"/>
+                    </entity-find>
+
+                    <field name="changedDate"><default-field title="Date"><display/></default-field></field>
+                    <field name="changedByUserId"><default-field title="User">
+                        <display-entity text="UsernameTemplate" entity-name="mantle.party.PersonWithUserAccount" key-field-name="userId"/></default-field></field>
+                    <field name="pkSecondaryValue"><default-field title="Item"><display/></default-field></field>
+                    <field name="changedFieldName"><default-field title="Field">
+                        <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedFieldName)}"/></default-field></field>
+                    <field name="oldValueText"><default-field title="From">
+                        <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, oldValueText)}"/></default-field></field>
+                    <field name="newValueText"><default-field title="To">
+                        <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
+                </form-list>
+            </container-dialog>
+
             <form-single name="UpdateReturn" transition="updateReturn" map="returnHeader">
                 <field name="returnId"><default-field><display/></default-field></field>
                 <field name="entryDate"><default-field><display/></default-field></field>
