@@ -137,14 +137,22 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
 
         <entity-find-count entity-name="mantle.account.invoice.Invoice" count-field="fromInvoiceCount">
-            <econdition field-name="fromPartyId" from="partyId"/></entity-find-count>
+            <econdition field-name="fromPartyId" from="partyId"/>
+            <econdition field-name="statusId" operator="not-equals" value="InvoiceCancelled"/>
+        </entity-find-count>
         <entity-find-count entity-name="mantle.account.invoice.Invoice" count-field="toInvoiceCount">
-            <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
+            <econdition field-name="toPartyId" from="partyId"/>
+            <econdition field-name="statusId" operator="not-equals" value="InvoiceCancelled"/>
+        </entity-find-count>
 
         <entity-find-count entity-name="mantle.account.payment.Payment" count-field="fromPaymentCount">
-            <econdition field-name="fromPartyId" from="partyId"/></entity-find-count>
+            <econdition field-name="fromPartyId" from="partyId"/>
+            <econdition field-name="statusId" operator="not-in" value="PmntCancelled,PmntVoid"/>
+        </entity-find-count>
         <entity-find-count entity-name="mantle.account.payment.Payment" count-field="toPaymentCount">
-            <econdition field-name="toPartyId" from="partyId"/></entity-find-count>
+            <econdition field-name="toPartyId" from="partyId"/>
+            <econdition field-name="statusId" operator="not-in" value="PmntCancelled,PmntVoid"/>
+        </entity-find-count>
 
         <entity-find entity-name="mantle.party.PartyRole" list="partyRoleList"><econdition field-name="partyId"/></entity-find>
         <set field="roleTypeIdList" from="partyRoleList*.roleTypeId"/>
@@ -156,10 +164,14 @@ along with this software (see the LICENSE.md file). If not, see
             <link url="findOrder" text="Purchase Orders" badge="${vendorOrderPartCount}" parameter-map="[vendorPartyId:partyId]" condition="vendorOrderPartCount"/>
             <link url="findShipment" text="Shipments From" badge="${fromShipmentCount}" parameter-map="[fromPartyId:partyId]" condition="fromShipmentCount"/>
             <link url="findShipment" text="Shipments To" badge="${toShipmentCount}" parameter-map="[toPartyId:partyId]" condition="toShipmentCount"/>
-            <link url="findInvoice" text="Invoices From" badge="${fromInvoiceCount}" parameter-map="[fromPartyId:partyId]" condition="fromInvoiceCount"/>
-            <link url="findInvoice" text="Invoices To" badge="${toInvoiceCount}" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount"/>
-            <link url="findPayment" text="Payments From" badge="${fromPaymentCount}" parameter-map="[fromPartyId:partyId]" condition="fromPaymentCount"/>
-            <link url="findPayment" text="Payments To" badge="${toPaymentCount}" parameter-map="[toPartyId:partyId]" condition="toPaymentCount"/>
+            <link url="findInvoice" text="Invoices From" badge="${fromInvoiceCount}" condition="fromInvoiceCount"
+                    parameter-map="[fromPartyId:partyId, orderByField:'-invoiceDate', statusId:'InvoiceCancelled', statusId_not:'Y']"/>
+            <link url="findInvoice" text="Invoices To" badge="${toInvoiceCount}" condition="toInvoiceCount"
+                    parameter-map="[toPartyId:partyId, orderByField:'-invoiceDate', statusId:'InvoiceCancelled', statusId_not:'Y']"/>
+            <link url="findPayment" text="Payments From" badge="${fromPaymentCount}" condition="fromPaymentCount"
+                    parameter-map="[fromPartyId:partyId, orderByField:'-effectiveDate,-paymentId', statusId:'PmntCancelled,PmntVoid', statusId_not:'Y', statusId_op:'in']"/>
+            <link url="findPayment" text="Payments To" badge="${toPaymentCount}" condition="toPaymentCount"
+                    parameter-map="[toPartyId:partyId, orderByField:'-effectiveDate,-paymentId', statusId:'PmntCancelled,PmntVoid', statusId_not:'Y', statusId_op:'in']"/>
             <link url="receivableStatement" text="Statement PDF" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount || fromPaymentCount"/>
 
             <section name="NonUserPerson" condition="!userAccount"><actions><!-- NOTE: allowing accounts for Organization too: party?.partyTypeEnumId == 'PtyPerson' &amp;&amp;  -->
