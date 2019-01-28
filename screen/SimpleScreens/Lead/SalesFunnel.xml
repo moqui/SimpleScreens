@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal plus a 
+This software is in the public domain under CC0 1.0 Universal plus a
 Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
@@ -14,7 +14,27 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Sales Funnel" menu-image="/ssstatic/images/Customer.png" default-menu-index="3" >
-
+    <transition name="updateStatusParty">
+        <service-call name="SimpleScreens.lead.LeadServices.update#UpdatePartyStatus" in-map="context"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="image" read-only="true">
+        <parameter name="partyContentId"/>
+        <actions>
+            <set field="extraPathNameList" from="sri.screenUrlInfo.extraPathNameList"/>
+            <if condition="extraPathNameList &amp;&amp; !partyContentId">
+                <set field="partyContentId" from="extraPathNameList[0]"/></if>
+            <entity-find-one entity-name="mantle.party.PartyContent" value-field="partyContent" cache="true">
+                <field-map field-name="partyContentId"/></entity-find-one>
+            <if condition="partyContent == null"><then>
+                <!-- NOTE: consider returning a default image instead of 404 -->
+                <script>ec.web.sendError(404, null, null)</script>
+            </then><else>
+                <script>ec.web.sendResourceResponse(partyContent.contentLocation, true)</script>
+            </else></if>
+        </actions>
+        <default-response type="none"/>
+    </transition>
     <actions>
         <set field="orderByField" value="combinedName"/>
         <set field="found" value="no"/>
@@ -26,30 +46,45 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="table" from="[]"/>
         <set field="count" value="0" type="Integer"/>
         <iterate list="statusList" entry="statusItem">
-            <set field="count" from="count++"/>
             <set field="row" from="[:]"/>
             <set field="row.first" value="yes"/>
             <set field="row.statusId" from="statusItem.statusId"/>
             <set field="row.description" from="statusItem.description"/>
-            <set field="row.count" from="count"/>
+            <set field="row.count" from="count++"/>
             <script>table.add(row)</script>
             <set field="found" value="no"/>
             <iterate entry="document" list="documentList">
+                <set field="logoImageOut" from="[:]"/>
+                <service-call name="mantle.party.PartyServices.get#PartyContentLocation" out-map="logoImageOut"
+                          in-map="[partyId:document.partyId, partyContentTypeEnumIdList:['PcntFaceImage']]"/>
                 <set field="row" from="[:]"/>
                 <if condition="document_index>10"><break/></if>
+                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party">
+                    <field-map field-name="partyId" from="document.partyId"/>
+                </entity-find-one>
+                <if condition="!document.customerStatusId.equals(party.customerStatusId)">
+                    <set field="document.customerStatusId" from="party.customerStatusId"/>
+                </if>
+                <if condition="document.lastName">
+                    <set field="row.lastName" from="document.lastName"/>
+                </if>
                 <if condition="statusItem.statusId.equals(document.customerStatusId)">
                     <set field="row.partyId" from="document.partyId"/>
                     <set field="row.combinedName" from="document.combinedName"/>
+                    <if condition="logoImageOut.partyContent">
+                        <set field="row.partyContentId" from="logoImageOut.partyContent.partyContentId"/>
+                    </if>
+                    <set field="row.logoImageLocation" from="logoImageOut.contentLocation"/>
                     <script>table.add(row)</script>
                     <set field="found" value="yes"/>
                 </if>
             </iterate>
-            <if condition="found == 'no'">
+            <!-- <if condition="found == 'no'">
                 <set field="row" from="[:]"/>
                 <set field="row.combinedName" value="no leads found"/>
                 <set field="row.partyId" value=""/>
                 <script>table.add(row)</script>
-            </if>
+            </if> -->
             <set field="row" from="[:]"/>
             <set field="row.first" value="no"/>
             <script>table.add(row)</script>
