@@ -29,6 +29,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="salesOrderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="editFinancialAccount"><default-response url="//${appRoot}/Accounting/FinancialAccount/EditFinancialAccount"/></transition>
     <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
 
     <actions>
         <entity-find-one entity-name="mantle.order.return.ReturnHeader" value-field="returnHeader"/>
@@ -62,6 +63,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="allReceived" from="false"/></if>
             <if condition="!returnItem.parentItemSeqId"><script>rootItemList.add(returnItem)</script></if>
         </iterate>
+
+        <entity-find entity-name="mantle.order.return.ReturnItemBilling" list="allItemBillingList">
+            <econdition field-name="returnId"/></entity-find>
     </actions>
     <widgets>
         <link url="processReturnItemResponses" text="Process Item Responses" condition="!allResponses"
@@ -76,6 +80,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <entity-find-one entity-name="mantle.account.financial.FinancialAccountTrans" value-field="finAccountTrans"/>
                     <set field="finAccountId" from="finAccountTrans.finAccountId"/>
                 </if>
+                <filter-map-list list="allItemBillingList" to-list="curItemBillingList">
+                    <field-map field-name="returnItemSeqId"/></filter-map-list>
+                <set field="invoiceId" from="curItemBillingList ? curItemBillingList[0].invoiceId : null"/>
             </row-actions>
             <field name="returnId"><default-field><hidden/></default-field></field>
             <field name="returnItemSeqId"><default-field title="Item"><display/></default-field></field>
@@ -138,8 +145,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="editFinancialAccount" text="${finAccountTransId} (Account #${finAccountId})" link-type="anchor"
                       condition="finAccountTransId"/></default-field></field>
             <field name="refundPaymentId"><default-field title="Refund Payment">
-                <link url="editPayment" text="${refundPaymentId}" link-type="anchor" condition="refundPaymentId"
+                <link url="editPayment" text="P: ${refundPaymentId}" link-type="anchor" condition="refundPaymentId"
                       parameter-map="[paymentId:refundPaymentId]"/></default-field></field>
+            <field name="invoiceId"><default-field title="Credit Memo Invoice">
+                <link url="editInvoice" text="I: ${invoiceId}" link-type="anchor" condition="invoiceId"
+                        parameter-map="[invoiceId:invoiceId]"/></default-field></field>
 
             <field name="submitButton">
                 <conditional-field title="Update" condition="itemChangeable">
@@ -158,7 +168,8 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="productId"/><field-ref name="description"/></form-list-column>
             <form-list-column><field-ref name="returnQuantity"/><field-ref name="returnPrice"/></form-list-column>
             <form-list-column><field-ref name="receivedQuantity"/><field-ref name="responseDate"/><field-ref name="replacementOrderId"/></form-list-column>
-            <form-list-column><field-ref name="responseAmount"/><field-ref name="finAccountTransId"/><field-ref name="refundPaymentId"/></form-list-column>
+            <form-list-column><field-ref name="responseAmount"/><field-ref name="finAccountTransId"/>
+                <field-ref name="refundPaymentId"/><field-ref name="invoiceId"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
     </widgets>
