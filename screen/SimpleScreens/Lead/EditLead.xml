@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Edit Lead" default-menu-index="2">
+
+    <parameter name="partyId" required="true"/>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <transition name="updateLead"><service-call name="mantle.party.PartyServices.update#PartyDetail"/>
+        <default-response url="."/></transition>
+    <transition name="addCompanyOrContact"><service-call name="create#mantle.party.PartyRelationship"/>
+        <default-response url="." parameter-map="[partyId : partyId]"/></transition>
+    <transition name="deleteCompanyOrContact"><service-call name="delete#mantle.party.PartyRelationship"/>
+        <default-response url="."/></transition>
+
+    <transition name="storePartyContactMech"><service-call name="mantle.party.ContactServices.store#PartyContactMech"/>
+        <default-response url="."/></transition>
+    <transition name="removeContactInfo"><service-call name="mantle.party.ContactServices.delete#PartyContactMech"/>
+        <default-response url="."/></transition>
+    <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
+        <default-response url="."/></transition>
+
+    <transition name="createPartyNote"><service-call name="create#mantle.party.PartyNote"/><default-response url="."/></transition>
+    <transition name="updatePartyNote"><service-call name="update#mantle.party.PartyNote"/><default-response url="."/></transition>
+
+    <transition-include name="createContent" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+    <transition-include name="updateContent" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+    <transition-include name="downloadContent" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+
+    <subscreens>
+        <subscreens-item name="UpdateContactInfo" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty/UpdateContactInfo.xml"/>
+        <subscreens-item name="FindDuplicates" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty/FindDuplicates.xml"/>
+        <subscreens-item name="findRequest" location="component:///SimpleScreens/screen/SimpleScreens/Request/FindRequest.xml"/>
+    </subscreens>
+
+    <actions>
+        <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
+        <if condition="party == null"><return error="true" message="Lead not found with ID ${partyId}"/></if>
+
+        <entity-find entity-name="mantle.party.PartyToAndRelationship" list="companyRelList">
+            <date-filter/><econdition field-name="fromPartyId" from="partyId"/>
+                <econdition field-name="relationshipTypeEnumId" value="PrtContact"/>
+            </entity-find>
+        <entity-find entity-name="mantle.party.PartyFromAndRelationship" list="contactRelList">
+            <date-filter/><econdition field-name="toPartyId" from="partyId"/>
+            <econdition field-name="relationshipTypeEnumId" value="PrtContact"/>
+        </entity-find>
+        <entity-find-count entity-name="mantle.request.RequestAndParty" count-field="requestCount">
+            <date-filter/><econdition field-name="partyId"/></entity-find-count>
+        <entity-find entity-name="mantle.party.PartyRole" list="partyRoleList"><econdition field-name="partyId"/></entity-find>
+        <set field="roleTypeIdList" from="partyRoleList*.roleTypeId"/>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="6">
+            <link url="findRequest" text="Requests" badge="${requestCount}" parameter-map="[partyId:partyId]"/>
+
+            <dynamic-dialog id="FindDuplicatesDialog" button-text="Find Duplicates" transition="FindDuplicates" width="960"/>
+            <section-include name="HasDuplicatesSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+
+            <section name="EditPartySection" condition="party?.partyTypeEnumId == 'PtyOrganization'"><widgets>
+                <form-single name="EditOrgForm" map="party" transition="updateLead">
+                    <field name="partyId"><default-field><hidden/></default-field></field>
+                    <field name="pseudoId"><default-field title="ID"><text-line size="15"/></default-field></field>
+                    <field name="organizationName"><default-field><text-line size="60"/></default-field></field>
+                    <field name="disabled"><default-field><drop-down>
+                        <option key="N"/><option key="Y"/></drop-down></default-field></field>
+                    <field name="ownerPartyId"><default-field title="Owned By Org"><drop-down allow-empty="true">
+                        <option key="_NA_" text="N/A"/>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
+                    <field name="comments"><default-field title="Internal Comments"><text-area rows="3" cols="120"/></default-field></field>
+                    <field name="submitButton"><default-field title="Update Organization"><submit/></default-field></field>
+                </form-single>
+            </widgets><fail-widgets>
+                <form-single name="EditLeadForm" map="party" transition="updateLead">
+                    <field name="partyId"><default-field><hidden/></default-field></field>
+                    <field name="pseudoId"><default-field title="ID"><text-line size="15"/></default-field></field>
+                    <field name="firstName"><default-field><text-line size="30"/></default-field></field>
+                    <field name="middleName"><default-field><text-line size="20"/></default-field></field>
+                    <field name="lastName"><default-field><text-line size="30"/></default-field></field>
+                    <field name="customerStatusId">
+                        <default-field title="Status">
+                            <drop-down><entity-options key="${statusId}" text="${description}">
+                                <entity-find entity-name="StatusItem">
+                                    <econdition field-name="statusTypeId" value="Customer"/>
+                                    <order-by field-name="sequenceNum"/>
+                                </entity-find>
+                            </entity-options></drop-down>
+                        </default-field>
+                    </field>
+                    <field name="disabled"><default-field><drop-down>
+                        <option key="N"/><option key="Y"/></drop-down></default-field></field>
+                    <field name="ownerPartyId"><default-field title="Owned By Org"><drop-down allow-empty="true">
+                        <option key="_NA_" text="N/A"/>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
+                    <field name="comments"><default-field title="Internal Comments"><text-area rows="3" cols="80"/></default-field></field>
+
+                    <field name="submitButton"><default-field title="Update Person"><submit/></default-field></field>
+
+                    <field-layout>
+                        <fields-not-referenced/>
+                        <field-row><field-ref name="disabled"/></field-row>
+                        <field-ref name="ownerPartyId"/>
+                        <field-ref name="comments"/>
+                        <field-ref name="submitButton"/>
+                    </field-layout>
+                </form-single>
+            </fail-widgets></section>
+        </row-col><row-col lg="6">
+            <section-include name="ContactRelListSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+            <section-include name="AccountRelListSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+            <section-include name="ContactInfoSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+            <section-include name="NotesSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+            <section-include name="ContentSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+        </row-col></container-row>
+    </widgets>
+</screen>

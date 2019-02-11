@@ -19,7 +19,11 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateReturn"><service-call name="update#mantle.order.return.ReturnHeader"/>
         <default-response url="."/></transition>
+    <transition name="requestReturn"><service-call name="mantle.order.ReturnServices.request#Return"/>
+        <default-response url="."/></transition>
     <transition name="approveReturn"><service-call name="mantle.order.ReturnServices.approve#Return"/>
+        <default-response url="."/></transition>
+    <transition name="cancelReturn"><service-call name="mantle.order.ReturnServices.cancel#Return"/>
         <default-response url="."/></transition>
 
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
@@ -45,6 +49,30 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="shipmentDetail" text="Return Shipment #${shipmentId}" link-type="anchor-button"/>
             </widgets></section-iterate>
 
+            <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
+                <form-list name="AuditLogList" list="auditLogList" skip-form="true">
+                    <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
+                        <econdition field-name="changedEntityName" operator="in"
+                                from="['mantle.order.return.ReturnHeader', 'mantle.order.return.ReturnItem']"/>
+                        <econdition field-name="changedFieldName" operator="not-equals" value="statusId"/>
+                        <econdition field-name="pkPrimaryValue" from="returnId"/>
+                        <select-field field-name="changedEntityName"/>
+                        <order-by field-name="-changedDate,pkSecondaryValue"/>
+                    </entity-find>
+
+                    <field name="changedDate"><default-field title="Date"><display/></default-field></field>
+                    <field name="changedByUserId"><default-field title="User">
+                        <display-entity text="UsernameTemplate" entity-name="mantle.party.PersonWithUserAccount" key-field-name="userId"/></default-field></field>
+                    <field name="pkSecondaryValue"><default-field title="Item"><display/></default-field></field>
+                    <field name="changedFieldName"><default-field title="Field">
+                        <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedFieldName)}"/></default-field></field>
+                    <field name="oldValueText"><default-field title="From">
+                        <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, oldValueText)}"/></default-field></field>
+                    <field name="newValueText"><default-field title="To">
+                        <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
+                </form-list>
+            </container-dialog>
+
             <form-single name="UpdateReturn" transition="updateReturn" map="returnHeader">
                 <field name="returnId"><default-field><display/></default-field></field>
                 <field name="entryDate"><default-field><display/></default-field></field>
@@ -63,8 +91,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 <order-by field-name="pseudoId"/></entity-find></entity-options></drop-down>
                         <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/>
                     </conditional-field>
-                    <default-field title="Warehouse"><link url="editFacility" entity-name="mantle.facility.Facility"
-                                                           text="FacilityNameTemplate" link-type="anchor"/></default-field>
+                    <default-field title="Warehouse">
+                        <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/>
+                    </default-field>
                 </field>
 
                 <field name="finAccountId">
@@ -83,22 +112,20 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field><ignored/></default-field>
                 </field>
                 <field name="postalContactMechId">
-                    <conditional-field title="Shipping Address" condition="returnChangeable">
-                        <drop-down allow-empty="true">
-                            <list-options list="postalAddressList" key="${contactMechId}" text="PostalAddressSimpleTemplate"/>
-                        </drop-down>
-                    </conditional-field>
-                    <default-field title="Shipping Address"><display-entity entity-name="mantle.party.contact.PartyContactMechPostalAddress"
-                                                                            text="PostalAddressSimpleTemplate"/></default-field>
+                    <conditional-field title="Shipping Address" condition="returnChangeable"><drop-down allow-empty="true">
+                        <list-options list="postalAddressList" key="${contactMechId}" text="PostalAddressSimpleTemplate"/>
+                    </drop-down></conditional-field>
+                    <default-field title="Shipping Address">
+                        <display-entity entity-name="mantle.party.contact.PartyContactMechPostalAddress" text="PostalAddressSimpleTemplate"/>
+                    </default-field>
                 </field>
                 <field name="telecomContactMechId">
-                    <conditional-field title="Shipping Phone" condition="returnChangeable">
-                        <drop-down allow-empty="true">
-                            <list-options list="telecomNumberList" key="${contactMechId}" text="TelecomNumberSimpleTemplate"/>
-                        </drop-down>
-                    </conditional-field>
-                    <default-field title="Shipping Phone"><display-entity entity-name="mantle.party.contact.PartyContactMechTelecomNumber"
-                                                                          text="TelecomNumberSimpleTemplate"/></default-field>
+                    <conditional-field title="Shipping Phone" condition="returnChangeable"><drop-down allow-empty="true">
+                        <list-options list="telecomNumberList" key="${contactMechId}" text="TelecomNumberSimpleTemplate"/>
+                    </drop-down></conditional-field>
+                    <default-field title="Shipping Phone">
+                        <display-entity entity-name="mantle.party.contact.PartyContactMechTelecomNumber" text="TelecomNumberSimpleTemplate"/>
+                    </default-field>
                 </field>
 
                 <field name="shipmentMethodEnumId">
@@ -111,11 +138,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field title="Shipment Method"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
                 </field>
 
-                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                <field name="submitButton"><conditional-field title="Update" condition="returnChangeable">
+                    <submit/></conditional-field></field>
             </form-single>
         </row-col><row-col lg="6">
-            <link url="approveReturn" condition="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested']"
-                    text="Approve Return"/>
+            <link url="requestReturn" condition="returnHeader.statusId == 'ReturnCreated'" text="Set Requested"/>
+            <link url="approveReturn" condition="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested']" text="Approve"
+                    confirmation="Approve this return?"/>
+            <link url="cancelReturn" condition="returnHeader.statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved']" text="Cancel"
+                    confirmation="Are you sure you want to cancel this return?"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
         </row-col></container-row>
     </widgets>

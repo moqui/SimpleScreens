@@ -18,8 +18,10 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editReturn"><default-response url="../EditReturn"/></transition>
     <transition name="createReturn"><service-call name="mantle.order.ReturnServices.create#Return"/>
         <default-response url="../EditReturn"/></transition>
+
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
@@ -31,10 +33,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
-        <entity-find entity-name="mantle.order.return.ReturnHeaderDetail" list="returnHeaderList">
-            <search-form-inputs/><select-field field-name="returnId,statusId,entryDate,facilityId,vendorPartyId,customerPartyId"/>
-        </entity-find>
-
+        <set field="returnType" from="returnType ?: 'Any'"/>
         <set field="vendorRole" value="Supplier,Vendor,VendorBillFrom"/>
         <set field="customerRole" value="Customer,CustomerBillTo"/>
 
@@ -87,6 +86,25 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
         <form-list name="ReturnHeaderList" list="returnHeaderList" skip-form="true" header-dialog="true" saved-finds="true">
+            <entity-find entity-name="mantle.order.return.ReturnHeaderDetail" list="returnHeaderList" distinct="true">
+                <search-form-inputs default-order-by="-entryDate,returnId" skip-fields="orderId">
+                    <default-parameters statusId="ReturnCreated,ReturnRequested,ReturnApproved,ReturnShipped,ReturnReceived" statusId_op="in"
+                            entryDate_poffset="-3" entryDate_period="30d"/>
+                </search-form-inputs>
+                <econdition field-name="vendorRoleTypeId" value="OrgInternal" ignore="!'customer'.equalsIgnoreCase(returnType)"/>
+                <econdition field-name="customerRoleTypeId" value="OrgInternal" ignore="!'supplier'.equalsIgnoreCase(returnType)"/>
+            </entity-find>
+            <row-actions>
+                <entity-find entity-name="mantle.order.return.ReturnItem" list="returnOrderList" distinct="true">
+                    <econdition field-name="returnId"/>
+                    <econdition field-name="statusId" operator="not-equals" value="ReturnCancelled"/>
+                    <select-field field-name="orderId"/>
+                </entity-find>
+            </row-actions>
+
+            <field name="returnType"><header-field><radio no-current-selected-key="Any">
+                <option key="Any"/><option key="Customer"/><option key="Supplier"/></radio></header-field></field>
+
             <field name="returnId">
                 <header-field show-order-by="case-insensitive"><text-find hide-options="true" size="10"/></header-field>
                 <default-field><link url="editReturn" text="${returnId}" link-type="anchor"/></default-field>
@@ -110,20 +128,30 @@ along with this software (see the LICENSE.md file). If not, see
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="0"
                         parameter-map="[roleTypeId:'Supplier,Vendor,OrgInternal']"/></drop-down>
                 </header-field>
-                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"/></default-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:vendorPartyId]"/></default-field>
             </field>
             <field name="customerPartyId">
                 <header-field title="Customer">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"
                             parameter-map="[roleTypeId:'Customer,OrgInternal']"/></drop-down>
                 </header-field>
-                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"/></default-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:customerPartyId]"/></default-field>
             </field>
             <field name="facilityId">
                 <header-field title="Warehouse"><drop-down allow-empty="true"><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
                         parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down></header-field>
                 <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
             </field>
+
+            <field name="orderId"><header-field><text-find default-operator="begins" hide-options="true"/></header-field></field>
+            <field name="orderDisplayId"><header-field><text-find default-operator="begins" hide-options="true"/></header-field></field>
+            <field name="orderIds"><default-field>
+                <section-iterate name="OrderListSection" list="returnOrderList" entry="orderInfo"><widgets><container>
+                    <link url="orderDetail" link-type="anchor" text="${orderInfo.orderId}" parameter-map="[orderId:orderInfo.orderId]"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>
