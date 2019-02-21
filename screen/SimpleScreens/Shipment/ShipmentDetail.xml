@@ -142,7 +142,7 @@ along with this software (see the LICENSE.md file). If not, see
         <subscreens-item name="UpdateContactInfo" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty/UpdateContactInfo.xml"/>
     </subscreens>
     <actions>
-        <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
+        <service-call name="mantle.shipment.ShipmentInfoServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
 
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/><order-by field-name="facilityName"/></entity-find>
@@ -226,7 +226,7 @@ along with this software (see the LICENSE.md file). If not, see
         <container-row><row-col md="6">
             <label text="${isIncoming ? 'Incoming' : (isOutgoing ? 'Outgoing' : (isTransfer ? 'Transfer' : 'Unknown Type'))} Shipment #${shipmentId}" type="h4"/>
 
-            <!-- Links -->
+            <!-- Links and Buttons -->
             <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
                 <section name="ShipInputInOutSection" condition="isIncoming"><widgets>
                     <link url="scheduleShipment" text="Set Scheduled" btn-type="success"/>
@@ -247,15 +247,6 @@ along with this software (see the LICENSE.md file). If not, see
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
                     <link url="pickShipment" text="Set Picked"/>
-                    <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="allItemsPacked" type="success">
-                        <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
-                        <form-single name="SetPackedForm" transition="packShipment">
-                            <field name="shipmentId"><default-field><display/></default-field></field>
-                            <field name="packedDate" from="ec.user.nowTimestamp">
-                                <default-field><date-time/></default-field></field>
-                            <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
@@ -263,16 +254,21 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped"/>
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
-                    <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="allItemsPacked" type="success">
-                        <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
-                        <form-single name="SetPackedForm" transition="packShipment">
-                            <field name="shipmentId"><default-field><display/></default-field></field>
-                            <field name="packedDate" from="ec.user.nowTimestamp">
-                                <default-field><date-time/></default-field></field>
-                            <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
                 </fail-widgets></section>
+            </widgets></section>
+            <section name="PackShipmentSection" condition="!isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPicked']"><widgets>
+                <!-- isOutgoing || isTransfer -->
+                <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="anyItemPacked" type="success">
+                    <label text="Not all items are packed, item quantities will be reduced to packed quantities."
+                            type="p" style="text-warning" condition="!allItemsPacked"/>
+                    <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
+                    <form-single name="SetPackedForm" transition="packShipment">
+                        <field name="shipmentId"><default-field><display/></default-field></field>
+                        <field name="packedDate" from="ec.user.nowTimestamp">
+                            <default-field><date-time/></default-field></field>
+                        <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
             </widgets></section>
 
             <container-dialog id="PrintLabelsDialog" button-text="Net Print Labels" condition="hasAnyLabels &amp;&amp; networkPrinterList">
