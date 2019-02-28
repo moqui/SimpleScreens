@@ -90,6 +90,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="removeContactInfo"><service-call name="mantle.party.ContactServices.delete#PartyContactMech"/>
         <default-response url="."/></transition>
+    <transition name="updateContactMechMutable"><service-call name="mantle.party.ContactServices.update#ContactMechMutable"/>
+        <default-response url="."/></transition>
     <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
         <default-response url="."/></transition>
 
@@ -927,6 +929,15 @@ along with this software (see the LICENSE.md file). If not, see
                                 <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
                                 <link url="validateAddress" text="Validate" parameter-map="[partyId:partyId, contactMechId:contactInfo.postalContactMechId]"
                                         condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
+                                <link url="updateContactMechMutable" text="Grey" parameter-map="[contactMechId:contactInfo.postalContactMechId, trustLevelEnumId:'CmtlGreylisted']"
+                                        condition="!(contactInfo.postalContactMech.trustLevelEnumId in ['CmtlGreylisted', 'CmtlBlacklisted'])"
+                                        confirmation="Really greylist this address?" btn-type="warning"/>
+                                <link url="updateContactMechMutable" text="Black" parameter-map="[contactMechId:contactInfo.postalContactMechId, trustLevelEnumId:'CmtlBlacklisted']"
+                                        condition="contactInfo.postalContactMech.trustLevelEnumId != 'CmtlBlacklisted'"
+                                        confirmation="Really blacklist this address?" btn-type="danger"/>
+                                <link url="updateContactMechMutable" text="Unlist" parameter-map="[contactMechId:contactInfo.postalContactMechId, trustLevelEnumId:'CmtlNew']"
+                                        condition="contactInfo.postalContactMech.trustLevelEnumId in ['CmtlGreylisted', 'CmtlBlacklisted']"
+                                        confirmation="Set trust level back to New?" btn-type="danger"/>
                             </container>
                             <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
                         </row-col><row-col lg="6">
