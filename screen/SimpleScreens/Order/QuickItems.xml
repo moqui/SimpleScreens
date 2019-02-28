@@ -59,8 +59,15 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="ProductCategoryMemberProduct" list="productList" cache="true">
                 <date-filter/><econdition field-name="productCategoryId"/></entity-find>
         </if>
+
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
         <entity-find entity-name="mantle.order.OrderItem" list="orderItemList" cache="false">
-            <econdition field-name="orderId"/><econdition field-name="productId" operator="is-not-null"/></entity-find>
+            <econdition field-name="orderId"/>
+            <econdition field-name="productId" operator="is-not-null"/>
+            <econdition field-name="itemTypeEnumId" operator="in" from="productItemTypes"/>
+        </entity-find>
 
         <iterate list="productList" entry="product">
             <set field="prodItemList" from="orderItemList.findAll({ it.productId == product.productId })"/>
