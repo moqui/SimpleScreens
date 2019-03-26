@@ -90,17 +90,16 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- set statusId for StatusChangeSection -->
         <set field="statusId" from="invoice?.statusId"/>
 
-        <entity-find entity-name="mantle.party.PartyRole" list="fromOrgInternalList">
-            <econdition field-name="partyId" from="invoice.fromPartyId"/><econdition field-name="roleTypeId" value="OrgInternal"/></entity-find>
-        <set field="isFromPartyOrgInternal" from="fromOrgInternalList as boolean"/>
-        <set field="organizationPartyId" from="isFromPartyOrgInternal ? invoice.fromPartyId : invoice.toPartyId"/>
+        <entity-find-one entity-name="mantle.party.PartyDetail" value-field="organizationParty">
+            <field-map field-name="partyId" from="organizationPartyId"/></entity-find-one>
 
         <!-- find associated system messages (EDI, etc) -->
         <entity-find entity-name="moqui.service.message.SystemMessage" list="outSystemMessageList">
             <econdition field-name="invoiceId"/><econdition field-name="isOutgoing" value="Y"/>
             <econdition field-name="statusId" operator="not-equals" value="SmsgCancelled"/>
         </entity-find>
-        <filter-map-list list="outSystemMessageList" to-list="inMessageList"><field-map field-name="docType" value="IN"/></filter-map-list>
+        <!-- don't require docType=IN, applicable for certain EDI SystemMessage records only:
+            <filter-map-list list="outSystemMessageList" to-list="inMessageList"><field-map field-name="docType" value="IN"/></filter-map-list> -->
     </actions>
     <widgets>
         <container-row><row-col lg="6">
@@ -133,7 +132,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                             <field name="typeGlAccount"><default-field title="Default GL Account">
                                 <display dynamic-transition="getItemTypeGlAccount" also-hidden="false" depends-optional="true"
-                                        parameter-map="[organizationPartyId:organizationPartyId, direction:(isFromPartyOrgInternal ? 'O' : 'I')]">
+                                        parameter-map="[organizationPartyId:organizationPartyId, direction:(isPayableInvoice ? 'I' : 'O')]">
                                     <depends-on field="itemTypeEnumId"/><depends-on field="productId"/></display>
                             </default-field></field>
                             <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
@@ -164,12 +163,12 @@ along with this software (see the LICENSE.md file). If not, see
                 -->
 
                 <link url="updateStatus" text="Uncancel" parameter-map="[invoiceId:invoiceId, statusId:'InvoiceInProcess']"
-                        condition="statusId == 'InvoiceCancelled' &amp;&amp; isFromPartyOrgInternal" confirmation="Go back to In Process status?"/>
+                        condition="statusId == 'InvoiceCancelled' &amp;&amp; !isPayableInvoice" confirmation="Go back to In Process status?"/>
                 <link url="updateStatus" text="Uncancel" parameter-map="[invoiceId:invoiceId, statusId:'InvoiceReceived']"
-                        condition="statusId == 'InvoiceCancelled' &amp;&amp; !isFromPartyOrgInternal" confirmation="Go back to Received status?"/>
+                        condition="statusId == 'InvoiceCancelled' &amp;&amp; isPayableInvoice" confirmation="Go back to Received status?"/>
 
                 <!-- see note above about more generic SystemRemote send transition:
-                <section name="SendEdiInvoiceSection" condition="isFromPartyOrgInternal &amp;&amp; invoice.systemMessageRemoteId"><widgets>
+                <section name="SendEdiInvoiceSection" condition="!isPayableInvoice &amp;&amp; invoice.systemMessageRemoteId"><widgets>
                     <link url="produceEdiInvoice" text="${inMessageList ? 'Resend' : 'Send'} EDI Invoice" parameter-map="[invoiceId:invoiceId]"/>
                 </widgets></section>
                 -->
@@ -339,7 +338,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <section name="EmailMessageSection"><widgets>
                 <container-box><box-header title="Email Messages"/><box-toolbar>
-                    <section name="SendFinalizedEmailSection" condition="isFromPartyOrgInternal &amp;&amp; invoice.statusId in ['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoicePmtRecvd']"><actions>
+                    <section name="SendFinalizedEmailSection" condition="!isPayableInvoice &amp;&amp; invoice.statusId in ['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoicePmtRecvd']"><actions>
                         <if condition="invoice.toPartyId">
                             <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="emailInfo"
                                     in-map="[partyId:invoice.toPartyId, emailContactMechPurposeId:'EmailBilling', defaultToPrimaryPurpose:true]"/>
@@ -391,6 +390,9 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body></container-box>
             </widgets></section>
         </row-col><row-col lg="6">
+            <label text="Payable Invoice ${invoiceId} for ${ec.resource.expand('PartyNameTemplate', null, organizationParty)}" condition="isPayableInvoice"/>
+            <label text="Receivable Invoice ${invoiceId} for ${ec.resource.expand('PartyNameTemplate', null, organizationParty)}" condition="!isPayableInvoice"/>
+
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 

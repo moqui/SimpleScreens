@@ -19,13 +19,20 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateOrderHeader"><service-call name="mantle.order.OrderServices.update#OrderHeader"/>
         <default-response url="."/></transition>
+    <transition name="requestOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, orderPartSeqId:orderPartSeqId, statusId:'OrderRequested']"/>
+        <default-response url="."/></transition>
+    <transition name="proposeOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, orderPartSeqId:orderPartSeqId, statusId:'OrderProposed']"/>
+        <default-response url="."/></transition>
+    <!-- TODO: consider using cancel#Order service with parameter to reject instead of cancel, but rejected should always happen before Approved so nothing should be shipped, unless the order goes backward through statuses... -->
+    <transition name="rejectOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, orderPartSeqId:orderPartSeqId, statusId:'OrderRejected']"/>
+        <default-response url="."/></transition>
     <transition name="placeOrder"><service-call name="mantle.order.OrderServices.place#Order" in-map="context + [requireInventory:false]"/>
         <default-response url="."/></transition>
     <transition name="approveOrder"><service-call name="mantle.order.OrderServices.approve#Order"/>
         <default-response url="."/></transition>
-    <transition name="sendOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, statusId:'OrderSent']"/>
+    <transition name="sendOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, orderPartSeqId:orderPartSeqId, statusId:'OrderSent']"/>
         <default-response url="."/></transition>
-    <transition name="holdOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, statusId:'OrderHold']"/>
+    <transition name="holdOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, orderPartSeqId:orderPartSeqId, statusId:'OrderHold']"/>
         <default-response url="."/></transition>
     <transition name="completeOrderPart"><service-call name="mantle.order.OrderServices.complete#OrderPart"/>
         <default-response url="."/></transition>
@@ -197,7 +204,16 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="orderHeader.statusId == 'OrderApproved'" confirmation="Mark order as Sent?"/>
                 <link url="holdOrder" text="Hold" link-type="hidden-form" confirmation="Really hold order?"
                         condition="orderHeader.statusId in ['OrderPlaced', 'OrderProcessing', 'OrderApproved']"/>
-                <link url="cancelOrder" text="Close Order" link-type="hidden-form" confirmation="Really close order? If no items shipped the order will be Cancelled. If partially shipped all items will be reduced to shipped quantity and the order will be Completed."
+
+                <link url="requestOrder" text="Quote Requested" link-type="hidden-form"
+                        condition="orderHeader.statusId == 'OrderOpen'"/>
+                <link url="proposeOrder" text="Propose Quote" link-type="hidden-form"
+                        condition="orderHeader.statusId in ['OrderOpen', 'OrderRequested']"/>
+                <link url="rejectOrder" text="Reject Quote Request" link-type="hidden-form" confirmation="Reject quote request?"
+                        condition="orderHeader.statusId == 'OrderRequested'"/>
+
+                <link url="cancelOrder" text="Close Order" link-type="hidden-form" btn-type="warning"
+                        confirmation="Really close order? If no items shipped the order will be Cancelled. If partially shipped all items will be reduced to shipped quantity and the order will be Completed."
                         condition="orderHeader.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"/>
 
                 <container-dialog id="AddPartDialog" button-text="Add Part"
@@ -549,7 +565,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </container-dialog>
                         </widgets></section>
                     </widgets></section>
-                    <section-iterate name="ShipmentLinks" list="orderPartInfo.partShipmentIdSet" entry="shipmentId"><widgets>
+                    <section-iterate name="ShipmentLinks" list="new ArrayList(orderPartInfo.partShipmentIdSet).reverse()" entry="shipmentId"><widgets>
                         <link url="shipmentDetail" text="Shipment ${shipmentId}" link-type="anchor-button"/>
                     </widgets></section-iterate>
 
@@ -640,7 +656,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList"
                             confirmation="Really create return for this order part?"
                             parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"/>
-                    <link url="cancelOrderPart" text="Close Part" link-type="hidden-form" confirmation="Really close order part? If no items shipped the part will be Cancelled. If partially shipped all items will be reduced to shipped quantity and the part will be Completed."
+                    <link url="cancelOrderPart" text="Close Part" link-type="hidden-form" btn-type="warning"
+                            confirmation="Really close order part? If no items shipped the part will be Cancelled. If partially shipped all items will be reduced to shipped quantity and the part will be Completed."
                             condition="orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"/>
 
                     <label text="Warning: both vendor and customer are internal organizations" style="text-danger" type="p"
@@ -651,10 +668,17 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="Part Status" type="dt"/>
                         <container type="dd">
                             <label text="${orderPartInfo.partStatusItem?.description ?: ''}"/>
-                            <link url="approveOrder" text="Approve Part" link-type="hidden-form-link"
+                            <link url="placeOrder" text="- Place Part" link-type="hidden-form-link"
+                                    condition="orderHeader.statusId == 'OrderPlaced' &amp;&amp; orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderHold']"
+                                    parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"/>
+                            <link url="holdOrder" text="- Hold Part" link-type="hidden-form-link"
+                                    condition="orderHeader.statusId in ['OrderPlaced', 'OrderHold', 'OrderProcessing', 'OrderApproved'] &amp;&amp; orderPartInfo.orderPart.statusId in ['OrderPlaced', 'OrderProcessing', 'OrderApproved']"
+                                    parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"
+                                    confirmation="Really hold order part?"/>
+                            <link url="approveOrder" text="- Approve Part" link-type="hidden-form-link"
                                     condition="orderHeader.statusId == 'OrderApproved' &amp;&amp; orderPartInfo.orderPart.statusId in ['OrderPlaced', 'OrderProcessing', 'OrderHold'] &amp;&amp; ec.user.hasPermission('ORDER_APPROVE')"
                                     parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"/>
-                            <link url="completeOrderPart" text="Complete Part" link-type="hidden-form-link"
+                            <link url="completeOrderPart" text="- Complete Part" link-type="hidden-form-link"
                                     parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"
                                     condition="orderPartInfo.orderPart.statusId in ['OrderApproved', 'OrderSent']"
                                     confirmation="Force complete order part? This normally happens automatically and only when all items are shipped."/>
@@ -713,6 +737,13 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="${orderPartInfo.orderPart.isGift ?: 'N'}" type="dd"/>
                         <label text="Gift Message" type="dt"/>
                         <label text="${orderPartInfo.orderPart.giftMessage ?: '\u00a0'}" type="dd"/>
+
+                        <label text="Disable Promotions" type="dt" condition="orderPartInfo.orderPart.disablePromotions == 'Y'"/>
+                        <label text="Y" type="dd" condition="orderPartInfo.orderPart.disablePromotions == 'Y'"/>
+                        <label text="Disable Tax Calc" type="dt" condition="orderPartInfo.orderPart.disableTaxCalc == 'Y'"/>
+                        <label text="Y" type="dd" condition="orderPartInfo.orderPart.disableTaxCalc == 'Y'"/>
+                        <label text="Disable Shipping Calc" type="dt" condition="orderPartInfo.orderPart.disableShippingCalc == 'Y'"/>
+                        <label text="Y" type="dd" condition="orderPartInfo.orderPart.disableShippingCalc == 'Y'"/>
                         <label text="Auto Reservation" type="dt" condition="orderPartInfo.orderPart.reservationAutoEnumId"/>
                         <label text="${orderPartInfo.orderPart.reservationAutoEnum?.description}" type="dd" condition="orderPartInfo.orderPart.reservationAutoEnumId"/>
                         <label text="Facility " type="dt"/>
@@ -1035,7 +1066,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </iterate>
 
                     <set field="isProductItemType" from="orderItem.itemTypeEnumId in productItemTypes"/>
-                    <set field="isShippable" from="product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
+                    <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemTotalNotBilled" from="totalNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>

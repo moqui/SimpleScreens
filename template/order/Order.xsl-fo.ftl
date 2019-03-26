@@ -163,20 +163,21 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:table-header>
                     <fo:table-body>
                         <#list orderPartInfo.partOrderItemList as orderItem>
+                            <#assign isProductItem = orderItem.productId?has_content && (!productItemTypes?? || productItemTypes.contains(orderItem.itemTypeEnumId))>
                             <#assign itemTypeEnum = orderItem.findRelatedOne("ItemType#moqui.basic.Enumeration", true, false)>
                             <#assign orderItemTotalOut = ec.service.sync().name("mantle.order.OrderServices.get#OrderItemTotal").parameter("orderItem", orderItem).call()>
                             <#assign itemUpc = "">
-                            <#if showUpc && orderItem.productId?has_content>
+                            <#if showUpc && isProductItem>
                                 <#assign productIdentification = ec.entity.find("mantle.product.ProductIdentification").condition("productId", orderItem.productId).condition("productIdTypeEnumId", "PidtUpca").useCache(true).one()!>
                                 <#if !productIdentification?has_content><#assign productIdentification = ec.entity.find("mantle.product.ProductIdentification").condition("productId", orderItem.productId).condition("productIdTypeEnumId", "PidtUpce").useCache(true).one()!></#if>
                                 <#assign itemUpc = (productIdentification.idValue)!"">
                             </#if>
-                            <fo:table-row font-size="8pt" border-bottom="thin solid black">
-                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${orderItem.orderItemSeqId}</fo:block></fo:table-cell>
+                            <fo:table-row font-size="8pt" border-bottom="thin solid black"<#if !orderItem.parentItemSeqId?has_content> font-weight="bold"</#if>>
+                                <fo:table-cell padding="${cellPadding}"><fo:block text-align="<#if !orderItem.parentItemSeqId?has_content>center<#else>right</#if>">${orderItem.orderItemSeqId}</fo:block></fo:table-cell>
                                 <#if !showUpc><fo:table-cell padding="${cellPadding}"><fo:block><@encodeText (itemTypeEnum.description)!""/></fo:block></fo:table-cell></#if>
                                 <fo:table-cell padding="${cellPadding}">
                                     <fo:block><@encodeText orderItem.itemDescription!""/></fo:block>
-                                    <#if orderItem.productId?has_content>
+                                    <#if isProductItem>
                                         <#assign product = ec.entity.find("mantle.product.Product").condition("productId", orderItem.productId).useCache(true).one()>
                                         <fo:block><@encodeText ec.resource.expand("ProductNameTemplate", "", product)/></fo:block>
                                     </#if>
@@ -189,11 +190,11 @@ along with this software (see the LICENSE.md file). If not, see
                             </fo:table-row>
                         </#list>
                         <fo:table-row font-size="9pt" border-top="solid black">
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}"><fo:block></fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(orderPart.partTotal, orderHeader.currencyUomId)}</fo:block></fo:table-cell>
                         </fo:table-row>
