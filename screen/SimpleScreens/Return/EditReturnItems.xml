@@ -19,17 +19,22 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateReturnItem"><service-call name="update#mantle.order.return.ReturnItem"/>
         <default-response url="."/></transition>
+    <transition name="deleteReturnItem"><service-call name="mantle.order.ReturnServices.delete#ReturnItem"/>
+        <default-response url="."/></transition>
+
     <transition name="processReturnItemResponses"><service-call name="mantle.order.ReturnServices.process#ReturnItemResponses"/>
         <default-response url="."/></transition>
     <transition name="receiveReturnWithoutShipment"><service-call name="mantle.order.ReturnServices.receive#ReturnWithoutShipment"/>
         <default-response url="."/></transition>
-    <transition name="deleteReturnItem"><service-call name="mantle.order.ReturnServices.delete#ReturnItem"/>
+
+    <transition name="createReturnShipment"><service-call name="mantle.order.ReturnServices.create#ReturnShipment"/>
         <default-response url="."/></transition>
 
     <transition name="salesOrderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="editFinancialAccount"><default-response url="//${appRoot}/Accounting/FinancialAccount/EditFinancialAccount"/></transition>
     <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
     <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
 
     <actions>
         <entity-find-one entity-name="mantle.order.return.ReturnHeader" value-field="returnHeader"/>
@@ -64,14 +69,25 @@ along with this software (see the LICENSE.md file). If not, see
             <if condition="!returnItem.parentItemSeqId"><script>rootItemList.add(returnItem)</script></if>
         </iterate>
 
+        <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="allItemSisList">
+            <econdition field-name="returnId"/></entity-find>
         <entity-find entity-name="mantle.order.return.ReturnItemBilling" list="allItemBillingList">
             <econdition field-name="returnId"/></entity-find>
+
+        <set field="allOnShipments" from="true"/>
+        <iterate list="returnItemList" entry="returnItem">
+            <set field="itemSisQuantity" from="allItemSisList.findAll({ it.returnItemSeqId == returnItem.returnItemSeqId })*.quantity.sum()"/>
+            <if condition="itemSisQuantity &lt; returnItem.returnQuantity"><set field="allOnShipments" from="false"/></if>
+        </iterate>
     </actions>
     <widgets>
         <link url="processReturnItemResponses" text="Process Item Responses" condition="!allResponses"
                 confirmation="Will process items not yet processed in Received and Completed statuses or with Immediate=Y in Approved and Shipped statuses"/>
         <link url="receiveReturnWithoutShipment" text="Receive without Shipment" condition="!allReceived"
                 confirmation="Are you sure, and are all return quantities correct? This will cancel the return shipment, receive full quantity of all Approved or Shipped items, and process item responses."/>
+
+        <link url="createReturnShipment" text="Create Return Shipment" condition="!allOnShipments"
+              confirmation="Create new shipment for items not already on an incoming return shipment?"/>
 
         <form-list name="ReturnItemList" list="returnItemList" transition="updateReturnItem">
             <row-actions>
@@ -83,6 +99,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <filter-map-list list="allItemBillingList" to-list="curItemBillingList">
                     <field-map field-name="returnItemSeqId"/></filter-map-list>
                 <set field="invoiceId" from="curItemBillingList ? curItemBillingList[0].invoiceId : null"/>
+                <filter-map-list list="allItemSisList" to-list="curItemSisList">
+                    <field-map field-name="returnItemSeqId"/></filter-map-list>
             </row-actions>
             <field name="returnId"><default-field><hidden/></default-field></field>
             <field name="returnItemSeqId"><default-field title="Item"><display/></default-field></field>
@@ -135,12 +153,20 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="returnPrice"><conditional-field condition="itemChangeable"><text-line size="8"/></conditional-field>
                 <default-field><display currency-unit-field="returnHeader.currencyUomId"/></default-field></field>
-            <field name="receivedQuantity"><default-field><display/></default-field></field>
-            <field name="responseAmount"><default-field><display currency-unit-field="returnHeader.currencyUomId"/></default-field></field>
+
+            <field name="receivedQuantity" from="receivedQuantity ?: 0.0"><default-field><display/></default-field></field>
+            <field name="shipments"><default-field>
+                <section-iterate name="ItemShipmentList" list="curItemSisList" entry="curItemSis"><widgets>
+                    <link url="shipmentDetail" text="${curItemSis.shipmentId} (${curItemSis.quantity})" link-type="anchor"
+                          parameter-map="[shipmentId:curItemSis.shipmentId]"/>
+                </widgets></section-iterate>
+            </default-field></field>
             <field name="responseDate"><default-field><display/></default-field></field>
             <field name="replacementOrderId"><default-field title="Replacement Order">
                 <link url="salesOrderDetail" text="${replacementOrderId}" link-type="anchor" condition="replacementOrderId"
                       parameter-map="[orderId:replacementOrderId]"/></default-field></field>
+
+            <field name="responseAmount"><default-field><display currency-unit-field="returnHeader.currencyUomId"/></default-field></field>
             <field name="finAccountTransId"><default-field title="Refund Credit Trans">
                 <link url="editFinancialAccount" text="${finAccountTransId} (Account #${finAccountId})" link-type="anchor"
                       condition="finAccountTransId"/></default-field></field>
@@ -167,7 +193,8 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="returnResponseEnumId"/><field-ref name="responseImmediate"/></form-list-column>
             <form-list-column><field-ref name="productId"/><field-ref name="description"/></form-list-column>
             <form-list-column><field-ref name="returnQuantity"/><field-ref name="returnPrice"/></form-list-column>
-            <form-list-column><field-ref name="receivedQuantity"/><field-ref name="responseDate"/><field-ref name="replacementOrderId"/></form-list-column>
+            <form-list-column><field-ref name="receivedQuantity"/><field-ref name="shipments"/>
+                <field-ref name="responseDate"/><field-ref name="replacementOrderId"/></form-list-column>
             <form-list-column><field-ref name="responseAmount"/><field-ref name="finAccountTransId"/>
                 <field-ref name="refundPaymentId"/><field-ref name="invoiceId"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
