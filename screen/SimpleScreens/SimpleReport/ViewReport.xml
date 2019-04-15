@@ -17,6 +17,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="dataDocumentId" required="true"/>
 
+    <transition-include name="DocumentExport.json" location="component://tools/screen/System/DataDocument/Edit/ViewDataDocument.xml"/>
+
     <widgets>
         <section name="ViewReportSection" condition="dataDocumentId"><actions>
             <entity-find entity-name="moqui.entity.document.DataDocumentUserGroup" list="ddugList">
@@ -29,6 +31,17 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="aenDef" from="ec.entity.getEntityDefinition(entityName)"/>
             <if condition="aenDef == null"><message error="true">Could not find Report ${dataDocumentId}</message><return/></if>
         </actions><widgets>
+            <container-dialog id="ExportJsonDialog" button-text="Download JSON">
+                <form-single name="ExportDocuments" transition="DocumentExport.json">
+                    <field name="dataDocumentId"><default-field><hidden/></default-field></field>
+                    <field name="fromUpdateStamp"><default-field><date-time/></default-field></field>
+                    <field name="thruUpdateStamp"><default-field><date-time/></default-field></field>
+                    <field name="prettyPrint"><default-field title=""><check><option key="true" text="Pretty Print JSON?"/></check></default-field></field>
+
+                    <field name="submitButton"><default-field title="Download"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+
             <section name="ReportCondView" condition="ddugList"><widgets>
                 <form-list name="DataViewList" list="entityValueList" skip-form="true" dynamic="true" header-dialog="true"
                         show-csv-button="true" show-all-button="true">
