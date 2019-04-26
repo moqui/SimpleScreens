@@ -142,7 +142,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     </barcode:barcode>
                                 </fo:instream-foreign-object>
                             </fo:block></fo:table-cell>
-                            <fo:table-cell padding="${cellPadding}" number-columns-spanned="4"><fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
+                            <fo:table-cell padding="${cellPadding}" number-columns-spanned="4"><fo:block text-align="left"><@encodeText ec.resource.expand("ProductNameTemplate", "", productInfo)/></fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.format(productInfo.quantity!, "#,##0.###")}</fo:block></fo:table-cell>
                         </fo:table-row>
                         <#if productInfo.reservedLocationInfoList?has_content><#list productInfo.reservedLocationInfoList as locationInfo>
@@ -248,7 +248,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:instream-foreign-object>
                 </fo:block></fo:table-cell>
                 <fo:table-cell padding="${cellPadding}" number-columns-spanned="3">
-                    <fo:block text-align="left">${ec.resource.expand("ProductNameTemplate", "", productInfo)}</fo:block></fo:table-cell>
+                    <fo:block text-align="left"><@encodeText ec.resource.expand("ProductNameTemplate", "", productInfo)/></fo:block></fo:table-cell>
                 <fo:table-cell padding="${cellPadding}">
                     <fo:block text-align="right" font-weight="bold" font-family="Courier, monospace">${ec.l10n.format(productInfo.quantity!, "#,##0.###")}</fo:block></fo:table-cell>
             </fo:table-row>
