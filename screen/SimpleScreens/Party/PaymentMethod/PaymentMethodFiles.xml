@@ -23,6 +23,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="generatePosPayFile"><service-call name="mantle.account.PositivePayServices.generate#PositivePayFile"/>
         <default-response url="."/></transition>
+    <transition name="sendSystemMessage"><service-call name="mantle.account.PaymentMethodServices.produce#PaymentMethodFileSystemMessage"/>
+        <default-response url="."/></transition>
     <transition name="downloadFileText" read-only="true">
         <parameter name="paymentMethodFileId"/>
         <actions>
@@ -34,8 +36,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="mantle.account.method.BankAccount" value-field="bankAccount"/>
-        <entity-find entity-name="mantle.account.method.PaymentMethodFile" list="fileList">
-            <search-form-inputs/><econdition field-name="paymentMethodId"/></entity-find>
+        <entity-find entity-name="mantle.account.method.PaymentMethodFileType" list="allMethodFileTypeList">
+            <econdition field-name="paymentMethodId"/></entity-find>
     </actions>
     <widgets>
         <section name="GenerateNachaSection" condition="bankAccount?.nachaImmedDest"><widgets>
@@ -66,9 +68,30 @@ along with this software (see the LICENSE.md file). If not, see
         </widgets></section>
 
         <form-list name="FileList" list="fileList" skip-form="true" header-dialog="true" saved-finds="true">
-            <field name="paymentMethodId"><header-field><hidden/></header-field></field>
-            <field name="paymentMethodFileId"><header-field show-order-by="true" title="File ID"><text-find size="8" hide-options="true"/></header-field>
-                <default-field><display/></default-field></field>
+            <entity-find entity-name="mantle.account.method.PaymentMethodFile" list="fileList">
+                <search-form-inputs/><econdition field-name="paymentMethodId"/></entity-find>
+
+            <row-actions>
+                <set field="methodFileType" from="allMethodFileTypeList.find({ it.fileTypeEnumId == fileTypeEnumId })"/>
+                <set field="canSendSystemMessage" from="methodFileType?.systemMessageTypeId &amp;&amp; methodFileType?.systemMessageRemoteId"/>
+                <if condition="canSendSystemMessage">
+                    <entity-find entity-name="moqui.service.message.SystemMessage" list="existingMessageList">
+                        <econdition field-name="paymentMethodFileId"/>
+                        <econdition field-name="systemMessageTypeId" from="methodFileType.systemMessageTypeId"/>
+                        <econdition field-name="systemMessageRemoteId" from="methodFileType.systemMessageRemoteId"/>
+                        <econdition field-name="statusId" operator="not-in" value="SmsgRejected,SmsgCancelled,SmsgError"/>
+                        <select-field field-name="systemMessageId"/>
+                    </entity-find>
+                    <if condition="existingMessageList.size() &gt; 0"><set field="canSendSystemMessage" from="false"/></if>
+                </if>
+            </row-actions>
+
+            <hidden-parameters><parameter name="paymentMethodId"/></hidden-parameters>
+
+            <field name="paymentMethodFileId">
+                <header-field show-order-by="true" title="File ID"><text-find size="20" hide-options="true" default-operator="begins"/></header-field>
+                <default-field><display/></default-field>
+            </field>
             <field name="fileTypeEnumId"><header-field show-order-by="true" title="File Type"/>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
             <field name="fileDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
@@ -82,6 +105,14 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="paymentsButton"><default-field title="">
                 <link url="findPayment" text="Payments" parameter-map="[paymentMethodFileId:paymentMethodFileId]"/>
             </default-field></field>
+            <field name="messages">
+                <conditional-field condition="canSendSystemMessage">
+                    <link url="sendSystemMessage" text="Send File" parameter-map="[paymentMethodFileId:paymentMethodFileId]"/>
+                </conditional-field>
+                <conditional-field condition="existingMessageList">
+                    <label text="${existingMessageList*.systemMessageId.join(', ')}"/>
+                </conditional-field>
+            </field>
             <field name="downloadButton"><header-field title="Find"><submit/></header-field>
                 <default-field title=""><link url="downloadFileText" text="Download File ${paymentMethodFileId}"/></default-field></field>
         </form-list>
