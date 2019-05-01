@@ -247,6 +247,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
                     <link url="pickShipment" text="Set Picked"/>
+                    <!-- for no product outgoing shipments used to get labels -->
+                    <link url="shipShipment" text="Set Shipped" condition="hasNoItems"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
@@ -270,6 +272,16 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-single>
                 </container-dialog>
             </widgets></section>
+
+            <section name="RequestLabelsSection" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; (isOutgoing || isTransfer) &amp;&amp;
+                    ((shipment.statusId == 'ShipScheduled' &amp;&amp; hasNoItems) || (shipment.statusId in ['ShipPacked', 'ShipShipped']))"><widgets>
+                <link url="requestShipmentLabels" text="Get Labels" condition="destContactMechValid"/>
+                <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning" condition="!destContactMechValid">
+                    <label text="Warning: destination address is incomplete or invalid according to address validation." style="text-warning"/>
+                    <link url="requestShipmentLabels" text="Get Labels Anyway"/>
+                </container-dialog>
+            </widgets></section>
+            <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
 
             <container-dialog id="PrintLabelsDialog" button-text="Net Print Labels" condition="hasAnyLabels &amp;&amp; networkPrinterList">
                 <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
@@ -306,15 +318,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"><parameter name="shipmentId"/></link>
                 </widgets></section>
                 <section name="ShipPackedOutSection" condition="isOutgoing || isTransfer"><widgets>
-                    <link url="requestShipmentLabels" text="Get Labels"
-                            condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; destContactMechValid"/>
-                    <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning"
-                            condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; !destContactMechValid">
-                        <label text="Warning: destination address is incomplete or invalid according to address validation." style="text-warning"/>
-                        <link url="requestShipmentLabels" text="Get Labels Anyway"/>
-                    </container-dialog>
-                    <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
-
                     <link url="shipShipment" text="Set Shipped" btn-type="success"/>
                     <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
                     <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
@@ -328,16 +331,6 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="receiveEntireShipment" text="Receive Entire Shipment" confirmation="Receive full quantity of all items with defaults?">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
-                    <!-- isOutgoing || isTransfer -->
-                    <link url="requestShipmentLabels" text="Get Labels"
-                            condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; destContactMechValid"/>
-                    <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning"
-                            condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; !destContactMechValid">
-                        <label text="Warning: destination address is incomplete or invalid according to address validation." style="text-warning"/>
-                        <link url="requestShipmentLabels" text="Get Labels Anyway"/>
-                    </container-dialog>
-                    <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
-
                     <link url="unshipShipment" text="Set Packed (Un-Ship)" confirmation="Set shipment status back to Packed?"/>
                     <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
                     <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
