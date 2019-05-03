@@ -17,6 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition name="findInvoice"><default-response url="../Invoice/FindInvoice"/></transition>
+    <transition name="editPaymentMethod"><default-response url="//${appRoot}/Party/PaymentMethod/EditPaymentMethod"/></transition>
 
     <actions>
         <entity-find entity-name="mantle.party.PartyDetailAndRole" list="orgInternalList">
@@ -69,6 +70,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <if condition="pblDesc"><set field="pblDesc" from="pblDesc + ', '"/></if>
                     <set field="pblDesc" from="pblDesc + pblInv.invoiceCount + ' Invoice' + (pblInv.invoiceCount ? 's ' : ' ') + ec.l10n.formatCurrency(pblInv.unpaidTotal, pblInv.currencyUomId)"/>
                 </iterate>
+
+                <entity-find entity-name="mantle.account.method.PaymentMethod" list="paymentMethodList">
+                    <date-filter/>
+                    <econdition field-name="ownerPartyId" from="partyId"/>
+                    <econdition field-name="paymentMethodTypeEnumId" value="PmtBankAccount"/>
+                </entity-find>
             </row-actions>
             <field name="name"><default-field title="Internal Organization">
                 <link url="editParty" text="${organizationName?:''}${firstName?:''} ${lastName?:''}" link-type="anchor"/>
@@ -81,8 +88,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="findInvoice" text="${pblDesc?:'None'}" link-type="anchor"
                       parameter-map="[toPartyId:partyId, statusId:'InvoiceReceived,InvoiceApproved', statusId_op:'in']"/>
             </default-field></field>
+            <field name="paymentMethods"><default-field title="Bank Accounts">
+                <section-iterate name="PaymentMethodList" list="paymentMethodList" entry="paymentMethod"><widgets>
+                    <container><link url="editPaymentMethod" text="${paymentMethod.description ?: paymentMethod.paymentMethodId}${paymentMethod.ledgerBalance ? ' ' + ec.l10n.format(paymentMethod.ledgerBalance, '#,##0.00') : ''}${paymentMethod.balanceDate ? ' (' + ec.l10n.format(paymentMethod.balanceDate, 'yyyy-MM-dd') + ')' : ''}"
+                            link-type="anchor" parameter-map="[paymentMethodId:paymentMethod.paymentMethodId]"/></container>
+                </widgets></section-iterate>
+            </default-field></field>
             <field name="settings"><default-field title="">
-                <link url="../OrgSettings" text="Settings" link-type="anchor-button"/></default-field></field>
+                <link url="../OrgSettings" text="Settings" link-type="anchor"/></default-field></field>
         </form-list>
     </widgets>
 </screen>

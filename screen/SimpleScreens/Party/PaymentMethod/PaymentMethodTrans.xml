@@ -35,6 +35,12 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- 'paymentMethod' from PaymentMethod.xml always-actions -->
         <entity-find entity-name="mantle.account.method.PaymentMethodTrans" list="transList">
             <search-form-inputs default-order-by="-postedDate"/><econdition field-name="paymentMethodId"/></entity-find>
+
+        <entity-find-one entity-name="mantle.party.PartyRole" value-field="ownerOrgRole">
+            <field-map field-name="partyId" from="paymentMethod?.ownerPartyId"/>
+            <field-map field-name="roleTypeId" value="OrgInternal"/>
+        </entity-find-one>
+        <if condition="ownerOrgRole == null"><return error="true" message="Transactions only available for payment methods owned by an Internal Organization"/></if>
     </actions>
     <widgets>
         <container-dialog id="AddTransDialog" button-text="Add Transaction">

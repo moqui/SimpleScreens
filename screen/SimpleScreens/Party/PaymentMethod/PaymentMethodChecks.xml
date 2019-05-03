@@ -19,8 +19,15 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
 
     <actions>
+        <!-- 'paymentMethod' from PaymentMethod.xml always-actions -->
         <entity-find entity-name="mantle.account.method.BankAccountCheckAndPayment" list="checkList">
             <search-form-inputs/><econdition field-name="paymentMethodId"/></entity-find>
+
+        <entity-find-one entity-name="mantle.party.PartyRole" value-field="ownerOrgRole">
+            <field-map field-name="partyId" from="paymentMethod?.ownerPartyId"/>
+            <field-map field-name="roleTypeId" value="OrgInternal"/>
+        </entity-find-one>
+        <if condition="ownerOrgRole == null"><return error="true" message="Checks only available for payment methods owned by an Internal Organization"/></if>
     </actions>
     <widgets>
         <form-list name="CheckList" list="checkList" skip-form="true" header-dialog="true" saved-finds="true">

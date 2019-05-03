@@ -35,9 +35,16 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
+        <!-- 'paymentMethod' from PaymentMethod.xml always-actions -->
         <entity-find-one entity-name="mantle.account.method.BankAccount" value-field="bankAccount"/>
         <entity-find entity-name="mantle.account.method.PaymentMethodFileType" list="allMethodFileTypeList">
             <econdition field-name="paymentMethodId"/></entity-find>
+
+        <entity-find-one entity-name="mantle.party.PartyRole" value-field="ownerOrgRole">
+            <field-map field-name="partyId" from="paymentMethod?.ownerPartyId"/>
+            <field-map field-name="roleTypeId" value="OrgInternal"/>
+        </entity-find-one>
+        <if condition="ownerOrgRole == null"><return error="true" message="Files only available for payment methods owned by an Internal Organization"/></if>
     </actions>
     <widgets>
         <section name="GenerateNachaSection" condition="bankAccount?.nachaImmedDest"><widgets>
