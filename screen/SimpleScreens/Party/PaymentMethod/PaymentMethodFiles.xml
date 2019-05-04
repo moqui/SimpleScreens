@@ -87,7 +87,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <econdition field-name="systemMessageTypeId" from="methodFileType.systemMessageTypeId"/>
                         <econdition field-name="systemMessageRemoteId" from="methodFileType.systemMessageRemoteId"/>
                         <econdition field-name="statusId" operator="not-in" value="SmsgRejected,SmsgCancelled,SmsgError"/>
-                        <select-field field-name="systemMessageId"/>
+                        <select-field field-name="systemMessageId,statusId"/>
                     </entity-find>
                     <if condition="existingMessageList.size() &gt; 0"><set field="canSendSystemMessage" from="false"/></if>
                 </if>
@@ -117,7 +117,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="sendSystemMessage" text="Send to Bank" parameter-map="[paymentMethodFileId:paymentMethodFileId]"/>
                 </conditional-field>
                 <conditional-field condition="existingMessageList">
-                    <label text="${existingMessageList*.systemMessageId.join(', ')}"/>
+                    <label text="${existingMessageList.collect({it.systemMessageId + ' ' + it.statusId?.substring(4)}).join(', ')}"/>
                 </conditional-field>
             </field>
             <field name="downloadButton"><header-field title="Find"><submit/></header-field>
