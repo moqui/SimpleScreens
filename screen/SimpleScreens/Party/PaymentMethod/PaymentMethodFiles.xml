@@ -25,6 +25,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="sendSystemMessage"><service-call name="mantle.account.PaymentMethodServices.produce#PaymentMethodFileSystemMessage"/>
         <default-response url="."/></transition>
+    <transition name="cancelFile"><service-call name="mantle.account.PaymentMethodServices.cancel#PaymentMethodFile"/>
+        <default-response url="."/></transition>
     <transition name="downloadFileText" read-only="true">
         <parameter name="paymentMethodFileId"/>
         <actions>
@@ -86,7 +88,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <econdition field-name="paymentMethodFileId"/>
                         <econdition field-name="systemMessageTypeId" from="methodFileType.systemMessageTypeId"/>
                         <econdition field-name="systemMessageRemoteId" from="methodFileType.systemMessageRemoteId"/>
-                        <econdition field-name="statusId" operator="not-in" value="SmsgRejected,SmsgCancelled,SmsgError"/>
+                        <!-- showing status so include all: <econdition field-name="statusId" operator="not-in" value="SmsgRejected,SmsgCancelled"/> -->
                         <select-field field-name="systemMessageId,statusId"/>
                     </entity-find>
                     <if condition="existingMessageList.size() &gt; 0"><set field="canSendSystemMessage" from="false"/></if>
@@ -112,8 +114,15 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="paymentsButton"><default-field title="">
                 <link url="findPayment" text="Payments" parameter-map="[paymentMethodFileId:paymentMethodFileId]"/>
             </default-field></field>
+            <field name="isCancelled">
+                <conditional-field condition="isCancelled != 'Y'">
+                    <link url="cancelFile" text="Cancel" parameter-map="[paymentMethodFileId:paymentMethodFileId, partyId:partyId]"
+                            confirmation="Remove all payments from this file and cancel?" btn-type="danger"/>
+                </conditional-field>
+                <default-field title=""><display text="Cancelled"/></default-field>
+            </field>
             <field name="messages">
-                <conditional-field condition="canSendSystemMessage">
+                <conditional-field condition="canSendSystemMessage &amp;&amp; isCancelled != 'Y'">
                     <link url="sendSystemMessage" text="Send to Bank" parameter-map="[paymentMethodFileId:paymentMethodFileId]"/>
                 </conditional-field>
                 <conditional-field condition="existingMessageList">
