@@ -61,15 +61,29 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="productId" operator="in" from="findProductId" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="greater-equals" from="findQuantity_from" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
-                <econdition field-name="shipWorkEffortId" operator="is-null" ignore="excludeOnPicklist == 'false'"/>
                 <econdition field-name="locationTypeEnumId" value="FltPick"/>
+
+                <!-- scenarios for orders already on picklist via Shipment/SIS:
+                    * no related Shipment (shipWorkEffortId == null, SIS.quantity == null)
+                    a single order could have all 4 of these, since finding by reverse logic (looking for records to include) is tricky
+                    1. ignore: related Shipment NOT on picklist and active (shipWorkEffortId == null, SIS.quantity > 0.0)
+                    2. ignore: related Shipment NOT on picklist but cancelled (shipWorkEffortId == null, SIS.quantity == 0.0)
+                    3. ignore: related Shipment on picklist but cancelled (shipWorkEffortId != null, SIS.quantity == 0.0)
+                    4. exclude: related Shipment on picklist and active (shipWorkEffortId != null, SIS.quantity > 0.0)
+                -->
+                <econdition field-name="shipWorkEffortId" operator="is-not-null" ignore="excludeOnPicklist == 'false'"/>
+                <econdition field-name="shipItemQuantity" operator="greater" from="0.0" ignore="excludeOnPicklist == 'false'"/>
+
                 <having-econditions>
                     <econdition field-name="quantityTotal" to-field-name="resQuantity" ignore="excludeNotPickLoc == 'false'"/>
                     <!-- useless when filtering by pick locations: <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="onlyInventoryUnavailable != 'true'"/> -->
                     <econdition field-name="issuedQuantity" operator="greater" from="0.0" ignore="onlyPartlyShipped != 'true'"/>
+
+                    <econdition field-name="shipmentCount" from="0" or-null="true" ignore="excludeOnPicklist == 'false'"/>
                 </having-econditions>
+                <select-field field-name="orderPartSeqId,shipmentMethodEnumId,quantityTotal"/>
                 <!-- NOTE: always need to select resQuantity,issuedQuantity if having conditions are used (EntityFindBuilder doesn't yet add these to sub-select automatically) -->
-                <select-field field-name="orderPartSeqId,shipmentMethodEnumId,quantityTotal,resQuantity,issuedQuantity"/>
+                <select-field field-name="resQuantity,issuedQuantity${excludeOnPicklist == 'false' ? '' : ',shipmentCount'}"/>
             </entity-find>
             <row-actions>
                 <!-- Shipment method description -->
@@ -300,6 +314,8 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="displayId"><header-field><text-find hide-options="true" default-operator="begins"/></header-field>
                 <default-field><display/></default-field></field>
 
+            <!-- <field name="shipmentCount"><default-field><display/></default-field></field> -->
+
             <field name="submitButton">
                 <header-field title="Find"><submit/></header-field>
                 <default-field title="Add to Picklist"><submit/></default-field>
@@ -320,7 +336,18 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="otherParties"/></form-list-column>
             <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/>
                 <field-ref name="resPickLocQuantity"/></form-list-column>
+            <!-- <form-list-column><field-ref name="shipmentCount"/></form-list-column> -->
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
+
+        <!--
+        <section name="ShowSql" condition="orderList_xafind?.getQueryTextList()"><widgets>
+            <container-dialog id="ShowSqlDialog" button-text="Show SQL" type="info">
+                <section-iterate name="ShowSqlIter" list="orderList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                    <label text="${queryText}" type="p"/>
+                </widgets></section-iterate>
+            </container-dialog>
+        </widgets></section>
+        -->
     </widgets>
 </screen>
