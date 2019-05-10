@@ -41,6 +41,22 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="itemTypeEnumIdList" from="productItemTypeEgms*.enumId"/>
 
         <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
+
+        <!-- create excludeOnPicklistCond used by AddOrderList form-list.entity-find inherited from Picklist/AddOrder.xml -->
+        <if condition="excludeOnPicklist == 'false'"><then>
+            <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
+                (SELECT SHMT.SHIPMENT_ID
+                 FROM SHIPMENT_ITEM_SOURCE SHIS INNER JOIN SHIPMENT SHMT ON SHIS.SHIPMENT_ID = SHMT.SHIPMENT_ID
+                 WHERE SHIS.ORDER_ID = OITM.ORDER_ID AND SHIS.ORDER_ITEM_SEQ_ID = OITM.ORDER_ITEM_SEQ_ID
+                    AND SHMT.STATUS_ID NOT IN ('ShipInput', 'ShipScheduled', 'ShipRejected', 'ShipCancelled') AND SHIS.QUANTITY > 0)''')"/>
+        </then><else>
+            <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
+                (SELECT SHMT.SHIPMENT_ID
+                 FROM SHIPMENT_ITEM_SOURCE SHIS INNER JOIN SHIPMENT SHMT ON SHIS.SHIPMENT_ID = SHMT.SHIPMENT_ID
+                 WHERE SHIS.ORDER_ID = OITM.ORDER_ID AND SHIS.ORDER_ITEM_SEQ_ID = OITM.ORDER_ITEM_SEQ_ID
+                    AND (SHMT.SHIP_WORK_EFFORT_ID IS NOT NULL OR SHMT.STATUS_ID NOT IN ('ShipInput', 'ShipScheduled', 'ShipRejected', 'ShipCancelled'))
+                    AND SHIS.QUANTITY > 0)''')"/>
+        </else></if>
     </actions>
     <widgets>
         <label text="Use Find Options to search for orders and when you have the set you want use the form to create picklists." type="p"/>
