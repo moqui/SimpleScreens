@@ -44,10 +44,34 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
         <entity-find-related-one value-field="workEffort" relationship-name="mantle.facility.Facility" to-value-field="facility"/>
         <set field="facilityId" from="facilityId != null ? facilityId : (facility?.parentFacilityId ?: facility?.facilityId)"/>
+
+        <if condition="excludeOnPicklist == 'false'"><then>
+            <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
+                (SELECT SHMT.SHIPMENT_ID
+                 FROM SHIPMENT_ITEM_SOURCE SHIS INNER JOIN SHIPMENT SHMT ON SHIS.SHIPMENT_ID = SHMT.SHIPMENT_ID
+                 WHERE SHIS.ORDER_ID = OITM.ORDER_ID AND SHIS.ORDER_ITEM_SEQ_ID = OITM.ORDER_ITEM_SEQ_ID
+                    AND SHMT.STATUS_ID NOT IN ('ShipInput', 'ShipScheduled', 'ShipRejected', 'ShipCancelled') AND SHIS.QUANTITY > 0)''')"/>
+        </then><else>
+            <!-- scenarios for orders already on picklist via Shipment/SIS:
+                * no related Shipment (shipWorkEffortId == null, SIS.quantity == null)
+                a single order could have all 4 of these, since finding by reverse logic (looking for records to include) is tricky
+                1. ignore: related Shipment NOT on picklist and active (shipWorkEffortId == null, SIS.quantity > 0.0)
+                2. ignore: related Shipment NOT on picklist but cancelled (shipWorkEffortId == null, SIS.quantity == 0.0)
+                3. ignore: related Shipment on picklist but cancelled (shipWorkEffortId != null, SIS.quantity == 0.0)
+                4. exclude: related Shipment on picklist and active (shipWorkEffortId != null, SIS.quantity > 0.0)
+            -->
+            <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
+                (SELECT SHMT.SHIPMENT_ID
+                 FROM SHIPMENT_ITEM_SOURCE SHIS INNER JOIN SHIPMENT SHMT ON SHIS.SHIPMENT_ID = SHMT.SHIPMENT_ID
+                 WHERE SHIS.ORDER_ID = OITM.ORDER_ID AND SHIS.ORDER_ITEM_SEQ_ID = OITM.ORDER_ITEM_SEQ_ID
+                    AND (SHMT.SHIP_WORK_EFFORT_ID IS NOT NULL OR SHMT.STATUS_ID NOT IN ('ShipInput', 'ShipScheduled', 'ShipRejected', 'ShipCancelled'))
+                    AND SHIS.QUANTITY > 0)''')"/>
+        </else></if>
     </actions>
     <widgets>
         <form-list name="AddOrderList" list="orderList" transition="addOrderPartToLoad" multi="true"
                 header-dialog="true" select-columns="true" saved-finds="true">
+            <!-- NOTE: see similar entity-find in ShipmentWorkServices.create#ShipmentLoadsForOrders in mantle-usl -->
             <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
                 <search-form-inputs default-order-by="shipmentMethodSequenceNum,placedDate,orderId,orderPartSeqId"
                         skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType,facilityId,workEffortId">
@@ -62,15 +86,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="quantity" operator="greater-equals" from="findQuantity_from" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
                 <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                <econdition-object field="excludeOnPicklistCond"/><!-- NOTE: ignored if null -->
 
-                <!-- scenarios for orders already on picklist via Shipment/SIS:
-                    * no related Shipment (shipWorkEffortId == null, SIS.quantity == null)
-                    a single order could have all 4 of these, since finding by reverse logic (looking for records to include) is tricky
-                    1. ignore: related Shipment NOT on picklist and active (shipWorkEffortId == null, SIS.quantity > 0.0)
-                    2. ignore: related Shipment NOT on picklist but cancelled (shipWorkEffortId == null, SIS.quantity == 0.0)
-                    3. ignore: related Shipment on picklist but cancelled (shipWorkEffortId != null, SIS.quantity == 0.0)
-                    4. exclude: related Shipment on picklist and active (shipWorkEffortId != null, SIS.quantity > 0.0)
-                -->
                 <econdition field-name="shipWorkEffortId" operator="is-not-null" ignore="excludeOnPicklist == 'false'"/>
                 <econdition field-name="shipItemQuantity" operator="greater" from="0.0" ignore="excludeOnPicklist == 'false'"/>
 
@@ -78,12 +95,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="quantityTotal" to-field-name="resQuantity" ignore="excludeNotPickLoc == 'false'"/>
                     <!-- useless when filtering by pick locations: <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="onlyInventoryUnavailable != 'true'"/> -->
                     <econdition field-name="issuedQuantity" operator="greater" from="0.0" ignore="onlyPartlyShipped != 'true'"/>
-
-                    <econdition field-name="shipmentCount" from="0" or-null="true" ignore="excludeOnPicklist == 'false'"/>
                 </having-econditions>
                 <select-field field-name="orderPartSeqId,shipmentMethodEnumId,quantityTotal"/>
                 <!-- NOTE: always need to select resQuantity,issuedQuantity if having conditions are used (EntityFindBuilder doesn't yet add these to sub-select automatically) -->
-                <select-field field-name="resQuantity${onlyPartlyShipped != 'true' ? '' : ',issuedQuantity'}${excludeOnPicklist == 'false' ? '' : ',shipmentCount'}"/>
+                <select-field field-name="resQuantity${onlyPartlyShipped != 'true' ? '' : ',issuedQuantity'}"/>
             </entity-find>
             <row-actions>
                 <!-- Shipment method description -->
