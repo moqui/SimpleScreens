@@ -213,7 +213,7 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="orderHeader.statusId == 'OrderRequested'"/>
 
                 <link url="cancelOrder" text="Close Order" link-type="hidden-form" btn-type="warning"
-                        confirmation="Really close order? If no items shipped the order will be Cancelled. If partially shipped all items will be reduced to shipped quantity and the order will be Completed."
+                        confirmation="OrderDetailConfirmCloseOrder"
                         condition="orderHeader.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"/>
 
                 <container-dialog id="AddPartDialog" button-text="Add Part"
@@ -657,7 +657,7 @@ along with this software (see the LICENSE.md file). If not, see
                             confirmation="Really create return for this order part?"
                             parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"/>
                     <link url="cancelOrderPart" text="Close Part" link-type="hidden-form" btn-type="warning"
-                            confirmation="Really close order part? If no items shipped the part will be Cancelled. If partially shipped all items will be reduced to shipped quantity and the part will be Completed."
+                            confirmation="OrderDetailConfirmCloseOrder"
                             condition="orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"/>
 
                     <label text="Warning: both vendor and customer are internal organizations" style="text-danger" type="p"
@@ -768,7 +768,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <container style="col-lg-7">
                     <!-- Payment Information -->
                     <section name="PaymentInfoSection"><widgets>
-                        <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0.0, orderHeader?.currencyUomId)}) is less than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0.0, orderHeader?.currencyUomId)})"
+                        <label text="OrderDetailPartPaymentIncomplete"
                                 style="text-danger" type="p" condition="orderPartInfo.paymentsTotal &lt; orderPartInfo.orderPart.partTotal"/>
                         <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0.0, orderHeader?.currencyUomId)}) is greater than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0.0, orderHeader?.currencyUomId)})"
                                 style="text-warning" type="p" condition="(orderPartInfo.paymentsTotal?:0.0) &gt; (orderPartInfo.orderPart.partTotal?:0.0)"/>
@@ -1164,7 +1164,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
                             </tr></#list></table>
                         </#assign>
-                        <a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="Price History for Item ${orderItemSeqId}" data-content="${popoverContent?html}">Price History</a>
+                        <a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="${ec.resource.expand('Price History for Item ${orderItemSeqId}', null)}" data-content="${popoverContent?html}">${ec.l10n.localize('Price History')}</a>
                     ]]></text></render-mode>
                 </default-field></field>
                 <field name="quantity">
@@ -1188,7 +1188,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
                             </tr></#list></table>
                         </#assign>
-                        <a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="Quantity History for Item ${orderItemSeqId}" data-content="${popoverContent?html}">Quantity History</a>
+                        <a href="#" data-toggle="popover" data-trigger="hover" data-placement="left" data-html="true" data-title="${ec.resource.expand('Quantity History for Item ${orderItemSeqId}', null)}" data-content="${popoverContent?html}">${ec.l10n.localize('Quantity History')}</a>
                     ]]></text></render-mode>
                 </default-field></field>
                 <field name="standardCost">
@@ -1237,11 +1237,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
 
                 <field name="returns"><default-field>
-                    <label text="Billed:${returnableOut.isProductItemType ? ec.l10n.format(returnableOut.invoiceQuantity, '#,##0.###') : ec.l10n.format(returnableOut.invoiceTotal, '#,##0.00')}" type="div"/>
-                    <label text="Returned:${returnableOut.isProductItemType ? ec.l10n.format(returnableOut.returnedQuantity, '#,##0.###') : ec.l10n.format(returnableOut.returnedTotal, '#,##0.00')}" type="div"/>
+                    <label text="OrderDetailItemBilled" type="div"/>
+                    <label text="OrderDetailItemReturned" type="div"/>
                     <section-iterate name="ReturnLinkSection" list="returnIdSet" entry="returnId"><widgets>
                         <link url="editReturn" text="#${returnId}" link-type="anchor"/></widgets></section-iterate>
-                    <label text="Returnable:${returnableOut.isProductItemType ? ec.l10n.format(returnableOut.returnableQuantity, '#,##0.###') : ec.l10n.format(returnableOut.returnableTotal, '#,##0.00')}" type="div"/>
+                    <label text="OrderDetailItemReturnable" type="div"/>
                 </default-field></field>
                 <field name="returnItem">
                     <conditional-field condition="orderPartInfo.openReturnList &amp;&amp; returnableOut.returnableQuantity &gt; 0">
