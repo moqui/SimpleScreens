@@ -35,8 +35,6 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <!-- 'paymentMethod' from PaymentMethod.xml always-actions -->
-        <entity-find entity-name="mantle.account.method.PaymentMethodTrans" list="transList">
-            <search-form-inputs default-order-by="-postedDate"/><econdition field-name="paymentMethodId"/></entity-find>
 
         <entity-find-one entity-name="mantle.party.PartyRole" value-field="ownerOrgRole">
             <field-map field-name="partyId" from="paymentMethod?.ownerPartyId"/>
@@ -63,10 +61,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="checkNumber"><default-field><text-line size="15"/></default-field></field>
                 <field name="refNumber"><default-field><text-line size="15"/></default-field></field>
 
-                <field name="paymentId"><default-field><text-line size="15"/>
-                    <link url="editPayment" text="Payment #${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
-                <field name="acctgTransId"><default-field><text-line size="15"/>
-                    <link url="editTransaction" text="Acctg Trans #${acctgTransId}" link-type="anchor" condition="acctgTransId"/></default-field></field>
+                <field name="paymentId"><default-field><text-line size="15"/></default-field></field>
+                <field name="acctgTransId"><default-field><text-line size="15"/></default-field></field>
 
                 <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
             </form-single>
@@ -103,35 +99,71 @@ along with this software (see the LICENSE.md file). If not, see
 
         <form-list name="TransList" list="transList" transition="updatePaymentMethodTrans" extends="AddTransForm"
                    header-dialog="true" saved-finds="true" select-columns="true" multi="true">
-            <field name="partyId"><header-field><hidden/></header-field></field>
-            <field name="paymentMethodId"><header-field><hidden/></header-field></field>
+            <entity-find entity-name="mantle.account.method.PaymentMethodTrans" list="transList">
+                <search-form-inputs default-order-by="-postedDate,fitId"/>
+                <econdition field-name="paymentMethodId"/>
+            </entity-find>
 
-            <field name="fitId"><header-field title="FIT ID" show-order-by="true">
-                <text-find size="10" hide-options="true"/></header-field></field>
-            <field name="transType"><header-field show-order-by="true"><text-find size="8" hide-options="true"/></header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration" text="${description ?: transType}"/></default-field></field>
+            <row-actions>
+                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="transTypeEnum">
+                    <field-map field-name="enumId" from="transType"/></entity-find-one>
+            </row-actions>
+            <hidden-parameters>
+                <parameter name="partyId"/>
+                <parameter name="paymentMethodId"/>
+            </hidden-parameters>
 
-            <field name="transName"><header-field show-order-by="true">
-                <text-find size="20" hide-options="true"/></header-field></field>
-            <field name="transMemo"><header-field show-order-by="true">
-                <text-find size="20" hide-options="true"/></header-field></field>
+            <field name="postedDate"><header-field show-order-by="true"><date-period/></header-field>
+                <default-field><display format="yyyy-MM-dd"/></default-field></field>
+            <field name="transAmount"><header-field><range-find/></header-field>
+                <default-field><display currency-unit-field="paymentMethod.currencyUomId" style="text-strong"/></default-field></field>
 
-            <field name="postedDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field></field>
-            <field name="transAmount"><header-field><range-find size="10"/></header-field>
-                <default-field><display currency-unit-field="paymentMethod.currencyUomId"/></default-field></field>
+            <field name="fitId">
+                <header-field title="FIT ID" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="transType">
+                <header-field show-order-by="true"><text-find size="8" hide-options="true"/></header-field>
+                <default-field><display text="${transTypeEnum?.description ?: transType}"/></default-field>
+            </field>
 
             <field name="checkNumber"><header-field show-order-by="true">
                 <text-find size="10" hide-options="true"/></header-field></field>
             <field name="refNumber"><header-field show-order-by="true">
                 <text-find size="10" hide-options="true"/></header-field></field>
 
-            <field name="paymentId"><header-field show-order-by="true">
-                <text-find size="10" hide-options="true"/></header-field></field>
-            <field name="acctgTransId"><header-field show-order-by="true">
-                <text-find size="12" hide-options="true"/></header-field></field>
+            <field name="transName">
+                <header-field show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="transMemo">
+                <header-field show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+
+            <field name="paymentId">
+                <header-field show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field>
+                    <text-line size="10"/>
+                    <link url="editPayment" text="Payment ${paymentId}" link-type="anchor" condition="paymentId"/>
+                </default-field>
+            </field>
+            <field name="acctgTransId">
+                <header-field show-order-by="true"><text-find size="12" hide-options="true"/></header-field>
+                <default-field>
+                    <text-line size="10"/>
+                    <link url="editTransaction" text="Acctg Trans #${acctgTransId}" link-type="anchor" condition="acctgTransId"/>
+                </default-field>
+            </field>
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field>
                 <default-field title="Update"><submit/></default-field></field>
+
+            <form-list-column><field-ref name="postedDate"/><field-ref name="transAmount"/></form-list-column>
+            <form-list-column><field-ref name="fitId"/><field-ref name="transType"/></form-list-column>
+            <form-list-column><field-ref name="checkNumber"/><field-ref name="refNumber"/></form-list-column>
+            <form-list-column><field-ref name="transName"/><field-ref name="transMemo"/></form-list-column>
+            <form-list-column><field-ref name="paymentId"/><field-ref name="acctgTransId"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
