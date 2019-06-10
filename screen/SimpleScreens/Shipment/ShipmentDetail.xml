@@ -201,7 +201,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <if condition="isOutgoing || isTransfer">
             <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->
-            <service-call name="mantle.shipment.ShipmentServices.get#ShipmentShippingOptions" out-map="context"
+            <service-call name="mantle.shipment.ShipmentInfoServices.get#ShipmentShippingOptions" out-map="context"
                     in-map="[shipmentId:shipmentId, getRates:false]"/>
         </if>
 
@@ -493,6 +493,8 @@ along with this software (see the LICENSE.md file). If not, see
             </fail-widgets></section>
 
             <container type="dl" style="dl-horizontal">
+                <label text="Store" type="dt" condition="productStore != null"/>
+                <label text="${productStore.productStoreId}: ${productStore.storeName}" type="dd" condition="productStore != null"/>
                 <label text="Shipping Gateway" type="dt" condition="shippingGatewayConfig != null"/>
                 <label text="${shippingGatewayConfig.description}" type="dd" condition="shippingGatewayConfig != null"/>
                 <label text="Order Ship By" type="dt"/>
@@ -1178,7 +1180,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                         <link url="refundShipmentLabels" text="Refund Label" btn-type="danger"
                                 confirmation="Request refund? If package has not yet shipped a refund will be processed and label will not be valid for shipping."
-                                condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId &amp;&amp; !packageRouteSeg?.gatewayRefundId"
+                                condition="shippingGatewayConfigId &amp;&amp; packageRouteSeg?.gatewayLabelId &amp;&amp; !packageRouteSeg?.gatewayRefundId &amp;&amp; packageRouteSeg?.gatewayRefundStatus != 'SUCCESS'"
                                 parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId,
                                     shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
                         <link url="removeShipmentLabelInfo" text="Reset Label" btn-type="danger"
@@ -1262,7 +1264,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <row-col sm="1"><label text="Message" type="strong"/></row-col>
                             <row-col sm="8"><label text="${packageRouteSeg?.gatewayMessage?:'N/A'}"/></row-col>
                         </container-row>
-                        <section name="LabelRefundSection" condition="packageRouteSeg?.gatewayRefundId"><widgets>
+                        <section name="LabelRefundSection" condition="packageRouteSeg?.gatewayRefundStatus"><widgets>
                             <container-row>
                                 <row-col sm="1"><label text="Refund" type="strong"/></row-col>
                                 <row-col sm="1"><label text="${packageRouteSeg?.gatewayRefundStatus?:'N/A'}"/></row-col>
