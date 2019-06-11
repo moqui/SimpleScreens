@@ -391,14 +391,22 @@ along with this software (see the LICENSE.md file). If not, see
                             confirmation="Delete package ${shipmentPackage.shipmentPackageSeqId}?"
                             parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId]"/>
 
-                    <link url="${packageRouteSeg.labelUrl}" text="Label" url-type="plain" target-window="_blank" icon="glyphicon glyphicon-download"
-                            style="btn-info" condition="packageRouteSeg?.labelUrl"/>
-                    <section name="QzPrintLabelSection" condition="packageRouteSeg?.labelUrl"><widgets><render-mode>
+                    <!-- <link url="${packageRouteSeg.labelUrl}" text="Label" url-type="plain" target-window="_blank"
+                            btn-type="info" icon="glyphicon glyphicon-download" condition="packageRouteSeg?.labelUrl"/> -->
+                    <link url="getShipmentLabel" text="Label" target-window="_blank" btn-type="info" icon="glyphicon glyphicon-download"
+                            condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage"
+                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:packageRouteSeg.shipmentPackageSeqId, shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
+                    <section name="QzPrintLabelSection" condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage"><widgets><render-mode>
                         <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Label</button>]]></text></render-mode></widgets></section>
-                    <link url="${packageRouteSeg.returnLabelUrl}" text="Ret Lbl" url-type="plain" target-window="_blank" icon="glyphicon glyphicon-download"
-                            style="btn-info" condition="packageRouteSeg?.returnLabelUrl"/>
-                    <section name="QzPrintRetLabelSection" condition="packageRouteSeg?.returnLabelUrl"><widgets><render-mode>
+
+                    <!-- <link url="${packageRouteSeg.returnLabelUrl}" text="Ret Label" url-type="plain" target-window="_blank"
+                            btn-type="info" icon="glyphicon glyphicon-download" condition="packageRouteSeg?.returnLabelUrl"/> -->
+                    <link url="getShipmentLabel" text="Ret Label" target-window="_blank" btn-type="info" icon="glyphicon glyphicon-download"
+                            condition="packageRouteSeg?.returnLabelUrl || packageRouteSeg?.returnLabelImage"
+                            parameter-map="[retLabel:'true', shipmentId:shipmentId, shipmentPackageSeqId:packageRouteSeg.shipmentPackageSeqId, shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
+                    <section name="QzPrintRetLabelSection" condition="packageRouteSeg?.returnLabelUrl || packageRouteSeg?.returnLabelImage"><widgets><render-mode>
                         <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Ret Lbl</button>]]></text></render-mode></widgets></section>
+
                     <container-dialog id="PrintLabelDialog" button-text="Net Print" type="success"
                             condition="(packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null) &amp;&amp; networkPrinterList">
                         <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
