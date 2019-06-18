@@ -18,6 +18,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editTimePeriod"><default-response url="../EditTimePeriod"/></transition>
     <transition name="viewPeriodGlAccounts"><default-response url="../ViewPeriodGlAccounts"/></transition>
 
+    <transition name="createTimePeriod"><service-call name="mantle.party.TimeServices.create#TimePeriod"/>
+        <default-response url="../EditTimePeriod"/></transition>
+    <transition name="createNextTimePeriod">
+        <service-call name="mantle.party.TimeServices.create#TimePeriod" in-map="[previousPeriodId:previousPeriodId]"/>
+        <default-response url="../EditTimePeriod"/>
+    </transition>
+
     <transition-include name="getTimePeriodList" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
 
     <actions>
@@ -27,8 +34,39 @@ along with this software (see the LICENSE.md file). If not, see
         </entity-find>
     </actions>
     <widgets>
+        <container-dialog id="CreatePeriodDialog" button-text="Create First Period">
+            <label text="Only create the first period in a series using this form. Use the Create Next Period buttons to create subsequent periods." type="p"/>
+            <label text="Create parent periods (years, quarters, etc) then create child periods from parent period screen. " type="p"/>
+            <form-single name="CreatePeriod" transition="createTimePeriod">
+                <field name="partyId"><default-field title="Organization"><drop-down>
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find></entity-options>
+                </drop-down></default-field></field>
+                <field name="timePeriodTypeId"><default-field title="Type"><drop-down>
+                    <entity-options key="${timePeriodTypeId}" text="${description}">
+                        <entity-find entity-name="mantle.party.time.TimePeriodType">
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+                <field name="fromDate"><default-field><date-time type="date"/></default-field></field>
+                <field name="thruDate"><default-field tooltip="Optional, leave empty to calculate with from date and period type">
+                    <date-time type="date"/></default-field></field>
+                <field name="createBtn"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
         <form-list name="TimePeriodList" list="timePeriodList" skip-form="true" header-dialog="true" select-columns="true"
                    saved-finds="true" show-csv-button="true">
+            <row-actions>
+                <entity-find entity-name="mantle.party.time.TimePeriod" list="nextTimePeriodList">
+                    <econdition field-name="previousPeriodId" from="timePeriodId"/></entity-find>
+                <set field="nextTimePeriod" from="nextTimePeriodList ? nextTimePeriodList[0] : null"/>
+            </row-actions>
+
             <field name="partyId">
                 <header-field title="Organization">
                     <drop-down allow-empty="true">
@@ -46,10 +84,12 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="periodName"><header-field show-order-by="true"/>
                 <default-field><link url="editTimePeriod" text="${periodName}" link-type="anchor"/></default-field></field>
             <field name="timePeriodTypeId">
-                <header-field title="Type" show-order-by="true">
-                    <drop-down allow-empty="true"><option key="FiscalYear" text="Year"/>
-                        <option key="FiscalQuarter" text="Quarter"/><option key="FiscalMonth" text="Month"/></drop-down>
-                </header-field>
+                <header-field title="Type" show-order-by="true"><drop-down allow-multiple="true">
+                    <entity-options key="${timePeriodTypeId}" text="${description}">
+                        <entity-find entity-name="mantle.party.time.TimePeriodType">
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options>
+                </drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.time.TimePeriodType"/></default-field>
             </field>
             <field name="periodNum"><header-field show-order-by="true"/>
@@ -65,9 +105,9 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="parentPeriodId">
                 <header-field title="Parent">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0"
-                                parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter']" depends-optional="true">
+                        <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0" depends-optional="true">
                             <depends-on field="partyId"/></dynamic-options>
+                        <!-- now supporting all period types so no: parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']" -->
                     </drop-down>
                 </header-field>
                 <default-field><link url="editTimePeriod" text="${periodName} (${ec.l10n.localize('Closed##TimePeriod')}: ${isClosed})" entity-name="mantle.party.time.TimePeriod"
@@ -76,15 +116,23 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="previousPeriodId">
                 <header-field title="Previous">
                     <drop-down allow-empty="true">
-                        <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0"
-                                parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']" depends-optional="true">
+                        <dynamic-options transition="getTimePeriodList" server-search="true" min-length="0" depends-optional="true">
                             <depends-on field="partyId"/></dynamic-options>
+                        <!-- now supporting all period types so no: parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']" -->
                     </drop-down>
                 </header-field>
                 <default-field><link url="editTimePeriod" text="${periodName} (${ec.l10n.localize('Closed##TimePeriod')}: ${isClosed})" entity-name="mantle.party.time.TimePeriod"
                         parameter-map="[timePeriodId:previousPeriodId]" condition="previousPeriodId" link-type="anchor"/></default-field>
             </field>
-            <field name="accounts"><default-field title=""><link url="viewPeriodGlAccounts" text="Accounts"/></default-field></field>
+            <field name="nextPeriod"><default-field title="Next">
+                <link url="editTimePeriod" text="${nextTimePeriod.periodName}" text-map="nextTimePeriod"
+                        parameter-map="[timePeriodId:nextTimePeriod.timePeriodId]" condition="nextTimePeriod != null" link-type="anchor"/>
+                <link url="createNextTimePeriod" text="Create Next" condition="nextTimePeriod == null"
+                        parameter-map="[previousPeriodId:timePeriodId]"/>
+            </default-field></field>
+            <field name="accounts"><default-field title="">
+                <link url="viewPeriodGlAccounts" text="Accounts"/>
+            </default-field></field>
             <field name="searchButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="partyId"/><field-ref name="periodName"/></form-list-column>
