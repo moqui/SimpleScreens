@@ -31,6 +31,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateInvoiceClosed"><service-call name="mantle.account.InvoiceServices.update#InvoiceClosed"/>
         <default-response url="."/></transition>
     <transition name="updateStatus"><service-call name="update#mantle.account.invoice.Invoice"/><default-response url="."/></transition>
+    <transition name="reverseInvoice"><service-call name="mantle.account.InvoiceServices.reverse#Invoice"/>
+        <default-response url="."/></transition>
     <transition name="cancelInvoiceAndPayments"><service-call name="mantle.account.InvoiceServices.cancel#InvoiceAndPayments"/>
         <default-response url="."/></transition>
 
@@ -166,6 +168,8 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="statusId == 'InvoiceCancelled' &amp;&amp; !isPayableInvoice" confirmation="Go back to In Process status?"/>
                 <link url="updateStatus" text="Uncancel" parameter-map="[invoiceId:invoiceId, statusId:'InvoiceReceived']"
                         condition="statusId == 'InvoiceCancelled' &amp;&amp; isPayableInvoice" confirmation="Go back to Received status?"/>
+
+                <link url="reverseInvoice" text="Reverse Invoice" btn-type="warning" condition="invoice.invoiceTotal &lt; 0.0"/>
 
                 <!-- see note above about more generic SystemRemote send transition:
                 <section name="SendEdiInvoiceSection" condition="!isPayableInvoice &amp;&amp; invoice.systemMessageRemoteId"><widgets>
