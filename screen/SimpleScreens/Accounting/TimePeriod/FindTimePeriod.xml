@@ -57,7 +57,7 @@ along with this software (see the LICENSE.md file). If not, see
                    saved-finds="true" show-csv-button="true">
             <entity-find entity-name="mantle.party.time.TimePeriod" list="timePeriodList">
                 <search-form-inputs default-order-by="-fromDate"/>
-                <select-field field-name="timePeriodId"/>
+                <select-field field-name="timePeriodId,timePeriodTypeId"/>
             </entity-find>
             <row-actions>
                 <entity-find entity-name="mantle.party.time.TimePeriod" list="nextTimePeriodList">
@@ -128,9 +128,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="createNextTimePeriod" text="Create Next" condition="nextTimePeriod == null"
                         parameter-map="[previousPeriodId:timePeriodId]"/>
             </default-field></field>
-            <field name="accounts"><default-field title="">
-                <link url="viewPeriodGlAccounts" text="Accounts"/>
-            </default-field></field>
+            <field name="accounts"><default-field>
+                <link url="viewPeriodGlAccounts" text="Accounts" condition="timePeriodTypeId?.startsWith('Fiscal')"/></default-field></field>
             <field name="searchButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="partyId"/><field-ref name="periodName"/></form-list-column>
@@ -138,6 +137,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
             <form-list-column><field-ref name="isClosed"/></form-list-column>
             <form-list-column><field-ref name="parentPeriodId"/><field-ref name="previousPeriodId"/></form-list-column>
+            <form-list-column><field-ref name="nextPeriod"/></form-list-column>
             <form-list-column><field-ref name="accounts"/></form-list-column>
         </form-list>
     </widgets>
