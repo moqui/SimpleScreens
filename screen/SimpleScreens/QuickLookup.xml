@@ -18,6 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="assetDetail"><default-response url="//apps/${appRoot}/Asset/AssetDetail"/></transition>
     <transition name="editFacility"><default-response url="//apps/${appRoot}/Facility/EditFacility"/></transition>
     <transition name="orderDetail"><default-response url="//apps/${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editReturn"><default-response url="//apps/${appRoot}/Return/EditReturn"/></transition>
     <transition name="shipmentDetail"><default-response url="//apps/${appRoot}/Shipment/ShipmentDetail"/></transition>
     <transition name="picklistDetail"><default-response url="//apps/${appRoot}/Shipping/Picklist/PicklistDetail"/></transition>
     <transition name="editRun"><default-response url="//apps/${appRoot}/Manufacturing/Run/EditRun"/></transition>
@@ -132,6 +133,18 @@ along with this software (see the LICENSE.md file). If not, see
 
         <section name="OrderSection" condition="orderHeader != null"><actions>
             <set field="orderStatus" from="orderHeader.status"/>
+
+            <entity-find entity-name="mantle.order.OrderPart" list="orderPartList">
+                <econdition field-name="orderId" from="orderHeader.orderId"/>
+                <order-by field-name="orderPartSeqId"/>
+            </entity-find>
+            <set field="firstPart" from="orderPartList ? orderPartList[0] : null"/>
+            <if condition="firstPart != null">
+                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="vendorParty">
+                    <field-map field-name="partyId" from="firstPart.vendorPartyId"/></entity-find-one>
+                <entity-find-one entity-name="mantle.party.PartyDetail" value-field="customerParty">
+                    <field-map field-name="partyId" from="firstPart.customerPartyId"/></entity-find-one>
+            </if>
         </actions><widgets>
             <container-box><box-header title="Order ${orderId}"/><box-toolbar>
                 <link url="orderDetail" text="Order"/>
@@ -139,8 +152,39 @@ along with this software (see the LICENSE.md file). If not, see
                 <container-row>
                     <row-col md="1"><label text="Status" type="strong"/></row-col>
                     <row-col md="2"><label text="${orderStatus?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Vendor" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="vendorParty"
+                            parameter-map="[partyId:vendorParty?.partyId]" link-type="anchor" condition="vendorParty"/></row-col>
+                    <row-col md="1"><label text="Customer" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="customerParty"
+                            parameter-map="[partyId:customerParty?.partyId]" link-type="anchor" condition="customerParty"/></row-col>
+                </container-row>
+                <container-row>
                     <row-col md="1"><label text="Total" type="strong"/></row-col>
                     <row-col md="2"><label text="${ec.l10n.formatCurrency(orderHeader.grandTotal, orderHeader.currencyUomId)}"/></row-col>
+                </container-row>
+            </box-body></container-box>
+        </widgets></section>
+
+        <section name="ReturnSection" condition="returnHeader != null"><actions>
+            <set field="returnStatus" from="returnHeader.status"/>
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="vendorParty">
+                <field-map field-name="partyId" from="returnHeader.vendorPartyId"/></entity-find-one>
+            <entity-find-one entity-name="mantle.party.PartyDetail" value-field="customerParty">
+                <field-map field-name="partyId" from="returnHeader.customerPartyId"/></entity-find-one>
+        </actions><widgets>
+            <container-box><box-header title="Return ${returnId}"/><box-toolbar>
+                <link url="editReturn" text="Return"/>
+            </box-toolbar><box-body>
+                <container-row>
+                    <row-col md="1"><label text="Status" type="strong"/></row-col>
+                    <row-col md="2"><label text="${returnStatus?.description?:''}"/></row-col>
+                    <row-col md="1"><label text="Vendor" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="vendorParty"
+                            parameter-map="[partyId:vendorParty?.partyId]" link-type="anchor" condition="vendorParty"/></row-col>
+                    <row-col md="1"><label text="Customer" type="strong"/></row-col>
+                    <row-col md="3"><link url="editParty" text="PartyNameTemplate" text-map="customerParty"
+                            parameter-map="[partyId:customerParty?.partyId]" link-type="anchor" condition="customerParty"/></row-col>
                 </container-row>
             </box-body></container-box>
         </widgets></section>
