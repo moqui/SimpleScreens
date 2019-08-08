@@ -128,19 +128,23 @@ along with this software (see the LICENSE.md file). If not, see
         </entity-find>
     </actions>
     <widgets>
-        <container-box><box-header title="Financial Summary for ${ec.resource.expand('PartyNameTemplate', null, partyDetail)}"/><box-toolbar>
-            <link url="findRequest" text="Requests (${requestCount})" parameter-map="[partyId:partyId]" condition="requestCount"/>
-            <link url="findOrder" text="Sales Orders (${customerOrderPartCount})" parameter-map="[customerPartyId:partyId]" condition="customerOrderPartCount"/>
-            <link url="findShipment" text="Shipments To (${toShipmentCount})" parameter-map="[toPartyId:partyId]" condition="toShipmentCount"/>
-            <link url="findInvoice" text="Invoices To (${toInvoiceCount})" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount"/>
-            <link url="findPayment" text="Payments From (${fromPaymentCount})" parameter-map="[fromPartyId:partyId]" condition="fromPaymentCount"/>
+        <link url="findRequest" text="Requests (${requestCount})" parameter-map="[partyId:partyId]" condition="requestCount"/>
+        <link url="findOrder" text="Sales Orders (${customerOrderPartCount})" parameter-map="[customerPartyId:partyId]" condition="customerOrderPartCount"/>
+        <link url="findShipment" text="Shipments To (${toShipmentCount})" parameter-map="[toPartyId:partyId]" condition="toShipmentCount"/>
+        <link url="findInvoice" text="Invoices To (${toInvoiceCount})" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount"/>
+        <link url="findPayment" text="Payments From (${fromPaymentCount})" parameter-map="[fromPartyId:partyId]" condition="fromPaymentCount"/>
 
-            <link url="findOrder" text="Purchase Orders (${vendorOrderPartCount})" parameter-map="[vendorPartyId:partyId]" condition="vendorOrderPartCount"/>
-            <link url="findShipment" text="Shipments From (${fromShipmentCount})" parameter-map="[fromPartyId:partyId]" condition="fromShipmentCount"/>
-            <link url="findInvoice" text="Invoices From (${fromInvoiceCount})" parameter-map="[fromPartyId:partyId]" condition="fromInvoiceCount"/>
-            <link url="findPayment" text="Payments To (${toPaymentCount})" parameter-map="[toPartyId:partyId]" condition="toPaymentCount"/>
-            <link url="receivableStatement" text="Customer Statement PDF" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount || fromPaymentCount"/>
-        </box-toolbar><box-body>
+        <link url="findOrder" text="Purchase Orders (${vendorOrderPartCount})" parameter-map="[vendorPartyId:partyId]" condition="vendorOrderPartCount"/>
+        <link url="findShipment" text="Shipments From (${fromShipmentCount})" parameter-map="[fromPartyId:partyId]" condition="fromShipmentCount"/>
+        <link url="findInvoice" text="Invoices From (${fromInvoiceCount})" parameter-map="[fromPartyId:partyId]" condition="fromInvoiceCount"/>
+        <link url="findPayment" text="Payments To (${toPaymentCount})" parameter-map="[toPartyId:partyId]" condition="toPaymentCount"/>
+        <link url="receivableStatement" text="Customer Statement PDF" parameter-map="[toPartyId:partyId]" condition="toInvoiceCount || fromPaymentCount"/>
+
+        <link url="${sri.getScreenUrlInstance().getScreenOnlyPath()}" url-type="plain" text="XLS Export"
+                parameter-map="ec.web.requestParameters + [saveFilename:('FinancialInfo_' + partyId + '.xlsx'),
+                    renderMode:'xlsx', pageNoLimit:'true', lastStandalone:'true']"/>
+
+        <container-box><box-header title="Financial Summary for ${ec.resource.expand('PartyNameTemplate', null, partyDetail)}"/><box-body>
             <container-row>
                 <row-col sm="4"><label text="Completed Sales Orders" type="strong"/></row-col>
                 <row-col sm="4"><label text="Booked Receivable Invoices" type="strong"/></row-col>
