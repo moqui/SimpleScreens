@@ -104,7 +104,7 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="TransList" list="transList" transition="updatePaymentMethodTrans" extends="AddTransForm"
                    header-dialog="true" saved-finds="true" select-columns="true" multi="true">
             <entity-find entity-name="mantle.account.method.PaymentMethodTrans" list="transList">
-                <search-form-inputs default-order-by="-postedDate,fitId"/>
+                <search-form-inputs default-order-by="-postedDate,-fitId"/>
                 <econdition field-name="paymentMethodId"/>
                 <select-field field-name="fitId,paymentId,acctgTransId,acctgTransEntrySeqId,noReconcile"/>
             </entity-find>
@@ -175,7 +175,7 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <field name="paymentInfo"><default-field>
-                <link url="editPayment" text="Payment ${paymentId} ${ec.l10n.formatCurrency(payment?.amount, payment?.amountUomId)} ${ec.l10n.format(payment?.effectiveDate, 'yyyy-MM-dd')}"
+                <link url="editPayment" text="Payment ${paymentId} ${ec.l10n.formatCurrency(payment?.amount, payment?.amountUomId)} ${ec.l10n.format(payment?.effectiveDate, 'yyyy-MM-dd')} ${payment?.status?.description}"
                         link-type="anchor" condition="paymentId"/>
                 <label text="From ${ec.resource.expand('PartyNameTemplate', null, pmtFromParty)}" condition="pmtFromParty"/>
                 <label text="To ${ec.resource.expand('PartyNameTemplate', null, pmtToParty)}" condition="pmtToParty"/>
@@ -189,9 +189,11 @@ along with this software (see the LICENSE.md file). If not, see
             </default-field></field>
 
             <field name="transActions"><default-field title="">
+                <dynamic-dialog id="CreatePmtDialog" button-text="New Payment" transition="CreatePayment"
+                        parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
+                        condition="!(paymentId || acctgTransId || noReconcile == 'Y')"/>
                 <link url="noReconcile" text="No Rec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
                         condition="!(paymentId || acctgTransId || noReconcile == 'Y')"/>
-
                 <link url="unreconcile" text="Unrec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
                         condition="paymentId || acctgTransId || noReconcile == 'Y'"/>
             </default-field></field>
