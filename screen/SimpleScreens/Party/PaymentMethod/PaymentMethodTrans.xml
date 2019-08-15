@@ -25,12 +25,16 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updatePaymentMethodTrans"><service-call name="mantle.account.ReconciliationServices.update#PaymentMethodTrans"/>
         <default-response url="."/></transition>
+    <transition name="matchReconcile"><service-call name="mantle.account.ReconciliationServices.match#PaymentMethodTransUnmatched"/>
+        <default-response url="."/></transition>
+    <transition name="unreconcile"><service-call name="mantle.account.ReconciliationServices.unreconcile#PaymentMethodTrans"/>
+        <default-response url="."/></transition>
+    <transition name="noReconcile"><service-call name="mantle.account.ReconciliationServices.noReconcile#PaymentMethodTrans"/>
+        <default-response url="."/></transition>
 
     <transition name="uploadOfxVersion1"><service-call name="mantle.account.OfxServices.upload#OfxVersion1"/>
         <default-response url="."/></transition>
     <transition name="uploadBaiVersion2"><service-call name="mantle.account.BaiServices.upload#BaiVersion2"/>
-        <default-response url="."/></transition>
-    <transition name="matchReconcile"><service-call name="mantle.account.ReconciliationServices.match#PaymentMethodTransUnmatched"/>
         <default-response url="."/></transition>
 
     <actions>
@@ -102,6 +106,7 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="mantle.account.method.PaymentMethodTrans" list="transList">
                 <search-form-inputs default-order-by="-postedDate,fitId"/>
                 <econdition field-name="paymentMethodId"/>
+                <select-field field-name="fitId,paymentId,acctgTransId,acctgTransEntrySeqId,noReconcile"/>
             </entity-find>
 
             <row-actions>
@@ -174,11 +179,21 @@ along with this software (see the LICENSE.md file). If not, see
                         link-type="anchor" condition="paymentId"/>
                 <label text="From ${ec.resource.expand('PartyNameTemplate', null, pmtFromParty)}" condition="pmtFromParty"/>
                 <label text="To ${ec.resource.expand('PartyNameTemplate', null, pmtToParty)}" condition="pmtToParty"/>
+
+                <label text="No Rec" condition="noReconcile == 'Y'"/>
             </default-field></field>
             <field name="acctgTransInfo"><default-field title="GL Trans Info">
                 <link url="editTransaction" text="GL Trans ${acctgTransId}:${acctgTransEntrySeqId} ${ec.l10n.formatCurrency(acctgTransEntry?.amount, acctgTrans?.amountUomId)} ${ec.l10n.format(acctgTrans?.transactionDate, 'yyyy-MM-dd')}"
                         link-type="anchor" condition="acctgTransId"/>
                 <label text="PartyNameTemplate" text-map="atxOtherParty" condition="atxOtherParty"/>
+            </default-field></field>
+
+            <field name="transActions"><default-field title="">
+                <link url="noReconcile" text="No Rec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
+                        condition="!(paymentId || acctgTransId || noReconcile == 'Y')"/>
+
+                <link url="unreconcile" text="Unrec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
+                        condition="paymentId || acctgTransId || noReconcile == 'Y'"/>
             </default-field></field>
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field>
@@ -190,6 +205,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="transName"/><field-ref name="transMemo"/></form-list-column>
             <form-list-column><field-ref name="paymentId"/><field-ref name="acctgTransId"/></form-list-column>
             <form-list-column><field-ref name="paymentInfo"/><field-ref name="acctgTransInfo"/></form-list-column>
+            <form-list-column><field-ref name="transActions"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
