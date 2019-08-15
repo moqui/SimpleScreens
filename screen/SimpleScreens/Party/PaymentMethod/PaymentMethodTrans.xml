@@ -107,6 +107,25 @@ along with this software (see the LICENSE.md file). If not, see
             <row-actions>
                 <entity-find-one entity-name="moqui.basic.Enumeration" value-field="transTypeEnum">
                     <field-map field-name="enumId" from="transType"/></entity-find-one>
+                <if condition="paymentId">
+                    <entity-find-one entity-name="mantle.account.payment.Payment" value-field="payment"/>
+                    <if condition="payment.fromPartyId != paymentMethod.ownerPartyId">
+                        <entity-find-one entity-name="mantle.party.PartyDetail" value-field="pmtFromParty">
+                            <field-map field-name="partyId" from="payment.fromPartyId"/></entity-find-one>
+                    </if>
+                    <if condition="payment.toPartyId != paymentMethod.ownerPartyId">
+                        <entity-find-one entity-name="mantle.party.PartyDetail" value-field="pmtToParty">
+                            <field-map field-name="partyId" from="payment.toPartyId"/></entity-find-one>
+                    </if>
+                </if>
+                <if condition="acctgTransId">
+                    <entity-find-one entity-name="mantle.ledger.transaction.AcctgTrans" value-field="acctgTrans"/>
+                    <entity-find-one entity-name="mantle.ledger.transaction.AcctgTransEntry" value-field="acctgTransEntry"/>
+                    <if condition="acctgTrans.otherPartyId != paymentMethod.ownerPartyId">
+                        <entity-find-one entity-name="mantle.party.PartyDetail" value-field="atxOtherParty">
+                            <field-map field-name="partyId" from="acctgTrans.otherPartyId"/></entity-find-one>
+                    </if>
+                </if>
             </row-actions>
             <hidden-parameters>
                 <parameter name="partyId"/>
@@ -143,18 +162,24 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="paymentId">
                 <header-field show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
-                <default-field>
-                    <text-line size="10"/>
-                    <link url="editPayment" text="Payment ${paymentId}" link-type="anchor" condition="paymentId"/>
-                </default-field>
+                <default-field><text-line size="10"/></default-field>
             </field>
             <field name="acctgTransId">
-                <header-field show-order-by="true"><text-find size="12" hide-options="true"/></header-field>
-                <default-field>
-                    <text-line size="10"/>
-                    <link url="editTransaction" text="Acctg Trans #${acctgTransId}" link-type="anchor" condition="acctgTransId"/>
-                </default-field>
+                <header-field show-order-by="true" title="GL Trans ID"><text-find size="12" hide-options="true"/></header-field>
+                <default-field><text-line size="10"/></default-field>
             </field>
+
+            <field name="paymentInfo"><default-field>
+                <link url="editPayment" text="Payment ${paymentId} ${ec.l10n.formatCurrency(payment?.amount, payment?.amountUomId)} ${ec.l10n.format(payment?.effectiveDate, 'yyyy-MM-dd')}"
+                        link-type="anchor" condition="paymentId"/>
+                <label text="From ${ec.resource.expand('PartyNameTemplate', null, pmtFromParty)}" condition="pmtFromParty"/>
+                <label text="To ${ec.resource.expand('PartyNameTemplate', null, pmtToParty)}" condition="pmtToParty"/>
+            </default-field></field>
+            <field name="acctgTransInfo"><default-field title="GL Trans Info">
+                <link url="editTransaction" text="GL Trans ${acctgTransId}:${acctgTransEntrySeqId} ${ec.l10n.formatCurrency(acctgTransEntry?.amount, acctgTrans?.amountUomId)} ${ec.l10n.format(acctgTrans?.transactionDate, 'yyyy-MM-dd')}"
+                        link-type="anchor" condition="acctgTransId"/>
+                <label text="PartyNameTemplate" text-map="atxOtherParty" condition="atxOtherParty"/>
+            </default-field></field>
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field>
                 <default-field title="Update"><submit/></default-field></field>
@@ -164,6 +189,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="checkNumber"/><field-ref name="refNumber"/></form-list-column>
             <form-list-column><field-ref name="transName"/><field-ref name="transMemo"/></form-list-column>
             <form-list-column><field-ref name="paymentId"/><field-ref name="acctgTransId"/></form-list-column>
+            <form-list-column><field-ref name="paymentInfo"/><field-ref name="acctgTransInfo"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
