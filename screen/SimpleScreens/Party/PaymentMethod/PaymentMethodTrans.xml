@@ -27,6 +27,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="matchReconcile"><service-call name="mantle.account.ReconciliationServices.match#PaymentMethodTransUnmatched"/>
         <default-response url="."/></transition>
+    <transition name="reconcile"><service-call name="mantle.account.ReconciliationServices.reconcile#PaymentMethodTrans"/>
+        <default-response url="."/></transition>
     <transition name="unreconcile"><service-call name="mantle.account.ReconciliationServices.unreconcile#PaymentMethodTrans"/>
         <default-response url="."/></transition>
     <transition name="noReconcile"><service-call name="mantle.account.ReconciliationServices.noReconcile#PaymentMethodTrans"/>
@@ -66,7 +68,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="refNumber"><default-field><text-line size="15"/></default-field></field>
 
                 <field name="paymentId"><default-field><text-line size="15"/></default-field></field>
-                <field name="acctgTransId"><default-field><text-line size="15"/></default-field></field>
+                <field name="acctgTransId"><default-field title="GL Trans ID"><text-line size="15"/></default-field></field>
 
                 <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
             </form-single>
@@ -101,12 +103,12 @@ along with this software (see the LICENSE.md file). If not, see
             <link url="findPayment" text="Find Payment To" link-type="anchor" parameter-map="[toPaymentMethodId:paymentMethodId]"/>
         </container>
 
-        <form-list name="TransList" list="transList" transition="updatePaymentMethodTrans" extends="AddTransForm"
-                   header-dialog="true" saved-finds="true" select-columns="true" multi="true">
+        <form-list name="TransList" list="transList" transition="updatePaymentMethodTrans" skip-form="true"
+                   header-dialog="true" saved-finds="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
             <entity-find entity-name="mantle.account.method.PaymentMethodTrans" list="transList">
                 <search-form-inputs default-order-by="-postedDate,-fitId"/>
                 <econdition field-name="paymentMethodId"/>
-                <select-field field-name="fitId,paymentId,acctgTransId,acctgTransEntrySeqId,noReconcile"/>
+                <select-field field-name="paymentMethodId,fitId,paymentId,acctgTransId,acctgTransEntrySeqId,noReconcile"/>
             </entity-find>
 
             <row-actions>
@@ -151,10 +153,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display text="${transTypeEnum?.description ?: transType}"/></default-field>
             </field>
 
-            <field name="checkNumber"><header-field show-order-by="true">
-                <text-find size="10" hide-options="true"/></header-field></field>
-            <field name="refNumber"><header-field show-order-by="true">
-                <text-find size="10" hide-options="true"/></header-field></field>
+            <field name="checkNumber">
+                <header-field show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="refNumber">
+                <header-field show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
 
             <field name="transName">
                 <header-field show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
@@ -165,6 +171,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display/></default-field>
             </field>
 
+            <!-- move these two reconcile specific dialog:
             <field name="paymentId">
                 <header-field show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
                 <default-field><text-line size="10"/></default-field>
@@ -173,9 +180,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field show-order-by="true" title="GL Trans ID"><text-find size="12" hide-options="true"/></header-field>
                 <default-field><text-line size="10"/></default-field>
             </field>
-
+            -->
             <field name="paymentInfo"><default-field>
-                <link url="editPayment" text="Payment ${paymentId} ${ec.l10n.formatCurrency(payment?.amount, payment?.amountUomId)} ${ec.l10n.format(payment?.effectiveDate, 'yyyy-MM-dd')} ${payment?.status?.description}"
+                <link url="editPayment" text="Payment ${paymentId} ${ec.l10n.formatCurrency(payment?.amount, payment?.amountUomId)} ${ec.l10n.format(payment?.effectiveDate, 'yyyy-MM-dd')} ${payment?.status?.description} Ref ${payment?.paymentRefNum ?: 'N/A'}"
                         link-type="anchor" condition="paymentId"/>
                 <label text="From ${ec.resource.expand('PartyNameTemplate', null, pmtFromParty)}" condition="pmtFromParty"/>
                 <label text="To ${ec.resource.expand('PartyNameTemplate', null, pmtToParty)}" condition="pmtToParty"/>
@@ -192,20 +199,40 @@ along with this software (see the LICENSE.md file). If not, see
                 <dynamic-dialog id="CreatePmtDialog" button-text="New Payment" transition="CreatePayment"
                         parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
                         condition="!(paymentId || acctgTransId || noReconcile == 'Y')"/>
+                <container-dialog id="ManRecDialog" button-text="Manual" title="Manual Reconcile"
+                        condition="(!paymentId || !acctgTransId) &amp;&amp; noReconcile != 'Y'">
+                    <label text="Name: ${transName}" type="p" condition="transName"/>
+                    <label text="Memo: ${transMemo}" type="p" condition="transMemo"/>
+                    <label text="Ref: ${refNumber}" type="p" condition="refNumber"/>
+                    <label text="If Payment and GL Trans are associated you can enter one or the other" type="p" style="text-info"/>
+
+                    <form-single name="ManRecForm" transition="reconcile">
+                        <field name="partyId"><default-field><hidden/></default-field></field>
+                        <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+                        <field name="fitId"><default-field><hidden/></default-field></field>
+
+                        <field name="paymentId"><default-field><text-line size="20"/></default-field></field>
+                        <field name="acctgTransId"><default-field title="GL Trans ID"><text-line size="20"/></default-field></field>
+
+                        <field name="submitButton"><default-field title="Reconcile"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+
                 <link url="noReconcile" text="No Rec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
                         condition="!(paymentId || acctgTransId || noReconcile == 'Y')"/>
                 <link url="unreconcile" text="Unrec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
                         condition="paymentId || acctgTransId || noReconcile == 'Y'"/>
             </default-field></field>
 
-            <field name="submitButton"><header-field title="Find"><submit/></header-field>
-                <default-field title="Update"><submit/></default-field></field>
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <!-- no row form any more, also no multi=true: <default-field title="Update"><submit/></default-field> -->
+            </field>
 
             <form-list-column><field-ref name="postedDate"/><field-ref name="transAmount"/></form-list-column>
             <form-list-column><field-ref name="fitId"/><field-ref name="transType"/></form-list-column>
             <form-list-column><field-ref name="checkNumber"/><field-ref name="refNumber"/></form-list-column>
             <form-list-column><field-ref name="transName"/><field-ref name="transMemo"/></form-list-column>
-            <form-list-column><field-ref name="paymentId"/><field-ref name="acctgTransId"/></form-list-column>
             <form-list-column><field-ref name="paymentInfo"/><field-ref name="acctgTransInfo"/></form-list-column>
             <form-list-column><field-ref name="transActions"/></form-list-column>
         </form-list>
