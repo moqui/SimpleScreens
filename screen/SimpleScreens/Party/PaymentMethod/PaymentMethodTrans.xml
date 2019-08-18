@@ -108,6 +108,9 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find entity-name="mantle.account.method.PaymentMethodTrans" list="transList">
                 <search-form-inputs default-order-by="-postedDate,-fitId"/>
                 <econdition field-name="paymentMethodId"/>
+                <econdition field-name="paymentId" operator="is-null" ignore="onlyNotRec != 'true'"/>
+                <econdition field-name="acctgTransId" operator="is-null" ignore="onlyNotRec != 'true'"/>
+                <econdition field-name="noReconcile" value="N" or-null="true" ignore="onlyNotRec != 'true'"/>
                 <select-field field-name="paymentMethodId,fitId,paymentId,acctgTransId,acctgTransEntrySeqId,noReconcile"/>
             </entity-find>
 
@@ -139,10 +142,21 @@ along with this software (see the LICENSE.md file). If not, see
                 <parameter name="paymentMethodId"/>
             </hidden-parameters>
 
+            <field name="onlyNotRec"><header-field><radio no-current-selected-key="false">
+                <option key="true" text="Y"/><option key="false" text="N"/></radio></header-field></field>
+
             <field name="postedDate"><header-field show-order-by="true"><date-period/></header-field>
-                <default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <default-field container-style="text-strong"><display format="yyyy-MM-dd"/></default-field></field>
+            <field name="paymentDate" from="payment?.effectiveDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+            <field name="glTransDate" from="acctgTrans?.transactionDate"><default-field title="GL Trans Date">
+                <display format="yyyy-MM-dd"/></default-field></field>
+
             <field name="transAmount"><header-field><range-find/></header-field>
                 <default-field><display currency-unit-field="paymentMethod.currencyUomId" style="text-strong"/></default-field></field>
+            <field name="paymentAmount" from="payment?.amount"><default-field>
+                <display currency-unit-field="payment?.amountUomId" style="${payment?.amount == transAmount?.abs() ? 'text-success' : 'text-danger'}"/></default-field></field>
+            <field name="glTransAmount" from="acctgTransEntry?.amount"><default-field title="GL Trans Amount">
+                <display currency-unit-field="acctgTrans?.amountUomId" style="${acctgTransEntry?.amount == transAmount?.abs() ? 'text-success' : 'text-danger'}"/></default-field></field>
 
             <field name="fitId">
                 <header-field title="FIT ID" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
@@ -161,6 +175,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <header-field show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
                 <default-field><display/></default-field>
             </field>
+            <field name="paymentRefNum" from="payment?.paymentRefNum"><default-field>
+                <display style="${payment?.paymentRefNum == checkNumber || payment?.paymentRefNum == refNumber ? 'text-success' : 'text-error'}"/></default-field></field>
 
             <field name="transName">
                 <header-field show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
@@ -182,24 +198,26 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             -->
             <field name="paymentInfo"><default-field>
-                <link url="editPayment" text="Payment ${paymentId} ${ec.l10n.formatCurrency(payment?.amount, payment?.amountUomId)} ${ec.l10n.format(payment?.effectiveDate, 'yyyy-MM-dd')} ${payment?.status?.description} Ref ${payment?.paymentRefNum ?: 'N/A'}"
-                        link-type="anchor" condition="paymentId"/>
+                <!-- moved to separate fields: ${ec.l10n.formatCurrency(payment?.amount, payment?.amountUomId)} ${ec.l10n.format(payment?.effectiveDate, 'yyyy-MM-dd')} Ref ${payment?.paymentRefNum ?: 'N/A'} -->
+                <link url="editPayment" text="Payment ${paymentId} ${payment.status?.description}"
+                        link-type="anchor" condition="payment" style="${payment.statusId in ['PmntDelivered', 'PmntConfirmed'] ? '' : 'text-danger'}"/>
                 <label text="From ${ec.resource.expand('PartyNameTemplate', null, pmtFromParty)}" condition="pmtFromParty"/>
                 <label text="To ${ec.resource.expand('PartyNameTemplate', null, pmtToParty)}" condition="pmtToParty"/>
 
                 <label text="No Rec" condition="noReconcile == 'Y'"/>
             </default-field></field>
             <field name="acctgTransInfo"><default-field title="GL Trans Info">
-                <link url="editTransaction" text="GL Trans ${acctgTransId}:${acctgTransEntrySeqId} ${ec.l10n.formatCurrency(acctgTransEntry?.amount, acctgTrans?.amountUomId)} ${ec.l10n.format(acctgTrans?.transactionDate, 'yyyy-MM-dd')}"
+                <!-- moved to separate fields: ${ec.l10n.formatCurrency(acctgTransEntry?.amount, acctgTrans?.amountUomId)} ${ec.l10n.format(acctgTrans?.transactionDate, 'yyyy-MM-dd')} -->
+                <link url="editTransaction" text="GL Trans ${acctgTransId}:${acctgTransEntrySeqId}"
                         link-type="anchor" condition="acctgTransId"/>
                 <label text="PartyNameTemplate" text-map="atxOtherParty" condition="atxOtherParty"/>
             </default-field></field>
 
             <field name="transActions"><default-field title="">
                 <dynamic-dialog id="CreatePmtDialog" button-text="New Payment" transition="CreatePayment"
-                        parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
+                        parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId, pageIndex:pageIndex]"
                         condition="!(paymentId || acctgTransId || noReconcile == 'Y')"/>
-                <container-dialog id="ManRecDialog" button-text="Manual" title="Manual Reconcile"
+                <container-dialog id="ManRecDialog" button-text="Manual Rec" title="Manual Reconcile"
                         condition="(!paymentId || !acctgTransId) &amp;&amp; noReconcile != 'Y'">
                     <label text="Name: ${transName}" type="p" condition="transName"/>
                     <label text="Memo: ${transMemo}" type="p" condition="transMemo"/>
@@ -210,6 +228,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="partyId"><default-field><hidden/></default-field></field>
                         <field name="paymentMethodId"><default-field><hidden/></default-field></field>
                         <field name="fitId"><default-field><hidden/></default-field></field>
+                        <field name="pageIndex"><default-field><hidden/></default-field></field>
 
                         <field name="paymentId"><default-field><text-line size="20"/></default-field></field>
                         <field name="acctgTransId"><default-field title="GL Trans ID"><text-line size="20"/></default-field></field>
@@ -218,9 +237,9 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-single>
                 </container-dialog>
 
-                <link url="noReconcile" text="No Rec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
+                <link url="noReconcile" text="No Rec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId, pageIndex:pageIndex]"
                         condition="!(paymentId || acctgTransId || noReconcile == 'Y')"/>
-                <link url="unreconcile" text="Unrec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId]"
+                <link url="unreconcile" text="Unrec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId, pageIndex:pageIndex]"
                         condition="paymentId || acctgTransId || noReconcile == 'Y'"/>
             </default-field></field>
 
@@ -229,9 +248,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <!-- no row form any more, also no multi=true: <default-field title="Update"><submit/></default-field> -->
             </field>
 
-            <form-list-column><field-ref name="postedDate"/><field-ref name="transAmount"/></form-list-column>
+            <form-list-column><field-ref name="postedDate"/><field-ref name="paymentDate"/><field-ref name="glTransDate"/></form-list-column>
+            <form-list-column><field-ref name="transAmount"/><field-ref name="paymentAmount"/><field-ref name="glTransAmount"/></form-list-column>
             <form-list-column><field-ref name="fitId"/><field-ref name="transType"/></form-list-column>
-            <form-list-column><field-ref name="checkNumber"/><field-ref name="refNumber"/></form-list-column>
+            <form-list-column><field-ref name="checkNumber"/><field-ref name="refNumber"/><field-ref name="paymentRefNum"/></form-list-column>
             <form-list-column><field-ref name="transName"/><field-ref name="transMemo"/></form-list-column>
             <form-list-column><field-ref name="paymentInfo"/><field-ref name="acctgTransInfo"/></form-list-column>
             <form-list-column><field-ref name="transActions"/></form-list-column>
