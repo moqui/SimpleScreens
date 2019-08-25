@@ -20,6 +20,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="findPayment"><default-response url="//${appRoot}/Accounting/Payment/FindPayment"/></transition>
     <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
     <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
+    <transition name="findTransactionEntry"><default-response url="//${appRoot}/Accounting/Transaction/FindTransactionEntry"/></transition>
 
     <transition name="createPaymentMethodTrans"><service-call name="mantle.account.ReconciliationServices.create#PaymentMethodTrans"/>
         <default-response url="."/></transition>
@@ -101,8 +102,10 @@ along with this software (see the LICENSE.md file). If not, see
 
         <link url="findPayment" text="Payments From" parameter-map="[paymentMethodId:paymentMethodId]"/>
         <link url="findPayment" text="Payments To" parameter-map="[toPaymentMethodId:paymentMethodId]"/>
-        <link url="findPayment" text="Payments Not Rec"
-                parameter-map="[eitherPaymentMethodId:paymentMethodId, onlyNotRec:'Y', statusId:'PmntDelivered,PmntConfirmed', statusId_op:'in']"/>
+        <link url="findPayment" text="Payments Not Rec" parameter-map="[eitherPaymentMethodId:paymentMethodId,
+                onlyNotRec:'Y', statusId:'PmntDelivered,PmntConfirmed', statusId_op:'in']"/>
+        <link url="findTransactionEntry" text="GL Trans Not Rec" condition="paymentMethod?.glAccountId"
+                parameter-map="[glAccountId:paymentMethod?.glAccountId, onlyNotRec:'Y']"/>
 
         <form-list name="TransList" list="transList" transition="updatePaymentMethodTrans" skip-form="true"
                    header-dialog="true" saved-finds="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
