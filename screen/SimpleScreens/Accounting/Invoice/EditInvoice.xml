@@ -49,6 +49,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
     <transition-include name="getItemTypeGlAccount" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
+    <transition name="createCreditMemo"><service-call name="mantle.account.InvoiceServices.create#InvoiceCreditMemo"/>
+        <default-response url="."/></transition>
+
     <transition name="recordPayment"><service-call name="mantle.account.PaymentServices.create#InvoicePayment"/>
         <default-response url="."/></transition>
     <transition name="sendPromisedPayment"><service-call name="mantle.account.PaymentServices.send#PromisedPayment"/>
@@ -168,6 +171,9 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="statusId == 'InvoiceCancelled' &amp;&amp; !isPayableInvoice" confirmation="Go back to In Process status?"/>
                 <link url="updateStatus" text="Uncancel" parameter-map="[invoiceId:invoiceId, statusId:'InvoiceReceived']"
                         condition="statusId == 'InvoiceCancelled' &amp;&amp; isPayableInvoice" confirmation="Go back to Received status?"/>
+
+                <link url="cancelInvoiceAndPayments" text="Cancel Invoice and Payments" btn-type="warning"
+                        confirmation="Cancel this invoice and all payments applied to it?" condition="statusId != 'InvoiceCancelled'"/>
 
                 <link url="reverseInvoice" text="Reverse Invoice" btn-type="warning" condition="invoice.invoiceTotal &lt; 0.0"/>
 
@@ -401,8 +407,34 @@ along with this software (see the LICENSE.md file). If not, see
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
             <container-box><box-header title="Payment Applications"/><box-toolbar>
-                <link url="cancelInvoiceAndPayments" text="Cancel Invoice and Payments" confirmation="Cancel this invoice and all payments applied to it?"
-                        condition="statusId != 'InvoiceCancelled'"/>
+                <container-dialog id="NewCreditMemoDialog" button-text="New Credit Memo" condition="unpaidTotal">
+                    <form-single name="NewCreditMemoForm" transition="createCreditMemo">
+                        <field name="originalInvoiceId" from="invoiceId"><default-field><display/></default-field></field>
+
+                        <field name="invoiceDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+
+                        <field name="description"><default-field><text-line size="50"/></default-field></field>
+                        <field name="amount" from="unpaidTotal"><default-field><text-line size="8" format="#,##0.00"/></default-field></field>
+
+                        <field name="itemTypeEnumId"><default-field title="Item Type">
+                            <drop-down><entity-options key="${enumId}" text="${description}">
+                                <entity-find entity-name="moqui.basic.EnumAndGroup">
+                                    <econdition field-name="enumGroupEnumId" value="EngItemsAdjust"/>
+                                    <order-by field-name="description"/></entity-find>
+                            </entity-options></drop-down>
+                        </default-field></field>
+
+                        <field name="typeGlAccount"><default-field title="Default GL Account">
+                            <display dynamic-transition="getItemTypeGlAccount" also-hidden="false" depends-optional="true"
+                                    parameter-map="[organizationPartyId:organizationPartyId, direction:(isPayableInvoice ? 'I' : 'O')]">
+                                <depends-on field="itemTypeEnumId"/><depends-on field="productId"/></display>
+                        </default-field></field>
+                        <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
+                            <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></default-field></field>
+
+                        <field name="submitButton"><default-field title="Record Credit Memo"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
 
                 <container-dialog id="RecordPaymentContainer" button-text="New Payment for Invoice" condition="unpaidTotal">
                     <form-single name="RecordPaymentForm" transition="recordPayment">

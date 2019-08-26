@@ -35,12 +35,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getItemTypeGlAccount" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
     <actions>
-        <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
-        <if condition="invoice == null"><return error="true" message="Invoice ${invoiceId} not found"/></if>
+        <service-call name="mantle.account.InvoiceServices.get#InvoiceBasicInfo" out-map="context"
+                in-map="[invoiceId:invoiceId, activeOrgId:activeOrgId]"/>
+
+        <!-- get invoice items -->
         <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
             <econdition field-name="invoiceId"/><order-by field-name="invoiceItemSeqId"/></entity-find>
         <set field="topItemList" from="invoiceItemList.findAll({ it.parentItemSeqId == null })"/>
-
         <!-- put items with parentItemSeqId in the list after their parent -->
         <script><![CDATA[
             itemWithChildrenSet = new HashSet()
@@ -53,14 +54,6 @@ along with this software (see the LICENSE.md file). If not, see
                 }
             }
         ]]></script>
-
-        <set field="editableStatusIds" from="new HashSet(['InvoiceInProcess', 'InvoiceIncoming', 'InvoiceReceived'])"/>
-        <set field="invoiceEditable" from="invoice.statusId in editableStatusIds"/>
-
-        <entity-find entity-name="mantle.party.PartyRole" list="fromOrgInternalList">
-            <econdition field-name="partyId" from="invoice.fromPartyId"/><econdition field-name="roleTypeId" value="OrgInternal"/></entity-find>
-        <set field="isFromPartyOrgInternal" from="fromOrgInternalList as boolean"/>
-        <set field="organizationPartyId" from="isFromPartyOrgInternal ? invoice.fromPartyId : invoice.toPartyId"/>
 
         <if condition="invoice.invoiceTypeEnumId == 'InvoiceSales' || invoice.invoiceTypeEnumId == 'InvoiceReturn'"><then>
             <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
