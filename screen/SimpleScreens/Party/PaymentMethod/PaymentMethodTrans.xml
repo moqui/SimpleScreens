@@ -28,12 +28,13 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="matchReconcile"><service-call name="mantle.account.ReconciliationServices.match#PaymentMethodTransUnmatched"/>
         <default-response url="."/></transition>
+
     <transition name="reconcile"><service-call name="mantle.account.ReconciliationServices.reconcile#PaymentMethodTrans"/>
-        <default-response url="."/></transition>
+        <default-response url="." parameter-map="ec.web.requestParameters + [fitId:null, paymentId:null, acctgTransId:null, moquiFormName:null]"/></transition>
     <transition name="unreconcile"><service-call name="mantle.account.ReconciliationServices.unreconcile#PaymentMethodTrans"/>
-        <default-response url="."/></transition>
+        <default-response url="." parameter-map="ec.web.requestParameters + [fitId:null, submitButton:null]"/></transition>
     <transition name="noReconcile"><service-call name="mantle.account.ReconciliationServices.noReconcile#PaymentMethodTrans"/>
-        <default-response url="."/></transition>
+        <default-response url="." parameter-map="ec.web.requestParameters + [fitId:null, moquiFormName:null, submitButton:null]"/></transition>
 
     <transition name="uploadOfxVersion1"><service-call name="mantle.account.OfxServices.upload#OfxVersion1"/>
         <default-response url="."/></transition>
@@ -228,7 +229,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text="Ref: ${refNumber}" type="p" condition="refNumber"/>
                     <label text="If Payment and GL Trans are associated you can enter one or the other" type="p" style="text-info"/>
 
-                    <form-single name="ManRecForm" transition="reconcile">
+                    <form-single name="ManRecForm" transition="reconcile" pass-through-parameters="true">
                         <field name="partyId"><default-field><hidden/></default-field></field>
                         <field name="paymentMethodId"><default-field><hidden/></default-field></field>
                         <field name="fitId"><default-field><hidden/></default-field></field>
@@ -241,9 +242,9 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-single>
                 </container-dialog>
 
-                <link url="noReconcile" text="No Rec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId, pageIndex:pageIndex]"
+                <link url="noReconcile" text="No Rec" parameter-map="ec.web.requestParameters + [fitId:fitId, pageIndex:pageIndex]"
                         condition="!(paymentId || acctgTransId || noReconcile == 'Y')"/>
-                <link url="unreconcile" text="Unrec" parameter-map="[paymentMethodId:paymentMethodId, fitId:fitId, pageIndex:pageIndex]"
+                <link url="unreconcile" text="Unrec" parameter-map="ec.web.requestParameters + [fitId:fitId, pageIndex:pageIndex]"
                         condition="paymentId || acctgTransId || noReconcile == 'Y'"/>
             </default-field></field>
 
