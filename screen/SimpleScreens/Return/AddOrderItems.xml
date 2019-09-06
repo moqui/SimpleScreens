@@ -55,11 +55,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <text-line size="6"/></default-field></field>
                 <field name="responseAmount" from="!isProductItemType ? returnableTotal : null"><default-field title="Refund Amount">
                     <text-line size="6"/></default-field></field>
-                <field name="inventoryStatusId"><default-field title="Inventory Status">
-                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                        <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstAvailable"/>
-                        <set field="style" value=" "/></widget-template-include>
-                </default-field></field>
+                <field name="inventoryStatusId">
+                    <conditional-field condition="isShippable">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                            <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstReturned"/></widget-template-include>
+                    </conditional-field>
+                    <default-field title="Inventory Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+                </field>
                 <field name="returnReasonEnumId"><default-field title="Reason">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="ReturnReason"/><set field="style" value=" "/></widget-template-include>

@@ -74,10 +74,23 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.order.return.ReturnItemBilling" list="allItemBillingList">
             <econdition field-name="returnId"/></entity-find>
 
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
+
         <set field="allOnShipments" from="true"/>
         <iterate list="returnItemList" entry="returnItem">
-            <set field="itemSisQuantity" from="allItemSisList.findAll({ it.returnItemSeqId == returnItem.returnItemSeqId })*.quantity.sum()"/>
-            <if condition="itemSisQuantity &lt; returnItem.returnQuantity"><set field="allOnShipments" from="false"/></if>
+            <if condition="returnItem.productId">
+                <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="true">
+                    <field-map field-name="productId" from="returnItem.productId"/></entity-find-one>
+                <set field="isProductItemType" from="returnItem.itemTypeEnumId in productItemTypes"/>
+                <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
+
+                <if condition="isShippable">
+                    <set field="itemSisQuantity" from="allItemSisList.findAll({ it.returnItemSeqId == returnItem.returnItemSeqId })*.quantity.sum()"/>
+                    <if condition="itemSisQuantity &lt; returnItem.returnQuantity"><set field="allOnShipments" from="false"/></if>
+                </if>
+            </if>
         </iterate>
     </actions>
     <widgets>
@@ -101,6 +114,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="invoiceId" from="curItemBillingList ? curItemBillingList[0].invoiceId : null"/>
                 <filter-map-list list="allItemSisList" to-list="curItemSisList">
                     <field-map field-name="returnItemSeqId"/></filter-map-list>
+
+                <if condition="productId">
+                    <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="true"/>
+                    <set field="isProductItemType" from="itemTypeEnumId in productItemTypes"/>
+                    <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
+                </if>
             </row-actions>
             <field name="returnId"><default-field><hidden/></default-field></field>
             <field name="returnItemSeqId"><default-field title="Item"><display/></default-field></field>
@@ -144,9 +163,9 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="returnQuantity"><conditional-field condition="itemChangeable"><text-line size="4"/></conditional-field>
                 <default-field><display/></default-field></field>
             <field name="inventoryStatusId">
-                <conditional-field condition="itemChangeable">
+                <conditional-field condition="itemChangeable &amp;&amp; isShippable">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                        <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstAvailable"/>
+                        <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstReturned"/>
                         <set field="style" value=" "/></widget-template-include>
                 </conditional-field>
                 <default-field title="Inventory Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
