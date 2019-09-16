@@ -70,7 +70,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <fo:table-body><fo:table-row>
                     <fo:table-cell padding="3pt" width="3in">
                         <fo:block font-weight="bold">Picklist</fo:block>
-                        <fo:block>${workEffortId}: <@encodeText workEffort.workEffortName!""/> </fo:block>
+                        <fo:block>${workEffortId}: <@encodeText workEffort.workEffortName!""/></fo:block>
                         <#if warehouseFacility?has_content>
                             <fo:block font-weight="bold">Warehouse</fo:block>
                             <fo:block>${ec.resource.expand("FacilityNameTemplate", "", warehouseFacility)}</fo:block>
