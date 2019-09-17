@@ -55,6 +55,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="gatewayDetails"><service-call name="mantle.account.PaymentServices.get#SinglePaymentGatewayDetails"/>
         <default-response url="."/></transition>
+    <transition name="setPaymentRefundFor"><service-call name="mantle.account.PaymentServices.set#PaymentRefundFor"/>
+        <default-response url="."/></transition>
 
     <transition name="applyInvoicePayment"><service-call name="mantle.account.PaymentServices.apply#InvoicePayment"/>
         <default-response url="."/></transition>
@@ -91,6 +93,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
+        <set field="thisPaymentId" from="paymentId"/>
         <service-call name="mantle.account.PaymentServices.get#PaymentDisplayInfo" in-map="[paymentId:paymentId]" out-map="context"/>
         <if condition="payment == null"><return error="true" message="Payment ${paymentId} not found"/></if>
         <set field="statusId" from="payment?.statusId"/>
@@ -405,8 +408,78 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="gatewayDetails" text="Get Gateway Status" parameter-map="[payment:null]" condition="payment.paymentRefNum"/>
             </widgets></section>
 
+            <section name="SetRefundForSection" condition="isFromPartyOrgInternal &amp;&amp; !payment.refundForPaymentId &amp;&amp; payment.statusId in ['PmntPromised', 'PmntAuthorized']"><actions>
+                <!-- find applicable original payments to set refund for, only credit card payments for now -->
+                <entity-find entity-name="mantle.account.payment.Payment" list="originalPaymentList">
+                    <econdition field-name="fromPartyId" from="payment.toPartyId"/>
+                    <econdition field-name="toPartyId" from="payment.fromPartyId"/>
+                    <econdition field-name="paymentInstrumentEnumId" value="PiCreditCard"/>
+                    <econdition field-name="statusId" operator="in" value="PmntDelivered,PmntConfirmed"/>
+                    <econdition field-name="paymentGatewayConfigId" operator="is-not-null"/>
+                    <econdition field-name="paymentRefNum" operator="is-not-null"/>
+                    <econdition field-name="amount" operator="greater-equals" from="payment.amount"/>
+                </entity-find>
+            </actions><widgets>
+                <container-dialog id="SetRefundForDialog" button-text="Set Refund For Payment" condition="originalPaymentList">
+                    <form-list name="SetRefundForForm" list="originalPaymentList" transition="setPaymentRefundFor">
+                        <row-actions>
+                            <entity-find entity-name="mantle.account.payment.Payment" list="otherRefundPaymentList">
+                                <econdition field-name="refundForPaymentId" from="paymentId"/>
+                                <econdition field-name="statusId" operator="not-in" value="PmntCancelled,PmntVoid,PmntDeclined"/>
+                                <select-field field-name="paymentId,amount"/>
+                            </entity-find>
+                            <set field="otherRefundTotal" from="otherRefundPaymentList ? otherRefundPaymentList*.amount.sum() : 0.0"/>
+                            <set field="refundRemaining" from="refundForPayment.amount - otherRefundTotal"/>
+                        </row-actions>
+                        <field name="paymentId" from="thisPaymentId"><default-field><hidden/></default-field></field>
+                        <field name="refundForPaymentId" from="paymentId"><default-field><hidden/></default-field></field>
+
+                        <field name="payment"><default-field><link url="editPayment" text="${paymentId}"/></default-field></field>
+                        <field name="effectiveDate"><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                        <field name="amount"><default-field><display currency-unit-field="amountUomId"/></default-field></field>
+                        <field name="refundRemaining"><default-field>
+                            <display currency-unit-field="amountUomId" style="${refundRemaining &lt; payment.amount ? 'text-danger' : ''}"/>
+                        </default-field></field>
+
+                        <field name="submitButton"><default-field title="Set Refund For"><submit/></default-field></field>
+                    </form-list>
+                </container-dialog>
+            </widgets></section>
+
+            <link text="Refund For Payment ${payment.refundForPaymentId}" url="editPayment" condition="payment.refundForPaymentId"
+                    parameter-map="[paymentId:payment.refundForPaymentId]"/>
+            <container-dialog id="GatewayRefundForDialog" button-text="Process Gateway Refund"
+                    condition="payment.refundForPaymentId &amp;&amp; payment.statusId in ['PmntPromised', 'PmntAuthorized']">
+                <form-single name="GatewayRefundForForm" transition="gatewayRefund">
+                    <field name="refundPaymentId" from="thisPaymentId"><default-field><hidden/></default-field></field>
+                    <field name="paymentId" from="payment.refundForPaymentId"><default-field title="Original Payment"><display/></default-field></field>
+                    <!-- TODO: show payment method, other original payment info? -->
+                    <field name="amount" from="payment.amount"><default-field><display currency-unit-field="payment.amountUomId"/></default-field></field>
+                    <field name="submitButton"><default-field title="Refund"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+
+            <!-- status change and history -->
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+            <section name="RefundPaymentSection" condition="refundPaymentList"><widgets>
+                <container-box><box-header title="Refund Payments"/><box-body-nopad>
+                    <form-list name="RefundPaymentList" list="refundPaymentList" skip-form="true">
+                        <field name="paymentId"><default-field title="Payment">
+                            <link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
+                        <field name="effectiveDate"><default-field title="Date">
+                            <display format="yyyy-MM-dd"/></default-field></field>
+                        <field name="statusId"><default-field title="Status">
+                            <display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field></field>
+                        <field name="amount" align="right"><default-field title="Amount">
+                            <display currency-unit-field="amountUomId"/></default-field></field>
+                        <field name="unappliedTotal" align="right"><default-field title="Unapplied">
+                            <display currency-unit-field="amountUomId"/></default-field></field>
+                        <!-- TODO: allow gateway refund from here, if status Promised or Authorized on refund Payment -->
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
 
             <container-box><box-header title="Payment Applications"/><box-toolbar>
                 <link url="cancelPaymentAndInvoices" text="Cancel Payment and Invoices" confirmation="Cancel this payment and cancel all invoices it is applied to?"
@@ -436,7 +509,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-list>
             </box-body-nopad></container-box>
 
-            <section name="ApplyToInvoiceSection" condition="isInvoicePayment &amp;&amp; unappliedTotal > 0"><widgets>
+            <section name="ApplyToInvoiceSection" condition="(isInvoicePayment || payment?.paymentTypeEnumId == 'PtRefund') &amp;&amp; unappliedTotal > 0"><widgets>
                 <container-box><box-header title="Applicable Unpaid Invoices"/><box-body-nopad>
                     <form-list name="UnpaidInvoiceList" list="unpaidInvoiceInfoList" transition="applyInvoicePayment">
                         <field name="paymentId"><default-field><hidden/></default-field></field>
@@ -467,7 +540,7 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ApplyPaymentSection" condition="(isInvoicePayment || payment?.paymentTypeEnumId == 'PtRefund') &amp;&amp; unappliedTotal > 0"><widgets>
                 <container-box><box-header title="Applicable Payments"/><box-body-nopad>
                     <form-list name="UnappliedPaymentList" list="unappliedPaymentInfoList" transition="applyPaymentToPayment">
-                        <field name="paymentId"><default-field><hidden/></default-field></field>
+                        <field name="paymentId" from="thisPaymentId"><default-field><hidden/></default-field></field>
                         <field name="toPaymentId" from="payment.paymentId"><default-field title="Payment">
                             <display text=""/><!-- so that it is rendered, and a hidden value is added -->
                             <link url="editPayment" text="${payment.paymentId?:''}" link-type="anchor"
