@@ -53,6 +53,27 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
+            <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
+                <form-list name="AuditLogList" list="auditLogList" skip-form="true">
+                    <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
+                        <econdition field-name="changedEntityName" value="mantle.product.asset.Asset"/>
+                        <econdition field-name="changedFieldName" operator="not-equals" value="statusId"/>
+                        <econdition field-name="pkPrimaryValue" from="assetId"/>
+                        <select-field field-name="changedEntityName"/>
+                        <order-by field-name="-changedDate"/>
+                    </entity-find>
+
+                    <field name="changedDate"><default-field title="Date"><display/></default-field></field>
+                    <field name="changedByUserId"><default-field title="User">
+                        <display-entity text="UsernameTemplate" entity-name="mantle.party.PersonWithUserAccount" key-field-name="userId"/></default-field></field>
+                    <field name="changedFieldName"><default-field title="Field">
+                        <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedFieldName)}"/></default-field></field>
+                    <field name="oldValueText"><default-field title="From">
+                        <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, oldValueText)}"/></default-field></field>
+                    <field name="newValueText"><default-field title="To">
+                        <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
+                </form-list>
+            </container-dialog>
 
             <form-single name="EditAsset" map="asset" transition="updateAsset">
                 <field name="assetId"><default-field><display/></default-field></field>
