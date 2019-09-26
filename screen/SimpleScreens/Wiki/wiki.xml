@@ -29,21 +29,17 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="setPublishedVersion"><service-call name="org.moqui.impl.WikiServices.set#PublishedVersion"/>
         <default-response url="."/></transition>
-    <transition name="uploadAttachment"><actions>
-        <if condition="attachmentFile == null"><return message="No attachment uploaded"/></if>
-        <set field="filename" from="attachmentFile.getName()"/>
-        <service-call name="org.moqui.impl.WikiServices.get#WikiPageAttachment" in-map="context" out-map="context"/>
-        <script><![CDATA[
-            import org.moqui.resource.ResourceReference
-            org.moqui.context.ExecutionContext ec = context.ec
-            org.apache.commons.fileupload.FileItem attachmentFile = context.attachmentFile
-            ec.logger.info("Uploading file [${filename}] for page [${pagePath}] in space [${wikiSpaceId}]")
+    <transition name="deletePage">
+        <service-call name="org.moqui.impl.WikiServices.delete#WikiPage"/>
+        <!-- delete#WikiPage will return parent (or empty) page path, make sure wikiPageId is null -->
+        <actions><set field="wikiPageId" from="null"/></actions>
+        <default-response url="."/>
+    </transition>
 
-            InputStream fileStream = attachmentFile.getInputStream()
-            attachmentReference.putStream(fileStream)
-            fileStream.close()
-        ]]></script>
-    </actions><default-response url="."/></transition>
+    <transition name="uploadAttachment"><service-call name="org.moqui.impl.WikiServices.upload#WikiPageAttachment"/>
+        <default-response url="."/></transition>
+    <transition name="deleteAttachment"><service-call name="org.moqui.impl.WikiServices.delete#WikiPageAttachment"/>
+        <default-response url="."/></transition>
     <transition name="downloadAttachment" read-only="true"><actions>
         <service-call name="org.moqui.impl.WikiServices.get#WikiPageAttachment" in-map="context" out-map="context"/>
         <script>ec.web.sendResourceResponse(attachmentReference.location)</script>
@@ -92,6 +88,8 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="baseLinkUrl" from="sri.getCurrentScreenUrl().getScreenPathUrl() + '/' + wikiSpaceId"/>
         <!-- this is only used for the WikiPageTree.ftl file, not needed otherwise: -->
         <!-- <service-call name="org.moqui.impl.WikiServices.get#WikiSpacePages" in-map="context" out-map="context"/> -->
+
+        <set field="childPageList" from="pageReference.getChildren()"/>
 
         <!-- Comments -->
         <entity-find entity-name="mantle.party.communication.WikiPageCommEventDetail" list="commEventDetailList">
@@ -187,6 +185,9 @@ along with this software (see the LICENSE.md file). If not, see
                     <parameter name="wikiSpaceId"/><parameter name="parentPath" from="pagePath"/>
                     <parameter name="isCreate" value="true"/></link>
                 -->
+                <link url="deletePage" text="" icon="glyphicon glyphicon-trash" condition="pagePath &amp;&amp; !childPageList" btn-type="danger"
+                        confirmation="Are you sure you want to delete this wiki page and all attachments? This cannot be undone."
+                        parameter-map="[wikiSpaceId:wikiSpaceId, pagePath:pagePath, deleteAttachments:'true', wikiPageId:null]"/>
             </box-toolbar><box-body>
                 <container id="wiki-page-area">
                     <section name="WikiPageInclude">
@@ -257,15 +258,13 @@ along with this software (see the LICENSE.md file). If not, see
                 </container-dialog>
             </box-toolbar><box-body>
                 <section-iterate name="AttachmentList" list="attachmentList" entry="attachment"><widgets>
-                    <link url="downloadAttachment" text="${attachment.filename}" link-type="anchor">
-                        <parameter name="wikiSpaceId" from="attachment.wikiSpaceId"/>
-                        <parameter name="pagePath" from="attachment.pagePath"/>
-                        <parameter name="filename" from="attachment.filename"/>
-                    </link>
+                    <link url="downloadAttachment" text="${attachment.filename}" link-type="anchor"
+                            parameter-map="[wikiSpaceId:wikiSpaceId, pagePath:pagePath, filename:attachment.filename]"/>
+                    <link url="deleteAttachment" text="" icon="glyphicon glyphicon-trash" btn-type="danger" confirmation="Delete ${attachment.filename} permanently?"
+                            parameter-map="[wikiSpaceId:wikiSpaceId, pagePath:pagePath, filename:attachment.filename]"/>
                     <container><link text="Public Link" url="${ec.resource.expand(wikiSpace.publicAttachmentUrl, null, attachment, false)}" url-type="plain"
                             link-type="anchor" target-window="_blank" condition="wikiSpace?.publicAttachmentUrl"/></container>
                     <container><label text="${attachment.contentType} - ${ec.l10n.format(new Timestamp(attachment.lastModified), 'yyyy-MM-dd HH:mm')}"/></container>
-                    <!-- TODO: add delete link; maybe just move to a _trash directory? -->
                 </widgets></section-iterate>
             </box-body></container-box>
 
