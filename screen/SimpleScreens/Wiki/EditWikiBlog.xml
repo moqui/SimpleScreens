@@ -17,6 +17,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="wikiBlogId" required="true"/>
 
+    <transition name="wiki"><default-response url="../wiki"/></transition>
+
     <transition name="updateBlog"><service-call name="org.moqui.impl.WikiServices.update#WikiBlog"/>
         <default-response url="."/></transition>
     <transition name="addCategory"><service-call name="create#moqui.resource.wiki.WikiBlogCategory"/>
@@ -24,7 +26,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="removeCategory"><service-call name="delete#moqui.resource.wiki.WikiBlogCategory"/>
         <default-response url="."/></transition>
 
-    <transition-include name="getSpacePages" location="component://SimpleScreens/screen/SimpleScreens/Wiki/WikiBlogs.xml"/>
+    <transition-include name="getSpacePages" location="component://SimpleScreens/screen/SimpleScreens/Wiki/wiki.xml"/>
     <transition name="downloadSmallImage" read-only="true">
         <actions>
             <entity-find-one entity-name="moqui.resource.wiki.WikiBlog" value-field="wikiBlog"/>
@@ -65,9 +67,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <entity-find entity-name="moqui.resource.wiki.WikiSpace">
                             <order-by field-name="wikiSpaceId"/></entity-find></entity-options>
                 </drop-down></default-field></field>
-                <field name="wikiPageId"><default-field title="Wiki Page"><drop-down>
-                    <dynamic-options transition="getSpacePages" server-search="true" min-length="0"><depends-on field="wikiSpaceId"/></dynamic-options>
-                </drop-down></default-field></field>
+                <field name="wikiPageId"><default-field title="Wiki Page">
+                    <drop-down><dynamic-options transition="getSpacePages" server-search="true" min-length="0">
+                        <depends-on field="wikiSpaceId"/></dynamic-options></drop-down>
+                    <link url="wiki" text="Current Page ${wikiPageId} at ${wikiPage.wikiSpaceId}/${wikiPage.pagePath}"
+                            condition="wikiPage" link-type="anchor"/>
+                </default-field></field>
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
             </form-single>
         </row-col><row-col md="4">

@@ -18,30 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createBlog"><service-call name="org.moqui.impl.WikiServices.create#WikiBlog"/>
         <default-response url="../EditWikiBlog"/></transition>
 
-    <transition name="getSpacePages"><parameter name="wikiSpaceId"/><parameter name="term"/>
-        <actions>
-            <set field="pageIndex" from="pageIndex ?: 0"/>
-            <set field="pageSize" from="pageSize ?: 20"/>
-            <set field="term" from="term ?: ''"/>
-            <entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
-                <field-map field-name="wikiPageId" from="term"/></entity-find-one>
-            <if condition="wikiPage != null"><then>
-                <set field="wikiPageList" from="[wikiPage]"/>
-            </then><else>
-                <entity-find entity-name="moqui.resource.wiki.WikiPage" list="wikiPageList">
-                    <search-form-inputs default-order-by="pagePath"/>
-                    <econdition field-name="wikiSpaceId"/>
-                    <econdition field-name="pagePath" operator="like" value="%${term}%" ignore="!term"/>
-                </entity-find>
-            </else></if>
-            <script>
-                def outList = []
-                for (wikiPage in wikiPageList) outList.add([value:wikiPage.wikiPageId, label:wikiPage.pagePath])
-                ec.web.sendJsonResponse([options:outList, pageSize:pageSize, count:(wikiPageListCount?:wikiPageList.size())])
-            </script>
-        </actions>
-        <default-response type="none"/>
-    </transition>
+    <transition-include name="getSpacePages" location="component://SimpleScreens/screen/SimpleScreens/Wiki/wiki.xml"/>
 
     <widgets>
         <container-dialog id="AddBlogPageDialog" button-text="Add Blog Post from Page">

@@ -29,6 +29,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="setPublishedVersion"><service-call name="org.moqui.impl.WikiServices.set#PublishedVersion"/>
         <default-response url="."/></transition>
+    <transition name="cloneWikiPage"><service-call name="org.moqui.impl.WikiServices.clone#WikiPage"/>
+        <default-response url="."/></transition>
     <transition name="deletePage">
         <service-call name="org.moqui.impl.WikiServices.delete#WikiPage"/>
         <!-- delete#WikiPage will return parent (or empty) page path, make sure wikiPageId is null -->
@@ -53,6 +55,35 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="removeCategory"><service-call name="delete#moqui.resource.wiki.WikiPageCategoryMember"/>
         <default-response url="."/></transition>
+
+    <transition name="getSpacePages">
+        <parameter name="wikiSpaceId"/>
+        <parameter name="term"/>
+        <parameter name="valueUsePath"/>
+        <actions>
+            <set field="pageIndex" from="pageIndex ?: 0"/>
+            <set field="pageSize" from="pageSize ?: 20"/>
+            <set field="term" from="term ?: ''"/>
+            <set field="valueUsePathBool" from="valueUsePath == 'true'"/>
+            <entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
+                <field-map field-name="wikiPageId" from="term"/></entity-find-one>
+            <if condition="wikiPage != null"><then>
+                <set field="wikiPageList" from="[wikiPage]"/>
+            </then><else>
+                <entity-find entity-name="moqui.resource.wiki.WikiPage" list="wikiPageList">
+                    <search-form-inputs default-order-by="pagePath"/>
+                    <econdition field-name="wikiSpaceId"/>
+                    <econdition field-name="pagePath" operator="like" value="%${term}%" ignore="!term"/>
+                </entity-find>
+            </else></if>
+            <script>
+                def outList = []
+                for (wikiPage in wikiPageList) outList.add([value:(valueUsePathBool ? wikiPage.pagePath : wikiPage.wikiPageId), label:wikiPage.pagePath])
+                ec.web.sendJsonResponse([options:outList, pageSize:pageSize, count:(wikiPageListCount?:wikiPageList.size())])
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
 
     <pre-actions>
         <!-- this gets run like all pre-actions in vuet mode for menuData but trying this redirect or even getting page info will cause errors -->
@@ -178,6 +209,23 @@ along with this software (see the LICENSE.md file). If not, see
                             <list-options list="ec.resource.getTemplateRendererExtensionSet()"/>
                         </drop-down></default-field></field>
                         <field name="submitButton"><default-field title="Add Page"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+                <container-dialog id="ClonePageDialog" button-text="Copy" title="Copy Wiki Page">
+                    <form-single name="ClonePage" transition="cloneWikiPage">
+                        <field name="baseWikiSpaceId" from="wikiSpaceId"><default-field><hidden/></default-field></field>
+                        <field name="pagePath"><default-field><display/></default-field></field>
+                        <field name="wikiSpaceId"><default-field title="New Wiki Space"><drop-down>
+                            <entity-options key="${wikiSpaceId}" text="${wikiSpaceId}: ${description}">
+                                <entity-find entity-name="moqui.resource.wiki.WikiSpace">
+                                    <order-by field-name="wikiSpaceId"/></entity-find></entity-options>
+                        </drop-down></default-field></field>
+                        <field name="parentPath"><default-field title="New Parent Page">
+                            <drop-down><dynamic-options transition="getSpacePages" server-search="true" min-length="0"
+                                    parameter-map="[wikiSpaceId:null, wikiPageId:null, pagePath:null, valueUsePath:'true']">
+                                <depends-on field="wikiSpaceId"/></dynamic-options></drop-down>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Clone"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
                 <!--
