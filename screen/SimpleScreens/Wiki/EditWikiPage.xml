@@ -24,6 +24,8 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="." parameter-map="[pagePath:pagePath, parentPath:parentPath, pageName:pageName, wikiType:wikiType, isCreate:isCreate]"/>
     </transition>
 
+    <transition-include name="getSpacePages" location="component://SimpleScreens/screen/SimpleScreens/Wiki/wiki.xml"/>
+
     <actions>
         <set field="extraPathNameList" from="sri.screenUrlInfo.extraPathNameList"/>
         <if condition="!isCreate || isCreate == 'false'">
@@ -31,7 +33,7 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="pageText" from="pageReference?.exists ? ec.resource.getLocationText(pageLocation, false) : ''"/>
         </if>
         <set field="currentPagePath" from="pagePath"/>
-        <service-call name="org.moqui.impl.WikiServices.get#WikiSpacePages" in-map="context" out-map="context"/>
+        <!-- <service-call name="org.moqui.impl.WikiServices.get#WikiSpacePages" in-map="context" out-map="context"/> -->
         <set field="isRootPage" from="pageReference?.exists &amp;&amp; !pagePath"/>
         <set field="wikiType" from="wikiType ?: 'md'"/>
     </actions>
@@ -42,7 +44,8 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="wikiSpaceId"><default-field><hidden/></default-field></field>
             <field name="pagePath"><default-field><hidden/></default-field></field>
             <field name="parentPath"><conditional-field condition="!isRootPage">
-                <drop-down><list-options list="allChildFileFlatList" key="${path}" text="${path?:name}"/></drop-down>
+                <drop-down><dynamic-options transition="getSpacePages" server-search="true" min-length="0"
+                        parameter-map="[wikiSpaceId:wikiSpaceId, wikiPageId:null, pagePath:null, currentPagePath:pagePath, valueUsePath:'true', includeRoot:'true']"/></drop-down>
             </conditional-field></field>
             <field name="pageName">
                 <conditional-field condition="isRootPage"><hidden/></conditional-field>

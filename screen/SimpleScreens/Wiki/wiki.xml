@@ -59,7 +59,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="getSpacePages">
         <parameter name="wikiSpaceId"/>
         <parameter name="term"/>
+        <parameter name="currentPagePath"/>
         <parameter name="valueUsePath"/>
+        <parameter name="includeRoot"/>
         <actions>
             <set field="pageIndex" from="pageIndex ?: 0"/>
             <set field="pageSize" from="pageSize ?: 20"/>
@@ -67,6 +69,13 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="valueUsePathBool" from="valueUsePath == 'true'"/>
             <entity-find-one entity-name="moqui.resource.wiki.WikiPage" value-field="wikiPage">
                 <field-map field-name="wikiPageId" from="term"/></entity-find-one>
+            <if condition="wikiPage == null">
+                <entity-find entity-name="moqui.resource.wiki.WikiPage" list="byPathPageList">
+                    <econdition field-name="wikiSpaceId"/>
+                    <econdition field-name="pagePath" from="term"/>
+                </entity-find>
+                <if condition="byPathPageList"><set field="wikiPage" from="byPathPageList[0]"/></if>
+            </if>
             <if condition="wikiPage != null"><then>
                 <set field="wikiPageList" from="[wikiPage]"/>
             </then><else>
@@ -74,13 +83,16 @@ along with this software (see the LICENSE.md file). If not, see
                     <search-form-inputs default-order-by="pagePath"/>
                     <econdition field-name="wikiSpaceId"/>
                     <econdition field-name="pagePath" operator="like" value="%${term}%" ignore="!term"/>
+                    <econdition field-name="pagePath" operator="not-like" value="${currentPagePath}%" ignore="!currentPagePath"/>
                 </entity-find>
             </else></if>
-            <script>
+            <script><![CDATA[
                 def outList = []
+                if (wikiPage == null && wikiPageList && includeRoot == 'true') outList.add([value:wikiSpaceId, label:'Root Page'])
                 for (wikiPage in wikiPageList) outList.add([value:(valueUsePathBool ? wikiPage.pagePath : wikiPage.wikiPageId), label:wikiPage.pagePath])
                 ec.web.sendJsonResponse([options:outList, pageSize:pageSize, count:(wikiPageListCount?:wikiPageList.size())])
-            </script>
+                ec.logger.warn("term ${term} outList ${outList}")
+            ]]></script>
         </actions>
         <default-response type="none"/>
     </transition>
@@ -222,7 +234,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </drop-down></default-field></field>
                         <field name="parentPath"><default-field title="New Parent Page">
                             <drop-down><dynamic-options transition="getSpacePages" server-search="true" min-length="0"
-                                    parameter-map="[wikiSpaceId:null, wikiPageId:null, pagePath:null, valueUsePath:'true']">
+                                    parameter-map="[wikiSpaceId:null, wikiPageId:null, pagePath:null, currentPagePath:pagePath, parentPath:null, valueUsePath:'true', includeRoot:'true']">
                                 <depends-on field="wikiSpaceId"/></dynamic-options></drop-down>
                         </default-field></field>
                         <field name="submitButton"><default-field title="Clone"><submit/></default-field></field>
