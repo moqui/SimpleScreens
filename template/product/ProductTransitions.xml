@@ -267,6 +267,45 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
+    <transition name="getAssetPoolList">
+        <parameter name="term"/>
+        <parameter name="partyId"/>
+        <parameter name="productStoreId"/>
+        <actions>
+            <entity-find-one entity-name="mantle.product.asset.AssetPool" value-field="pkPool">
+                <field-map field-name="assetPoolId" from="term"/></entity-find-one>
+            <if condition="pkPool == null">
+                <entity-find-one entity-name="mantle.product.asset.AssetPool" value-field="pkPool">
+                    <field-map field-name="pseudoId" from="term"/></entity-find-one>
+            </if>
+            <if condition="pkPool != null"><then>
+                <set field="poolList" from="[pkPool]"/>
+            </then><else>
+                <set field="term" from="term ?: ''"/>
+                <entity-find entity-name="mantle.product.asset.AssetPoolDetail" list="poolList" limit="20">
+                    <econdition field-name="partyId" ignore-if-empty="true"/>
+                    <econdition field-name="productStoreId" ignore-if-empty="true"/>
+                    <econditions combine="or">
+                        <econdition field-name="assetPoolId" operator="like" value="${term}%" ignore-case="true"/>
+                        <econdition field-name="pseudoId" operator="like" value="${term}%" ignore-case="true"/>
+                        <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true"/>
+                    </econditions>
+                    <select-field field-name="assetPoolId,pseudoId,description"/>
+                    <order-by field-name="assetPoolId"/>
+                </entity-find>
+            </else></if>
+
+            <script>
+                def outList = []
+                for (pool in poolList) {
+                    outList.add([value:pool.assetPoolId, label:ec.resource.expand('${pseudoId}: ${description}', '', pool)])
+                }
+                ec.web.sendJsonResponse(outList)
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
     <transition name="getLotList">
         <parameter name="term"/>
         <parameter name="mfgPartyId"/>
