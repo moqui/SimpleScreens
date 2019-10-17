@@ -19,6 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="locationSeqId"/>
     <parameter name="containerId"/>
     <parameter name="productId"/>
+    <parameter name="assetPoolId"/>
     <parameter name="lotId"/>
     <parameter name="quantity"/>
     <parameter name="toScanLocation"/>
@@ -200,8 +201,19 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="locationSeqId"><default-field><hidden/></default-field></field>
                 <field name="containerId"><default-field><hidden/></default-field></field>
                 <field name="productId"><default-field><hidden/></default-field></field>
-                <field name="quantity"><default-field title="Quantity">
-                    <text-line size="20"/></default-field></field>
+                <field name="assetPoolId"><default-field title="From Pool"><drop-down allow-empty="true">
+                    <entity-options key="${assetPoolId}" text="${pseudoId}: ${description}">
+                        <entity-find entity-name="mantle.product.asset.AssetAndPool" distinct="true">
+                            <econdition field-name="facilityId"/>
+                            <econdition field-name="productId"/>
+                            <econditions combine="or">
+                                <econdition field-name="locationSeqId"/>
+                                <econdition field-name="containerId"/>
+                            </econditions>
+                            <select-field field-name="assetPoolId,pseudoId,description"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
                 <field name="createContMessage"><conditional-field condition="createContainerId" title="">
                     <label text="Scanned ID was not a known location or container, scan a location to create a container with the ID" style="text-warning"/>
                 </conditional-field></field>
@@ -209,9 +221,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <text-line size="20"/></default-field></field>
                 <field name="createContainerId"><default-field title="Create Container ID">
                     <text-line size="20"/></default-field></field>
-                <field name="assetPoolId"><default-field title="Pool"><drop-down allow-empty="true">
+                <field name="toAssetPoolId"><default-field title="To Pool"><drop-down allow-empty="true">
                     <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0"/>
                 </drop-down></default-field></field>
+                <field name="quantity"><default-field title="Quantity">
+                    <text-line size="20"/></default-field></field>
                 <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
             </form-single>
         </widgets></section>

@@ -239,7 +239,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field>
             </field>
             <field name="assetPoolId">
-                <header-field title="Pool"><drop-down allow-empty="true">
+                <header-field title="Asset Pool"><drop-down allow-empty="true">
                     <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.product.asset.AssetPool" text="${pseudoId}: ${description}"/></default-field>
             </field>
@@ -258,17 +258,23 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="physicalChange"><default-field title="PhI Diff">
                 <dynamic-dialog id="PhysicalChange" button-text="PhI Diff" transition="PhysicalChange" width="800" condition="productId"/>
             </default-field></field>
+            <field name="moveLink"><default-field title="Move">
+                <link url="../SelectAsset" text="Move" condition="quantityOnHandTotal"
+                        parameter-map="[productId:productId, facilityId:facilityId, locationSeqId:locationSeqId,
+                            containerId:containerId, lotId:lotId, assetPoolId:assetPoolId]"/>
+            </default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="assetsLink"/></form-list-column>
-            <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/></form-list-column>
-            <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/></form-list-column>
-            <form-list-column><field-ref name="statusId"/><field-ref name="ownerPartyId"/></form-list-column>
-            <form-list-column><field-ref name="facilityId"/><field-ref name="lotId"/></form-list-column>
+            <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/><field-ref name="classEnumId"/></form-list-column>
+            <form-list-column><field-ref name="statusId"/><field-ref name="ownerPartyId"/>
+                <field-ref name="assetPoolId"/></form-list-column>
+            <form-list-column><field-ref name="facilityId"/><field-ref name="locationSeqId"/><field-ref name="lotId"/></form-list-column>
             <form-list-column><field-ref name="availableToPromiseTotal"/><field-ref name="quantityOnHandTotal"/></form-list-column>
             <form-list-column><field-ref name="physicalQuantity"/></form-list-column>
             <!-- <form-list-column><field-ref name="physicalChange"/></form-list-column> -->
+            <form-list-column><field-ref name="moveLink"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
