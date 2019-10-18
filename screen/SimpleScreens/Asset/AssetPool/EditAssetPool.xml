@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Pool">
+
+    <parameter name="assetPoolId" required="true"/>
+
+    <transition name="findSummary"><default-response url="../../Asset/FindSummary"/></transition>
+    <transition name="findAsset"><default-response url="../../Asset/FindAsset"/></transition>
+
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editProductStore"><default-response url="//${appRoot}/ProductStore/EditProductStore"/></transition>
+
+    <transition name="updateAssetPool"><service-call name="update#mantle.product.asset.AssetPool"/>
+        <default-response url="."/></transition>
+
+    <transition name="createAssetPoolParty"><service-call name="create#mantle.product.asset.AssetPoolParty"/>
+        <default-response url="."/></transition>
+    <transition name="deleteAssetPoolParty"><service-call name="delete#mantle.product.asset.AssetPoolParty"/>
+        <default-response url="."/></transition>
+
+    <transition name="createAssetPoolStore"><service-call name="create#mantle.product.asset.AssetPoolStore"/>
+        <default-response url="."/></transition>
+    <transition name="deleteAssetPoolStore"><service-call name="delete#mantle.product.asset.AssetPoolStore"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.asset.AssetPool" value-field="assetPool"/>
+    </actions>
+    <widgets>
+        <container-row><row-col lg="5">
+            <link url="findSummary" text="Assets (Summary)" parameter-map="[assetPoolId:assetPoolId]"/>
+            <link url="findAsset" text="Assets (Detail)" parameter-map="[assetPoolId:assetPoolId]"/>
+
+            <form-single name="UpdateAssetPoolForm" transition="updateAssetPool" map="assetPool">
+                <field name="assetPoolId"><default-field><hidden/></default-field></field>
+                <field name="pseudoId"><default-field><text-line size="20"/></default-field></field>
+                <field name="description"><default-field><text-line size="40"/></default-field></field>
+                <field name="ownerPartyId"><default-field title="Owned By Org"><drop-down>
+                    <option key="_NA_" text="N/A"/>
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col><row-col lg="7">
+            <container-box><box-header title="Parties"/><box-toolbar>
+                <container-dialog id="AddPartyDialog" button-text="Add Party">
+                    <form-single name="AddPartyForm" transition="createAssetPoolParty">
+                        <field name="assetPoolId"><default-field><hidden/></default-field></field>
+                        <field name="partyId"><default-field title="Party"><drop-down>
+                            <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/>
+                        </drop-down></default-field></field>
+                        <field name="roleTypeId"><default-field title="Role"><drop-down allow-empty="true">
+                            <option key="Customer"/><option key="Vendor"/>
+                            <!-- use limited options instead:
+                            <entity-options key="${roleTypeId}" text="${description}">
+                                <entity-find entity-name="mantle.party.RoleType" cache="true">
+                                    <order-by field-name="description"/></entity-find>
+                            </entity-options>
+                            -->
+                        </drop-down></default-field></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <form-list name="PartyListForm" list="poolPartyList" skip-form="true">
+                    <entity-find entity-name="mantle.product.asset.AssetPoolPartyDetail" list="poolPartyList">
+                        <econdition field-name="assetPoolId"/>
+                        <select-field field-name="assetPoolId,partyId,pseudoId,firstName,middleName,lastName,organizationName"/>
+                        <order-by field-name="pseudoId"/>
+                    </entity-find>
+
+                    <field name="partyId"><default-field title="Party">
+                        <link url="editParty" text="PartyNameTemplate" link-type="anchor"/></default-field></field>
+                    <field name="roleDescription"><default-field title="Role">
+                        <display/></default-field></field>
+                    <field name="removeLink" align="right"><default-field title="">
+                        <link url="deleteAssetPoolParty" icon="glyphicon glyphicon-trash"
+                                confirmation="Remove party from pool?"
+                                parameter-map="[assetPoolId:assetPoolId, partyId:partyId]"/>
+                    </default-field></field>
+                </form-list>
+            </box-body></container-box>
+
+            <container-box><box-header title="Stores"/><box-toolbar>
+                <container-dialog id="AddStoreDialog" button-text="Add Store">
+                    <form-single name="AddStoreForm" transition="createAssetPoolStore">
+                        <field name="assetPoolId"><default-field><hidden/></default-field></field>
+                        <field name="productStoreId"><default-field title="Store"><drop-down>
+                            <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                                <entity-find entity-name="mantle.product.store.ProductStore">
+                                    <order-by field-name="storeName"/></entity-find></entity-options>
+                        </drop-down></default-field></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <form-list name="StoreListForm" list="poolStoreList" skip-form="true">
+                    <entity-find entity-name="mantle.product.asset.AssetPoolStoreDetail" list="poolStoreList">
+                        <econdition field-name="assetPoolId"/>
+                        <select-field field-name="assetPoolId,productStoreId,storeName"/>
+                        <order-by field-name="storeName"/>
+                    </entity-find>
+
+                    <field name="productStoreId"><default-field title="Store">
+                        <link url="editProductStore" text="${productStoreId}: ${storeName}" link-type="anchor"/></default-field></field>
+                    <field name="removeLink" align="right"><default-field title="">
+                        <link url="deleteAssetPoolStore" icon="glyphicon glyphicon-trash"
+                                confirmation="Remove store from pool?"
+                                parameter-map="[assetPoolId:assetPoolId, productStoreId:productStoreId]"/>
+                    </default-field></field>
+                </form-list>
+            </box-body></container-box>
+        </row-col></container-row>
+    </widgets>
+</screen>
