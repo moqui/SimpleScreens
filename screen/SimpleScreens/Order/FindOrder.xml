@@ -65,12 +65,11 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <set field="itemTypeEnumId" from="salesItemTypeEnumId ?: purchaseItemTypeEnumId"/>
         <set field="onlyProductQuantityBool" from="'true'.equals(onlyProductQuantity)"/>
-        <if condition="onlyProductQuantityBool">
-            <if condition="!itemTypeEnumId">
-                <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
-                    <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
-                <set field="itemTypeEnumId" from="productItemTypeEgms*.enumId.join(',')"/>
-            </if>
+        <if condition="onlyProductQuantityBool || inventoryAvailable == 'none'">
+            <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+                <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+            <set field="itemTypeEnumId" from="productItemTypeEgms*.enumId.join(',')"/>
+            <!-- NOTE might be better: if itemTypeEnumId specified create a Set containing only types in both -->
         </if>
 
         <set field="orderType" from="orderType ?: 'Any'"/>
@@ -196,10 +195,13 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
                 <having-econditions>
                     <econdition field-name="issuedQuantity" operator="greater" from="0.0" ignore="onlyPartlyShipped != 'true'"/>
-                    <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="onlyInventoryUnavailable != 'true'"/>
+                    <econdition field-name="quantityNotAvailable" operator="equals" from="0.0" ignore="inventoryAvailable != 'all'"/>
+                    <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="inventoryAvailable != 'partial' &amp;&amp; inventoryAvailable != 'notall'"/>
+                    <econdition field-name="quantityNotAvailable" operator="less" to-field-name="quantity" ignore="inventoryAvailable != 'partial'"/>
+                    <econdition field-name="quantityNotAvailable" operator="equals" to-field-name="quantity" ignore="inventoryAvailable != 'none'"/>
                 </having-econditions>
                 <!-- NOTE: need to select issuedQuantity,quantityNotAvailable if having conditions are used (EntityFindBuilder doesn't yet add these to sub-select automatically) -->
-                <select-field field-name="orderPartSeqId${onlyPartlyShipped=='true' ? ',issuedQuantity' : ''}${onlyInventoryUnavailable=='true' ? ',quantityNotAvailable' : ''}"/>
+                <select-field field-name="orderPartSeqId${onlyPartlyShipped=='true' ? ',issuedQuantity' : ''}${inventoryAvailable in ['all','partial','none'] ? ',quantityNotAvailable' : ''}${inventoryAvailable in ['partial','none'] ? ',quantity' : ''}"/>
             </entity-find>
             <row-actions>
                 <!-- Customer Classification -->
@@ -232,9 +234,9 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="onlyPartlyShipped"><header-field title="Shipped">
                 <check><option key="true" text="Only Partly Shipped"/></check>
             </header-field></field>
-            <field name="onlyInventoryUnavailable"><header-field title="Inventory">
-                <check><option key="true" text="Only with Unavailable"/></check>
-            </header-field></field>
+            <field name="inventoryAvailable"><header-field title="Inventory Available"><radio no-current-selected-key="any">
+                <option key="any" text="Any"/><option key="all" text="All"/><option key="notall" text="Partial/None"/><option key="partial" text="Partial"/><option key="none" text="None"/>
+            </radio></header-field></field>
             <field name="onlyProductQuantity"><header-field title="Quantity">
                 <check><option key="true" text="Only count Product"/></check>
             </header-field></field>
