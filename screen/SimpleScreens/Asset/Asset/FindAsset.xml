@@ -88,13 +88,16 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <form-list name="ListAssets" list="assetList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true" show-csv-button="true">
+        <form-list name="ListAssets" list="assetList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true"
+                show-csv-button="true" show-xlsx-button="true">
             <entity-find entity-name="mantle.product.asset.AssetFindView" list="assetList">
                 <search-form-inputs default-order-by="-receivedDate,-assetId" require-parameters="true"/>
                 <econditions combine="or">
                     <econdition field-name="acquireCost" operator="is-null" ignore="onlyNoAcquireCost != 'true'"/>
+                    <econdition field-name="acquireCost" from="0.0" ignore="onlyNoAcquireCost != 'true'"/>
                     <econdition field-name="acquireCost" to-field-name="acquireUnitAmount" ignore="onlyAcquireMatchPo != 'true'"/>
                 </econditions>
+                <econdition field-name="locationSeqId" operator="is-null" ignore="onlyNoLocation != 'true'"/>
                 <!-- unlike Asset/FindSummary show all asset history here:
                 <econditions combine="or">
                     <econdition field-name="availableToPromiseTotal" operator="not-equals" from="0.0"/>
@@ -125,8 +128,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
-            <field name="acquireCost"><header-field><range-find size="5"/></header-field>
-                <default-field><display/></default-field></field>
+            <field name="acquireCost" align="right"><header-field><range-find size="5"/></header-field>
+                <default-field><display format="#,##0.00"/></default-field></field>
 
             <field name="assetTypeEnumId">
                 <header-field title="Asset Type" show-order-by="true">
@@ -169,6 +172,8 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down></header-field>
                 <default-field><label condition="locationSeqId" text-map="facLoc" text="FacilityLocationNameTemplate"/></default-field>
             </field>
+            <field name="onlyNoLocation"><header-field title="No Location"><check><option key="true" text="Only No Location"/></check></header-field></field>
+
             <field name="containerId">
                 <header-field title="Container" show-order-by="true"><drop-down allow-empty="true">
                     <dynamic-options transition="getContainerList" server-search="true" min-length="0" depends-optional="true">
@@ -201,10 +206,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display text="${ec.l10n.format(quantityOnHandTotal, null)} (${amountUom?.description?:'each'})"/></default-field>
             </field>
 
-            <field name="onlyNoAcquireCost"><header-field title="No Acquire Cost">
-                <check><option key="true" text=" "/></check></header-field></field>
-            <field name="onlyAcquireMatchPo"><header-field title="Acquire Cost Matches PO">
-                <check><option key="true" text=" "/></check></header-field></field>
+            <field name="onlyNoAcquireCost"><header-field title="Acquire Cost">
+                <check><option key="true" text="Only No Cost"/></check></header-field></field>
+            <field name="onlyAcquireMatchPo"><header-field title="Acquire Cost">
+                <check><option key="true" text="Only Cost Matches PO Amount"/></check></header-field></field>
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field>
                 <default-field><link url="assetDetail" text="Detail" link-type="anchor-button" condition="assetId"/></default-field></field>
