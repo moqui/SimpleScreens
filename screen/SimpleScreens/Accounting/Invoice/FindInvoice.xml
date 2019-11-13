@@ -57,10 +57,10 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-dialog id="NewPayableDialog" button-text="New Payable">
             <form-single name="NewPayableForm" transition="createInvoice">
-                <field name="fromPartyId"><default-field title="From">
+                <field name="fromPartyId"><default-field title="From Supplier">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
-                <field name="toPartyId"><default-field title="Organization">
+                <field name="toPartyId"><default-field title="To Organization">
                     <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
                         <entity-find entity-name="mantle.party.PartyDetailAndRole">
                             <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
@@ -92,7 +92,7 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
         <container-dialog id="NewReceivableDialog" button-text="New Receivable">
             <form-single name="NewReceivableForm" transition="createInvoice" extends="NewPayableForm">
-                <field name="fromPartyId"><default-field title="Organization">
+                <field name="fromPartyId"><default-field title="From Organization">
                     <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
                         <entity-find entity-name="mantle.party.PartyDetailAndRole">
                             <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
@@ -101,9 +101,23 @@ along with this software (see the LICENSE.md file). If not, see
                             <order-by field-name="organizationName"/></entity-find>
                     </entity-options></drop-down>
                 </default-field></field>
-                <field name="toPartyId"><default-field title="To">
+                <field name="toPartyId"><default-field title="To Customer">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="NewCustCreditDialog" button-text="Customer Credit Memo">
+            <label text="A Customer Credit Memo is a Payable Invoice that may be applied to one or more Receivable Invoices" type="p"/>
+            <form-single name="NewCustCreditForm" transition="createInvoice" extends="NewPayableForm">
+                <field name="fromPartyId"><default-field title="From Customer"/></field>
+                <field name="invoiceTypeEnumId" from="'InvoiceCreditMemo'"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="NewSupCreditDialog" button-text="Supplier Credit Memo">
+            <label text="A Supplier Credit Memo is a Receivable Invoice that may be applied to one or more Payable Invoices" type="p"/>
+            <form-single name="NewSupCreditForm" transition="createInvoice" extends="NewReceivableForm">
+                <field name="toPartyId"><default-field title="To Supplier"/></field>
+                <field name="invoiceTypeEnumId" from="'InvoiceCreditMemo'"><default-field><hidden/></default-field></field>
             </form-single>
         </container-dialog>
 
