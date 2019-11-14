@@ -17,7 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="returnId" required="true"/>
 
-    <transition name="updateReturnItem"><service-call name="update#mantle.order.return.ReturnItem"/>
+    <transition name="updateReturnItem"><service-call name="mantle.order.ReturnServices.update#ReturnItem"/>
         <default-response url="."/></transition>
     <transition name="deleteReturnItem"><service-call name="mantle.order.ReturnServices.delete#ReturnItem"/>
         <default-response url="."/></transition>
@@ -160,7 +160,8 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="orderItem"><default-field>
                 <link url="salesOrderDetail" text="${orderId}:${orderItemSeqId}" link-type="anchor"
                       condition="orderId"/></default-field></field>
-            <field name="returnQuantity"><conditional-field condition="itemChangeable"><text-line size="4"/></conditional-field>
+            <field name="returnQuantity">
+                <conditional-field condition="itemChangeable &amp;&amp; !responseAmount"><text-line size="4"/></conditional-field>
                 <default-field><display/></default-field></field>
             <field name="inventoryStatusId">
                 <conditional-field condition="itemChangeable &amp;&amp; isShippable">
@@ -170,8 +171,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </conditional-field>
                 <default-field title="Inventory Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
-            <field name="returnPrice"><conditional-field condition="itemChangeable"><text-line size="8"/></conditional-field>
-                <default-field><display currency-unit-field="returnHeader.currencyUomId"/></default-field></field>
+            <field name="returnPrice">
+                <conditional-field condition="itemChangeable &amp;&amp; !responseAmount"><text-line size="8"/></conditional-field>
+                <default-field><display currency-unit-field="returnHeader.currencyUomId"/></default-field>
+            </field>
 
             <field name="receivedQuantity" from="receivedQuantity ?: 0.0"><default-field><display/></default-field></field>
             <field name="shipments"><default-field>
@@ -197,14 +200,14 @@ along with this software (see the LICENSE.md file). If not, see
                         parameter-map="[invoiceId:invoiceId]"/></default-field></field>
 
             <field name="submitButton">
-                <conditional-field title="Update" condition="itemChangeable">
-                    <submit/>
-                    <link url="deleteReturnItem" text="" btn-type="danger" icon="glyphicon glyphicon-trash"
-                            condition="statusId in ['ReturnCreated', 'ReturnRequested']"
-                            confirmation="Delete item ${returnItemSeqId}?"/>
-                </conditional-field>
+                <conditional-field title="Update" condition="itemChangeable"><submit/></conditional-field>
                 <default-field title=""><display text=" "/></default-field>
             </field>
+            <field name="buttons"><default-field title="">
+                <link url="deleteReturnItem" text="" btn-type="danger" icon="glyphicon glyphicon-trash"
+                        condition="statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnCancelled']"
+                        confirmation="Delete item ${returnItemSeqId}?"/>
+            </default-field></field>
 
             <form-list-column><field-ref name="returnItemSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="orderItem"/><field-ref name="itemTypeEnumId"/></form-list-column>
