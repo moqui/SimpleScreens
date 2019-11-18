@@ -159,16 +159,23 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
 
         <set field="shippingPostalAddressList" from="[]"/>
-        <if condition="isOutgoing &amp;&amp; toPartyId">
+        <if condition="(isOutgoing || isTransfer) &amp;&amp; toPartyId">
             <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="toPartyShippingInfo"
                     in-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
             <set field="shippingPostalAddressList" from="toPartyShippingInfo.postalAddressList ?: []"/>
 
+            <if condition="isTransfer &amp;&amp; lastRouteSegment.destinationFacilityId">
+                <service-call name="mantle.facility.ContactServices.get#FacilityContactInfo" out-map="destFacShippingInfo"
+                        in-map="[facilityId:lastRouteSegment.destinationFacilityId, postalContactMechPurposeId:'PostalShippingDest']"/>
+                <if condition="destFacShippingInfo.postalAddress"><script>shippingPostalAddressList.add(0, destFacShippingInfo)</script></if>
+            </if>
+
             <if condition="lastRouteSegment.destPostalContactMechId">
-                <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curDestPaInfo"
-                        in-map="[partyId:toPartyId, postalContactMechId:lastRouteSegment.destPostalContactMechId]"/>
                 <if condition="!(lastRouteSegment.destPostalContactMechId in shippingPostalAddressList*.postalContactMechId)">
-                    <script>shippingPostalAddressList.add(0, curDestPaInfo)</script></if>
+                    <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curDestPaInfo"
+                            in-map="[partyId:toPartyId, postalContactMechId:lastRouteSegment.destPostalContactMechId]"/>
+                    <script>shippingPostalAddressList.add(0, curDestPaInfo)</script>
+                </if>
             </if>
         </if>
         <if condition="isIncoming &amp;&amp; fromPartyId">
@@ -402,7 +409,7 @@ along with this software (see the LICENSE.md file). If not, see
             </container-dialog>
 
             <!-- Address Selection - Outgoing -->
-            <section name="PostalAddressSelectDestSection" condition="isOutgoing &amp;&amp; (allowUpdate || shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
+            <section name="PostalAddressSelectDestSection" condition="(isOutgoing || isTransfer) &amp;&amp; (allowUpdate || shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
                 <container><dynamic-dialog id="AddPostalInfoDest" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
                         parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
                 <label text="No shipping address selected" style="text-danger" type="p" condition="!lastRouteSegment.destPostalContactMechId"/>
@@ -538,12 +545,12 @@ along with this software (see the LICENSE.md file). If not, see
                     </conditional-field>
                 </field>
                 <field name="toPartyId">
-                    <conditional-field title="To Party" condition="isOutgoing &amp;&amp; allowUpdate">
+                    <conditional-field title="To Party" condition="(isOutgoing || isTransfer) &amp;&amp; allowUpdate">
                         <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                         <link url="editCustomer" text="${ec.resource.expand('PartyNameTemplate', '', toPartyDetail)}" link-type="anchor"
                                 condition="toPartyDetail" parameter-map="[partyId:toPartyId]"/>
                     </conditional-field>
-                    <conditional-field condition="isOutgoing" title="To Party">
+                    <conditional-field condition="toPartyId" title="To Party">
                         <link url="editCustomer" text="${ec.resource.expand('PartyNameTemplate', '', toPartyDetail)}" link-type="anchor"
                                 condition="toPartyDetail" parameter-map="[partyId:toPartyId]"/>
                     </conditional-field>
@@ -599,7 +606,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-ref name="submitButton"/>
                 </field-layout>
             </form-single>
-            <section name="PostalSelectJsOutSection" condition="isOutgoing"><widgets><render-mode><text type="html,vuet"><![CDATA[
+            <section name="PostalSelectJsOutSection" condition="isOutgoing || isTransfer"><widgets><render-mode><text type="html,vuet"><![CDATA[
                 <script>
                     $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val());
                     $("input[name=shippingPostalContactMechId]:radio").change( function() { $("#EditShipment_destPostalContactMechId").val($("input[name=shippingPostalContactMechId]:checked").val()); })
