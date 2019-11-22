@@ -32,20 +32,34 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="orderByField" from="null"/>
         <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
             <search-form-inputs/>
-            <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent,InvoiceAcked,InvoicePmtRecvd"/>
-            <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
-            <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
-            <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
-            <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
-            <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
+            <!-- IITM sub-select conditions -->
             <econditions combine="or">
-                <!-- NOTE would be nice to constrain to itemsTotal != (amountApplied + toAmountApplied), do in post filter -->
-                <econdition field-name="itemsTotal" operator="not-equals" to-field-name="amountApplied"/>
-                <econditions combine="and">
+                <!-- NOTE: adjustment items are posted to GL by itemDate, all other items posted by invoiceDate; do query to match that -->
+                <econditions>
+                    <econdition field-name="isAdjustment" operator="not-equals" value="Y" or-null="true"/>
+                    <econdition field-name="itemInvoiceDate" operator="less-equals" from="asOfDate"/>
+                </econditions>
+                <econditions>
+                    <econdition field-name="isAdjustment" value="Y"/>
+                    <econdition field-name="itemDate" operator="less-equals" from="asOfDate"/>
+                </econditions>
+            </econditions>
+            <!-- PAPP sub-select conditions -->
+            <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+            <!-- TPAPP sub-select conditions -->
+            <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
+            <!-- main select condition -->
+            <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
+            <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
+            <econditions combine="or">
+                <econdition field-name="itemsTotal" operator="not-equals" to-field-name="totalAmountApplied"/>
+                <econditions>
+                    <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
                     <econdition field-name="amountApplied" operator="is-null"/>
                     <econdition field-name="toAmountApplied" operator="is-null"/>
                 </econditions>
             </econditions>
+            <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent,InvoiceAcked,InvoicePmtRecvd"/>
             <select-field field-name="fromPartyId,toPartyId,toPseudoId,toName,invoiceId,invoiceDate,dueDate"/>
             <select-field field-name="itemsTotal,amountApplied,toAmountApplied"/>
         </entity-find>

@@ -53,16 +53,29 @@ along with this software (see the LICENSE.md file). If not, see
                 show-all-button="true" show-csv-button="true" show-xlsx-button="true">
             <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
                 <search-form-inputs default-order-by="fromPseudoId,toPseudoId,invoiceId" skip-fields="fromRoleTypeId,toRoleTypeId"/>
+                <!-- IITM sub-select conditions -->
+                <econditions combine="or">
+                    <!-- NOTE: adjustment items are posted to GL by itemDate, all other items posted by invoiceDate; do query to match that -->
+                    <econditions>
+                        <econdition field-name="isAdjustment" operator="not-equals" value="Y" or-null="true"/>
+                        <econdition field-name="itemInvoiceDate" operator="less-equals" from="asOfDate"/>
+                    </econditions>
+                    <econditions>
+                        <econdition field-name="isAdjustment" value="Y"/>
+                        <econdition field-name="itemDate" operator="less-equals" from="asOfDate"/>
+                    </econditions>
+                </econditions>
+                <!-- PAPP sub-select conditions -->
+                <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+                <!-- TPAPP sub-select conditions -->
+                <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
+                <!-- main select condition -->
                 <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
                 <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
-                <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
-                <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
-                <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
-                <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
-                <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
                 <econditions combine="or">
                     <econdition field-name="itemsTotal" operator="not-equals" to-field-name="totalAmountApplied"/>
-                    <econditions combine="and">
+                    <econditions>
+                        <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
                         <econdition field-name="amountApplied" operator="is-null"/>
                         <econdition field-name="toAmountApplied" operator="is-null"/>
                     </econditions>

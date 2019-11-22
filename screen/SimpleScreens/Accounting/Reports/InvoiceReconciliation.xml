@@ -39,11 +39,11 @@ along with this software (see the LICENSE.md file). If not, see
         </else></if>
 
         <script>
-            // look back 6 months
+            // look back 12 months
             Calendar asOfCal = ec.user.getNowCalendar()
             asOfCal.setTimeInMillis(asOfDate.time)
             Calendar lookBackCal = (Calendar) asOfCal.clone()
-            lookBackCal.add(Calendar.MONTH, -6)
+            lookBackCal.add(Calendar.MONTH, -12)
             lookBackDate = new Timestamp(lookBackCal.getTimeInMillis())
             Calendar shortLookBackCal = (Calendar) asOfCal.clone()
             shortLookBackCal.add(Calendar.MONTH, -1)
@@ -100,18 +100,35 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="statusId" operator="in" from="statusIdList"/>
                 <econdition field-name="fromPartyId" from="organizationPartyId" ignore="invoiceType != 'Receivable'"/>
                 <econdition field-name="toPartyId" from="organizationPartyId" ignore="invoiceType != 'Payable'"/>
-                <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
-                <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
+
+                <!-- IITM sub-select conditions -->
+                <econditions combine="or">
+                    <!-- NOTE: adjustment items are posted to GL by itemDate, all other items posted by invoiceDate; do query to match that -->
+                    <econditions>
+                        <econdition field-name="isAdjustment" operator="not-equals" value="Y" or-null="true"/>
+                        <econdition field-name="itemInvoiceDate" operator="less-equals" from="asOfDate"/>
+                    </econditions>
+                    <econditions>
+                        <econdition field-name="isAdjustment" value="Y"/>
+                        <econdition field-name="itemDate" operator="less-equals" from="asOfDate"/>
+                    </econditions>
+                </econditions>
+                <!-- PAPP sub-select conditions -->
                 <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+                <!-- TPAPP sub-select conditions -->
                 <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
-                <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
+                <!-- main select condition -->
+                <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
+                <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
                 <econditions combine="or">
                     <econdition field-name="itemsTotal" operator="not-equals" to-field-name="totalAmountApplied"/>
-                    <econditions combine="and">
+                    <econditions>
+                        <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
                         <econdition field-name="amountApplied" operator="is-null"/>
                         <econdition field-name="toAmountApplied" operator="is-null"/>
                     </econditions>
                 </econditions>
+
                 <select-field field-name="invoiceId,itemsTotal,amountApplied,toAmountApplied,totalAmountApplied"/>
             </entity-find>
             <set field="itemsTotalSum" from="invoiceAgingList.sum({ it.itemsTotal ?: 0.0 }) ?: 0.0"/>
@@ -146,15 +163,31 @@ along with this software (see the LICENSE.md file). If not, see
         <container-box><box-header title="Invoices where Unpaid different from GL Amount"/><box-body-nopad>
             <form-list name="InvoiceVsGlList" list="invoiceGlList" skip-form="true">
                 <entity-find entity-name="mantle.account.invoice.InvoiceGlImpactSummary" list="invoiceGlList">
-                    <!-- do by account class instead: <econdition field-name="acctgTransTypeEnumId" operator="in" from="txTypeEnumIdList"/> -->
+
+                    <!-- IITM sub-select conditions -->
+                    <econditions combine="or">
+                        <!-- NOTE: adjustment items are posted to GL by itemDate, all other items posted by invoiceDate; do query to match that -->
+                        <econditions>
+                            <econdition field-name="isAdjustment" operator="not-equals" value="Y" or-null="true"/>
+                            <econdition field-name="itemInvoiceDate" operator="less-equals" from="asOfDate"/>
+                        </econditions>
+                        <econditions>
+                            <econdition field-name="isAdjustment" value="Y"/>
+                            <econdition field-name="itemDate" operator="less-equals" from="asOfDate"/>
+                        </econditions>
+                    </econditions>
+                    <!-- PAPP sub-select conditions -->
+                    <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+                    <!-- TPAPP sub-select conditions -->
+                    <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
+                    <!-- main select condition -->
+                    <econdition field-name="invoiceDate" operator="greater-equals" from="lookBackDate"/>
+
                     <econdition field-name="statusId" operator="in" from="statusIdList"/>
                     <econdition field-name="fromPartyId" from="organizationPartyId" ignore="invoiceType != 'Receivable'"/>
                     <econdition field-name="toPartyId" from="organizationPartyId" ignore="invoiceType != 'Payable'"/>
-                    <econdition field-name="invoiceDate" operator="greater-equals" from="lookBackDate"/>
-                    <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
-                    <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
-                    <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
 
+                    <!-- do by account class instead: <econdition field-name="acctgTransTypeEnumId" operator="in" from="txTypeEnumIdList"/> -->
                     <econdition field-name="debitGlAccountClassEnumId" from="glAccountClassEnumId"/>
                     <econdition field-name="debitTransactionDate" operator="less-equals" from="asOfDate"/>
                     <econdition field-name="creditGlAccountClassEnumId" from="glAccountClassEnumId"/>
