@@ -108,7 +108,7 @@ along with this software (see the LICENSE.md file). If not, see
         </container></widgets></section>
 
         <label text="Invoice Total: ${ec.l10n.formatCurrency(invoice.invoiceTotal, invoice.currencyUomId)}, Unpaid: ${ec.l10n.formatCurrency(invoice.unpaidTotal, invoice.currencyUomId)}"/>
-        <form-list name="EditInvoiceItems" list="invoiceItemList" transition="${invoiceEditable ? 'updateInvoiceItem' : 'updateInvoiceItemClosed'}" multi="true">
+        <form-list name="EditInvoiceItems" list="invoiceItemList" transition="updateInvoiceItem" multi="true">
             <hidden-parameters><parameter name="invoiceId"/></hidden-parameters>
 
             <field name="invoiceItemSeqId"><default-field title="Item"><display style="${parentItemSeqId ? 'text-info' : 'text-strong'}"/></default-field></field>
@@ -140,7 +140,7 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <field name="itemTypeEnumId">
-                <conditional-field condition="invoiceEditable">
+                <conditional-field condition="invoiceEditable || isAdjustment == 'Y'">
                     <drop-down><list-options list="itemTypeEnumList" key="${enumId}" text="${description}"/></drop-down></conditional-field>
                 <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
@@ -150,18 +150,17 @@ along with this software (see the LICENSE.md file). If not, see
                     <depends-on field="itemTypeEnumId"/><depends-on field="productId"/></display>
             </default-field></field>
             <field name="overrideGlAccountId">
-                <conditional-field condition="invoiceEditable" tooltip="Use % (percent) as a wildcard"><drop-down allow-empty="true">
+                <conditional-field condition="invoiceEditable || isAdjustment == 'Y'" tooltip="Use % (percent) as a wildcard"><drop-down allow-empty="true">
                     <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></conditional-field>
                 <default-field title="Override GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
                         text="GlAccountNameTemplate"/></default-field>
             </field>
 
-            <field name="quantity"><conditional-field condition="invoiceEditable"><text-line size="4"/></conditional-field>
+            <field name="quantity"><conditional-field condition="invoiceEditable || isAdjustment == 'Y'"><text-line size="4"/></conditional-field>
                 <default-field><display/></default-field></field>
-            <field name="amount"><conditional-field condition="invoiceEditable"><text-line size="8"/></conditional-field>
+            <field name="amount"><conditional-field condition="invoiceEditable || isAdjustment == 'Y'"><text-line size="8"/></conditional-field>
                 <default-field><display format="#,##0.00##"/></default-field></field>
-            <field name="itemDate"><conditional-field condition="invoiceEditable || isAdjustment != 'Y'"><date-time/></conditional-field>
-                <default-field><display/></default-field></field>
+            <field name="itemDate"><default-field><date-time/></default-field></field>
 
             <!-- NOTE: CurrencyRoundingMarker scale here may vary by currency, make configurable -->
             <field name="total" from="(((quantity != null ? quantity : 1.0) * (amount ?: 0.0)) as BigDecimal).setScale(2, BigDecimal.ROUND_HALF_UP)" align="right">
