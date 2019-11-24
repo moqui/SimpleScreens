@@ -28,8 +28,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <set field="hasDetails" from="showDetails == 'true'"/>
-        <if condition="facilityId &amp;&amp; dateRange_period &amp;&amp; dateRange_poffset"><then>
-            <set field="rangeList" from="ec.user.getPeriodRange(dateRange_period, dateRange_poffset, dateRange_pdate)"/>
+        <if condition="facilityId &amp;&amp; (dateRange_period || dateRange_from)"><then>
+            <set field="rangeList" from="ec.user.getPeriodRange('dateRange', context)"/>
             <!-- special case for AssetOnHandSummary, these 2 Timestamps must be in the context -->
             <set field="fromDate" from="rangeList[0]"/>
             <set field="thruDate" from="rangeList[1]"/>
@@ -39,11 +39,12 @@ along with this software (see the LICENSE.md file). If not, see
                 <!-- NOTE: this query will get slower over time, not a good approach for large inventory histories but only way to
                     get valuation at any point in time unless we calculate and save interim values -->
                 <econdition field-name="effectiveDate" operator="less-equals" from="thruDate"/>
+                <econdition field-name="quantityOnHandDiff" operator="not-equals" from="0.0"/>
                 <having-econditions><econditions combine="or">
                     <econdition field-name="startingOnHand" operator="not-equals" from="0.0"/>
                     <econdition field-name="onHandChange" operator="not-equals" from="0.0"/>
                 </econditions></having-econditions>
-                <select-field field-name="productId,pseudoId,productName,facilityId,locationSeqId,startingOnHand,onHandChange"/>
+                <select-field field-name="productId,pseudoId,productName,facilityId,startingOnHand,onHandChange"/><!-- removed: locationSeqId -->
             </entity-find>
 
             <if condition="hasDetails">
@@ -103,7 +104,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
             </field>
             <field name="facilityId">
-                <header-field title="Warehouse"><drop-down allow-empty="true">
+                <header-field title="Facility"><drop-down allow-empty="true">
                     <entity-options text="FacilityNameTemplate"><entity-find entity-name="mantle.facility.Facility">
                         <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
                         <order-by field-name="facilityName"/>
@@ -121,12 +122,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editProduct" text="${productName}" link-type="anchor"/></default-field>
             </field>
 
+            <!--
             <field name="locationSeqId">
                 <header-field title="Location"><drop-down allow-empty="true">
                     <dynamic-options transition="getLocationList" server-search="true" min-length="0"><depends-on field="facilityId"/></dynamic-options>
                 </drop-down></header-field>
                 <default-field><label text="FacilityLocationNameTemplate" text-map="facLoc" condition="facLoc != null"/></default-field>
             </field>
+            -->
 
             <field name="assetId"><header-field title="Asset"/>
                 <default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
