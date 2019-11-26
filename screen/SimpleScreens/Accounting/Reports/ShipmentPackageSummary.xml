@@ -29,14 +29,20 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="emailScreenAsync" location="component://webroot/template/screen/BasicTransitions.xml"/>
 
     <actions>
-        <!-- TODO: somehow handle incoming shipments, which date to filter on? for now require packedDate (via default) -->
-        <if condition="!packedDate_period &amp;&amp; !packedDate_from">
-            <set field="packedDate_period" from="packedDate_period ?: 'week'"/>
-            <set field="packedDate_poffset" from="packedDate_poffset ?: '-1'"/>
+        <if condition="!dateRange_period &amp;&amp; !dateRange_from">
+            <set field="dateRange_period" from="dateRange_period ?: 'week'"/>
+            <set field="dateRange_poffset" from="dateRange_poffset ?: '-1'"/>
         </if>
-        <set field="rangeList" from="ec.user.getPeriodRange('packedDate', context)"/>
-        <set field="packedDateFrom" from="rangeList[0]"/>
-        <set field="packedDateThru" from="rangeList[1] ?: ec.user.nowTimestamp"/>
+        <set field="rangeList" from="ec.user.getPeriodRange('dateRange', context)"/>
+        <set field="dateRangeFrom" from="rangeList[0]"/>
+        <set field="dateRangeThru" from="rangeList[1] ?: ec.user.nowTimestamp"/>
+
+        <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="outgoingTypeOut"
+                in-map="[parentEnumId:'ShpTpOutgoing']"/>
+        <set field="outShipmentTypeSet" from="outgoingTypeOut.enumIdSet"/>
+        <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="incomingTypeOut"
+                in-map="[parentEnumId:'ShpTpIncoming']"/>
+        <set field="inShipmentTypeSet" from="incomingTypeOut.enumIdSet"/>
 
         <if condition="!statusId"><set field="statusId" value="ShipPacked,ShipShipped,ShipDelivered"/></if>
 
@@ -47,10 +53,22 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="ShipmentPackageSummary" list="summaryList" skip-form="true" header-dialog="true" saved-finds="true"
                 select-columns="true" show-all-button="true" show-csv-button="true" show-xlsx-button="true">
             <entity-find entity-name="mantle.shipment.ShipmentPackageSummary" list="summaryList">
-                <search-form-inputs default-order-by="packedDate" require-parameters="${requireParameters}" skip-fields="packedDate,statusId"/>
-                <econdition field-name="packedDate" operator="greater-equals" from="packedDateFrom" ignore-if-empty="true"/>
-                <econdition field-name="packedDate" operator="less" from="packedDateThru" ignore-if-empty="true"/>
+                <search-form-inputs default-order-by="actualStartDate,actualArrivalDate"
+                        require-parameters="${requireParameters}" skip-fields="statusId"/>
+
                 <econdition field-name="statusId" operator="in" ignore-if-empty="true"/>
+                <econditions combine="or">
+                    <econditions>
+                        <econdition field-name="actualStartDate" operator="greater-equals" from="dateRangeFrom"/>
+                        <econdition field-name="actualStartDate" operator="less" from="dateRangeThru"/>
+                        <econdition field-name="shipmentTypeEnumId" operator="in" from="outShipmentTypeSet"/>
+                    </econditions>
+                    <econditions>
+                        <econdition field-name="actualArrivalDate" operator="greater-equals" from="dateRangeFrom"/>
+                        <econdition field-name="actualArrivalDate" operator="less" from="dateRangeThru"/>
+                        <econdition field-name="shipmentTypeEnumId" operator="in" from="inShipmentTypeSet"/>
+                    </econditions>
+                </econditions>
                 <econditions combine="or">
                     <econdition field-name="fromPartyId" from="fromOrToPartyId" ignore-if-empty="true"/>
                     <econdition field-name="toPartyId" from="fromOrToPartyId" ignore-if-empty="true"/>
@@ -61,8 +79,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </econditions>
             </entity-find>
 
-            <field name="packedDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
-            <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
+            <field name="dateRange"><header-field title="Actual Date"><date-period/></header-field></field>
 
             <field name="fromOrToPartyId"><header-field title="From or To Party">
                 <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="0"
@@ -128,6 +145,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
+            <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
+            <field name="packedDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
+            <field name="actualStartDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
+            <field name="actualArrivalDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
 
             <field name="orderId"><header-field title="Order"/>
                 <default-field><link url="orderDetail" text="${orderId}" link-type="anchor" condition="orderId"/></default-field></field>
@@ -178,19 +199,22 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="boxWeightUomId"><default-field title="Box Weight UOM"><display-entity entity-name="moqui.basic.Uom"/></default-field></field>
 
             <field name="packageCount" align="right" show-total="sum"><default-field><display/></default-field></field>
-            <field name="quantityTotal" align="right" show-total="sum"><default-field title="Item Quantity"><display/></default-field></field>
+            <field name="quantityTotal" align="right" show-total="sum"><default-field title="Pkg Quantity"><display/></default-field></field>
 
             <field name="estimatedAmountTotal" align="right" show-total="sum"><default-field title="Ship Cost"><display format="#,##0.00"/></default-field></field>
             <field name="baseAmountTotal" align="right" show-total="sum"><default-field title="Ship Cost (base)"><display format="#,##0.00"/></default-field></field>
 
-            <field name="weightTotal" align="right" show-total="sum"><default-field title="Package Weight"><display/></default-field></field>
+            <field name="weightTotal" align="right" show-total="sum"><default-field title="Pkg Weight"><display/></default-field></field>
             <field name="weightUomId"><default-field title="Package Weight UOM"><display-entity entity-name="moqui.basic.Uom"/></default-field></field>
 
             <field name="find"><header-field title="Find"><submit/></header-field></field>
 
-            <form-list-column><field-ref name="shipmentId"/></form-list-column>
+            <form-list-column><field-ref name="shipmentId"/><field-ref name="shipmentTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="actualStartDate"/><field-ref name="actualArrivalDate"/></form-list-column>
             <form-list-column><field-ref name="orderId"/><field-ref name="orderDisplayId"/></form-list-column>
-            <form-list-column><field-ref name="packedDate"/><field-ref name="orderPlacedDate"/></form-list-column>
+            <form-list-column><field-ref name="orderPlacedDate"/><field-ref name="packedDate"/></form-list-column>
+            <form-list-column><field-ref name="returnId"/><field-ref name="returnDisplayId"/></form-list-column>
+
             <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
 
             <form-list-column><field-ref name="trackingCode"/><field-ref name="shipmentBoxTypeId"/></form-list-column>
@@ -198,5 +222,13 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="estimatedAmountTotal"/></form-list-column>
             <form-list-column><field-ref name="weightTotal"/></form-list-column>
         </form-list>
+
+        <section name="ShowSql" condition="summaryList_xafind?.getQueryTextList()"><widgets>
+            <container-dialog id="ShowSqlDialog" button-text="Show SQL" type="info">
+                <section-iterate name="ShowSqlIter" list="summaryList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                    <label text="${queryText}" type="p"/>
+                </widgets></section-iterate>
+            </container-dialog>
+        </widgets></section>
     </widgets>
 </screen>
