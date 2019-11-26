@@ -237,7 +237,6 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ShipInputSection" condition="shipment.statusId == 'ShipInput'"><widgets>
                 <section name="ShipInputInOutSection" condition="isIncoming"><widgets>
                     <link url="scheduleShipment" text="Set Scheduled" btn-type="success"/>
-                    <link url="shipShipment" text="Set Shipped"/>
                 </widgets><fail-widgets>
                     <!-- isOutgoing || isTransfer -->
                     <link url="scheduleShipment" text="Set Scheduled" btn-type="success"/>
@@ -246,9 +245,6 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
             <section name="ShipScheduledSection" condition="shipment.statusId == 'ShipScheduled'"><widgets>
                 <section name="ShipScheduledInOutSection" condition="isIncoming"><widgets>
-                    <link url="shipShipment" text="Set Shipped"/>
-                    <link url="deliverShipment" text="Set Delivered" btn-type="success" condition="anyReceived"
-                            confirmation="Set as Delivered and generate invoice for order items as needed?"/>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"/>
                     <link url="requestShipmentLabels" text="Get Labels" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels"/>
                 </widgets><fail-widgets>
@@ -258,24 +254,45 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped" condition="hasNoItems"/>
                 </fail-widgets></section>
             </widgets></section>
-            <section name="ShipPickedSection" condition="shipment.statusId == 'ShipPicked'"><widgets>
-                <section name="ShipPickedInOuSection" condition="isIncoming"><widgets>
-                    <link url="shipShipment" text="Set Shipped"/>
-                </widgets><fail-widgets>
-                    <!-- isOutgoing || isTransfer -->
-                </fail-widgets></section>
-            </widgets></section>
             <section name="PackShipmentSection" condition="!isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPicked']"><widgets>
                 <!-- isOutgoing || isTransfer -->
                 <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="anyItemPacked" type="success">
                     <label text="Not all items are packed, item quantities will be reduced to packed quantities."
                             type="p" style="text-warning" condition="!allItemsPacked"/>
                     <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
-                    <form-single name="SetPackedForm" transition="packShipment">
+                    <form-single name="SetPackedForm" transition="packShipment" focus-field="submitButton">
                         <field name="shipmentId"><default-field><display/></default-field></field>
                         <field name="packedDate" from="ec.user.nowTimestamp">
                             <default-field><date-time/></default-field></field>
                         <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </widgets></section>
+            <section name="ShipShipmentSection" condition="(isIncoming &amp;&amp; shipment.statusId in ['ShipInput', 'ShipScheduled', 'ShipPicked', 'ShipPacked']) ||
+                    ((isOutgoing || isTransfer) &amp;&amp; shipment.statusId == 'ShipPacked')"><widgets>
+                <container-dialog id="SetShippedDialog" button-text="Set Shipped" type="${isOutgoing || isTransfer ? 'success' : 'primary'}">
+                    <label text="Set as Shipped?" condition="isOutgoing" style="text-success" type="p"/>
+                    <form-single name="SetShippedForm" transition="shipShipment" focus-field="submitButton">
+                        <field name="shipmentId"><default-field><display/></default-field></field>
+                        <field name="actualStartDate" from="ec.user.nowTimestamp">
+                            <default-field title="Actual Start"><date-time/></default-field></field>
+                        <field name="submitButton"><default-field title="Set Shipped"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </widgets></section>
+            <section name="DeliverShipmentSection" condition="(anyReceived &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPacked', 'ShipShipped']) ||
+                    (isOutgoing &amp;&amp; shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
+                <container-dialog id="SetDeliveredDialog" button-text="Set Delivered" type="success">
+                    <label text="Set as Delivered and generate invoice for order items if needed?" condition="isIncoming" type="p"/>
+                    <label text="Set as Delivered?" condition="isOutgoing" type="p"/>
+                    <label text="Set to Delivered? No additional items may be received once Delivered." condition="isTransfer"/>
+                    <label text="Not all items are received, item quantities will be reduced to received quantities."
+                            type="p" style="text-warning" condition="isIncoming &amp;&amp; !allReceived"/>
+                    <form-single name="SetDeliveredForm" transition="deliverShipment" focus-field="submitButton">
+                        <field name="shipmentId"><default-field><display/></default-field></field>
+                        <field name="actualArrivalDate" from="ec.user.nowTimestamp">
+                            <default-field title="Actual Arrival"><date-time/></default-field></field>
+                        <field name="submitButton"><default-field title="Set Delivered"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
             </widgets></section>
@@ -319,33 +336,22 @@ along with this software (see the LICENSE.md file). If not, see
             ]]></text></render-mode></widgets></section>
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="ShipPackedInSection" condition="isIncoming"><widgets>
-                    <link url="shipShipment" text="Set Shipped"><parameter name="shipmentId"/></link>
-                    <link url="deliverShipment" text="Set Delivered" btn-type="success" condition="anyReceived"
-                            confirmation="Set as Delivered and generate invoice for order items as needed?"/>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"><parameter name="shipmentId"/></link>
-                </widgets></section>
-                <section name="ShipPackedOutSection" condition="isOutgoing || isTransfer"><widgets>
-                    <link url="shipShipment" text="Set Shipped" btn-type="success"/>
-                    <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
-                    <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
                 </widgets></section>
             </widgets></section>
             <section name="ShipShippedSection" condition="shipment.statusId == 'ShipShipped'"><widgets>
                 <section name="ShipShippedInOutSection" condition="isIncoming"><widgets>
-                    <link url="deliverShipment" text="Set Delivered" btn-type="success" condition="anyReceived"
-                            confirmation="Set as Delivered and generate invoice for order items as needed?"/>
                     <link url="unshipShipment" text="Set Packed (Un-Ship)"><parameter name="shipmentId"/></link>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment" confirmation="Receive full quantity of all items with defaults?">
                         <parameter name="shipmentId"/></link>
                 </widgets><fail-widgets>
                     <link url="unshipShipment" text="Set Packed (Un-Ship)" confirmation="Set shipment status back to Packed?"/>
-                    <link url="deliverShipment" text="Set Delivered" condition="isOutgoing"/>
-                    <link url="deliverShipment" text="Set Delivered" confirmation="Set to Delivered? No additional items may be received once Delivered" condition="isTransfer"/>
                 </fail-widgets></section>
             </widgets></section>
             <section name="ShipDeliveredSection" condition="shipment.statusId == 'ShipDelivered'"><widgets>
                 <link url="shipShipment" text="Set Shipped (Un-deliver)"/>
             </widgets></section>
+
             <container-dialog id="CancelDialog" button-text="Cancel Shipment" condition="!(shipment.statusId in ['ShipDelivered', 'ShipRejected', 'ShipCancelled'])">
                 <label text="Invoices associated with this shipment will be CANCELLED: ${invoiceIdSet.join(', ')}"
                         condition="isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-danger"/>
@@ -593,6 +599,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="estimatedShipDate"><default-field title="Est Ship"><date-time/></default-field></field>
                 <field name="estimatedArrivalDate"><default-field title="Est Arrival"><date-time/></default-field></field>
 
+                <field name="actualStartDate" from="firstRouteSegment.actualStartDate"><default-field title="Actual Start"><display/></default-field></field>
+                <field name="actualArrivalDate" from="lastRouteSegment.actualArrivalDate"><default-field title="Actual Arrival"><display/></default-field></field>
+
                 <field name="submitButton"><default-field title="Update Shipment"><submit/></default-field></field>
 
                 <field-layout>
@@ -603,6 +612,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-row><field-ref name="shipAfterDate"/><field-ref name="shipBeforeDate"/></field-row>
                     <field-row><field-ref name="estimatedReadyDate"/><field-ref name="packedDate"/></field-row>
                     <field-row><field-ref name="estimatedShipDate"/><field-ref name="estimatedArrivalDate"/></field-row>
+                    <field-row><field-ref name="actualStartDate"/><field-ref name="actualArrivalDate"/></field-row>
                     <field-ref name="submitButton"/>
                 </field-layout>
             </form-single>
