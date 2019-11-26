@@ -60,12 +60,28 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="quantityAccepted" from="quantityAccepted - (assetReceipt.quantityAccepted ?: 0.0) - (assetReceipt.quantityRejected ?: 0.0)"/>
         </iterate>
 
-        <!-- try to get the default acquireCost from order items -->
+        <!-- get all SIS records for order and return specific data -->
         <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="shipmentItemSourceList">
-            <econdition field-name="shipmentId"/><econdition field-name="productId"/>
-            <econdition field-name="orderId" operator="is-not-null"/><econdition field-name="orderItemSeqId" operator="is-not-null"/>
+            <econdition field-name="shipmentId"/>
+            <econdition field-name="productId"/>
         </entity-find>
-        <iterate list="shipmentItemSourceList" entry="shipmentItemSource">
+
+        <!-- look up ReturnItem.inventoryStatusId -->
+        <set field="returnShipmentItemSourceList" from="shipmentItemSourceList.findAll({ it.returnId &amp;&amp; it.returnItemSeqId })"/>
+        <iterate list="returnShipmentItemSourceList" entry="returnShipmentItemSource">
+            <entity-find-one entity-name="mantle.order.return.ReturnItem" value-field="returnItem">
+                <field-map field-name="returnId" from="returnShipmentItemSource.returnId"/>
+                <field-map field-name="returnItemSeqId" from="returnShipmentItemSource.returnItemSeqId"/>
+            </entity-find-one>
+            <if condition="returnItem?.inventoryStatusId">
+                <set field="statusId" from="returnItem.inventoryStatusId"/>
+                <break/>
+            </if>
+        </iterate>
+
+        <!-- try to get the default acquireCost from order items -->
+        <set field="orderShipmentItemSourceList" from="shipmentItemSourceList.findAll({ it.orderId &amp;&amp; it.orderItemSeqId })"/>
+        <iterate list="orderShipmentItemSourceList" entry="shipmentItemSource">
             <if condition="(!acquireCost || !ownerPartyId) &amp;&amp; shipmentItemSource.orderId &amp;&amp; shipmentItemSource.orderItemSeqId">
                 <entity-find-one entity-name="mantle.order.OrderItem" value-field="orderItem">
                     <field-map field-name="orderId" from="shipmentItemSource.orderId"/>
