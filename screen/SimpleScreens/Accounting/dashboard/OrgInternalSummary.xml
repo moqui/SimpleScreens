@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        standalone="true">
+
+    <transition name="findInvoice"><default-response url="../../Invoice/FindInvoice"/></transition>
+    <transition name="orgSettings"><default-response url="../../OrgSettings"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editPaymentMethod"><default-response url="//${appRoot}/Party/PaymentMethod/EditPaymentMethod"/></transition>
+    <transition name="paymentMethodTrans"><default-response url="//${appRoot}/Party/PaymentMethod/PaymentMethodTrans"/></transition>
+
+    <actions>
+        <entity-find entity-name="mantle.party.PartyDetailAndRole" list="orgInternalList">
+            <econdition field-name="roleTypeId" value="OrgInternal"/>
+            <econdition field-name="disabled" value="N" or-null="true"/>
+            <order-by field-name="organizationName,firstName,lastName"/>
+        </entity-find>
+        <set field="orgInternalIds" from="orgInternalList*.partyId"/>
+
+        <entity-find entity-name="mantle.account.invoice.InvoiceSummary" list="allRecInvList">
+            <econdition field-name="fromPartyId" operator="in" from="orgInternalIds"/>
+            <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent,InvoiceAcked"/>
+            <select-field field-name="fromPartyId,invoiceCount,unpaidTotal,currencyUomId"/>
+        </entity-find>
+        <entity-find entity-name="mantle.account.invoice.InvoiceSummary" list="allPblInvList">
+            <econdition field-name="toPartyId" operator="in" from="orgInternalIds"/>
+            <econdition field-name="statusId" operator="in" value="InvoiceReceived,InvoiceApproved"/>
+            <select-field field-name="toPartyId,invoiceCount,unpaidTotal,currencyUomId"/>
+        </entity-find>
+    </actions>
+    <widgets>
+        <form-list name="OrgInternalForm" list="orgInternalList" skip-form="true">
+            <row-actions>
+                <filter-map-list list="allRecInvList" to-list="recInvList">
+                    <field-map field-name="fromPartyId" from="partyId"/></filter-map-list>
+                <set field="recDesc" value=""/>
+                <iterate list="recInvList" entry="recInv">
+                    <if condition="recDesc"><set field="recDesc" from="recDesc + ', '"/></if>
+                    <set field="recDesc" from="recDesc + recInv.invoiceCount + ' Invoice' + (recInv.invoiceCount ? 's ' : ' ') + ec.l10n.formatCurrency(recInv.unpaidTotal, recInv.currencyUomId)"/>
+                </iterate>
+
+                <filter-map-list list="allPblInvList" to-list="pblInvList">
+                    <field-map field-name="toPartyId" from="partyId"/></filter-map-list>
+                <set field="pblDesc" value=""/>
+                <iterate list="pblInvList" entry="pblInv">
+                    <if condition="pblDesc"><set field="pblDesc" from="pblDesc + ', '"/></if>
+                    <set field="pblDesc" from="pblDesc + pblInv.invoiceCount + ' Invoice' + (pblInv.invoiceCount ? 's ' : ' ') + ec.l10n.formatCurrency(pblInv.unpaidTotal, pblInv.currencyUomId)"/>
+                </iterate>
+
+                <entity-find entity-name="mantle.account.method.PaymentMethod" list="paymentMethodList">
+                    <date-filter/>
+                    <econdition field-name="ownerPartyId" from="partyId"/>
+                    <econdition field-name="paymentMethodTypeEnumId" value="PmtBankAccount"/>
+                </entity-find>
+            </row-actions>
+            <field name="name"><default-field title="Internal Organization">
+                <link url="editParty" text="${organizationName?:''}${firstName?:''} ${lastName?:''}" link-type="anchor"/>
+            </default-field></field>
+            <field name="recSummary"><default-field title="Receivable">
+                <link url="findInvoice" text="${recDesc?:'None'}" link-type="anchor"
+                      parameter-map="[fromPartyId:partyId, statusId:'InvoiceFinalized,InvoiceSent,InvoiceAcked', statusId_op:'in']"/>
+            </default-field></field>
+            <field name="pblSummary"><default-field title="Payable">
+                <link url="findInvoice" text="${pblDesc?:'None'}" link-type="anchor"
+                      parameter-map="[toPartyId:partyId, statusId:'InvoiceReceived,InvoiceApproved', statusId_op:'in']"/>
+            </default-field></field>
+            <field name="paymentMethods"><default-field title="Bank Accounts">
+                <section-iterate name="PaymentMethodList" list="paymentMethodList" entry="paymentMethod"><widgets>
+                    <container><link url="paymentMethodTrans" text="${paymentMethod.description ?: paymentMethod.paymentMethodId}${paymentMethod.ledgerBalance ? ' ' + ec.l10n.format(paymentMethod.ledgerBalance, '#,##0.00') : ''}${paymentMethod.balanceDate ? ' (' + ec.l10n.format(paymentMethod.balanceDate, 'yyyy-MM-dd') + ')' : ''}"
+                            link-type="anchor" parameter-map="[paymentMethodId:paymentMethod.paymentMethodId]"/></container>
+                </widgets></section-iterate>
+            </default-field></field>
+            <field name="settings"><default-field title="">
+                <link url="orgSettings" text="Settings" link-type="anchor"/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>
