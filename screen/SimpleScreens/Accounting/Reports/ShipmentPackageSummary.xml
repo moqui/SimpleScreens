@@ -88,12 +88,14 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="fromPartyId">
                 <header-field title="From Party"><drop-down allow-empty="true">
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
-                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"/></default-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                        parameter-map="[partyId:fromPartyId]" condition="fromPartyId"/></default-field>
             </field>
             <field name="toPartyId">
                 <header-field title="To Party"><drop-down allow-empty="true">
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
-                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"/></default-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                        parameter-map="[partyId:toPartyId]" condition="toPartyId"/></default-field>
             </field>
             <field name="originOrDestFacilityId">
                 <header-field title="Origin or Dest Facility"><drop-down allow-empty="true">
@@ -209,17 +211,17 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="weightTotal" align="right" show-total="sum"><default-field title="Pkg Weight"><display/></default-field></field>
             <field name="weightUomId"><default-field title="Package Weight UOM"><display-entity entity-name="moqui.basic.Uom"/></default-field></field>
 
-            <!--
+            <!-- TODO: orderProductQuantity, orderProductQuantity, shippingDiscountTotal depend on orderId, orderPartySeqId
+                (must be selected... OR MUCH BETTER TODO: change SQL generator to recognize this and auto add to select clause of sub-select) -->
             <field name="orderProductQuantity" align="right"><default-field title="Order All Product Quantity"><display/></default-field></field>
             <field name="shippingChargeTotal" align="right"><default-field title="Order Shipping Charge Total"><display format="#,##0.00"/></default-field></field>
             <field name="shippingDiscountTotal" align="right"><default-field title="Order Shipping Discount Total"><display format="#,##0.00"/></default-field></field>
-            <!- - TODO: somehow auto select shippingChargeTotal, quantityTotal, orderProductQuantity if this is displayed - ->
+            <!-- TODO: somehow auto select shippingChargeTotal, quantityTotal, orderProductQuantity if this is displayed -->
             <field name="shippingCharge" align="right" show-total="sum" from="orderProductQuantity ? (shippingChargeTotal?:0.0) * ((quantityTotal?:0.0) / orderProductQuantity) : 0.0">
-                <default-field title="Shipping Charge"><display format="#,##0.00"/></default-field></field>
-            <!- - TODO: somehow auto select shippingDiscountTotal, quantityTotal, orderProductQuantity if this is displayed - ->
+                <default-field title="Shipping Charge Prorated"><display format="#,##0.00"/></default-field></field>
+            <!-- TODO: somehow auto select shippingDiscountTotal, quantityTotal, orderProductQuantity if this is displayed -->
             <field name="shippingDiscount" align="right" show-total="sum" from="orderProductQuantity ? (shippingDiscountTotal?:0.0) * ((quantityTotal?:0.0) / orderProductQuantity): 0.0">
-                <default-field title="Shipping Discount"><display format="#,##0.00"/></default-field></field>
-            -->
+                <default-field title="Shipping Discount Prorated"><display format="#,##0.00"/></default-field></field>
 
             <field name="find"><header-field title="Find"><submit/></header-field></field>
 
