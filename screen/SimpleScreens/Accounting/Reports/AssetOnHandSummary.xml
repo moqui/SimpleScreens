@@ -39,9 +39,29 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- special case for AssetOnHandSummary, these 2 Timestamps must be in the context -->
         <set field="fromDate" from="rangeList[0]"/>
         <set field="thruDate" from="rangeList[1] ?: ec.user.nowTimestamp"/>
+
+        <set field="fieldDescriptions" from="[
+            [fieldName:'Shipments In', description:'All Incoming Shipments except Return Shipments'],
+            [fieldName:'Returns', description:'Return Shipments'],
+            [fieldName:'Produced', description:'Produced by Production Run'],
+            [fieldName:'Other Receipts', description:'All Receipts except Incoming Shipments and Production Runs'],
+            [fieldName:'All Receipts', description:'All Asset Receipts'],
+            [fieldName:'Shipments Out', description:'All Outgoing Shipments'],
+            [fieldName:'Consumed', description:'Consumed by Production Run'],
+            [fieldName:'Other Issuances', description:'All Issuances except Outgoing Shipments and Production Runs'],
+            [fieldName:'All Issuances', description:'All Asset Issuances'],
+            [fieldName:'Adjustments', description:'Physical Inventory Adjustments'],
+        ]"/>
     </actions>
     <widgets>
         <section-include name="EmailScreenSection" location="component://webroot/template/screen/BasicTransitions.xml"/>
+        <container-dialog id="FieldDescDialog" button-text="Field Descriptions">
+            <form-list name="FieldDescriptions" list="fieldDescriptions" skip-form="true" paginate="false">
+                <field name="fieldName"><default-field><display style="text-strong"/></default-field></field>
+                <field name="description"><default-field><display/></default-field></field>
+            </form-list>
+        </container-dialog>
+
         <form-list name="AssetOnHandSummary" list="summaryList" skip-form="true" header-dialog="true" saved-finds="true"
                 select-columns="true" show-all-button="true" show-csv-button="true" show-xlsx-button="true">
             <entity-find entity-name="mantle.product.asset.AssetOnHandSummary" list="summaryList">
@@ -50,10 +70,12 @@ along with this software (see the LICENSE.md file). If not, see
                     get valuation at any point in time unless we calculate and save interim values -->
                 <econdition field-name="effectiveDate" operator="less-equals" from="thruDate"/>
                 <econdition field-name="quantityOnHandDiff" operator="not-equals" from="0.0"/>
+                <!-- don't do this: show all that have ever had inventory, and this excludes anything with Starting 0 and Change 0 even if there were shipments in and out during the period
                 <having-econditions><econditions combine="or">
                     <econdition field-name="startingOnHand" operator="not-equals" from="0.0"/>
                     <econdition field-name="onHandChange" operator="not-equals" from="0.0"/>
                 </econditions></having-econditions>
+                -->
                 <select-field field-name="productId,pseudoId,productName,startingOnHand,onHandChange"/>
             </entity-find>
             <row-actions>
@@ -66,7 +88,8 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="dateRange"><header-field><date-period/></header-field></field>
             <field name="ownerPartyId">
                 <header-field title="Owner Party"><drop-down allow-empty="true">
-                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'OrgInternal']"/>
+                </drop-down></header-field>
                 <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"/></default-field>
             </field>
             <field name="facilityId">
@@ -139,6 +162,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="productName"/></form-list-column>
             <form-list-column><field-ref name="startingOnHand"/></form-list-column>
             <form-list-column><field-ref name="receiptsShipmentNotReturn"/></form-list-column>
+            <form-list-column><field-ref name="receiptsOther"/></form-list-column>
             <form-list-column><field-ref name="receiptsReturns"/></form-list-column>
             <form-list-column><field-ref name="issuancesShipments"/></form-list-column>
             <form-list-column><field-ref name="physicalAdjustments"/></form-list-column>
