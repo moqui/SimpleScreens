@@ -32,19 +32,26 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
             <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
         <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
+
+        <if condition="!assetClassEnumId"><set field="assetClassEnumId" value="AsClsInventoryFin"/></if>
     </actions>
     <widgets>
         <form-list name="SalesInvoiceAnalysis" list="summaryList" skip-form="true" header-dialog="true"
                    saved-finds="true" show-csv-button="true" show-xlsx-button="true" show-all-button="true">
             <entity-find entity-name="mantle.account.invoice.InvoiceProductSalesSummary" list="summaryList">
-                <search-form-inputs default-order-by="pseudoId" paginate="false"/><!-- see defaults in actions -->
+                <search-form-inputs default-order-by="pseudoId" paginate="false" skip-fields="assetClassEnumId"/><!-- see defaults in actions -->
                 <econdition field-name="invoiceStatusId" operator="in" from="['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoicePmtRecvd']"/>
                 <econdition field-name="itemTypeEnumId" operator="in" from="productItemTypes"/>
+                <econdition field-name="assetClassEnumId" operator="in"/>
                 <!-- <econdition field-name="productId" operator="is-not-null"/> -->
                 <select-field field-name="productId"/>
             </entity-find>
 
             <field name="invoiceDate"><header-field title="Period"><date-period/></header-field></field>
+            <field name="assetClassEnumId"><header-field title="Asset Class">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="AssetClass"/><set field="allowMultiple" value="true"/></widget-template-include>
+            </header-field></field>
 
             <field name="productId">
                 <header-field title="Product" show-order-by="true"><drop-down allow-empty="true" allow-multiple="true">
