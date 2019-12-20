@@ -72,7 +72,7 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="AddOrderList" list="orderList" transition="addOrderPartToLoad" multi="true"
                 header-dialog="true" select-columns="true" saved-finds="true">
             <!-- NOTE: see similar entity-find in ShipmentWorkServices.create#ShipmentLoadsForOrders in mantle-usl -->
-            <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
+            <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList" use-clone="true">
                 <search-form-inputs default-order-by="shipmentMethodSequenceNum,placedDate,orderId,orderPartSeqId"
                         skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType,facilityId,workEffortId">
                     <default-parameters partStatusId="OrderApproved"/></search-form-inputs>
@@ -109,19 +109,19 @@ along with this software (see the LICENSE.md file). If not, see
                     <date-filter/><econdition field-name="partyId" from="customerPartyId"/>
                     <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
                 <!-- Shipments -->
-                <entity-find entity-name="mantle.order.OrderItemShipSummary" list="oissList">
+                <entity-find entity-name="mantle.order.OrderItemShipSummary" list="oissList" use-clone="true">
                     <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
                     <having-econditions><econdition field-name="shipmentQuantity" operator="greater" from="0.0"/></having-econditions>
                     <select-field field-name="shipmentId,shipmentQuantity,quantityHandled"/>
                 </entity-find>
                 <!-- Other Parties -->
-                <entity-find entity-name="mantle.order.OrderPartPartyDetail" list="partPartyList">
+                <entity-find entity-name="mantle.order.OrderPartPartyDetail" list="partPartyList" use-clone="true">
                     <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
                     <select-field field-name="partyId,pseudoId,firstName,lastName,organizationName,description"/>
                 </entity-find>
                 <!-- Total Quantity: query separate if findQuantity_from || findQuantity_thru, will be wrong if there are items filtered by this constraint -->
                 <if condition="findQuantity_from || findQuantity_thru">
-                    <entity-find entity-name="mantle.order.OrderItemSummary" list="totalQtyList">
+                    <entity-find entity-name="mantle.order.OrderItemSummary" list="totalQtyList" use-clone="true">
                         <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
                         <select-field field-name="quantity"/>
                     </entity-find>

@@ -96,7 +96,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <section name="AgingGlSummarySection" condition="timePeriodId"><actions>
             <!-- similar query to InvoiceAgingDetail screen -->
-            <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
+            <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList" use-clone="true">
                 <econdition field-name="statusId" operator="in" from="statusIdList"/>
                 <econdition field-name="fromPartyId" from="organizationPartyId" ignore="invoiceType != 'Receivable'"/>
                 <econdition field-name="toPartyId" from="organizationPartyId" ignore="invoiceType != 'Payable'"/>
@@ -135,7 +135,7 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="amountAppliedSum" from="(invoiceAgingList.sum({ it.amountApplied ?: 0.0 }) ?: 0.0) + (invoiceAgingList.sum({ it.toAmountApplied ?: 0.0 }) ?: 0.0)"/>
             <set field="invoiceUnpaid" from="itemsTotalSum - amountAppliedSum"/>
 
-            <entity-find entity-name="mantle.ledger.report.GlAccountOrgTimePeriodDetail" list="glSummaryList">
+            <entity-find entity-name="mantle.ledger.report.GlAccountOrgTimePeriodDetail" list="glSummaryList" use-clone="true">
                 <econdition field-name="organizationPartyId"/><econdition field-name="timePeriodId"/>
                 <econdition field-name="glAccountClassEnumId"/>
                 <econdition field-name="endingBalance" operator="not-equals" from="0.0"/>
@@ -162,7 +162,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <container-box><box-header title="Invoices where Unpaid different from GL Amount"/><box-body-nopad>
             <form-list name="InvoiceVsGlList" list="invoiceGlList" skip-form="true">
-                <entity-find entity-name="mantle.account.invoice.InvoiceGlImpactSummary" list="invoiceGlList">
+                <entity-find entity-name="mantle.account.invoice.InvoiceGlImpactSummary" list="invoiceGlList" use-clone="true">
 
                     <!-- IITM sub-select conditions -->
                     <econditions combine="or">
@@ -229,7 +229,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <container-box><box-header title="Payments where Applied different from GL Amount"/><box-body-nopad>
             <form-list name="PaymentVsGlList" list="paymentGlList" skip-form="true">
-                <entity-find entity-name="mantle.account.payment.PaymentGlImpactSummary" list="paymentGlList">
+                <entity-find entity-name="mantle.account.payment.PaymentGlImpactSummary" list="paymentGlList" use-clone="true">
                     <econdition field-name="toPartyId" from="organizationPartyId" ignore="invoiceType != 'Receivable'"/>
                     <econdition field-name="fromPartyId" from="organizationPartyId" ignore="invoiceType != 'Payable'"/>
                     <!-- look back just 1 month for these, use lookBackDate to look back full range -->
@@ -275,7 +275,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <container-box><box-header title="GL Transactions not Posted"/><box-body-nopad>
             <form-list name="NotPostedTxList" list="notPostedTxList" skip-form="true">
-                <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="notPostedTxList">
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="notPostedTxList" use-clone="true">
                     <econdition field-name="transactionDate" operator="greater-equals" from="lookBackDate"/>
                     <econdition field-name="transactionDate" operator="less-equals" from="asOfDate"/>
                     <econdition field-name="isPosted" operator="not-equals" value="Y" or-null="true"/>
@@ -309,7 +309,7 @@ along with this software (see the LICENSE.md file). If not, see
         </box-body-nopad></container-box>
         <container-box><box-header title="GL Transactions where Debits do not equal Credits"/><box-body-nopad>
             <form-list name="CreditNeqDebitTxList" list="neqTxList" skip-form="true">
-                <entity-find entity-name="mantle.ledger.transaction.AcctgTransDebitCreditSummary" list="neqTxList">
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTransDebitCreditSummary" list="neqTxList" use-clone="true">
                     <econdition field-name="transactionDate" operator="greater-equals" from="lookBackDate"/>
                     <econdition field-name="transactionDate" operator="less-equals" from="asOfDate"/>
                     <econdition field-name="debitTotal" operator="not-equals" to-field-name="creditTotal"/>
@@ -345,7 +345,7 @@ along with this software (see the LICENSE.md file). If not, see
         </box-body-nopad></container-box>
         <container-box><box-header title="AR/AP Transactions with no Invoice"/><box-body-nopad>
             <form-list name="NoInvoiceTxList" list="noInvoiceTxList" skip-form="true">
-                <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="noInvoiceTxList">
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="noInvoiceTxList" use-clone="true">
                     <!-- do by account class instead: <econdition field-name="acctgTransTypeEnumId" operator="in" from="txTypeEnumIdList"/> -->
                     <econdition field-name="glAccountClassEnumId"/>
                     <econdition field-name="transactionDate" operator="greater-equals" from="lookBackDate"/>
@@ -373,7 +373,7 @@ along with this software (see the LICENSE.md file). If not, see
         </box-body-nopad></container-box>
         <container-box><box-header title="Payment Applications with Invoice after Period"/><box-body-nopad>
             <form-list name="ApplicationFutureInvoiceList" list="applicationFutureInvoiceList" skip-form="true">
-                <entity-find entity-name="mantle.account.payment.PaymentApplicationAndInvoice" list="applicationFutureInvoiceList">
+                <entity-find entity-name="mantle.account.payment.PaymentApplicationAndInvoice" list="applicationFutureInvoiceList" use-clone="true">
                     <econdition field-name="appliedDate" operator="greater-equals" from="fromDate"/>
                     <econdition field-name="appliedDate" operator="less-equals" from="thruDate"/>
                     <econdition field-name="invoiceDate" operator="greater" from="thruDate"/>
