@@ -24,6 +24,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateStatus"><service-call name="update#mantle.party.communication.CommunicationEvent"/>
         <default-response url="."/></transition>
 
+    <transition name="createCommunicationEventPurpose"><service-call name="create#mantle.party.communication.CommunicationEventPurpose"/>
+        <default-response url="."/></transition>
+    <transition name="updateCommunicationEventPurpose"><service-call name="update#mantle.party.communication.CommunicationEventPurpose"/>
+        <default-response url="."/></transition>
+    <transition name="deleteCommunicationEventPurpose"><service-call name="delete#mantle.party.communication.CommunicationEventPurpose"/>
+        <default-response url="."/></transition>
+
     <transition name="messageThread"><default-response url="../MessageThread"/></transition>
     <transition name="replyMessage"><service-call name="mantle.party.CommunicationServices.reply#CommunicationEvent"/>
         <default-response url="../MessageThread"/></transition>
@@ -35,9 +42,8 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="pkPrimaryValue" from="commEvent.communicationEventId"/>
     </actions>
     <widgets>
-
-        <container style="row"><container style="col-lg-4">
-            <label text="${commEvent.subject ?: 'Message'}" type="h2"/>
+        <container style="row"><container style="col-lg-6">
+            <label text="${commEvent.subject ?: 'Message'}" type="h3"/>
 
             <link url="messageThread" text="Thread"/>
             <container-dialog id="ReplyDialog" button-text="Reply">
@@ -55,30 +61,70 @@ along with this software (see the LICENSE.md file). If not, see
                     </field-layout>
                 </form-single>
             </container-dialog>
-        </container><container style="col-lg-8">
+
+            <form-single name="MessageForm" map="commEvent" transition="updateMessage">
+                <field name="communicationEventId"><default-field><hidden/></default-field></field>
+                <field name="partyId"><default-field><hidden/></default-field></field>
+
+                <field name="fromPartyId"><default-field title="From">
+                    <display-entity entity-name="mantle.party.PartyDetail" also-hidden="false" key-field-name="partyId"
+                            text="PartyNameTemplate"/>
+                </default-field></field>
+                <field name="toPartyId"><default-field title="To">
+                    <display-entity entity-name="mantle.party.PartyDetail" also-hidden="false" key-field-name="partyId"
+                            text="PartyNameTemplate"/>
+                </default-field></field>
+
+                <field name="communicationEventTypeId"><default-field title="Type">
+                    <display-entity entity-name="mantle.party.communication.CommunicationEventType"/>
+                </default-field></field>
+
+                <field name="body"><default-field title=""><text-area cols="110" rows="16"/></default-field></field>
+
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </container><container style="col-lg-6">
             <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+            <section name="CommunicationEventPurposeSection"><actions>
+                <entity-find entity-name="mantle.party.communication.CommunicationEventPurpose" list="purposeList">
+                    <econdition field-name="communicationEventId"/><order-by field-name="purposeEnumId"/></entity-find>
+                <set field="purposeEnumIds" from="purposeList*.purposeEnumId"/>
+            </actions><widgets>
+                <container-box><box-header title="Purposes"/><box-toolbar>
+                    <container-dialog id="AddPurposeDialog" button-text="Add Purpose">
+                        <form-single name="AddPurposeForm" transition="createCommunicationEventPurpose">
+                            <field name="communicationEventId"><default-field><hidden/></default-field></field>
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="purposeEnumId"><default-field title="Purpose">
+                                <drop-down>
+                                    <entity-options key="${enumId}" text="${description}">
+                                        <entity-find entity-name="moqui.basic.Enumeration">
+                                            <econdition field-name="enumTypeId" value="CommunicationPurpose"/>
+                                            <econdition field-name="enumId" operator="not-in" from="purposeEnumIds" ignore-if-empty="true"/>
+                                            <order-by field-name="description"/>
+                                        </entity-find>
+                                    </entity-options>
+                                </drop-down>
+                            </default-field></field>
+                            <field name="description"><default-field title="Note"><text-line size="20"/></default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body-nopad>
+                    <form-list name="PurposesForm" list="purposeList" transition="updateCommunicationEventPurpose">
+                        <field name="communicationEventId"><default-field><hidden/></default-field></field>
+                        <field name="partyId"><default-field><hidden/></default-field></field>
+                        <field name="purposeEnumId"><default-field title="Purpose">
+                            <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                        <field name="description"><default-field title="Note"><text-line size="20"/></default-field></field>
+                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                        <field name="removeButton"><default-field title="">
+                            <link url="deleteCommunicationEventPurpose" text=" " icon="glyphicon glyphicon-trash" confirmation="Delete this Purpose?"/>
+                        </default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
         </container></container>
-
-        <form-single name="MessageForm" map="commEvent" transition="updateMessage">
-            <field name="communicationEventId"><default-field><hidden/></default-field></field>
-            <field name="partyId"><default-field><hidden/></default-field></field>
-
-            <field name="fromPartyId"><default-field title="From">
-                <display-entity entity-name="mantle.party.PartyDetail" also-hidden="false" key-field-name="partyId"
-                        text="PartyNameTemplate"/>
-            </default-field></field>
-            <field name="toPartyId"><default-field title="To">
-                <display-entity entity-name="mantle.party.PartyDetail" also-hidden="false" key-field-name="partyId"
-                        text="PartyNameTemplate"/>
-            </default-field></field>
-
-            <field name="communicationEventTypeId"><default-field title="Type">
-                <display-entity entity-name="mantle.party.communication.CommunicationEventType"/>
-            </default-field></field>
-
-            <field name="body"><default-field title=""><text-area cols="110" rows="16"/></default-field></field>
-
-            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-        </form-single>
     </widgets>
 </screen>
