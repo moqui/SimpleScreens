@@ -30,7 +30,11 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="defaultFacilityId" from="ec.user.getPreference('FacilityGeneralDefault')"/>
 
-        <set field="pastEta" from="pastEta ?: 'true'"/>
+        <set field="hoursPastEta" from="hoursPastEta ?: '12'"/>
+        <set field="hoursPastEtaInt" from="hoursPastEta as int"/>
+        <if condition="hoursPastEtaInt > 0">
+            <set field="etaLookBack" from="new Timestamp(java.time.ZonedDateTime.now().minusHours(hoursPastEtaInt).withMinute(0).withSecond(0).toInstant().toEpochMilli())"/>
+        </if>
 
         <set field="daysSincePacked" from="daysSincePacked ?: '5'"/>
         <set field="daysSincePackedInt" from="daysSincePacked as int"/>
@@ -45,7 +49,7 @@ along with this software (see the LICENSE.md file). If not, see
         </if>
 
         <set field="summaryString" value=""/>
-        <if condition="pastEta == 'true'"><set field="summaryString" value="Past ETA or Orig ETA"/></if>
+        <if condition="etaLookBack != null"><set field="summaryString" value="with ETA or Orig ETA before ${ec.l10n.format(etaLookBack, null)}"/></if>
         <if condition="packedLookBack != null"><set field="summaryString" from="(summaryString ? summaryString + ' OR ' : '') + 'Packed before ' + ec.l10n.format(packedLookBack, null)"/></if>
         <if condition="lastTrackLookBack != null"><set field="summaryString" from="(summaryString ? summaryString + ' OR ' : '') + 'Last Track before ' + ec.l10n.format(lastTrackLookBack, null)"/></if>
     </actions>
@@ -59,8 +63,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
                 <econditions combine="or">
-                    <econdition field-name="trackingEta" operator="less" from="ec.user.nowTimestamp" ignore="pastEta != 'true'"/>
-                    <econdition field-name="trackingOrigEta" operator="less" from="ec.user.nowTimestamp" ignore="pastEta != 'true'"/>
+                    <econdition field-name="trackingEta" operator="less" from="etaLookBack" ignore-if-empty="true"/>
+                    <econdition field-name="trackingOrigEta" operator="less" from="etaLookBack" ignore-if-empty="true"/>
                     <econdition field-name="packedDate" operator="less" from="packedLookBack" ignore-if-empty="true"/>
                     <econdition field-name="trackingStatusDate" operator="less" from="lastTrackLookBack" ignore-if-empty="true"/>
                 </econditions>
@@ -73,13 +77,11 @@ along with this software (see the LICENSE.md file). If not, see
             </row-actions>
 
             <field name="orFields"><header-field title="">
-                <label text="Results match any of Past ETA, Days Since Packed, and Days Since Last Track (OR) and must match all other options selected (AND)"/>
+                <label text="Results match any of Hours Past ETA, Days Since Packed, and Days Since Last Track (OR) and must match all other options selected (AND)"/>
             </header-field></field>
-            <field name="pastEta"><header-field title="Past ETA">
-                <radio><option key="true" text="Yes"/><option key="false" text="No"/></radio>
-            </header-field></field>
-            <field name="daysSincePacked"><header-field><text-line size="4"/><label text="Set to 0 to ignore"/></header-field></field>
-            <field name="daysSinceLastTrack"><header-field><text-line size="4"/><label text="Set to 0 to ignore"/></header-field></field>
+            <field name="hoursPastEta"><header-field title="Hours Past ETA"><text-line size="4"/><label text="Defaults to 12, set to 0 to ignore"/></header-field></field>
+            <field name="daysSincePacked"><header-field><text-line size="4"/><label text="Defaults to 5, set to 0 to ignore"/></header-field></field>
+            <field name="daysSinceLastTrack"><header-field><text-line size="4"/><label text="Defaults to 0 (ignored)"/></header-field></field>
 
             <field name="shipmentId">
                 <header-field title="Shipment" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
