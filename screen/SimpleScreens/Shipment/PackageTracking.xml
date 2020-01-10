@@ -30,14 +30,27 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="defaultFacilityId" from="ec.user.getPreference('FacilityGeneralDefault')"/>
 
+        <set field="pastEta" from="pastEta ?: 'true'"/>
+
         <set field="daysSincePacked" from="daysSincePacked ?: '5'"/>
         <set field="daysSincePackedInt" from="daysSincePacked as int"/>
         <if condition="daysSincePackedInt > 0">
             <set field="packedLookBack" from="new Timestamp(java.time.ZonedDateTime.now().minusDays(daysSincePackedInt).withHour(0).withMinute(0).withSecond(0).toInstant().toEpochMilli())"/>
         </if>
+
+        <set field="daysSinceLastTrack" from="daysSinceLastTrack ?: '0'"/>
+        <set field="daysSinceLastTrackInt" from="daysSinceLastTrack as int"/>
+        <if condition="daysSinceLastTrackInt > 0">
+            <set field="lastTrackLookBack" from="new Timestamp(java.time.ZonedDateTime.now().minusDays(daysSinceLastTrackInt).withHour(0).withMinute(0).withSecond(0).toInstant().toEpochMilli())"/>
+        </if>
+
+        <set field="summaryString" value=""/>
+        <if condition="pastEta == 'true'"><set field="summaryString" value="Past ETA or Orig ETA"/></if>
+        <if condition="packedLookBack != null"><set field="summaryString" from="(summaryString ? summaryString + ' OR ' : '') + 'Packed before ' + ec.l10n.format(packedLookBack, null)"/></if>
+        <if condition="lastTrackLookBack != null"><set field="summaryString" from="(summaryString ? summaryString + ' OR ' : '') + 'Last Track before ' + ec.l10n.format(lastTrackLookBack, null)"/></if>
     </actions>
     <widgets>
-        <label text="Packages Past ETA${packedLookBack ? ' or Packed before ' + ec.l10n.format(packedLookBack, null) : ''}" type="h5"/>
+        <label text="Packages ${summaryString}" type="h5" condition="summaryString"/>
         <form-list name="EtaPackageList" list="packageList" skip-form="true" header-dialog="true" saved-finds="true">
             <entity-find entity-name="mantle.shipment.ShipmentPackageFindView" list="packageList">
                 <search-form-inputs default-order-by="-packedDate,-shipmentId">
@@ -46,9 +59,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
                 <econditions combine="or">
-                    <econdition field-name="trackingEta" operator="less" from="ec.user.nowTimestamp"/>
-                    <econdition field-name="trackingOrigEta" operator="less" from="ec.user.nowTimestamp"/>
+                    <econdition field-name="trackingEta" operator="less" from="ec.user.nowTimestamp" ignore="pastEta != 'true'"/>
+                    <econdition field-name="trackingOrigEta" operator="less" from="ec.user.nowTimestamp" ignore="pastEta != 'true'"/>
                     <econdition field-name="packedDate" operator="less" from="packedLookBack" ignore-if-empty="true"/>
+                    <econdition field-name="trackingStatusDate" operator="less" from="lastTrackLookBack" ignore-if-empty="true"/>
                 </econditions>
                 <select-field field-name="trackingUrl"/>
             </entity-find>
@@ -58,7 +72,14 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
             </row-actions>
 
-            <field name="daysSincePacked"><header-field><text-line size="4"/><label text="Set to 0 for past ETA only"/></header-field></field>
+            <field name="orFields"><header-field title="">
+                <label text="Results match any of Past ETA, Days Since Packed, and Days Since Last Track (OR) and must match all other options selected (AND)"/>
+            </header-field></field>
+            <field name="pastEta"><header-field title="Past ETA">
+                <radio><option key="true" text="Yes"/><option key="false" text="No"/></radio>
+            </header-field></field>
+            <field name="daysSincePacked"><header-field><text-line size="4"/><label text="Set to 0 to ignore"/></header-field></field>
+            <field name="daysSinceLastTrack"><header-field><text-line size="4"/><label text="Set to 0 to ignore"/></header-field></field>
 
             <field name="shipmentId">
                 <header-field title="Shipment" show-order-by="true"><text-find size="10" hide-options="true"/></header-field>
@@ -133,5 +154,14 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="estimatedArrivalDate"/><field-ref name="estimatedReadyDate"/></form-list-column>
             <form-list-column><field-ref name="toPartyId"/><field-ref name="originFacilityId"/></form-list-column>
         </form-list>
+
+        <section name="ShowSql" condition="packageList_xafind?.getQueryTextList()"><widgets>
+            <container-dialog id="ShowSqlDialog" button-text="Show SQL">
+                <section-iterate name="ShowSqlIter" list="packageList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                    <label text="${queryText}" type="p"/>
+                    <label text="${packageList_xafind}" type="p"/>
+                </widgets></section-iterate>
+            </container-dialog>
+        </widgets></section>
     </widgets>
 </screen>
