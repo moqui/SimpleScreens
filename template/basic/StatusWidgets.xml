@@ -38,7 +38,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <container><label text="Status" type="strong"/></container>
                         <container><label text="${statusItem?.description ?: ''}" type="strong" style="text-info"/></container>
                     </container>
-                    <section-iterate name="StatusChangeLinkSection" list="statusTransitionList" entry="statusTransition"><widgets>
+                    <section-iterate name="StatusChangeLinkSection" list="statusTransitionList" entry="statusTransition"><condition>
+                        <expression>statusTransition.userPermissionId == null || statusTransition.userPermissionId.isEmpty() || ec.user.hasPermission(statusTransition.userPermissionId)</expression>
+                    </condition><widgets>
                         <container type="li">
                             <link url="${statusChangeTransition ?: 'updateStatus'}" text="StatusTransitionNameTemplate"
                                     text-map="statusTransition" parameter-map="[statusId:statusTransition.toStatusId]"
@@ -109,7 +111,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Status" type="h5"/>
                 <!--<label text="${statusItem?.description?:''}" type="h5" style="text-success"/>-->
             </box-header><box-toolbar>
-                <section-iterate name="StatusChangeHistLinkSection" list="statusTransitionList" entry="statusTransition"><widgets>
+                <section-iterate name="StatusChangeHistLinkSection" list="statusTransitionList" entry="statusTransition"><condition>
+                    <expression>statusTransition.userPermissionId == null || statusTransition.userPermissionId.isEmpty() || ec.user.hasPermission(statusTransition.userPermissionId)</expression>
+                </condition><widgets>
                     <link url="${statusChangeTransition ?: 'updateStatus'}" text="StatusTransitionNameTemplate"
                             text-map="statusTransition" parameter-map="[statusId:statusTransition.toStatusId]"
                             confirmation="Change status to ${statusTransition.description}?"/>
