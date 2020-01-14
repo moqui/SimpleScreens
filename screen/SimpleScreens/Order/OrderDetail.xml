@@ -482,8 +482,9 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="customerShipToPartyId" from="orderPartInfo.customerShipToDetail?.partyId"/>
             <set field="customerBillToPartyId" from="orderPartInfo.customerBillToDetail?.partyId"/>
 
-            <!-- limit parent items to product type items only (from no parent items for part) -->
-            <set field="applicableParentItems" from="orderPartInfo.partNoParentOrderItemList?.findAll({ it.itemTypeEnumId in productItemTypes })"/>
+            <!-- limit parent items (from items for part with no parent item) -->
+            <!-- NOTE: no longer product type items only to allow discounts on shipping, etc: ?.findAll({ it.itemTypeEnumId in productItemTypes }) -->
+            <set field="applicableParentItems" from="orderPartInfo.partNoParentOrderItemList"/>
 
             <!-- get shippingOptions for initial load (before drop-down dynamic call with rates which may be slow) -->
             <service-call name="mantle.product.StoreServices.get#StoreShippingOptions" out-map="context"
