@@ -44,6 +44,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateProductFeatureGroupAppl"><service-call name="update#mantle.product.feature.ProductFeatureGroupAppl"/>
         <default-response url="."/></transition>
 
+    <transition-include name="getCategoryList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
     <actions>
         <entity-find-one entity-name="mantle.product.feature.ProductFeatureGroup" value-field="featureGroup"/>
         
@@ -66,14 +68,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <container-dialog id="AddCategoryDialog" button-text="Apply to Category">
                     <form-single name="AddCategoryForm" transition="createProductCategoryFeatGrpAppl">
                         <field name="productFeatureGroupId"><default-field><hidden/></default-field></field>
-                        <field name="productCategoryId"><default-field title="Category">
-                            <drop-down>
-                                <entity-options key="${productCategoryId}" text="${typeDescription} - ${categoryName} [${pseudoId}]">
-                                    <entity-find entity-name="mantle.product.category.ProductCategoryAndType" limit="200">
-                                        <order-by field-name="typeDescription"/><order-by field-name="categoryName"/></entity-find>
-                                </entity-options>
-                            </drop-down>
-                        </default-field></field>
+                        <field name="productCategoryId"><default-field title="Category"><drop-down>
+                            <dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down></default-field></field>
                         <field name="applTypeEnumId"><default-field title="Appl. Type">
                             <drop-down no-current-selected-key="PfatStandard">
                                 <entity-options key="${enumId}" text="${description}">
