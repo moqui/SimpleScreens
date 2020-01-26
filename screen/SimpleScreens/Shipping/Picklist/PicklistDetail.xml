@@ -90,6 +90,21 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="facilityId"><default-field title="Facility"><drop-down>
                         <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse,FcTpDock']"/>
                     </drop-down></default-field></field>
+                    <field name="ownerPartyId"><default-field title="Owner Org"><drop-down allow-empty="true">
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
+                    <field name="productStoreId"><default-field title="Store"><drop-down allow-empty="true">
+                        <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                            <entity-find entity-name="mantle.product.store.ProductStore">
+                                <order-by field-name="storeName"/></entity-find></entity-options>
+                    </drop-down></default-field></field>
+
                     <field name="estimatedStartDate"><default-field title="Ship Date"><date-time/></default-field></field>
                     <field name="estimatedWorkDuration"><default-field title="Est. Hours"><text-line size="8"/></default-field></field>
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>

@@ -45,6 +45,13 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-related-one value-field="workEffort" relationship-name="mantle.facility.Facility" to-value-field="facility"/>
         <set field="facilityId" from="facilityId != null ? facilityId : (facility?.parentFacilityId ?: facility?.facilityId)"/>
 
+        <!-- hard override for vendorPartyId if workEffort.ownerPartyId -->
+        <if condition="workEffort.ownerPartyId"><set field="vendorPartyId" from="workEffort.ownerPartyId"/></if>
+        <!-- hard override for productStoreId if workEffort.productStoreId -->
+        <if condition="workEffort.productStoreId"><set field="productStoreId" from="workEffort.productStoreId"/></if>
+
+        <set field="partStatusId" from="partStatusId ?: 'OrderApproved'"/>
+
         <if condition="excludeOnPicklist == 'false'"><then>
             <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
                 (SELECT SHMT.SHIPMENT_ID
@@ -74,8 +81,7 @@ along with this software (see the LICENSE.md file). If not, see
             <!-- NOTE: see similar entity-find in ShipmentWorkServices.create#ShipmentLoadsForOrders in mantle-usl -->
             <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList" use-clone="true">
                 <search-form-inputs default-order-by="shipmentMethodSequenceNum,placedDate,orderId,orderPartSeqId"
-                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType,facilityId,workEffortId">
-                    <default-parameters partStatusId="OrderApproved"/></search-form-inputs>
+                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType,facilityId,workEffortId"/>
                 <!-- NOTE: not limiting by date, ie placedDate_poffset="-3" placedDate_period="30d" -->
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>

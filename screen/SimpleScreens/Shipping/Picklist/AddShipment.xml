@@ -39,14 +39,21 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-related-one value-field="workEffort" relationship-name="mantle.facility.Facility" to-value-field="facility"/>
         <set field="originFacilityId" from="originFacilityId != null ? originFacilityId : (facility?.parentFacilityId ?: facility?.facilityId)"/>
 
+        <!-- hard override for fromPartyId if workEffort.ownerPartyId -->
+        <if condition="workEffort.ownerPartyId"><set field="fromPartyId" from="workEffort.ownerPartyId"/></if>
+        <!-- hard override for productStoreId if workEffort.productStoreId -->
+        <if condition="workEffort.productStoreId"><set field="productStoreId" from="workEffort.productStoreId"/></if>
+
+        <set field="statusId" from="statusId ?: 'ShipInput,ShipScheduled,ShipPicked'"/>
+        <set field="statusId_op" value="in"/>
+
         <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="shipmentTypeOut" in-map="[parentEnumId:'ShpTpOutgoing']"/>
     </actions>
     <widgets>
         <form-list name="AddShipmentList" list="shipmentList" transition="addShipmentToLoad" multi="true"
                 header-dialog="true" select-columns="true" saved-finds="true">
             <entity-find entity-name="mantle.shipment.ShipmentFindView" list="shipmentList">
-                <search-form-inputs default-order-by="binLocationNumber,shipmentMethodSequenceNum,shipmentId" skip-fields="originFacilityId">
-                    <default-parameters statusId="ShipInput,ShipScheduled,ShipPicked" statusId_op="in"/></search-form-inputs>
+                <search-form-inputs default-order-by="binLocationNumber,shipmentMethodSequenceNum,shipmentId" skip-fields="originFacilityId"/>
                 <econdition field-name="shipmentTypeEnumId" operator="in" from="shipmentTypeSet" ignore="!shipmentTypeSet"/>
                 <econdition field-name="originFacilityId" ignore-if-empty="true"/>
                 <econdition field-name="shipWorkEffortId" operator="is-null" ignore="includeOnPicklist"/>
@@ -144,6 +151,23 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate"
                         link-type="anchor" parameter-map="[facilityId:originFacilityId]"/></default-field>
             </field>
+            <field name="productStoreId">
+                <header-field title="Store">
+                    <drop-down allow-empty="true"><entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                        <entity-find entity-name="mantle.product.store.ProductStore">
+                            <order-by field-name="storeName"/></entity-find></entity-options></drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.product.store.ProductStore" text="${productStoreId}: ${storeName}"/></default-field>
+            </field>
+            <field name="fromPartyId">
+                <header-field title="From Party">
+                    <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                            parameter-map="[roleTypeId:'Supplier,Vendor,OrgInternal']"/></drop-down>
+                </header-field>
+                <default-field><link url="editSupplier" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"
+                        link-type="anchor" parameter-map="[partyId:vendorPartyId]"/></default-field>
+            </field>
+
             <field name="toPartyId">
                 <header-field title="To Party">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
