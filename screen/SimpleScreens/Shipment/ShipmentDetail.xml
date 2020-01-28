@@ -832,7 +832,10 @@ along with this software (see the LICENSE.md file). If not, see
 
         <!-- Items -->
         <container-box><box-header title="Shipment Items"/><box-toolbar>
-            <section name="ShipItemInputSection" condition="shipment.statusId in ['ShipInput', 'ShipScheduled']"><widgets>
+            <!-- NOTE: don't show this dialog for Sales Return and Purchase Return type shipments, causes issues when trying to
+                change the status to Delivered, and generally makes no sense as the system won't have data needed for responding
+                to returns, knowing that order items were returned, etc -->
+            <section name="ShipItemInputSection" condition="shipment.statusId in ['ShipInput', 'ShipScheduled'] &amp;&amp; !(shipment.shipmentTypeEnumId in ['ShpTpSalesReturn', 'ShpTpPurchaseReturn'])"><widgets>
                 <container-dialog id="AddItemContainer" button-text="Add Item">
                     <form-single name="AddItemForm" transition="addItem">
                         <field name="shipmentId"><default-field><hidden/></default-field></field>
