@@ -102,7 +102,7 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="sri.screenUrlInfo.fullPathNameList &amp;&amp; sri.screenUrlInfo.fullPathNameList[0] == 'menuData'"><return/></if>
 
         <set field="extraPathNameList" from="sri.screenUrlInfo.extraPathNameList"/>
-        <!-- <log level="warn" message="wiki extraPathNameList ${extraPathNameList}"/> -->
+        <!-- <log level="warn" message="wiki pre-actions extraPathNameList ${extraPathNameList}"/> -->
         <service-call name="org.moqui.impl.WikiServices.get#WikiPageInfo" in-map="context" out-map="context"/>
 
         <!-- redirect to EditWikiPage to create instead of trying to render a page that doesn't exist -->
@@ -121,13 +121,14 @@ along with this software (see the LICENSE.md file). If not, see
                 editWikiUrl.addParameter("parentPath", parentPath)
                 editWikiUrl.addParameter("pageName", pageName)
                 editWikiUrl.addParameter("isCreate", "true")
-                sri.sendRedirectAndStopRender(editWikiUrl.getUrlWithParams())
+                sri.sendRedirectAndStopRender(editWikiUrl.getPathWithParams())
             }
         ]]></script>
     </pre-actions>
     
     <actions>
         <set field="basePath" from="sri.getCurrentScreenUrl().getScreenOnlyPath()"/>
+        <set field="baseLinkPath" from="basePath + '/' + wikiSpaceId"/>
         <set field="baseLinkUrl" from="sri.getCurrentScreenUrl().getScreenPathUrl() + '/' + wikiSpaceId"/>
         <!-- this is only used for the WikiPageTree.ftl file, not needed otherwise: -->
         <!-- <service-call name="org.moqui.impl.WikiServices.get#WikiSpacePages" in-map="context" out-map="context"/> -->
@@ -194,10 +195,10 @@ along with this software (see the LICENSE.md file). If not, see
         </row-col><row-col lg="7" md="6">
 
             <container id="wiki-breadcrumbs">
-                <link text="${wikiSpace?.description?:'Space Root'}" url="${baseLinkUrl}" url-type="plain" link-type="anchor"/>
+                <link text="${wikiSpace?.description?:'Space Root'}" url="${baseLinkPath}" link-type="anchor" url-noparam="true"/>
                 <section-iterate name="breadcrumbs" list="breadcrumbMapList" entry="breadcrumbMap"><widgets>
                     <label text="/"/>
-                    <link text="${breadcrumbMap.pageName}" url="${baseLinkUrl}/${breadcrumbMap.pagePath}" url-type="plain" link-type="anchor"/>
+                    <link text="${breadcrumbMap.pageName}" url="${baseLinkPath}/${breadcrumbMap.encodedPagePath}" link-type="anchor" url-noparam="true"/>
                 </widgets></section-iterate>
             </container>
             <container>
