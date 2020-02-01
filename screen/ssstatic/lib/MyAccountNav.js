@@ -9,8 +9,8 @@ define({
             '<i class="glyphicon glyphicon-calendar"></i> <span class="label label-default">{{eventCount}}</span></m-link>' +
         '<m-link href="/apps/my/User/Messages/FindMessage?statusId=CeReceived&toCurrentUser=true" data-toggle="tooltip" data-container="body" data-original-title="Messages" data-placement="bottom" class="btn btn-default btn-sm navbar-btn navbar-right">' +
             '<i class="glyphicon glyphicon-envelope"></i> <span class="label label-default">{{messageCount}}</span></m-link>' +
-        '<m-link href="/apps/my/User/Notifications" data-toggle="tooltip" data-container="body" data-original-title="Notifications" data-placement="bottom" class="btn btn-default btn-sm navbar-btn navbar-right">' +
-            '<i class="glyphicon glyphicon-info-sign"></i> <span class="label label-default">{{notificationCount}}</span></m-link>' +
+        '<m-link href="/apps/my/User/Notifications" data-toggle="tooltip" data-container="body" data-original-title="Notifications" data-placement="bottom" class="btn btn-default btn-sm navbar-btn navbar-right" :class="{ \'btn-warning\':notificationCount, \'btn-default\':!notificationCount }">' +
+            '<i class="glyphicon glyphicon-info-sign"></i> <span class="label" :class="{ \'label-warning\':notificationCount, \'label-default\':!notificationCount }">{{notificationCount}}</span></m-link>' +
     '</div>',
     methods: {
         updateCounts: function() {
