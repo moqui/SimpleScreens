@@ -583,6 +583,11 @@ along with this software (see the LICENSE.md file). If not, see
                                     <drop-down><dynamic-options transition="getFacilityList" server-search="true" min-length="0"
                                             parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/></drop-down>
                                 </default-field></field>
+
+                                <field name="priority"><default-field><radio no-current-selected-key="5">
+                                    <option key="1"/><option key="2"/><option key="3"/><option key="4"/><option key="5"/>
+                                    <option key="6"/><option key="7"/><option key="8"/><option key="9"/>
+                                </radio></default-field></field>
                                 <field name="shipAfterDate"><default-field title="Ship After"><date-time/></default-field></field>
                                 <field name="shipBeforeDate"><default-field title="Ship Before"><date-time/></default-field></field>
                                 <field name="estimatedShipDate"><default-field title="Estimated Ship"><date-time/></default-field></field>
@@ -596,14 +601,14 @@ along with this software (see the LICENSE.md file). If not, see
                                         <set field="enumTypeId" value="SignatureRequired"/><set field="allowEmpty" value="true"/></widget-template-include>
                                 </default-field></field>
                                 <field name="isGift"><default-field>
-                                    <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+                                    <radio no-current-selected-key="N"><option key="N"/><option key="Y"/></radio></default-field></field>
                                 <field name="giftMessage"><default-field><text-area rows="3" cols="60"/></default-field></field>
                                 <field name="disablePromotions"><default-field>
-                                    <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+                                    <radio no-current-selected-key="N"><option key="N"/><option key="Y"/></radio></default-field></field>
                                 <field name="disableShippingCalc"><default-field>
-                                    <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+                                    <radio no-current-selected-key="N"><option key="N"/><option key="Y"/></radio></default-field></field>
                                 <field name="disableTaxCalc"><default-field>
-                                    <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+                                    <radio no-current-selected-key="N"><option key="N"/><option key="Y"/></radio></default-field></field>
                                 <field name="reservationAutoEnumId"><default-field title="Auto Res.">
                                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                                         <set field="enumTypeId" value="AssetReservationAuto"/><set field="allowEmpty" value="true"/></widget-template-include>
@@ -616,6 +621,11 @@ along with this software (see the LICENSE.md file). If not, see
                             <form-single name="EditPartNonEdForm" transition="updateOrderPart" map="orderPart">
                                 <field name="orderId"><default-field><hidden/></default-field></field>
                                 <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
+
+                                <field name="priority"><default-field><radio no-current-selected-key="5">
+                                    <option key="1"/><option key="2"/><option key="3"/><option key="4"/><option key="5"/>
+                                    <option key="6"/><option key="7"/><option key="8"/><option key="9"/>
+                                </radio></default-field></field>
                                 <field name="shipAfterDate"><default-field title="Ship After"><date-time/></default-field></field>
                                 <field name="shipBeforeDate"><default-field title="Ship Before"><date-time/></default-field></field>
                                 <field name="estimatedShipDate"><default-field title="Estimated Ship"><date-time/></default-field></field>
@@ -627,7 +637,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="signatureRequiredEnumId"><default-field title="Sign Req.">
                                     <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
                                 <field name="isGift"><default-field>
-                                    <drop-down><option key="N"/><option key="Y"/></drop-down></default-field></field>
+                                    <radio no-current-selected-key="N"><option key="N"/><option key="Y"/></radio></default-field></field>
                                 <field name="giftMessage"><default-field><text-area rows="3" cols="80"/></default-field></field>
                                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                             </form-single>
@@ -710,11 +720,15 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="dd"/>
                         <label text="Carrier" type="dt" condition="orderPartInfo.carrierPartyDetail"/>
                         <label text="${ec.resource.expand('PartyNameTemplate', null, orderPartInfo.carrierPartyDetail)}" type="dd" condition="orderPartInfo.carrierPartyDetail"/>
+
+                        <label text="Priority" type="dt" style="${orderPartInfo.orderPart.priority == 1 ? 'text-strong text-danger' : (orderPartInfo.orderPart.priority == 2 || orderPartInfo.orderPart.priority == 3 ? 'text-strong text-warning' : '')}"/>
+                        <label text="${orderPartInfo.orderPart.priority ?: 5}" type="dd" style="${orderPartInfo.orderPart.priority == 1 ? 'text-strong text-danger' : (orderPartInfo.orderPart.priority == 2 || orderPartInfo.orderPart.priority == 3 ? 'text-strong text-warning' : '')}"/>
                         <label text="Ship After" type="dt" condition="orderPartInfo.orderPart.shipAfterDate"/>
                         <label text="${ec.l10n.format(orderPartInfo.orderPart.shipAfterDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
                                 condition="orderPartInfo.orderPart.shipAfterDate"/>
-                        <label text="Ship Before" type="dt"/>
-                        <label text="${ec.l10n.format(orderPartInfo.orderPart.shipBeforeDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"/>
+                        <label text="Ship Before" type="dt" condition="orderPartInfo.orderPart.shipBeforeDate"/>
+                        <label text="${ec.l10n.format(orderPartInfo.orderPart.shipBeforeDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
+                                condition="orderPartInfo.orderPart.shipBeforeDate"/>
                         <label text="Delivery Date" type="dt" condition="orderPartInfo.orderPart.estimatedDeliveryDate"/>
                         <label text="${ec.l10n.format(orderPartInfo.orderPart.estimatedDeliveryDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
                                 condition="orderPartInfo.orderPart.estimatedDeliveryDate"/>
