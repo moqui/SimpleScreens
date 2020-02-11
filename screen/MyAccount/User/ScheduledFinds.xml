@@ -31,16 +31,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <select-field field-name="screenPath,formListFindId"/>
             </entity-find>
             <row-actions>
-                <script>
-                    if (cronExpression) {
-                        try {
-                            cronDescription = com.cronutils.descriptor.CronDescriptor.instance(Locale.US)
-                                    .describe(org.moqui.impl.service.ScheduledJobRunner.parser.parse((String) cronExpression))
-                        } catch (Exception e) {
-                            cronDescription = "Invalid Cron expression '${cronExpression}': ${e.message}"
-                        }
-                    }
-                </script>
+                <set field="cronDescription" from="org.moqui.impl.service.ScheduledJobRunner.getCronDescription(cronExpression, ec.user.getLocale(), true)"/>
             </row-actions>
 
             <field name="screenScheduledId"><default-field><hidden/></default-field></field>

@@ -40,16 +40,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="moqui.screen.ScreenScheduled" value-field="screenScheduled"/>
-        <script>
-            if (screenScheduled?.cronExpression) {
-                try {
-                    cronDescription = com.cronutils.descriptor.CronDescriptor.instance(Locale.US)
-                            .describe(org.moqui.impl.service.ScheduledJobRunner.parser.parse((String) screenScheduled?.cronExpression))
-                } catch (Exception e) {
-                    cronDescription = "Invalid Cron expression '${cronExpression}': ${e.message}"
-                }
-            }
-        </script>
+        <set field="cronDescription" from="org.moqui.impl.service.ScheduledJobRunner.getCronDescription(screenScheduled?.cronExpression, ec.user.getLocale(), true)"/>
     </actions>
     <widgets>
         <label text="To disable set a Thru Date in the past or clear the Schedule and Cron Expression" type="p"/>
