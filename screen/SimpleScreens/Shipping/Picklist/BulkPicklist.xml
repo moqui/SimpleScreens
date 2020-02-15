@@ -43,24 +43,11 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
 
         <set field="partStatusId" from="partStatusId ?: 'OrderApproved'"/>
-
-        <!-- create excludeOnPicklistCond used by AddOrderList form-list.entity-find inherited from Picklist/AddOrder.xml -->
-        <if condition="excludeOnPicklist == 'false'"><then>
-            <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
-                (SELECT SHMT.SHIPMENT_ID
-                 FROM SHIPMENT_ITEM_SOURCE SHIS INNER JOIN SHIPMENT SHMT ON SHIS.SHIPMENT_ID = SHMT.SHIPMENT_ID
-                 WHERE SHIS.ORDER_ID = OITM.ORDER_ID AND SHIS.ORDER_ITEM_SEQ_ID = OITM.ORDER_ITEM_SEQ_ID
-                    AND SHMT.STATUS_ID NOT IN ('ShipInput', 'ShipScheduled', 'ShipRejected', 'ShipCancelled') AND SHIS.QUANTITY > 0)''')"/>
-        </then><else>
-            <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
-                (SELECT SHMT.SHIPMENT_ID
-                 FROM SHIPMENT_ITEM_SOURCE SHIS INNER JOIN SHIPMENT SHMT ON SHIS.SHIPMENT_ID = SHMT.SHIPMENT_ID
-                 WHERE SHIS.ORDER_ID = OITM.ORDER_ID AND SHIS.ORDER_ITEM_SEQ_ID = OITM.ORDER_ITEM_SEQ_ID
-                    AND (SHMT.SHIP_WORK_EFFORT_ID IS NOT NULL OR SHMT.STATUS_ID NOT IN ('ShipInput', 'ShipScheduled', 'ShipRejected', 'ShipCancelled'))
-                    AND SHIS.QUANTITY > 0)''')"/>
-        </else></if>
     </actions>
     <widgets>
+        <!-- create excludeOnPicklistCond and inventoryCategoryCond used by AddOrderList form-list.entity-find inherited from Picklist/AddOrder.xml -->
+        <section-include name="CustomSqlLogic" location="component://SimpleScreens/screen/SimpleScreens/Shipping/Picklist/AddOrder.xml"/>
+
         <label text="Use Find Options to search for orders and when you have the set you want use the form to create picklists." type="p"/>
         <section name="CheckOptionsSection" condition="facilityId"><widgets>
             <form-single name="CreatePicklistsForm" transition="createPicklists" pass-through-parameters="true">
@@ -108,8 +95,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="salesChannelEnumId"/></form-list-column>
             <form-list-column><field-ref name="partStatusId"/><field-ref name="facilityId"/>
                 <field-ref name="productStoreId"/></form-list-column>
-            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
-                <field-ref name="otherParties"/></form-list-column>
+            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/></form-list-column>
             <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/>
                 <field-ref name="resPickLocQuantity"/></form-list-column>
         </form-list>

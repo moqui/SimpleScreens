@@ -51,31 +51,85 @@ along with this software (see the LICENSE.md file). If not, see
         <if condition="workEffort.productStoreId"><set field="productStoreId" from="workEffort.productStoreId"/></if>
 
         <set field="partStatusId" from="partStatusId ?: 'OrderApproved'"/>
-
-        <if condition="excludeOnPicklist == 'false'"><then>
-            <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
+    </actions>
+    <widgets>
+        <!-- a bit of a hack to reuse logic and custom SQL on the Picklist/BulkPicklist.xml screen -->
+        <section name="CustomSqlLogic"><actions>
+            <if condition="excludeOnPicklist == 'false'"><then>
+                <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
                 (SELECT SHMT.SHIPMENT_ID
                  FROM SHIPMENT_ITEM_SOURCE SHIS INNER JOIN SHIPMENT SHMT ON SHIS.SHIPMENT_ID = SHMT.SHIPMENT_ID
                  WHERE SHIS.ORDER_ID = OITM.ORDER_ID AND SHIS.ORDER_ITEM_SEQ_ID = OITM.ORDER_ITEM_SEQ_ID
                     AND SHMT.STATUS_ID NOT IN ('ShipInput', 'ShipScheduled', 'ShipRejected', 'ShipCancelled') AND SHIS.QUANTITY > 0)''')"/>
-        </then><else>
-            <!-- scenarios for orders already on picklist via Shipment/SIS:
-                * no related Shipment (shipWorkEffortId == null, SIS.quantity == null)
-                a single order could have all 4 of these, since finding by reverse logic (looking for records to include) is tricky
-                1. ignore: related Shipment NOT on picklist and active (shipWorkEffortId == null, SIS.quantity > 0.0)
-                2. ignore: related Shipment NOT on picklist but cancelled (shipWorkEffortId == null, SIS.quantity == 0.0)
-                3. ignore: related Shipment on picklist but cancelled (shipWorkEffortId != null, SIS.quantity == 0.0)
-                4. exclude: related Shipment on picklist and active (shipWorkEffortId != null, SIS.quantity > 0.0)
-            -->
-            <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
+            </then><else>
+                <!-- scenarios for orders already on picklist via Shipment/SIS:
+                    * no related Shipment (shipWorkEffortId == null, SIS.quantity == null)
+                    a single order could have all 4 of these, since finding by reverse logic (looking for records to include) is tricky
+                    1. ignore: related Shipment NOT on picklist and active (shipWorkEffortId == null, SIS.quantity > 0.0)
+                    2. ignore: related Shipment NOT on picklist but cancelled (shipWorkEffortId == null, SIS.quantity == 0.0)
+                    3. ignore: related Shipment on picklist but cancelled (shipWorkEffortId != null, SIS.quantity == 0.0)
+                    4. exclude: related Shipment on picklist and active (shipWorkEffortId != null, SIS.quantity > 0.0)
+                -->
+                <set field="excludeOnPicklistCond" from="ec.entity.getConditionFactory().makeConditionWhere('''NOT EXISTS
                 (SELECT SHMT.SHIPMENT_ID
                  FROM SHIPMENT_ITEM_SOURCE SHIS INNER JOIN SHIPMENT SHMT ON SHIS.SHIPMENT_ID = SHMT.SHIPMENT_ID
                  WHERE SHIS.ORDER_ID = OITM.ORDER_ID AND SHIS.ORDER_ITEM_SEQ_ID = OITM.ORDER_ITEM_SEQ_ID
                     AND (SHMT.SHIP_WORK_EFFORT_ID IS NOT NULL OR SHMT.STATUS_ID NOT IN ('ShipInput', 'ShipScheduled', 'ShipRejected', 'ShipCancelled'))
                     AND SHIS.QUANTITY > 0)''')"/>
-        </else></if>
-    </actions>
-    <widgets>
+            </else></if>
+
+            <if condition="inventoryCategoryId">
+                <!-- NOTE: because there are URL parameters and will be included in the SQL literally make sure each is a valid productCategoryId to prevent SQL injection, also don't allow single quote -->
+                <set field="categoryIdList" from="inventoryCategoryId.split(',') as List"/>
+                <set field="categoryIdSb" from="new StringBuilder()"/>
+                <iterate list="categoryIdList" entry="categoryId">
+                    <if condition="!categoryId"><continue/></if>
+                    <if condition="categoryId.contains('\'')"><return error="true" message="Invalid Category ID ${categoryId}"/></if>
+                    <entity-find-one entity-name="mantle.product.category.ProductCategory" value-field="productCategory">
+                        <field-map field-name="productCategoryId" from="categoryId"/></entity-find-one>
+                    <if condition="productCategory == null"><return error="true" message="Invalid Category ID ${categoryId}"/></if>
+
+                    <if condition="categoryIdSb.length() &gt; 0"><script>categoryIdSb.append(",")</script></if>
+                    <script>categoryIdSb.append("'").append((String) categoryId).append("'")</script>
+                </iterate>
+
+                <if condition="categoryIdSb.length() &gt; 0">
+                    <set field="nowString" from="ec.l10n.format(ec.user.nowTimestamp, 'yyyy-MM-dd HH:mm:ss', null, ec.entity.databaseTimeZone)"/>
+                    <!-- NOTE: this must join with OPRT and not OITM to avoid messing up pick location totals, etc -->
+                    <!-- include only OrderParts that:
+                        1. have at least one ItemProduct item with a Product in one of the selected inventory categories
+                        2. have no items with a Product in a different inventory category
+                        3. have no items with a Product in no inventory category (double sub-select, yeah!)
+                    -->
+                    <script><![CDATA[
+                    inventoryCategoryCond = ec.entity.getConditionFactory().makeConditionWhere("""EXISTS (
+                            SELECT OITM_PCM.ORDER_ITEM_SEQ_ID FROM ORDER_ITEM OITM_PCM
+                                INNER JOIN PRODUCT_CATEGORY_MEMBER PCM ON PCM.PRODUCT_ID = OITM_PCM.PRODUCT_ID
+                            WHERE OITM_PCM.ORDER_ID = OPRT.ORDER_ID AND OITM_PCM.ORDER_PART_SEQ_ID = OPRT.ORDER_PART_SEQ_ID AND OITM_PCM.ITEM_TYPE_ENUM_ID = 'ItemProduct'
+                                AND PCM.PRODUCT_CATEGORY_ID IN (${categoryIdSb.toString()})
+                                AND (PCM.FROM_DATE IS NULL OR PCM.FROM_DATE <= '${nowString}') AND (PCM.THRU_DATE IS NULL OR PCM.THRU_DATE >= '${nowString}')
+                        ) AND NOT EXISTS (
+                            SELECT OITM_PCM.ORDER_ITEM_SEQ_ID FROM ORDER_ITEM OITM_PCM
+                                INNER JOIN PRODUCT_CATEGORY_MEMBER PCM ON PCM.PRODUCT_ID = OITM_PCM.PRODUCT_ID
+                                INNER JOIN PRODUCT_CATEGORY PCAT ON PCM.PRODUCT_CATEGORY_ID = PCAT.PRODUCT_CATEGORY_ID AND PCAT.PRODUCT_CATEGORY_TYPE_ENUM_ID = 'PctInventoryGroup'
+                            WHERE OITM_PCM.ORDER_ID = OPRT.ORDER_ID AND OITM_PCM.ORDER_PART_SEQ_ID = OPRT.ORDER_PART_SEQ_ID AND OITM_PCM.ITEM_TYPE_ENUM_ID = 'ItemProduct'
+                                AND PCM.PRODUCT_CATEGORY_ID NOT IN (${categoryIdSb.toString()})
+                                AND (PCM.FROM_DATE IS NULL OR PCM.FROM_DATE <= '${nowString}') AND (PCM.THRU_DATE IS NULL OR PCM.THRU_DATE >= '${nowString}')
+                        ) AND NOT EXISTS (
+                            SELECT OITM_PCM.ORDER_ITEM_SEQ_ID FROM ORDER_ITEM OITM_PCM
+                            WHERE OITM_PCM.ORDER_ID = OPRT.ORDER_ID AND OITM_PCM.ORDER_PART_SEQ_ID = OPRT.ORDER_PART_SEQ_ID AND OITM_PCM.ITEM_TYPE_ENUM_ID = 'ItemProduct'
+                                AND NOT EXISTS (
+                                    SELECT PCM.PRODUCT_CATEGORY_ID FROM PRODUCT_CATEGORY_MEMBER PCM
+                                        INNER JOIN PRODUCT_CATEGORY PCAT ON PCM.PRODUCT_CATEGORY_ID = PCAT.PRODUCT_CATEGORY_ID AND PCAT.PRODUCT_CATEGORY_TYPE_ENUM_ID = 'PctInventoryGroup'
+                                    WHERE PCM.PRODUCT_ID = OITM_PCM.PRODUCT_ID AND
+                                        (PCM.FROM_DATE IS NULL OR PCM.FROM_DATE <= '${nowString}') AND (PCM.THRU_DATE IS NULL OR PCM.THRU_DATE >= '${nowString}')
+                                )
+                        )""")
+                ]]></script>
+                </if>
+            </if>
+        </actions><widgets/></section>
+
         <form-list name="AddOrderList" list="orderList" transition="addOrderPartToLoad" multi="true"
                 header-dialog="true" select-columns="true" saved-finds="true">
             <!-- NOTE: see similar entity-find in ShipmentWorkServices.create#ShipmentLoadsForOrders in mantle-usl -->
@@ -92,7 +146,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="quantity" operator="greater-equals" from="findQuantity_from" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
                 <econdition field-name="locationTypeEnumId" value="FltPick"/>
+
                 <econdition-object field="excludeOnPicklistCond"/><!-- NOTE: ignored if null -->
+                <econdition-object field="inventoryCategoryCond"/>
 
                 <econdition field-name="shipWorkEffortId" operator="is-not-null" ignore="excludeOnPicklist == 'false'"/>
                 <econdition field-name="shipItemQuantity" operator="greater" from="0.0" ignore="excludeOnPicklist == 'false'"/>
@@ -273,6 +329,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down>
             </header-field></field>
 
+            <!-- not generally useful for picklists
             <field name="otherPartyId"><header-field>
                 <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
             </header-field></field>
@@ -289,9 +346,10 @@ along with this software (see the LICENSE.md file). If not, see
                             text="* ${ec.resource.expand('PartyNameTemplate','',partParty)} - ${partParty.description?:'N/A'}"/>
                 </container></widgets></section-iterate>
             </default-field></field>
+            -->
 
             <field name="partTotal" align="right">
-                <header-field show-order-by="true" title="Total"><range-find/></header-field>
+                <header-field show-order-by="true" title="Amount Total"><range-find/></header-field>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
             <field name="quantityTotal" align="right">
                 <header-field show-order-by="true" title="Quantity Total"><range-find/></header-field>
@@ -310,6 +368,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display/></default-field>
             </field>
 
+            <!-- not so useful for adding orders to picklists:
             <field name="purchaseItemTypeEnumId"><header-field title="Purchase Item Type">
                 <drop-down allow-multiple="true">
                     <entity-options key="${enumId}" text="${description}">
@@ -326,9 +385,18 @@ along with this software (see the LICENSE.md file). If not, see
                             <order-by field-name="description"/></entity-find></entity-options>
                 </drop-down>
             </header-field></field>
+            -->
             <field name="findProductId"><header-field title="Product">
                 <drop-down allow-multiple="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
             </header-field></field>
+            <field name="inventoryCategoryId"><header-field title="Inventory Category"><drop-down allow-multiple="true">
+                <entity-options key="${productCategoryId}" text="ProductCategoryNameTemplate">
+                    <entity-find entity-name="mantle.product.category.ProductCategory">
+                        <econdition field-name="productCategoryTypeEnumId" value="PctInventoryGroup"/>
+                        <econdition field-name="ownerPartyId" from="workEffort?.ownerPartyId" ignore-if-empty="true"/>
+                    </entity-find>
+                </entity-options>
+            </drop-down></header-field></field>
 
             <field name="externalId"><header-field><text-find hide-options="true" default-operator="begins"/></header-field>
                 <default-field><display/></default-field></field>
@@ -353,8 +421,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="salesChannelEnumId"/></form-list-column>
             <form-list-column><field-ref name="partStatusId"/><field-ref name="facilityId"/>
                 <field-ref name="productStoreId"/></form-list-column>
-            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
-                <field-ref name="otherParties"/></form-list-column>
+            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/></form-list-column>
             <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/>
                 <field-ref name="resPickLocQuantity"/></form-list-column>
             <!-- <form-list-column><field-ref name="shipmentCount"/></form-list-column> -->
@@ -366,6 +433,7 @@ along with this software (see the LICENSE.md file). If not, see
             <container-dialog id="ShowSqlDialog" button-text="Show SQL" type="info">
                 <section-iterate name="ShowSqlIter" list="orderList_xafind?.getQueryTextList()" entry="queryText"><widgets>
                     <label text="${queryText}" type="p"/>
+                    <label text="${orderList_xafind}" type="p"/>
                 </widgets></section-iterate>
             </container-dialog>
         </widgets></section>
