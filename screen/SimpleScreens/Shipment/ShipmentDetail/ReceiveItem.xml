@@ -47,6 +47,7 @@ along with this software (see the LICENSE.md file). If not, see
             <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
             <if condition="shipmentItem == null"><return error="true" message="Shipment ${shipmentId} item ${productId} not found"/></if>
         </if>
+        <if condition="product == null"><entity-find-one entity-name="mantle.product.Product" value-field="product"/></if>
 
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
         <service-call name="org.moqui.impl.BasicServices.find#Enumeration" in-map="[enumTypeId:'RejectionReason']" out-map="reasonOut"/>
@@ -96,6 +97,8 @@ along with this software (see the LICENSE.md file). If not, see
         </iterate>
         <!-- if no ownerPartyId from parameter or OrderPart set to activeOrgId if there is one -->
         <if condition="!ownerPartyId"><set field="ownerPartyId" from="activeOrgId"/></if>
+        <!-- ownerPartyId from Product.ownerPartyId if not yet set (no parameter or activeOrgId) -->
+        <if condition="!ownerPartyId"><set field="ownerPartyId" from="product?.ownerPartyId"/></if>
         <if condition="shipment.shipmentTypeEnumId == 'ShpTpSalesReturn'"><then>
             <if condition="!ownerPartyId">
                 <entity-find-one entity-name="mantle.facility.Facility" value-field="destFacility"/>
@@ -156,6 +159,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,OrgInternal']"/>
                 </drop-down>
             </default-field></field>
+            <field name="assetPoolId"><default-field title="Pool"><drop-down allow-empty="true">
+                <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0" depends-optional="true">
+                    <depends-on field="ownerPartyId"/></dynamic-options>
+            </drop-down></default-field></field>
+
             <field name="acquireCost"><default-field tooltip="Defaults to Standard Cost or Price (Unit Amount) on related order item">
                 <text-line size="8" format="#,##0.00"/></default-field></field>
 
@@ -191,6 +199,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="lotNumber"/>
                 <field-row><field-ref name="manufacturedDate"/><field-ref name="expectedEndOfLife"/></field-row>
                 <field-ref name="ownerPartyId"/>
+                <field-ref name="assetPoolId"/>
                 <field-ref name="acquireCost"/>
                 <field-row><field-ref name="quantityAccepted"/><field-ref name="quantityRejected"/></field-row>
                 <field-row><field-ref name="facilityId"/><field-ref name="rejectionReasonEnumId"/></field-row>

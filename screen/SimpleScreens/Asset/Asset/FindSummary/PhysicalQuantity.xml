@@ -20,10 +20,12 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="locationSeqId"/>
     <parameter name="ownerPartyId"/>
     <parameter name="lotId"/>
+    <parameter name="assetPoolId"/>
 
     <transition name="recordQuantity"><service-call name="mantle.product.AssetServices.record#PhysicalInventoryQuantity"/>
         <default-response type="screen-last"/></transition>
 
+    <transition-include name="getAssetPoolList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <!-- <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/> -->
 
     <actions>
@@ -54,6 +56,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <display text="FacilityLocationNameTemplate" text-map="facLoc?:[locationSeqId:'Any']"/></default-field></field>
             <field name="ownerPartyId"><default-field title="Owner Party">
                 <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+            <field name="assetPoolId">
+                <default-field title="Pool"><drop-down allow-empty="true">
+                    <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0"
+                            parameter-map="[partyId:ownerPartyId]"/></drop-down></default-field>
+            </field>
             <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
                 <entity-options key="${lotId}" text="${lotId}: ${pseudoId?:mfgParty?.pseudoId?:''} ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')?:'N/A'} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')} QOH ${ec.l10n.format(qohByLotId.get(lotId), null)}">
                     <entity-find entity-name="mantle.product.asset.LotAndMfgParty">

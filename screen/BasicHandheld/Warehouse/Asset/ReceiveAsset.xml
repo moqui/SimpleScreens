@@ -112,10 +112,14 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="ownerPartyId"><default-field title="Owner">
                 <label text="Asset Owner will default to Facility owner" condition="!ownerPartyId"/>
-                <drop-down allow-empty="true">
-                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,OrgInternal']"/>
-                </drop-down>
+                <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true"
+                        min-length="0" parameter-map="[roleTypeId:'Supplier,OrgInternal']"/></drop-down>
             </default-field></field>
+            <field name="assetPoolId"><default-field title="Pool"><drop-down allow-empty="true">
+                <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0" depends-optional="true">
+                    <depends-on field="ownerPartyId"/></dynamic-options>
+            </drop-down></default-field></field>
+
             <field name="acquireCost"><default-field><text-line size="8" format="#,##0.00"/></default-field></field>
 
             <field name="quantity"><default-field title="Quantity*"><text-line size="8"/></default-field></field>
@@ -132,11 +136,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <dynamic-options transition="getContainerList" server-search="true" min-length="0">
                     <depends-on field="facilityId"/><depends-on field="locationSeqId"/></dynamic-options>
             </drop-down></default-field></field>
-
-            <field name="assetPoolId">
-                <default-field title="Pool"><drop-down allow-empty="true">
-                    <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0"/></drop-down></default-field>
-            </field>
 
             <field name="comments"><default-field title="Notes"><text-area cols="80" rows="3"/></default-field></field>
 
