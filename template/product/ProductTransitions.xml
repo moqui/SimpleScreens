@@ -280,9 +280,11 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="getAssetPoolList">
         <parameter name="term"/>
+        <parameter name="ownerPartyId"/>
         <parameter name="partyId"/>
         <parameter name="productStoreId"/>
         <actions>
+            <!-- <log message="======= getAssetPoolList term ${term} ownerPartyId ${ownerPartyId} partyId ${partyId} productStoreId ${productStoreId}"/> -->
             <entity-find-one entity-name="mantle.product.asset.AssetPool" value-field="pkPool">
                 <field-map field-name="assetPoolId" from="term"/></entity-find-one>
             <if condition="pkPool == null">
@@ -294,6 +296,7 @@ along with this software (see the LICENSE.md file). If not, see
             </then><else>
                 <set field="term" from="term ?: ''"/>
                 <entity-find entity-name="mantle.product.asset.AssetPoolDetail" list="poolList" limit="20">
+                    <econdition field-name="ownerPartyId" ignore-if-empty="true"/>
                     <econdition field-name="partyId" ignore-if-empty="true"/>
                     <econdition field-name="productStoreId" ignore-if-empty="true"/>
                     <econditions combine="or">
