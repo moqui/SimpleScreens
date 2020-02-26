@@ -25,7 +25,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="createPicklists" begin-transaction="false">
         <service-call name="mantle.work.ShipmentWorkServices.create#ShipmentLoadsForOrders"/>
-        <default-response url="."/>
+        <default-response url="." parameter-map="ec.web?.requestParameters"/>
     </transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
@@ -42,12 +42,10 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="facilityId" from="facilityId ?: ec.user.getPreference('FacilityActive') ?: ec.user.getPreference('FacilityGeneralDefault')"/>
 
-        <set field="partStatusId" from="partStatusId ?: 'OrderApproved'"/>
+        <service-call name="mantle.work.ShipmentWorkServices.make#ShipmentLoadOrderConditions" out-map="context"
+                in-map="[excludeOnPicklist:excludeOnPicklist, inventoryCategoryId:inventoryCategoryId]"/>
     </actions>
     <widgets>
-        <!-- create excludeOnPicklistCond and inventoryCategoryCond used by AddOrderList form-list.entity-find inherited from Picklist/AddOrder.xml -->
-        <section-include name="CustomSqlLogic" location="component://SimpleScreens/screen/SimpleScreens/Shipping/Picklist/AddOrder.xml"/>
-
         <label text="Use Find Options to search for orders and when you have the set you want use the form to create picklists." type="p"/>
         <section name="CheckOptionsSection" condition="facilityId"><widgets>
             <form-single name="CreatePicklistsForm" transition="createPicklists" pass-through-parameters="true">
