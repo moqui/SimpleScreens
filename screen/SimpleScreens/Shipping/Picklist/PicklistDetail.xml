@@ -31,6 +31,14 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="update#mantle.shipment.Shipment" in-map="[shipmentId:shipmentId, shipWorkEffortId:null, binLocationNumber:null]"/>
         <default-response url="."/>
     </transition>
+
+    <transition name="completeShipmentLoadShip"><service-call name="mantle.work.ShipmentWorkServices.complete#ShipmentLoadShip"/>
+        <default-response url="."/></transition>
+    <transition name="closeShipmentLoadShip"><service-call name="mantle.work.ShipmentWorkServices.close#ShipmentLoadShip"/>
+        <default-response url="."/></transition>
+    <transition name="setStatusFromShipments"><service-call name="mantle.work.ShipmentWorkServices.set#ShipmentLoadStatusFromShipments"/>
+        <default-response url="."/></transition>
+
     <transition name="updateShipmentLoad"><service-call name="update#mantle.work.effort.WorkEffort"/>
         <default-response url="."/></transition>
     <transition name="updateShipment"><service-call name="update#mantle.shipment.Shipment"/>
@@ -69,6 +77,9 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="statusChangeTransition" value="updateShipmentLoad"/>
         <set field="changedEntityName" value="mantle.work.effort.WorkEffort"/>
         <set field="pkPrimaryValue" from="workEffortId"/>
+
+        <entity-find-count entity-name="mantle.shipment.Shipment" count-field="shipmentCount">
+            <econdition field-name="shipWorkEffortId" from="workEffortId"/></entity-find-count>
 
         <!-- Equipment Assignments -->
         <entity-find entity-name="mantle.work.effort.WorkEffortAssetAndAssign" list="assetList">
@@ -122,7 +133,26 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-single>
             </row-col>
             <row-col lg="6">
-                <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+                <container-box><box-header title="Status: ${workEffort.status?.description ?: statusId}"/><box-toolbar>
+                    <link url="updateShipmentLoad" text="Approve" parameter-map="[statusId:'WeApproved']"
+                            condition="shipmentCount &amp;&amp; statusId == 'WeInPlanning'" btn-type="success"/>
+                    <link url="updateShipmentLoad" text="Begin (In Progress)" parameter-map="[statusId:'WeInProgress']"
+                            condition="shipmentCount &amp;&amp; statusId in ['WeInPlanning', 'WeApproved']"/>
+
+                    <link url="completeShipmentLoadShip" text="Force Complete" btn-type="warning"
+                            condition="shipmentCount &amp;&amp; !(statusId in ['WeInPlanning', 'WeComplete', 'WeClosed', 'WeCancelled'])"
+                            confirmation="Remove all Shipments in the Input and Scheduled statuses and set Picklist status to Complete (or Cancelled if no remaining Shipments or all remaining are Cancelled)?"/>
+                    <link url="closeShipmentLoadShip" text="Force Close" btn-type="danger"
+                            condition="!(statusId in ['WeClosed', 'WeCancelled'])"
+                            confirmation="Remove all Shipments in the Input, Scheduled, Picked, and Packed statuses and set Picklist status to Closed (or Cancelled if no remaining Shipments or all remaining are Cancelled)?"/>
+
+                    <link url="setStatusFromShipments" text="Auto Set" confirmation="Auto set status from Shipment statuses?"/>
+                </box-toolbar><box-body-nopad/></container-box>
+                <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+                <section name="OldStatusSection" condition="allStatus"><widgets>
+                    <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+                </widgets></section>
             </row-col>
         </container-row>
 
