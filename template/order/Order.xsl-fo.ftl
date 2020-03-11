@@ -33,7 +33,14 @@ along with this software (see the LICENSE.md file). If not, see
 
     <fo:page-sequence master-reference="letter-portrait" id="mainSequence">
         <fo:static-content flow-name="xsl-region-before">
-            <fo:block font-size="14pt" text-align="center" margin-bottom="0.1in"><#if firstPartInfo.isCustomerInternalOrg>Purchase<#else>Sales</#if> Order #${orderId}</fo:block>
+            <#if logoImageLocation?has_content>
+                <fo:block-container absolute-position="absolute" top="0in" left="0.1in" width="2in">
+                    <fo:block text-align="left" space-after="0.2in">
+                        <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" width="2in" scaling="uniform"/>
+                    </fo:block>
+                </fo:block-container>
+            </#if>
+            <fo:block font-size="14pt" text-align="center" margin-bottom="0.2in"><#if firstPartInfo.isCustomerInternalOrg>Purchase<#else>Sales</#if> Order #${orderId}</fo:block>
             <fo:table table-layout="fixed" margin-bottom="0.1in" width="7.5in">
                 <fo:table-body><fo:table-row>
                     <fo:table-cell padding="3pt" width="3.75in">
