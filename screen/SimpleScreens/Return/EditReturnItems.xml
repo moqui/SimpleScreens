@@ -105,6 +105,8 @@ along with this software (see the LICENSE.md file). If not, see
         <form-list name="ReturnItemList" list="returnItemList" transition="updateReturnItem">
             <row-actions>
                 <set field="itemChangeable" from="statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved']"/>
+                <set field="itemStrictChangeable" from="statusId in ['ReturnCreated', 'ReturnRequested']"/>
+
                 <if condition="finAccountTransId">
                     <entity-find-one entity-name="mantle.account.financial.FinancialAccountTrans" value-field="finAccountTrans"/>
                     <set field="finAccountId" from="finAccountTrans.finAccountId"/>
@@ -119,6 +121,30 @@ along with this software (see the LICENSE.md file). If not, see
                     <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="true"/>
                     <set field="isProductItemType" from="itemTypeEnumId in productItemTypes"/>
                     <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
+
+                    <if condition="itemStrictChangeable &amp;&amp; isProductItemType">
+                        <!-- see if current Product is a variant and if so populate variantProductList -->
+                        <entity-find entity-name="mantle.product.ProductAssoc" list="virtualAssocList">
+                            <date-filter/>
+                            <econdition field-name="toProductId" from="productId"/>
+                            <econdition field-name="productAssocTypeEnumId" value="PatVariant"/>
+                        </entity-find>
+                        <if condition="virtualAssocList">
+                            <entity-find entity-name="mantle.product.ProductAssoc" list="variantAssocList">
+                                <date-filter/>
+                                <econdition field-name="productId" operator="in" from="virtualAssocList*.productId"/>
+                                <econdition field-name="productAssocTypeEnumId" value="PatVariant"/>
+                            </entity-find>
+                            <set field="variantProductIdSet" from="new HashSet(variantAssocList*.toProductId)"/>
+                            <set field="variantProductList" from="new ArrayList(variantProductIdSet.size())"/>
+                            <iterate list="variantProductIdSet" entry="variantProductId">
+                                <entity-find-one entity-name="mantle.product.Product" value-field="variantProduct" cache="true">
+                                    <field-map field-name="productId" from="variantProductId"/></entity-find-one>
+                                <script>variantProductList.add(variantProduct)</script>
+                            </iterate>
+                            <order-map-list list="variantProductList"><order-by field-name="pseudoId"/></order-map-list>
+                        </if>
+                    </if>
                 </if>
             </row-actions>
             <field name="returnId"><default-field><hidden/></default-field></field>
@@ -154,6 +180,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
             <field name="productId"><default-field title="Product">
                 <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+            <field name="replacementProductId">
+                <!-- NOTE: could also allow general product search instead of only alternate variants, or perhaps if there are no alternate variants (!variantProductList) -->
+                <conditional-field condition="itemStrictChangeable &amp;&amp; variantProductList"><drop-down allow-empty="true">
+                    <list-options list="variantProductList" key="${productId}" text="ProductNameTemplate"/>
+                </drop-down></conditional-field>
+                <default-field title="Replacement Product">
+                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field>
+            </field>
+
             <field name="description">
                 <conditional-field condition="itemChangeable"><text-line size="30"/></conditional-field>
                 <default-field><display/></default-field></field>
@@ -213,7 +248,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="statusId"/><field-ref name="orderItem"/><field-ref name="itemTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="returnReasonEnumId"/><field-ref name="inventoryStatusId"/></form-list-column>
             <form-list-column><field-ref name="returnResponseEnumId"/><field-ref name="responseImmediate"/></form-list-column>
-            <form-list-column><field-ref name="productId"/><field-ref name="description"/></form-list-column>
+            <form-list-column><field-ref name="productId"/><field-ref name="replacementProductId"/><field-ref name="description"/></form-list-column>
             <form-list-column><field-ref name="returnQuantity"/><field-ref name="returnPrice"/></form-list-column>
             <form-list-column><field-ref name="receivedQuantity"/><field-ref name="shipments"/>
                 <field-ref name="responseDate"/><field-ref name="replacementOrderId"/></form-list-column>
