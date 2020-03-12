@@ -51,35 +51,60 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="shipmentPackageSeqId"/>
         <parameter name="shipmentRouteSegmentSeqId"/>
         <parameter name="retLabel"/>
+        <parameter name="intlInvoiceLabel"/>
         <actions>
             <if condition="!shipmentId || !shipmentPackageSeqId || !shipmentRouteSegmentSeqId"><script>ec.web.sendError(404, 'ID not specified', null)</script><return/></if>
             <entity-find-one entity-name="mantle.shipment.ShipmentPackageRouteSeg" value-field="sprs"/>
             <if condition="retLabel == 'true'"><then>
-                <if condition="sprs?.returnLabelUrl"><then>
-                    <script>ec.web.sendResourceResponse(sprs.returnLabelUrl)</script>
-                </then><else-if condition="sprs?.returnLabelImage">
-                    <script>
-                        byte[] returnLabelImage = sprs.getBytes("returnLabelImage")
-                        ec.web.response.setHeader("Content-Disposition", "inline")
-                        OutputStream os = ec.web.response.outputStream
-                        try { os.write(returnLabelImage) } finally { os.close() }
-                    </script>
-                </else-if><else>
-                    <script>ec.web.sendError(404, 'No returnLabelUrl or returnLabelImage', null)</script>
+                <if condition="intlInvoiceLabel == 'true'"><then>
+                    <if condition="sprs?.returnIntlInvoiceUrl"><then>
+                        <script>ec.web.sendResourceResponse(sprs.returnIntlInvoiceUrl)</script>
+                    </then><else>
+                        <script>ec.web.sendError(404, 'No returnIntlInvoiceUrl', null)</script>
+                    </else></if>
+                </then><else>
+                    <if condition="sprs?.returnLabelUrl"><then>
+                        <script>ec.web.sendResourceResponse(sprs.returnLabelUrl)</script>
+                    </then><else-if condition="sprs?.returnLabelImage">
+                        <script>
+                            byte[] returnLabelImage = sprs.getBytes("returnLabelImage")
+                            ec.web.response.setHeader("Content-Disposition", "inline")
+                            OutputStream os = ec.web.response.outputStream
+                            try { os.write(returnLabelImage) } finally { os.close() }
+                        </script>
+                    </else-if><else>
+                        <script>ec.web.sendError(404, 'No returnLabelUrl or returnLabelImage', null)</script>
+                    </else></if>
                 </else></if>
             </then><else>
-                <if condition="sprs?.labelUrl"><then>
-                    <script>ec.web.sendResourceResponse(sprs.labelUrl)</script>
-                </then><else-if condition="sprs?.labelImage">
-                    <script>
-                        byte[] labelImage = sprs.getBytes("labelImage")
-                        // handle content type somehow, really needed? ec.web.response.setContentType("application/pdf")
-                        ec.web.response.setHeader("Content-Disposition", "inline")
-                        OutputStream os = ec.web.response.outputStream
-                        try { os.write(labelImage) } finally { os.close() }
-                    </script>
-                </else-if><else>
-                    <script>ec.web.sendError(404, 'No labelUrl or labelImage', null)</script>
+                <if condition="intlInvoiceLabel == 'true'"><then>
+                    <if condition="sprs?.internationalInvoiceUrl"><then>
+                        <script>ec.web.sendResourceResponse(sprs.internationalInvoiceUrl)</script>
+                    </then><else-if condition="sprs?.internationalInvoice">
+                        <script>
+                            byte[] internationalInvoice = sprs.getBytes("internationalInvoice")
+                            // handle content type somehow, really needed? ec.web.response.setContentType("application/pdf")
+                            ec.web.response.setHeader("Content-Disposition", "inline")
+                            OutputStream os = ec.web.response.outputStream
+                            try { os.write(internationalInvoice) } finally { os.close() }
+                        </script>
+                    </else-if><else>
+                        <script>ec.web.sendError(404, 'No internationalInvoiceUrl or internationalInvoice', null)</script>
+                    </else></if>
+                </then><else>
+                    <if condition="sprs?.labelUrl"><then>
+                        <script>ec.web.sendResourceResponse(sprs.labelUrl)</script>
+                    </then><else-if condition="sprs?.labelImage">
+                        <script>
+                            byte[] labelImage = sprs.getBytes("labelImage")
+                            // handle content type somehow, really needed? ec.web.response.setContentType("application/pdf")
+                            ec.web.response.setHeader("Content-Disposition", "inline")
+                            OutputStream os = ec.web.response.outputStream
+                            try { os.write(labelImage) } finally { os.close() }
+                        </script>
+                    </else-if><else>
+                        <script>ec.web.sendError(404, 'No labelUrl or labelImage', null)</script>
+                    </else></if>
                 </else></if>
             </else></if>
         </actions>

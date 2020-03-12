@@ -329,6 +329,12 @@ along with this software (see the LICENSE.md file). If not, see
                             <#if packageRouteSeg.returnLabelUrl?has_content>'${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
                         </#list>
                         ]);
+                        moqui.printUrlMain([
+                        <#list packageRouteSegList! as packageRouteSeg>
+                            <#if packageRouteSeg.internationalInvoiceUrl?has_content>'${getShipmentLabelPath}?intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                            <#if packageRouteSeg.returnIntlInvoiceUrl?has_content>'${getShipmentLabelPath}?retLabel=true&intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                        </#list>
+                        ]);
                     }
                     <#if localPrintAllLabels! == true>qzPrintAllLabels();</#if>
                 </m-script>
@@ -1242,6 +1248,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <section name="QzPrintLabelSection" condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage"><widgets><render-mode>
                             <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Label</button>]]></text></render-mode></widgets></section>
 
+                        <link url="${packageRouteSeg.internationalInvoiceUrl}" text="Com. Invoice" url-type="plain" target-window="_blank"
+                                btn-type="info" icon="glyphicon glyphicon-download" condition="packageRouteSeg?.internationalInvoiceUrl"/>
+                        <section name="QzPrintIntlInvcSection" condition="packageRouteSeg?.internationalInvoiceUrl || packageRouteSeg?.internationalInvoice"><widgets><render-mode>
+                            <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('${getShipmentLabelPath}?intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Com. Invoice</button>]]></text></render-mode></widgets></section>
+
                         <link url="${packageRouteSeg.returnLabelUrl}" text="Ret Label" url-type="plain" target-window="_blank"
                                 btn-type="info" icon="glyphicon glyphicon-download" condition="packageRouteSeg?.returnLabelUrl"/>
                         <link url="getShipmentLabel" text="Ret Label" target-window="_blank" btn-type="info" icon="glyphicon glyphicon-download"
@@ -1249,6 +1260,11 @@ along with this software (see the LICENSE.md file). If not, see
                                 parameter-map="[retLabel:'true', shipmentId:shipmentId, shipmentPackageSeqId:packageRouteSeg.shipmentPackageSeqId, shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
                         <section name="QzPrintRetLabelSection" condition="packageRouteSeg?.returnLabelUrl || packageRouteSeg?.returnLabelImage"><widgets><render-mode>
                             <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Ret Lbl</button>]]></text></render-mode></widgets></section>
+
+                        <link url="${packageRouteSeg.returnIntlInvoiceUrl}" text="Ret Com Invc" url-type="plain" target-window="_blank"
+                                btn-type="info" icon="glyphicon glyphicon-download" condition="packageRouteSeg?.returnIntlInvoiceUrl"/>
+                        <section name="QzPrintRetIntlInvcSection" condition="packageRouteSeg?.returnIntlInvoiceUrl"><widgets><render-mode>
+                            <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('${getShipmentLabelPath}?retLabel=true&intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Ret Com Invc</button>]]></text></render-mode></widgets></section>
 
                         <container-dialog id="PrintLabelDialog" button-text="Net Print" type="success"
                                 condition="(packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null) &amp;&amp; networkPrinterList">
