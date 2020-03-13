@@ -30,12 +30,18 @@ along with this software (see the LICENSE.md file). If not, see
             <!-- <log message="====== getProductList indexName=${indexName}, documentType=${documentType}, term=${term}"/> -->
 
             <set field="outList" from="[]"/>
+
             <entity-find-one entity-name="mantle.product.Product" value-field="product">
                 <field-map field-name="productId" from="term"/></entity-find-one>
-
-            <if condition="product != null">
+            <if condition="product != null"><then>
                 <script>outList.add([value:product.productId, label:ec.resource.expand("ProductNameTemplate", "", product)])</script>
-            </if>
+            </then><else>
+                <entity-find-one entity-name="mantle.product.Product" value-field="pseudoProduct">
+                    <field-map field-name="pseudoId" from="term"/></entity-find-one>
+                <if condition="pseudoProduct != null">
+                    <script>outList.add([value:pseudoProduct.productId, label:ec.resource.expand("ProductNameTemplate", "", pseudoProduct)])</script></if>
+            </else></if>
+
             <!-- if we have activeOrgId or filterOrgIds see if user has active org or user org filters -->
             <set field="activeOrgId" from="ec.user.context?.activeOrgId"/>
             <set field="filterOrgIds" from="ec.user.context?.filterOrgIds"/>
@@ -83,7 +89,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <set field="orderByFields" from="term ? null : ['pseudoId']"/>
             -->
-            <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
+            <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context" ignore-error="true"
                     in-map="[queryString:termSb.toString(), indexName:indexName, documentType:documentType,
                         orderByFields:orderByFields, pageIndex:pageIndex, pageSize:(pageSize?:20)]"/>
             <!-- <log level="warn" message="Got product search results: ${documentList}"/> -->
