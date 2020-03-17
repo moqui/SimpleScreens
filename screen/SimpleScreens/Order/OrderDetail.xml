@@ -152,6 +152,18 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="orderId"/><parameter name="filename" value="Order-${orderId}.pdf"/>
         </default-response>
     </transition>
+    <transition name="PrintOrderData.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Order/PrintOrderData" url-type="plain">
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="orderId"/><parameter name="filename" value="OrderData-${orderId}.pdf"/>
+        </default-response>
+    </transition>
+    <transition name="PrintOrderProd.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Order/PrintOrderProd" url-type="plain">
+            <parameter name="renderMode" value="xsl-fo"/><parameter name="pageNoLimit" value="true"/>
+            <parameter name="orderId"/><parameter name="filename" value="OrderProd-${orderId}.pdf"/>
+        </default-response>
+    </transition>
 
     <subscreens>
         <subscreens-item name="UpdateContactInfo" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty/UpdateContactInfo.xml"/>
@@ -169,6 +181,11 @@ along with this software (see the LICENSE.md file). If not, see
 
         <if condition="orderHeader.statusId in ['OrderPlaced', 'OrderProcessing', 'OrderHold']">
             <service-call name="mantle.order.OrderInfoServices.check#OrderPreApprove" in-map="[orderId:orderId]" out-map="context"/></if>
+
+        <entity-find entity-name="accugeo.order.OrderPanel" list="orderPanels">
+            <econdition field-name="orderId" />
+        </entity-find>
+
     </actions>
     <widgets>
         <section name="OrderHeaderSection"><widgets>
@@ -237,6 +254,10 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="ec.user.hasPermission('ORDER_APPROVE') &amp;&amp; orderHeader.statusId == 'OrderCompleted'"/>
 
                 <link url="PrintOrder.pdf" text="Order PDF"/>
+                <link url="/apps/accugeo" text="Order Panels (${orderPanels.size()})" link-type="anchor-button" url-type="plain" 
+                    parameter-map="[orderId: orderId]"/>
+                <link url="PrintOrderData.pdf" text="Order data Sheet PDF"/>
+                <link url="PrintOrderProd.pdf" text="Order production PDF"/>
 
                 <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
                     <link url="editInvoice" text="Invoice ${invoiceId}" link-type="anchor-button"/>
