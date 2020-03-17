@@ -61,13 +61,26 @@ along with this software (see the LICENSE.md file). If not, see
                         <td class="text-right text-mono">${ec.l10n.format(beginningGlAccountBalance, currencyFormat)}<#if (beginningGlAccountBalance >= 0)>&nbsp;</#if></td>
                         <#if findEntryUrl??>
                             <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                            <td class="text-right text-mono"><a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(postedAmount, currencyFormat)}</a><#if (postedAmount >= 0)>&nbsp;</#if></td>
+                            <#if sri.getRenderMode()! == "vuet">
+                                <td class="text-right text-mono"><m-link href="${findEntryInstance.getPathWithParams()}">${ec.l10n.format(postedAmount, currencyFormat)}</m-link><#if (postedAmount >= 0)>&nbsp;</#if></td>
+                            <#else>
+                                <td class="text-right text-mono"><a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(postedAmount, currencyFormat)}</a><#if (postedAmount >= 0)>&nbsp;</#if></td>
+                            </#if>
                         <#else>
                             <td class="text-right text-mono">${ec.l10n.format(postedAmount, currencyFormat)}<#if (postedAmount >= 0)>&nbsp;</#if></td>
                         </#if>
                     </#if>
                     <#assign currentAmt = glAccountInfo.balanceByTimePeriod[timePeriodId]!0>
-                    <td class="text-right text-mono">${ec.l10n.format(currentAmt, currencyFormat)}<#if (currentAmt >= 0)>&nbsp;</#if></td>
+                    <#if findEntryUrl??>
+                        <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
+                        <#if sri.getRenderMode()! == "vuet">
+                            <td class="text-right text-mono"><m-link href="${findEntryInstance.getPathWithParams()}">${ec.l10n.format(currentAmt, currencyFormat)}</m-link><#if (currentAmt >= 0)>&nbsp;</#if></td>
+                        <#else>
+                            <td class="text-right text-mono"><a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(currentAmt, currencyFormat)}</a><#if (currentAmt >= 0)>&nbsp;</#if></td>
+                        </#if>
+                    <#else>
+                        <td class="text-right text-mono">${ec.l10n.format(currentAmt, currencyFormat)}<#if (currentAmt >= 0)>&nbsp;</#if></td>
+                    </#if>
                     <#if showPercents>
                         <#assign assetTotalAmt = netAssetTotalMap.totalBalance[timePeriodId]!0>
                         <td class="text-right text-mono"><#if assetTotalAmt != 0>${ec.l10n.format(currentAmt/assetTotalAmt, percentFormat)}</#if></td>

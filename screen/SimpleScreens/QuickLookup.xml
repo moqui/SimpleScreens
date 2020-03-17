@@ -34,14 +34,6 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <service-call name="mantle.GeneralServices.lookup#ById" in-map="[lookupId:lookupId]" out-map="context"/>
-        <if condition="product != null">
-            <script>
-                amountUom = product.'Amount#moqui.basic.Uom'
-                pantMap = [:]
-                pantMap.putAll((Map) product)
-                if (amountUom != null) pantMap.putAll((Map) amountUom)
-            </script>
-        </if>
     </actions>
     <widgets>
         <label text="Lookup by ID for Asset, Facility, Invoice, Order, Return, Party, Badge, Payment, Product, Shipment, Work Effort (Picklist, Production Run), GL Transaction" type="p"/>
@@ -245,9 +237,16 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body></container-box>
         </widgets></section>
 
-        <section name="ProductSection" condition="product != null"><widgets>
+        <section-iterate name="ProductSection" list="productList" entry="product"><actions>
+            <script>
+                amountUom = product.'Amount#moqui.basic.Uom'
+                pantMap = [:]
+                pantMap.putAll((Map) product)
+                if (amountUom != null) pantMap.putAll((Map) amountUom)
+            </script>
+        </actions><widgets>
             <container-box><box-header title="Product: ${ec.resource.expand('ProductNameTemplate','',product)}"/><box-toolbar>
-                <link url="editProduct" text="Product"/>
+                <link url="editProduct" text="Product" parameter-map="[productId:product.productId]"/>
                 <!-- <link url="equipmentEditProduct" text="Equipment" condition="product.assetTypeEnumId == 'AstTpEquipment'"/> -->
             </box-toolbar><box-body>
                 <container-row>
@@ -259,7 +258,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <row-col md="5"><label text="${product.description?:''}"/></row-col>
                 </container-row>
             </box-body></container-box>
-        </widgets></section>
+        </widgets></section-iterate>
 
         <section name="ShipmentSection" condition="shipment != null"><actions>
             <!--
