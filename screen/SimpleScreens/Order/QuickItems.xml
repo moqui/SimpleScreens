@@ -18,13 +18,13 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="orderId" from="orderId ?: orderId_0" required="true"/>
     <parameter name="orderPartSeqId" from="orderPartSeqId ?: orderPartSeqId_0 ?: '01'"/>
     <parameter name="productCategoryId" from="productCategoryId ?: productCategoryId_0"/>
-    <parameter name="orderByField" from="orderByField ?: 'pseudoId,orderItemSeqId'"/>
 
     <transition name="editProduct"><default-response url="//${appRoot}/Product/EditProduct"/></transition>
 
     <transition name="setItemQuantities">
         <service-call name="mantle.order.OrderServices.add#OrderProductQuantity" multi="true"
                 in-map="context + [addToQuantity:false, requireInventory:false, quantity:0]"/>
+        <actions><log message="Order ${orderId} setItemQuantities parameters: ${ec.web.requestParameters}"/></actions>
         <default-response url="."/>
     </transition>
 
@@ -86,7 +86,8 @@ along with this software (see the LICENSE.md file). If not, see
             <script>productInfoList.add(product.getMap() + orderItem.getMap())</script>
         </iterate>
 
-        <script>orderMapList(productInfoList, (orderByField.split(',') as List))</script>
+        <set field="orderByField" from="orderByField ?: 'pseudoId,orderItemSeqId'"/>
+        <script>orderMapList(productInfoList, (orderByField.split(',').collect({it?.trim()}) as List))</script>
     </actions>
 
     <widgets>
@@ -120,18 +121,22 @@ along with this software (see the LICENSE.md file). If not, see
                                 productStoreId:productStoreId, customerPartyId:orderPart.customerPartyId]"/>
                 </row-actions>
 
-                <field name="orderId"><default-field><hidden/></default-field></field>
-                <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
-                <field name="productCategoryId"><default-field><hidden/></default-field></field>
+                <hidden-parameters>
+                    <parameter name="orderId"/>
+                    <parameter name="orderPartSeqId"/>
+                    <parameter name="productCategoryId"/>
+                </hidden-parameters>
+
                 <field name="productId"><default-field><hidden/></default-field></field>
 
                 <field name="pseudoId"><header-field show-order-by="true"/>
                     <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field></field>
                 <field name="productName"><header-field show-order-by="true"/>
                     <default-field><link url="editProduct" text="${productName}" link-type="anchor"/></default-field></field>
-                <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                <field name="orderItemSeqId"><header-field title="Item" show-order-by="true"/>
+                    <default-field><display/></default-field></field>
                 <field name="calcPrice" from="priceOut.price" align="right"><default-field>
-                    <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+                    <display currency-unit-field="orderHeader.currencyUomId" also-hidden="false"/></default-field></field>
                 <field name="unitAmount" align="right">
                     <conditional-field title="Price" condition="productId">
                         <text-line size="8" format="#,##0.00"/></conditional-field>
@@ -140,9 +145,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="quantity" align="right"><conditional-field condition="productId"><text-line size="4"/></conditional-field>
                     <default-field><display/></default-field></field>
                 <field name="itemQuantity" from="quantity" align="right">
-                    <default-field title="Cur Qty"><display/></default-field></field>
+                    <default-field title="Cur Qty"><display also-hidden="false"/></default-field></field>
                 <field name="itemTotal" from="(quantity?:0.0)*(unitAmount?:0.0)" align="right">
-                    <default-field title="Cur Total"><display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+                    <default-field title="Cur Total"><display currency-unit-field="orderHeader.currencyUomId" also-hidden="false"/></default-field></field>
 
                 <field name="submitButton"><default-field title="Set Quantities"><submit/></default-field></field>
             </form-list>
