@@ -183,7 +183,8 @@ along with this software (see the LICENSE.md file). If not, see
             <service-call name="mantle.order.OrderInfoServices.check#OrderPreApprove" in-map="[orderId:orderId]" out-map="context"/></if>
 
         <entity-find entity-name="accugeo.order.OrderPanel" list="orderPanels">
-            <econdition field-name="orderId" />
+            <econdition field-name="orderId"/>
+            <econdition field-name="qcNum" operator="is-not-null" />
         </entity-find>
 
     </actions>
@@ -254,10 +255,9 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="ec.user.hasPermission('ORDER_APPROVE') &amp;&amp; orderHeader.statusId == 'OrderCompleted'"/>
 
                 <link url="PrintOrder.pdf" text="Order PDF"/>
-                <link url="/apps/accugeo" text="Order Panels (${orderPanels.size()})" link-type="anchor-button" url-type="plain" 
-                    parameter-map="[orderId: orderId]"/>
-                <link url="PrintOrderData.pdf" text="Order data Sheet PDF"/>
-                <link url="PrintOrderProd.pdf" text="Order production PDF"/>
+                <link url="/apps/accugeo/OrderPanels" text="Order Panels (${orderPanels.size()})" link-type="anchor-button" url-type="plain" parameter-map="[orderId: orderId]"/>
+                <link url="PrintOrderData.pdf" text="Order data Sheet PDF" parameter-map="[orderId: orderId]"/>
+                <link url="PrintOrderProd.pdf" text="Order production PDF" parameter-map="[orderId: orderId]"/>
 
                 <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
                     <link url="editInvoice" text="Invoice ${invoiceId}" link-type="anchor-button"/>
