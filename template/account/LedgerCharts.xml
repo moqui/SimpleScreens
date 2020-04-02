@@ -80,8 +80,15 @@ along with this software (see the LICENSE.md file). If not, see
                     options: {
                         scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
                         tooltips:{ callbacks:{ label: function(tooltipItem, data) {
-                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
-                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                            var dataset = data.datasets[tooltipItem.datasetIndex];
+                            var datasetLabel = dataset.label || '';
+                            var curValue = dataset.data[tooltipItem.index];
+                            // NOTE: datasetIndex 0 is net revenue, the first dataset in the list
+                            if (tooltipItem.datasetIndex == 0) { return datasetLabel + ": " + moqui.format(curValue, null, "currency"); }
+                            // calculate and show percent of net revenue for expenses
+                            var netRevenue = data.datasets[0].data[tooltipItem.index];
+                            var percentOfNet = netRevenue ? (curValue / netRevenue) * 100.0 : 0.0;
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency") + " (" + percentOfNet.toFixed(1) + "% net)";
                         }}}
                     }
                 });
