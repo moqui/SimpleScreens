@@ -30,10 +30,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field></field>
                 <field name="timePeriodTypeId"><default-field title=""><drop-down><option key="FiscalMonth" text="Month"/>
                     <option key="FiscalQuarter" text="Quarter"/></drop-down></default-field></field>
+                <field name="periods"><default-field title=""><text-line size="2" default-value="13"/></default-field></field>
                 <field name="thruDate"><default-field title=""><date-time type="date"/></default-field></field>
                 <field name="setOrg"><default-field title="View Charts"><submit/></default-field></field>
                 <field-layout><field-row-big><field-ref name="organizationPartyId"/><field-ref name="timePeriodTypeId"/>
-                    <field-ref name="thruDate"/><field-ref name="setOrg"/></field-row-big></field-layout>
+                    <field-ref name="periods"/><field-ref name="thruDate"/><field-ref name="setOrg"/></field-row-big></field-layout>
             </form-single>
         </widgets></section>
 
@@ -53,7 +54,7 @@ along with this software (see the LICENSE.md file). If not, see
                 ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -76,7 +77,13 @@ along with this software (see the LICENSE.md file). If not, see
                     type: 'bar',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>
@@ -94,7 +101,7 @@ along with this software (see the LICENSE.md file). If not, see
                 ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -117,7 +124,13 @@ along with this software (see the LICENSE.md file). If not, see
                     type: 'bar',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>
@@ -133,7 +146,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 backgroundColor:'rgba(217, 83, 79, 0.5)', borderColor:'rgba(217, 83, 79, 1.0)', pointStyle:'triangle', fill:false] ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -170,7 +183,13 @@ along with this software (see the LICENSE.md file). If not, see
                     type: 'line',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>
@@ -194,7 +213,7 @@ along with this software (see the LICENSE.md file). If not, see
                 ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -217,7 +236,13 @@ along with this software (see the LICENSE.md file). If not, see
                     type: 'bar',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>
@@ -234,7 +259,7 @@ along with this software (see the LICENSE.md file). If not, see
                 ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -257,7 +282,13 @@ along with this software (see the LICENSE.md file). If not, see
                     type: 'bar',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>
