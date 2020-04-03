@@ -809,12 +809,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="contactOut"
                         in-map="[partyId:partyId, getAll:true]"/>
             </actions><widgets>
-                <container-box type="info"><box-header title="Email and Phone"/><box-toolbar>
-                    <dynamic-dialog id="ExpiredOtherDialog" button-text="Old Email/Phone" transition="ExpiredContactOther"
+                <container-box type="info"><box-header title="Email, Web, and Phone"/><box-toolbar>
+                    <dynamic-dialog id="ExpiredOtherDialog" button-text="Old Info" transition="ExpiredContactOther"
                             parameter-map="[partyId:partyId]"/>
 
                     <dynamic-dialog id="AddEmailInfo" button-text="Add Email" transition="UpdateContactInfo"
                             parameter-map="[partyId:partyId, createEmail:'true']"/>
+                    <dynamic-dialog id="AddWebUrlInfo" button-text="Add URL" transition="UpdateContactInfo"
+                            parameter-map="[partyId:partyId, createWeb:'true']"/>
                     <dynamic-dialog id="AddPhoneInfo" button-text="Add Phone" transition="UpdateContactInfo"
                             parameter-map="[partyId:partyId, createTelecom:'true']"/>
                 </box-toolbar><box-body>
@@ -848,7 +850,41 @@ along with this software (see the LICENSE.md file). If not, see
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.emailContactMechId,
                                         contactMechPurposeId:contactInfo.emailContactMechPurposeId]"/>
                         </row-col><row-col lg="6">
-                            <label text="${contactInfo.emailContactMechPurpose.description}" type="p"/>
+                            <label text="${contactInfo.emailContactMechPurpose.description}" type="strong"/>
+                            <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                        </row-col></container-row>
+                    </widgets></section-iterate>
+                    <section-iterate name="WebInfoSection" list="contactOut.webAddressList" entry="contactInfo"><widgets>
+                        <container-row><row-col lg="6">
+                            <dynamic-dialog id="UpdateWebInfo" button-text="Update" transition="UpdateContactInfo"
+                                    parameter-map="[partyId:partyId, webContactMechId:contactInfo.webContactMechId,
+                                        webContactMechPurposeId:contactInfo.webContactMechPurposeId]"/>
+                            <container-dialog id="WebPurposeDialog" button-text="Purpose">
+                                <form-single name="WebPurposeForm" transition="storePartyContactMech">
+                                    <field name="partyId"><default-field><hidden/></default-field></field>
+                                    <field name="contactMechId" from="contactInfo.webContactMechId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="oldContactMechPurposeId" from="contactInfo.webContactMechPurposeId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="contactMechPurposeId" from="contactInfo.webContactMechPurposeId"><default-field title="Purpose">
+                                        <drop-down><entity-options key="${contactMechPurposeId}" text="${description}">
+                                            <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
+                                                <econdition field-name="contactMechTypeEnumId" value="CmtWebAddress"/>
+                                                <order-by field-name="description"/>
+                                            </entity-find>
+                                        </entity-options></drop-down>
+                                    </default-field></field>
+                                    <field name="updateButton"><default-field title="Update Purpose"><submit/></default-field></field>
+                                    <field name="addButton"><default-field title="Add Purpose"><submit/></default-field></field>
+                                    <field-layout><field-ref name="contactMechPurposeId"/>
+                                        <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </container-dialog>
+                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash" confirmation="Remove Web URL?"
+                                    parameter-map="[partyId:partyId, contactMechId:contactInfo.webContactMechId,
+                                        contactMechPurposeId:contactInfo.webContactMechPurposeId]"/>
+                        </row-col><row-col lg="6">
+                            <label text="${contactInfo.webContactMechPurpose.description}" type="strong"/>
                             <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                         </row-col></container-row>
                     </widgets></section-iterate>
@@ -884,7 +920,7 @@ along with this software (see the LICENSE.md file). If not, see
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.telecomContactMechId,
                                         contactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
                         </row-col><row-col lg="6">
-                            <label text="${contactInfo.telecomContactMechPurpose.description}" type="p"/>
+                            <label text="${contactInfo.telecomContactMechPurpose.description}" type="strong"/>
                             <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                         </row-col></container-row>
                     </widgets></section-iterate>
@@ -941,7 +977,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </container>
                             <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
                         </row-col><row-col lg="6">
-                            <label text="${contactInfo.postalContactMechPurpose.description}" type="p"/>
+                            <label text="${contactInfo.postalContactMechPurpose.description}" type="strong"/>
                             <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                         </row-col></container-row>
                     </widgets></section-iterate>
