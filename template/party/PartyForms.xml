@@ -141,12 +141,13 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- example code for ContactInfo form -->
         <!-- see the SimpleScreens/Party/EditParty/UpdateContactInfo.xml screen, or reuse it with a subscreens.subscreens-item element -->
         <!-- an example of a call to get#PartyContactInfo to populate the form, plus a call to flatten the Map for simple use in the form -->
-        <if condition="postalContactMechId || telecomContactMechId || emailContactMechId"><then>
+        <if condition="postalContactMechId || telecomContactMechId || emailContactMechId || otherContactMechId"><then>
             <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="contactInfo" in-map="context"/>
             <set field="contactInfoFlat" from="contactInfo + flattenNestedMap(contactInfo)"/>
-        </then><else-if condition="postalContactMechPurposeId || telecomContactMechPurposeId || emailContactMechPurposeId">
+        </then><else-if condition="postalContactMechPurposeId || telecomContactMechPurposeId || emailContactMechPurposeId || otherContactMechPurposeId">
             <set field="contactInfoFlat" from="[postalContactMechPurposeId:postalContactMechPurposeId,
-                    telecomContactMechPurposeId:telecomContactMechPurposeId, emailContactMechPurposeId:emailContactMechPurposeId]"/>
+                    telecomContactMechPurposeId:telecomContactMechPurposeId, emailContactMechPurposeId:emailContactMechPurposeId,
+                    otherContactMechPurposeId:otherContactMechPurposeId]"/>
         </else-if><else>
             <set field="contactInfoFlat" from="[:]"/>
         </else></if>
@@ -358,6 +359,30 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="emailAddress">
                 <conditional-field condition="createEmail || emailContactMechPurposeId || emailContactMechId || createPostal || postalContactMechPurposeId"
                         title="Email">
+                    <text-line size="40"/></conditional-field>
+                <default-field><ignored/></default-field>
+            </field>
+
+            <field name="webContactMechId">
+                <conditional-field condition="webContactMechPurposeId"><hidden/></conditional-field>
+                <default-field><ignored/></default-field>
+            </field>
+            <field name="webContactMechPurposeId">
+                <conditional-field condition="webContactMechPurposeId"><hidden/></conditional-field>
+                <conditional-field condition="createWeb" title="Web URL Purpose">
+                    <drop-down no-current-selected-key="WebUrlPrimary">
+                        <entity-options key="${contactMechPurposeId}" text="${description}">
+                            <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
+                                <econdition field-name="contactMechTypeEnumId" value="CmtWebAddress"/>
+                                <order-by field-name="description"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </conditional-field>
+                <default-field><ignored/></default-field>
+            </field>
+            <field name="webAddress">
+                <conditional-field condition="createWeb || webContactMechPurposeId || webContactMechId" title="Web URL">
                     <text-line size="40"/></conditional-field>
                 <default-field><ignored/></default-field>
             </field>
