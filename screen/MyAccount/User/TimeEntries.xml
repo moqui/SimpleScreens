@@ -18,9 +18,17 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="taskDetail"><default-response url="../Task/TaskDetail"/></transition>
 
-    <transition name="recordTimeEntry"><service-call name="mantle.work.TimeServices.store#TimeEntry" in-map="context"/>
-        <default-response url="."/></transition>
-    <transition name="clockInTimeEntry"><service-call name="mantle.work.TimeServices.create#TimeEntryClockIn" in-map="context"/>
+    <!-- TODO: add new service for this screen that is more limited, ie can't specify rates/etc -->
+    <transition name="recordTimeEntry">
+        <actions>
+            <entity-find-one entity-name="mantle.work.time.TimeEntry" value-field="timeEntry"/>
+            <if condition="timeEntry.partyId != ec.user.userAccount?.partyId">
+                <return error="true" message="You may only update your own time entries, Time Entry ${timeEntryId} owned by different party"/></if>
+            <service-call name="mantle.work.TimeServices.store#TimeEntry" in-map="context"/>
+        </actions>
+        <default-response url="."/>
+    </transition>
+    <transition name="clockInTimeEntry"><service-call name="mantle.work.TimeServices.create#TimeEntryClockIn"/>
         <default-response url="."/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
@@ -125,12 +133,12 @@ along with this software (see the LICENSE.md file). If not, see
             </container-dialog>
         </fail-widgets></section>
 
-        <form-list name="TimeEntryList" list="timeEntryList" skip-form="true" header-dialog="true" saved-finds="true">
-            <!-- <field name="timeEntryId"><default-field title="ID"><display/></default-field></field> -->
+        <form-list name="TimeEntryList" list="timeEntryList" transition="recordTimeEntry" header-dialog="true" saved-finds="true">
+            <field name="timeEntryId"><default-field><hidden/></default-field></field>
             <field name="fromDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
-                <default-field><display/></default-field></field>
+                <default-field><display also-hidden="false"/></default-field></field>
             <field name="thruDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
-                <default-field><display/></default-field></field>
+                <default-field><display also-hidden="false"/></default-field></field>
             <field name="clientPartyId">
                 <header-field title="Employer">
                     <drop-down allow-empty="true"><entity-options key="${toPartyId}" text="PartyNameTemplate">
@@ -151,31 +159,32 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="workTypeEnumId">
                 <header-field title="Work Type"><drop-down allow-empty="true">
                     <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
             </field>
             <field name="rateTypeEnumId">
                 <header-field title="Rate Type" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumGroupDropDown">
                         <set field="enumGroupEnumId" value="EngRateCommonEntry"/><set field="allowEmpty" value="true"/></widget-template-include>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId"/></default-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId" also-hidden="false"/></default-field>
             </field>
             <field name="pieceCount"><header-field show-order-by="true"/>
-                <default-field><display/></default-field></field>
+                <default-field><display also-hidden="false"/></default-field></field>
             <field name="hours"><header-field show-order-by="true"/>
-                <default-field><display format="0.00"/></default-field></field>
+                <default-field><display format="0.00" also-hidden="false"/></default-field></field>
             <field name="breakHours"><header-field show-order-by="true"/>
-                <default-field title="Break"><display format="0.00"/></default-field></field>
-            <field name="comments"><default-field><display/></default-field></field>
+                <default-field title="Break"><display format="0.00" also-hidden="false"/></default-field></field>
+            <field name="comments"><default-field><text-area cols="50" rows="2"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field>
-                <default-field><display text=" "/></default-field></field>
+                <default-field><submit text="Update"/></default-field></field>
 
             <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
             <form-list-column><field-ref name="clientPartyId"/><field-ref name="workEffortId"/></form-list-column>
             <form-list-column><field-ref name="workTypeEnumId"/><field-ref name="rateTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="pieceCount"/><field-ref name="hours"/><field-ref name="breakHours"/></form-list-column>
-            <form-list-column><field-ref name="comments"/><field-ref name="findButton"/></form-list-column>
+            <form-list-column><field-ref name="comments"/></form-list-column>
+            <form-list-column><field-ref name="findButton"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
