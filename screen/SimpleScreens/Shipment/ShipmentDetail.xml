@@ -270,8 +270,10 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
             <section name="ShipShipmentSection" condition="(isIncoming &amp;&amp; shipment.statusId in ['ShipInput', 'ShipScheduled', 'ShipPicked', 'ShipPacked']) ||
                     ((isOutgoing || isTransfer) &amp;&amp; shipment.statusId == 'ShipPacked')"><widgets>
-                <container-dialog id="SetShippedDialog" button-text="Set Shipped" type="${isOutgoing || isTransfer ? 'success' : 'primary'}">
-                    <label text="Set as Shipped?" condition="isOutgoing" style="text-success" type="p"/>
+                <container-dialog id="SetShippedDialog" button-text="Set Shipped" type="${isOutgoing || isTransfer ? (!hasAllTrackingCodes ? 'danger' : (!hasAllLabels ? 'warning' : 'success')) : 'primary'}">
+                    <label text="Set as Shipped? If a Shipment Shipped email is configured it will be sent to the Customer." condition="isOutgoing" style="text-success" type="p"/>
+                    <container><label text="Not all packages have Labels" type="strong" style="text-warning" condition="!hasAllLabels"/></container>
+                    <container><label text="Not all packages have Tracking Codes" type="strong" style="text-danger" condition="!hasAllTrackingCodes"/></container>
                     <form-single name="SetShippedForm" transition="shipShipment" focus-field="submitButton">
                         <field name="shipmentId"><default-field><display/></default-field></field>
                         <field name="actualStartDate" from="ec.user.nowTimestamp">
@@ -282,7 +284,7 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
             <section name="DeliverShipmentSection" condition="(anyReceived &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPacked', 'ShipShipped']) ||
                     (isOutgoing &amp;&amp; shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
-                <container-dialog id="SetDeliveredDialog" button-text="Set Delivered" type="success">
+                <container-dialog id="SetDeliveredDialog" button-text="Set Delivered">
                     <label text="Set as Delivered and generate invoice for order items if needed?" condition="isIncoming" type="p"/>
                     <label text="Set as Delivered?" condition="isOutgoing" type="p"/>
                     <label text="Set to Delivered? No additional items may be received once Delivered." condition="isTransfer"/>
