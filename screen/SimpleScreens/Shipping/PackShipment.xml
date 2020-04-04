@@ -250,7 +250,19 @@ along with this software (see the LICENSE.md file). If not, see
                     <button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="qzPrintAllLabels();"><i class="glyphicon glyphicon-print"></i> All Labels</button>
                 ]]></text></render-mode></widgets></section>
 
-                <link url="shipShipment" text="Set Shipped" condition="shipment.statusId == 'ShipPacked'" btn-type="success"/>
+                <section name="ShipShipmentSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
+                    <container-dialog id="SetShippedDialog" button-text="Set Shipped" type="${!hasAllTrackingCodes ? 'danger' : (!hasAllLabels ? 'warning' : 'success')}">
+                        <label text="Set as Shipped? If a Shipment Shipped email is configured it will be sent to the Customer." condition="isOutgoing" style="text-success" type="p"/>
+                        <container><label text="Not all packages have Labels" type="strong" style="text-warning" condition="!hasAllLabels"/></container>
+                        <container><label text="Not all packages have Tracking Codes" type="strong" style="text-danger" condition="!hasAllTrackingCodes"/></container>
+                        <form-single name="SetShippedForm" transition="shipShipment" focus-field="submitButton">
+                            <field name="shipmentId"><default-field><display/></default-field></field>
+                            <field name="actualStartDate" from="ec.user.nowTimestamp">
+                                <default-field title="Actual Start"><date-time/></default-field></field>
+                            <field name="submitButton"><default-field title="Set Shipped"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </widgets></section>
             </row-col></container-row>
 
             <!-- needed? no, request labels dialog allows carrier/method set: small manual set carrier/method form -->
