@@ -43,6 +43,14 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="glAccountCodeMask" from="partyAcctgPreference?.glAccountCodeMask ?: ec.user.getPreference('GlAccountCodeMask')"/>
         <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
+
+        <set field="incomeStmtTopIds" from="['REVENUE', 'COST_OF_SALES', 'INCOME', 'EXPENSE', 'NON_OP_EXPENSE']"/>
+        <set field="incomeStmtClassIds" from="new HashSet()"/>
+        <iterate list="incomeStmtTopIds" entry="incomeStmtTopId">
+            <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="incStmtClassOut" out-map-add-to-existing="false"
+                    in-map="[parentEnumId:incomeStmtTopId, includeParent:true, includeNested:true]"/>
+            <script>if (incStmtClassOut.enumIdSet) incomeStmtClassIds.addAll(incStmtClassOut.enumIdSet)</script>
+        </iterate>
     </actions>
     <widgets>
         <label text="Accounts for ${timePeriod.periodName} [${timePeriod.timePeriodId}]" type="h3"/>
@@ -93,16 +101,20 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="timePeriodId"/>
                 <order-by field-name="glAccountId"/>
             </entity-find>
+            <row-actions>
+                <entity-find-one entity-name="mantle.ledger.account.GlAccount" value-field="glAccount"/>
+                <set field="rowStyle" from="incomeStmtClassIds.contains(glAccount?.glAccountClassEnumId) ? 'text-success' : ''"/>
+            </row-actions>
 
             <field name="glAccountId"><default-field title="GL Account">
-                <display-entity entity-name="mantle.ledger.account.GlAccount" text="GlAccountNameTemplate"/>
+                <display text="GlAccountNameTemplate" text-map="glAccount" style="${rowStyle}"/>
             </default-field></field>
             <field name="postedDebits" align="right"><default-field title="Debits"><display format="#,##0.00"/></default-field></field>
             <field name="postedCredits" align="right"><default-field title="Credits"><display format="#,##0.00"/></default-field></field>
             <field name="postedDebitsNoClosing" align="right"><default-field title="Deb - Close"><display format="#,##0.00"/></default-field></field>
             <field name="postedCreditsNoClosing" align="right"><default-field title="Cred - Close"><display format="#,##0.00"/></default-field></field>
-            <field name="beginningBalance" align="right"><default-field title="Beginning"><display format="#,##0.00"/></default-field></field>
-            <field name="endingBalance" align="right"><default-field title="Ending"><display format="#,##0.00"/></default-field></field>
+            <field name="beginningBalance" align="right"><default-field title="Beginning"><display format="#,##0.00" style="${rowStyle}"/></default-field></field>
+            <field name="endingBalance" align="right"><default-field title="Ending"><display format="#,##0.00" style="${rowStyle}"/></default-field></field>
             <field name="balanceLastUpdated" align="right"><default-field title="Amounts Updated"><display/></default-field></field>
         </form-list>
     </widgets>
