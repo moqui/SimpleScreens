@@ -50,10 +50,8 @@ along with this software (see the LICENSE.md file). If not, see
             <!-- <log level="warn" message="Doing product search with activeOrgId ${activeOrgId} filterOrgIds ${filterOrgIds} entityFilterSetId ${entityFilterSetId}"/> -->
 
             <script><![CDATA[
-                StringBuilder termSb = new StringBuilder()
-                if (term) {
-                    termSb.append((term.split(' ') as List).collect({ it.matches(/[^*:\\?_~\/\.\[\]\{\}+?*><="^-]*/) ? (it + '*') : it }).join(' '))
-                } else { termSb.append('*') }
+                StringBuilder termSb = new StringBuilder('(')
+                termSb.append(elasticQueryAutoWildcard(term, false)).append(')')
                 if (productFeatureIds) {
                     List productFeatureIdList = productFeatureIds.split(',')
                     // NOTE: using features.productFeatureId instead of plain productFeatureId as newer ElasticSearch doesn't search in nested fields
