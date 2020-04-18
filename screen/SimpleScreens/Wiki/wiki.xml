@@ -159,14 +159,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <parameter name="wikiSpaceId"/>
                     <tree-node name="WikiPageNode">
                         <actions>
-                            <script>
-                                // In this case the tree-sub-node.list is a List of ResourceReference
-                                // The fileName minus the extension is effectively the ID of a page, with the IDs of the
-                                //     parents separated by a forward slash for the full path ID just in case there is more
-                                //     than one page with that filename
-                                curFileName = nodeList_entry.getFileName()
-                                if (curFileName.contains(".")) curFileName = curFileName.substring(0, curFileName.lastIndexOf('.'))
-                            </script>
+                            <!--
+                                In this case the tree-sub-node.list is a List of Map (from get#WikiPageChildren)
+                                The fileName minus the extension is effectively the ID of a page, with the IDs of the
+                                    parents separated by a forward slash for the full path ID just in case there is more
+                                    than one page with that filename
+                            -->
+                            <set field="curFileName" from="nodeList_entry.pageName"/>
                             <set field="newIdPath" from="treeNodeId == '#' ? curFileName : treeNodeId + '/' + curFileName"/>
                             <set field="encodedPath" from="newIdPath.split('/').collect({urlEncodeIfNeeded(it)}).join('/')"/>
                             <!-- <log level="warn" message="curFileName ${curFileName} newIdPath ${newIdPath} encodedPath ${encodedPath}"/> -->
@@ -175,15 +174,15 @@ along with this software (see the LICENSE.md file). If not, see
                         <link text="${curFileName}" url="${basePath}/${wikiSpaceId}/${encodedPath}" url-noparam="true" id="${newIdPath}"/>
 
                         <tree-sub-node node-name="WikiPageNode" list="childPageList"><actions>
-                            <service-call name="org.moqui.impl.WikiServices.get#WikiPageInfo" out-map="curPageInfo"
+                            <service-call name="org.moqui.impl.WikiServices.get#WikiPageChildren" out-map="curPageInfo"
                                     in-map="[wikiSpaceId:wikiSpaceId, pagePath:treeNodeId]"/>
-                            <set field="childPageList" from="curPageInfo?.pageReference.getChildren()"/>
+                            <set field="childPageList" from="curPageInfo.childPageInfoList"/>
                         </actions></tree-sub-node>
                     </tree-node>
                     <tree-sub-node node-name="WikiPageNode" list="topPageList"><actions>
-                        <service-call name="org.moqui.impl.WikiServices.get#WikiPageInfo" out-map="rootPageInfo"
+                        <service-call name="org.moqui.impl.WikiServices.get#WikiPageChildren" out-map="rootPageInfo"
                                 in-map="[wikiSpaceId:wikiSpaceId]"/>
-                        <set field="topPageList" from="rootPageInfo.pageReference.getChildren()"/>
+                        <set field="topPageList" from="rootPageInfo.childPageInfoList"/>
                         <!-- <log level="warn" message="============ wikiSpaceId=${wikiSpaceId}; topPageList=${topPageList}"/> -->
                     </actions></tree-sub-node>
                 </tree>
@@ -202,7 +201,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </widgets></section-iterate>
             </container>
             <container>
-                <label text="ID: ${wikiPageId?:''} (${wikiType})${versionName ? ' Version ' + versionName.take(12) : ''}${publishedVersionName ? ' Published ' + publishedVersionName.take(12) : ''}"/>
+                <label text="Seq: ${wikiPage?.sequenceNum ?: 50} ID: ${wikiPageId?:''} (${wikiType})${versionName ? ' Version ' + versionName.take(12) : ''}${publishedVersionName ? ' Published ' + publishedVersionName.take(12) : ''}"/>
                 <label text="(this version published)" condition="publishedVersionName &amp;&amp; publishedVersionName == versionName" style="text-success"/>
                 <link text="Public Link" url="${ec.resource.expand(wikiSpace.publicPageUrl, null, null, false)}" url-type="plain"
                         link-type="anchor" target-window="_blank" condition="wikiSpace?.publicPageUrl"/>
