@@ -37,6 +37,12 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail"/>
 
+        <entity-find-one entity-name="mantle.party.PartyRole" value-field="internalRole">
+            <field-map field-name="partyId"/><field-map field-name="roleTypeId" value="OrgInternal"/></entity-find-one>
+        <if condition="internalRole != null">
+            <return error="true" message="${ec.resource.expand('PartyNameTemplate', null, partyDetail)} is an Internal Organization, see Accounting screens and reports for financial information"/>
+        </if>
+
         <entity-find-count entity-name="mantle.request.RequestAndParty" count-field="requestCount">
             <date-filter/><econdition field-name="partyId"/></entity-find-count>
 
