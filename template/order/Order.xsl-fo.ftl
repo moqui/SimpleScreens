@@ -42,7 +42,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:block font-weight="bold">Vendor</fo:block>
                         <fo:block><@encodeText (firstPartInfo.vendorDetail.organizationName)!""/><@encodeText (firstPartInfo.vendorDetail.firstName)!""/> <@encodeText (firstPartInfo.vendorDetail.lastName)!""/></fo:block>
                         <fo:block text-align="left">
-                            <#if firstPartInfo.vendorContactInfo?has_content>
+                            <#if firstPartInfo.vendorContactInfo.postalAddress?has_content>
                                 <fo:block><@encodeText (firstPartInfo.vendorContactInfo.postalAddress.address1)!""/><#if firstPartInfo.vendorContactInfo.postalAddress.unitNumber?has_content> #<@encodeText firstPartInfo.vendorContactInfo.postalAddress.unitNumber/></#if></fo:block>
                                 <#if firstPartInfo.vendorContactInfo.postalAddress.address2?has_content><fo:block><@encodeText firstPartInfo.vendorContactInfo.postalAddress.address2/></fo:block></#if>
                                 <fo:block><@encodeText (firstPartInfo.vendorContactInfo.postalAddress.city!"")/>, ${(firstPartInfo.vendorContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${firstPartInfo.vendorContactInfo.postalAddress.postalCode!""}<#if firstPartInfo.vendorContactInfo.postalAddress.postalCodeExt?has_content>-${firstPartInfo.vendorContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
@@ -52,7 +52,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:block font-weight="bold">Customer</fo:block>
                         <fo:block><@encodeText (firstPartInfo.customerDetail.organizationName)!""/><@encodeText (firstPartInfo.customerDetail.firstName)!""/> <@encodeText (firstPartInfo.customerDetail.lastName)!""/></fo:block>
                         <fo:block text-align="left">
-                            <#if firstPartInfo.customerContactInfo?has_content>
+                            <#if firstPartInfo.customerContactInfo.postalAddress?has_content>
                                 <fo:block><@encodeText (firstPartInfo.customerContactInfo.postalAddress.address1)!""/><#if firstPartInfo.customerContactInfo.postalAddress.unitNumber?has_content> #<@encodeText firstPartInfo.customerContactInfo.postalAddress.unitNumber/></#if></fo:block>
                                 <#if firstPartInfo.customerContactInfo.postalAddress.address2?has_content><fo:block><@encodeText firstPartInfo.customerContactInfo.postalAddress.address2/></fo:block></#if>
                                 <fo:block><@encodeText (firstPartInfo.customerContactInfo.postalAddress.city!"")/>, ${(firstPartInfo.customerContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${firstPartInfo.customerContactInfo.postalAddress.postalCode!""}<#if firstPartInfo.customerContactInfo.postalAddress.postalCodeExt?has_content>-${firstPartInfo.customerContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
