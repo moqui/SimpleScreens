@@ -32,6 +32,11 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getTaskList" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
+
+    <subscreens>
+        <subscreens-item name="EditTimeEntry" location="component://SimpleScreens/screen/SimpleScreens/Party/PartyTimeEntries/EditTimeEntry.xml"/>
+    </subscreens>
 
     <actions>
         <entity-find entity-name="mantle.work.time.TimeEntry" list="timeEntryList">
@@ -42,130 +47,56 @@ along with this software (see the LICENSE.md file). If not, see
             <field-map field-name="thruDate" from="null"/></filter-map-list>
         <set field="openTimeEntry" from="openTimeEntryList ? openTimeEntryList[0] : null"/>
 
-        <entity-find entity-name="mantle.work.effort.WorkEffortAndParty" list="myTaskList">
-            <date-filter/><econdition field-name="workEffortTypeEnumId" operator="in" value="WetTask,WetEvent"/>
-            <econdition field-name="partyId"/>
-            <econdition field-name="statusId" operator="not-in" value="WeClosed,WeCancelled" ignore="statusId"/>
-            <select-field field-name="workEffortId"/><select-field field-name="workEffortName"/>
-        </entity-find>
-
-        <service-call name="mantle.humanres.PositionServices.get#PartyEmployersAndPositionClasses" in-map="[partyId:partyId]" out-map="context"/>
+        <service-call name="mantle.humanres.PositionServices.get#PartyEmployersAndPositionClasses"
+                in-map="[partyId:partyId]" out-map="context"/>
     </actions>
     <widgets>
-        <container-dialog id="AddTimeDialog" button-text="Record Time">
-            <form-single name="AddTimeForm" transition="recordTimeEntry">
-                <field name="partyId"><default-field><hidden/></default-field></field>
-                <field name="clientPartyId"><default-field title="Employer"><drop-down>
-                    <list-options list="employerRelList" key="${toPartyId}" text="PartyNameTemplate"/></drop-down></default-field></field>
-                <field name="workEffortId"><default-field title="Task/Event"><drop-down allow-empty="true">
-                    <list-options list="myTaskList" text="WorkEffortNameTemplate"/></drop-down></default-field></field>
-                <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
-                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></default-field></field>
-                <field name="workTypeEnumId"><default-field title="Work Type"><drop-down>
-                    <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></default-field></field>
-                <field name="emplPositionClassId"><default-field title="Position Class"><drop-down allow-empty="true">
-                    <list-options list="emplPositionClassList" key="${emplPositionClassId}" text="${title}"/></drop-down></default-field></field>
-                <field name="rateTypeEnumId"><default-field title="Rate Type">
-                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumGroupDropDown">
-                        <set field="enumGroupEnumId" value="EngRateCommonEntry"/><set field="noCurrentSelectedKey" value="RatpStandard"/></widget-template-include>
-                </default-field></field>
-                <field name="comments"><default-field><text-area cols="60" rows="3"/></default-field></field>
-                <field name="pieceCount"><default-field><text-line size="6"/></default-field></field>
-                <field name="breakHours"><default-field tooltip="Unpaid break time"><text-line size="5" default-value="0"/></default-field></field>
-                <field name="instructions"><default-field title="">
-                    <display text="Enter values for 2 of the 3 below, or just Hours and Thru will be set to now"/>
-                </default-field></field>
-                <field name="hours"><default-field tooltip="Work and paid break time"><text-line size="5"/></default-field></field>
-                <field name="fromDate"><default-field title="From"><date-time minute-stepping="1"/></default-field></field>
-                <field name="thruDate"><default-field title="Thru"><date-time minute-stepping="1"/></default-field></field>
-                <field name="submitButton"><default-field title="Add Time"><submit/></default-field></field>
-            </form-single>
-        </container-dialog>
-        <section name="ClockInOutSection" condition="openTimeEntry"><widgets>
-            <container-dialog id="ClockOutDialog" button-text="Clock Out">
-                <form-single name="ClockOutForm" transition="recordTimeEntry" map="openTimeEntry">
-                    <field name="partyId"><default-field><hidden/></default-field></field>
-                    <field name="timeEntryId"><default-field><hidden/></default-field></field>
-                    <field name="clientPartyId"><default-field title="Employer"><drop-down>
-                        <list-options list="employerRelList" key="${toPartyId}" text="PartyNameTemplate"/></drop-down></default-field></field>
-                    <field name="workEffortId"><default-field title="Task"><drop-down allow-empty="true">
-                        <list-options list="myTaskList" text="WorkEffortNameTemplate"/></drop-down></default-field></field>
-                    <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
-                        <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></default-field></field>
-                    <field name="workTypeEnumId"><default-field title="Work Type"><drop-down>
-                        <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></default-field></field>
-                    <field name="emplPositionClassId"><default-field title="Position Class"><drop-down allow-empty="true">
-                        <list-options list="emplPositionClassList" key="${emplPositionClassId}" text="${title}"/></drop-down></default-field></field>
-                    <field name="rateTypeEnumId"><default-field title="Rate Type">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumGroupDropDown">
-                            <set field="enumGroupEnumId" value="EngRateCommonEntry"/><set field="noCurrentSelectedKey" value="RatpStandard"/></widget-template-include>
-                    </default-field></field>
-                    <field name="comments"><default-field><text-area cols="60" rows="3"/></default-field></field>
+        <section-include name="ClockInOutSection" location="component://SimpleScreens/screen/SimpleScreens/Party/PartyTimeEntries.xml"/>
 
-                    <field name="pieceCount"><default-field><text-line size="6"/></default-field></field>
-                    <field name="fromDate"><default-field title="From"><display/></default-field></field>
-                    <field name="breakHours"><default-field><text-line size="5" default-value="0"/></default-field></field>
-                    <field name="instructions"><default-field title="">
-                        <display text="To clock out now leave these 2 fields empty; specify Hours or Thru if your clock out time is in the past"/>
-                    </default-field></field>
-                    <field name="hours"><default-field><text-line size="5"/></default-field></field>
-                    <field name="thruDate"><default-field title="Thru"><date-time minute-stepping="1"/></default-field></field>
-                    <field name="submitButton"><default-field title="Clock Out"><submit/></default-field></field>
-                </form-single>
-            </container-dialog>
-        </widgets><fail-widgets>
-            <container-dialog id="ClockInDialog" button-text="Clock In">
-                <form-single name="ClockInForm" transition="clockInTimeEntry">
-                    <field name="partyId"><default-field><hidden/></default-field></field>
-                    <field name="clientPartyId"><default-field title="Employer"><drop-down>
-                        <list-options list="employerRelList" key="${toPartyId}" text="PartyNameTemplate"/></drop-down></default-field></field>
-                    <field name="workEffortId"><default-field title="Task"><drop-down allow-empty="true">
-                        <list-options list="myTaskList" text="WorkEffortNameTemplate"/></drop-down></default-field></field>
-                    <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
-                        <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></default-field></field>
-                    <field name="workTypeEnumId"><default-field title="Work Type"><drop-down>
-                        <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></default-field></field>
-                    <field name="emplPositionClassId"><default-field title="Position Class"><drop-down allow-empty="true">
-                        <list-options list="emplPositionClassList" key="${emplPositionClassId}" text="${title}"/></drop-down></default-field></field>
-                    <field name="rateTypeEnumId"><default-field title="Rate Type">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumGroupDropDown">
-                            <set field="enumGroupEnumId" value="EngRateCommonEntry"/><set field="noCurrentSelectedKey" value="RatpStandard"/></widget-template-include>
-                    </default-field></field>
-                    <field name="comments"><default-field><text-area cols="60" rows="3"/></default-field></field>
-                    <!-- NOTE: no fromDate default on server side so if left blank is more accurate time of form submit (was: from="ec.user.nowTimestamp") -->
-                    <field name="fromDate"><default-field title="From"><date-time minute-stepping="1"/></default-field></field>
-                    <field name="submitButton"><default-field title="Clock In"><submit/></default-field></field>
-                </form-single>
-            </container-dialog>
-        </fail-widgets></section>
+        <dynamic-dialog id="AddTimeDialogDyn" button-text="Record Time" transition="EditTimeEntry"
+                parameter-map="[partyId:partyId, timeEntryId:null]"/>
 
         <form-list name="TimeEntryList" list="timeEntryList" transition="recordTimeEntry" header-dialog="true" saved-finds="true">
             <field name="timeEntryId"><default-field><hidden/></default-field></field>
+
+            <field name="editButton"><default-field title="">
+                <dynamic-dialog id="EditTimeEntryDialog" button-text=" " icon="glyphicon glyphicon-pencil" transition="EditTimeEntry"
+                        parameter-map="[partyId:partyId, timeEntryId:timeEntryId]"/>
+            </default-field></field>
+
             <field name="fromDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
                 <default-field><display also-hidden="false"/></default-field></field>
             <field name="thruDate"><header-field show-order-by="true"><date-period allow-empty="true"/></header-field>
                 <default-field><display also-hidden="false"/></default-field></field>
+
+            <field name="hours"><header-field show-order-by="true"/>
+                <default-field><display format="0.00" also-hidden="false"/></default-field></field>
+            <field name="breakHours"><header-field show-order-by="true"/>
+                <default-field title="Break"><display format="0.00" also-hidden="false"/></default-field></field>
+            <field name="pieceCount"><header-field show-order-by="true"/>
+                <default-field><display also-hidden="false"/></default-field></field>
+
             <field name="clientPartyId">
-                <header-field title="Employer">
-                    <drop-down allow-empty="true"><entity-options key="${toPartyId}" text="PartyNameTemplate">
-                        <entity-find entity-name="mantle.party.PartyToAndRelationship" list="employerRelList">
-                            <date-filter/><econdition field-name="fromPartyId" from="partyId"/>
-                            <econdition field-name="relationshipTypeEnumId" value="PrtEmployee"/>
-                            <order-by field-name="pseudoId,organizationName,firstName,lastName"/>
-                        </entity-find>
-                    </entity-options></drop-down>
-                </header-field>
+                <header-field title="Employer"><drop-down allow-empty="true">
+                    <list-options list="employerPartyList" key="${partyId}" text="PartyNameTemplate"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
             <field name="workEffortId">
                 <header-field title="Task" show-order-by="true">
-                    <drop-down allow-empty="true"><list-options list="myTaskList" text="WorkEffortNameTemplate"/></drop-down></header-field>
+                    <drop-down allow-empty="true"><dynamic-options transition="getTaskList" min-length="0" server-search="true"
+                            parameter-map="[assignedPartyId:partyId]"/></drop-down>
+                </header-field>
                 <default-field><link url="taskDetail" entity-name="mantle.work.effort.WorkEffort" text="WorkEffortNameTemplate" link-type="anchor"/></default-field>
             </field>
             <field name="workTypeEnumId">
                 <header-field title="Work Type"><drop-down allow-empty="true">
                     <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration" also-hidden="false"/></default-field>
+            </field>
+            <field name="emplPositionClassId">
+                <header-field title="Position Class" show-order-by="true"><drop-down allow-empty="true">
+                    <list-options list="emplPositionClassList" key="${emplPositionClassId}" text="${title}"/></drop-down></header-field>
+                <default-field><display-entity entity-name="mantle.humanres.position.EmplPositionClass" text="${title}"/></default-field>
             </field>
             <field name="rateTypeEnumId">
                 <header-field title="Rate Type" show-order-by="true">
@@ -174,21 +105,18 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId" also-hidden="false"/></default-field>
             </field>
-            <field name="pieceCount"><header-field show-order-by="true"/>
-                <default-field><display also-hidden="false"/></default-field></field>
-            <field name="hours"><header-field show-order-by="true"/>
-                <default-field><display format="0.00" also-hidden="false"/></default-field></field>
-            <field name="breakHours"><header-field show-order-by="true"/>
-                <default-field title="Break"><display format="0.00" also-hidden="false"/></default-field></field>
+
             <field name="comments"><default-field><text-area cols="50" rows="2"/></default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field>
                 <default-field><submit text="Update"/></default-field></field>
 
+            <form-list-column><field-ref name="editButton"/></form-list-column>
             <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
+            <form-list-column><field-ref name="hours"/><field-ref name="breakHours"/><field-ref name="pieceCount"/></form-list-column>
             <form-list-column><field-ref name="clientPartyId"/><field-ref name="workEffortId"/></form-list-column>
-            <form-list-column><field-ref name="workTypeEnumId"/><field-ref name="rateTypeEnumId"/></form-list-column>
-            <form-list-column><field-ref name="pieceCount"/><field-ref name="hours"/><field-ref name="breakHours"/></form-list-column>
+            <form-list-column><field-ref name="workTypeEnumId"/><field-ref name="emplPositionClassId"/>
+                <field-ref name="rateTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="comments"/></form-list-column>
             <form-list-column><field-ref name="findButton"/></form-list-column>
         </form-list>
