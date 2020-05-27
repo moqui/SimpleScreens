@@ -183,6 +183,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </row-col><row-col sm="6">
                     <label text="Web Order (ecommerce)" condition="orderHeader?.salesChannelEnumId == 'ScWeb'" type="h4" style="text-success"/>
                 </row-col></container-row>
+                <label text="Recurring Order: ${recurCronDescription}" condition="recurCronDescription" type="h4" style="text-success"/>
 
                 <section name="PlaceSection" condition="orderHeader.statusId in ['OrderOpen', 'OrderProposed', 'OrderBeingChanged', 'OrderHold']"><widgets>
                     <link url="placeOrder" text="Place" link-type="hidden-form" condition="!placeWarnings" style="btn-success"/>
@@ -242,6 +243,24 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="ec.user.hasPermission('ORDER_APPROVE') &amp;&amp; orderHeader.statusId == 'OrderCompleted'"/>
 
                 <link url="PrintOrder.pdf" text="Order PDF"/>
+
+                <container-dialog id="RecurDialog" button-text="Recurring" button-style="" type="${orderHeader.recurCronExpression ? 'success' : 'primary'}">
+                    <label text="Recurring orders in the Approved status will be automatically cloned according to the schedule and the clone will be automatically Placed. If there are no Approve Warnings the cloned order will be automatically Approved. If Auto Invoice is set to Y then if Approved will also create an Invoice for the Order." type="p"/>
+                    <form-single name="RecurOptions" map="orderHeader" transition="updateOrderRecur">
+                        <field name="orderId"><default-field><hidden/></default-field></field>
+                        <field name="recurCronExpression"><default-field><drop-down allow-empty="true">
+                            <option key="${cronExpression}" text="Current: ${recurCronDescription ?: 'None'}"/><!-- NOTE: first in list so that if matches another option will be overridden -->
+                            <option key="0 0 6 ? * MON" text="Weekly on Monday at 6 AM"/>
+                            <option key="0 0 6 1 * ?" text="Monthly on the 1st at 6 AM"/>
+                            <option key="0 0 6 15 * ?" text="Monthly on the 15th at 6 AM"/>
+                        </drop-down></default-field></field>
+                        <field name="recurAutoInvoice"><default-field title="Auto Invoice">
+                            <radio no-current-selected-key="N"><option key="Y"/><option key="N"/></radio>
+                        </default-field></field>
+
+                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
 
                 <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
                     <link url="editInvoice" text="Invoice ${invoiceId}" link-type="anchor-button"/>
@@ -492,6 +511,8 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="statusId"><default-field title="Status">
                                 <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
                             <field name="entryDate"><default-field><display/></default-field></field>
+                            <field name="approvedDate"><default-field title="Approved"><display/></default-field></field>
+                            <field name="grandTotal"><default-field title="Total"><display format="#,##0.00"/></default-field></field>
                         </form-list>
                     </box-body></container-box>
                 </widgets></section>
@@ -561,7 +582,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <container><label text="${orderPartInfo.isVendorInternalOrg ? 'Sales' : 'Purchase'} Order Part ${orderPart.orderPartSeqId}" type="strong"/></container>
 
                     <section name="ShipOrderPartSection"><condition>
-                        <expression>quantityNotShippedByPart.get(orderPart.orderPartSeqId) &gt; 0 &amp;&amp;
+                        <expression>quantityNotShippedByPart.get(orderPart.orderPartSeqId) &gt; 0 &amp;&amp; !orderHeader.recurCronExpression &amp;&amp;
                             (orderHeader.statusId == "OrderApproved" || orderHeader.statusId == "OrderSent")</expression>
                     </condition><actions>
                         <!-- find Shipments from same vendor going to same address and ship method, in Input or Scheduled status -->
@@ -687,8 +708,8 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <link url="invoiceOrderPart" text="Create Invoice" link-type="hidden-form"
                             parameter-map="[orderPartSeqId:orderPart.orderPartSeqId]"
-                            condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId)"/>
-                    <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList"
+                            condition="quantityNotBilledByPart.get(orderPartInfo.orderPart.orderPartSeqId) &amp;&amp; !orderHeader.recurCronExpression"/>
+                    <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList &amp;&amp; !orderHeader.recurCronExpression"
                             confirmation="Really create return for this order part?"
                             parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"/>
                     <link url="cancelOrderPart" text="Close Part" link-type="hidden-form" btn-type="warning"
