@@ -19,6 +19,9 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateOrderHeader"><service-call name="mantle.order.OrderServices.update#OrderHeader"/>
         <default-response url="."/></transition>
+    <transition name="updateOrderRecur"><service-call name="mantle.order.OrderServices.update#OrderRecur"/>
+        <default-response url="."/></transition>
+
     <transition name="requestOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, orderPartSeqId:orderPartSeqId, statusId:'OrderRequested']"/>
         <default-response url="."/></transition>
     <transition name="proposeOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, orderPartSeqId:orderPartSeqId, statusId:'OrderProposed']"/>
@@ -34,6 +37,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="holdOrder"><service-call name="mantle.order.OrderServices.update#OrderStatus" in-map="[orderId:orderId, orderPartSeqId:orderPartSeqId, statusId:'OrderHold']"/>
         <default-response url="."/></transition>
+
     <transition name="completeOrderPart"><service-call name="mantle.order.OrderServices.complete#OrderPart"/>
         <default-response url="."/></transition>
     <transition name="cancelOrder"><service-call name="mantle.order.OrderServices.cancel#Order"/>
@@ -42,6 +46,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="cancelOrderItem"><service-call name="mantle.order.OrderServices.cancel#OrderItem"/>
         <default-response url="."/></transition>
+
     <transition name="cloneOrder"><service-call name="mantle.order.OrderServices.clone#Order"/>
         <default-response url="."/></transition>
 
@@ -265,6 +270,11 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <form-single name="HeaderForm" transition="updateOrderHeader" map="orderHeader">
                     <field name="orderId"><default-field><hidden/></default-field></field>
+
+                    <field name="parentOrderId"><conditional-field title="Parent Order" condition="parentOrderId">
+                        <link url="." text="${parentOrderId}" parameter-map="[orderId:parentOrderId]" link-type="anchor"/>
+                    </conditional-field></field>
+
                     <field name="statusId"><default-field title="Status">
                         <display text="${statusItem.description}"/></default-field></field>
                     <field name="entryDate"><default-field title="Entry"><display/></default-field></field>
@@ -308,6 +318,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <default-field><ignored/></default-field>
                     </field>
                     <field-layout>
+                        <field-ref name="parentOrderId"/>
                         <field-row><field-ref name="statusId"/><field-ref name="orderRevision"/></field-row>
                         <field-row><field-ref name="entryDate"/><field-ref name="placedDate"/></field-row>
                         <field-ref name="orderName"/>
@@ -450,6 +461,7 @@ along with this software (see the LICENSE.md file). If not, see
                         </container></widgets></section-iterate>
                     </box-body></container-box>
                 </widgets></section>
+
                 <section name="EmailMessageSection"><widgets>
                     <container-box><box-header title="Email Messages"/><box-toolbar>
                         <section name="SendPlacedEmailSection" condition="!(orderHeader.statusId in ['OrderBeingChanged'])"><actions>
@@ -491,6 +503,18 @@ along with this software (see the LICENSE.md file). If not, see
                             </default-field></field>
                         </form-list>
                     </box-body-nopad></container-box>
+                </widgets></section>
+
+                <section name="ChildOrders" condition="childOrderList"><widgets>
+                    <container-box><box-header title="Child/Cloned Orders"/><box-body>
+                        <form-list name="ChildOrderList" list="childOrderList" skip-form="true">
+                            <field name="orderId"><default-field title="Order">
+                                <link url="." text="${orderId}" link-type="anchor"/></default-field></field>
+                            <field name="statusId"><default-field title="Status">
+                                <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                            <field name="entryDate"><default-field><display/></default-field></field>
+                        </form-list>
+                    </box-body></container-box>
                 </widgets></section>
             </row-col></container-row>
         </widgets></section>
