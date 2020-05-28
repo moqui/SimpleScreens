@@ -244,19 +244,27 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <link url="PrintOrder.pdf" text="Order PDF"/>
 
-                <container-dialog id="RecurDialog" button-text="Recurring" button-style="" type="${orderHeader.recurCronExpression ? 'success' : 'primary'}">
+                <container-dialog id="RecurDialog" button-text="Recurring" type="${orderHeader.recurCronExpression ? (orderHeader.statusId == 'OrderApproved' ? 'success' : 'warning') : 'primary'}">
+                    <label text="Order is not in Approved status" type="p" style="text-warning" condition="orderHeader.statusId != 'OrderApproved'"/>
                     <label text="Recurring orders in the Approved status will be automatically cloned according to the schedule and the clone will be automatically Placed. If there are no Approve Warnings the cloned order will be automatically Approved. If Auto Invoice is set to Y then if Approved will also create an Invoice for the Order." type="p"/>
                     <form-single name="RecurOptions" map="orderHeader" transition="updateOrderRecur">
                         <field name="orderId"><default-field><hidden/></default-field></field>
-                        <field name="recurCronExpression"><default-field><drop-down allow-empty="true">
+                        <field name="recurCronExpression"><default-field title="Recur Schedule"><drop-down allow-empty="true">
                             <option key="${cronExpression}" text="Current: ${recurCronDescription ?: 'None'}"/><!-- NOTE: first in list so that if matches another option will be overridden -->
-                            <option key="0 0 6 ? * MON" text="Weekly on Monday at 6 AM"/>
-                            <option key="0 0 6 1 * ?" text="Monthly on the 1st at 6 AM"/>
-                            <option key="0 0 6 15 * ?" text="Monthly on the 15th at 6 AM"/>
+                            <option key="0 0 2 ? * MON" text="Weekly on Monday at 2 AM"/>
+                            <option key="0 0 2 1 * ?" text="Monthly on the 1st at 2 AM"/>
+                            <option key="0 0 2 15 * ?" text="Monthly on the 15th at 2 AM"/>
                         </drop-down></default-field></field>
                         <field name="recurAutoInvoice"><default-field title="Auto Invoice">
                             <radio no-current-selected-key="N"><option key="Y"/><option key="N"/></radio>
                         </default-field></field>
+                        <field name="lodInfo"><default-field title="">
+                            <label text="Last Ordered Date will be updated over time as recurring Order Clones are created." type="p"/>
+                            <label text="If Last Ordered Date is empty the next Order Clone will be created with the next batch." type="p"/>
+                            <label text="To not create the next Order Clone until the scheduled time, set this to now or any time since the last scheduled time." type="p"/>
+                        </default-field></field>
+                        <field name="lastOrderedDate"><default-field>
+                            <date-time/></default-field></field>
 
                         <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     </form-single>
