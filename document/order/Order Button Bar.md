@@ -1,5 +1,5 @@
 ## Place/Place Warnings
-Users can place the order using this button. If no information is missing in the order, then the user will see the 'Place' button else she will see 'Place Warnings' button.
+Users can place the order using this button. If no information is missing in the order, then the user will see the 'Place' button else user will see 'Place Warnings' button.
 On clicking the 'Place Warnings' button, a pop-up window will come containing warnings about the missing information in the order.
 
 Following are some examples of warnings:
