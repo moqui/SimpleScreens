@@ -4,13 +4,13 @@ define({
     template:
     '<div class="my-account-nav btn-group-condensed">' +
         '<m-link href="/apps/my/User/Task/MyTasks" data-toggle="tooltip" data-container="body" data-original-title="Open Tasks" data-placement="bottom" class="btn btn-default btn-sm navbar-btn navbar-right">' +
-            '<i class="glyphicon glyphicon-check"></i> <span class="label label-default">{{taskCount}}</span></m-link>' +
+            '<i class="fa fa-check"></i> <span class="label label-default">{{taskCount}}</span></m-link>' +
         '<m-link href="/apps/my/User/Calendar/MyCalendar" data-toggle="tooltip" data-container="body" data-original-title="Events This Week" data-placement="bottom" class="btn btn-default btn-sm navbar-btn navbar-right">' +
-            '<i class="glyphicon glyphicon-calendar"></i> <span class="label label-default">{{eventCount}}</span></m-link>' +
+            '<i class="fa fa-calendar"></i> <span class="label label-default">{{eventCount}}</span></m-link>' +
         '<m-link href="/apps/my/User/Messages/FindMessage?statusId=CeReceived&toCurrentUser=true" data-toggle="tooltip" data-container="body" data-original-title="Messages" data-placement="bottom" class="btn btn-default btn-sm navbar-btn navbar-right">' +
-            '<i class="glyphicon glyphicon-envelope"></i> <span class="label label-default">{{messageCount}}</span></m-link>' +
+            '<i class="fa fa-envelope"></i> <span class="label label-default">{{messageCount}}</span></m-link>' +
         '<m-link href="/apps/my/User/Notifications" data-toggle="tooltip" data-container="body" data-original-title="Notifications" data-placement="bottom" class="btn btn-default btn-sm navbar-btn navbar-right" :class="{ \'btn-warning\':notificationCount, \'btn-default\':!notificationCount }">' +
-            '<i class="glyphicon glyphicon-info-sign"></i> <span class="label" :class="{ \'label-warning\':notificationCount, \'label-default\':!notificationCount }">{{notificationCount}}</span></m-link>' +
+            '<i class="fa fa-info-circle"></i> <span class="label" :class="{ \'label-warning\':notificationCount, \'label-default\':!notificationCount }">{{notificationCount}}</span></m-link>' +
     '</div>',
     methods: {
         updateCounts: function() {
