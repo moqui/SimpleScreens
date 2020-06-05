@@ -122,8 +122,20 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
         <if condition="party == null"><return error="true" message="Party not found with ID ${partyId}"/></if>
 
-        <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
-            <field-map field-name="partyId"/></entity-find-one>
+        <!-- FUTURE: support multiple UserAccount records for partyId, for now just get non-disabled first and order by userId for consistency -->
+        <entity-find entity-name="moqui.security.UserAccount" list="userAccountList">
+            <econdition field-name="partyId"/>
+            <econdition field-name="disabled" operator="not-equals" value="Y" or-null="true"/>
+            <order-by field-name="userId"/>
+        </entity-find>
+        <if condition="!userAccountList">
+            <entity-find entity-name="moqui.security.UserAccount" list="userAccountList">
+                <econdition field-name="partyId"/>
+                <econdition field-name="disabled" value="Y"/>
+                <order-by field-name="userId"/>
+            </entity-find>
+        </if>
+        <set field="userAccount" from="userAccountList ? userAccountList[0] : null"/>
 
         <entity-find-count entity-name="mantle.request.RequestAndParty" count-field="requestCount">
             <date-filter/><econdition field-name="partyId"/></entity-find-count>
