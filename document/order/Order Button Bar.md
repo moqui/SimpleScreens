@@ -11,10 +11,21 @@ Following are some examples of warnings:
 
 However, the user can ignore the warnings and place the order by clicking on the 'Place Order Anyways' button.
 
-###Transitions
+### Transitions
 The following transition will take place on clicking the 'Place' or 'Place Order Anyway' button.
 - SimpleScreens/screen/SimpleScreens/Order/FindOrder.xml: placeOrder
 
-###Services
+### Services
 The following service will be called through the 'placeOrder' transition:
 - mantle.order.OrderServices.place#Order
+
+## Quote Requested
+If a customer requested for a quote then we can this feature to change the status of the order to 'Quote Requested' status.
+
+### Transitions
+SimpleScreens/screen/SimpleScreens/Order/OrderDetail.xml: requestOrder
+
+### Services
+The following service will be called through the 'requestOrder' transition:
+mantle.order.OrderServices.update#OrderStatus
+
