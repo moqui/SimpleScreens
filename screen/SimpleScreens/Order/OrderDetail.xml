@@ -163,7 +163,9 @@ along with this software (see the LICENSE.md file). If not, see
         <subscreens-item name="UpdatePaymentMethodInfo" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty/UpdatePaymentMethodInfo.xml"/>
     </subscreens>
     <actions>
-        <service-call name="mantle.order.OrderInfoServices.get#OrderDisplayInfo" in-map="[orderId:orderId]" out-map="context"/>
+        <set field="defaultItemLimit" from="10"/>
+        <set field="itemLimit" from="itemLimit ?: defaultItemLimit"/>
+        <service-call name="mantle.order.OrderInfoServices.get#OrderDisplayInfo" in-map="[orderId:orderId, itemLimit:(itemLimit as Integer)]" out-map="context"/>
         <set field="firstPartInfo" from="orderPartInfoList[0]"/>
 
         <set field="vendorRole" value="OrgInternal,Supplier,Vendor"/>
@@ -379,6 +381,17 @@ along with this software (see the LICENSE.md file). If not, see
                     </box-body-nopad></container-box>
                 </widgets></section>
             </row-col><row-col lg="6">
+                <section name="ItemLimitSection" condition="orderItemNoParentCount &gt; defaultItemLimit"><widgets>
+                    <form-single name="ItemLimitForm">
+                        <field name="orderId"><default-field><hidden/></default-field></field>
+                        <field name="itemLimit"><default-field><drop-down>
+                            <option key="10"/><option key="20"/><option key="50"/><option key="100"/>
+                        </drop-down></default-field></field>
+                        <field name="submitBtn"><default-field title="Update"><submit/></default-field></field>
+                        <field-layout><field-row-big><field-ref name="itemLimit"/><field-ref name="submitBtn"/></field-row-big></field-layout>
+                    </form-single>
+                </widgets></section>
+
                 <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
                 <section name="CustomerNotesSection"><actions>
@@ -1101,6 +1114,10 @@ along with this software (see the LICENSE.md file). If not, see
                         condition="orderPart.disablePromotions != 'Y'"
                         parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId, disablePromotions:'Y']"/>
             </widgets></section>
+
+            <link url="../OrderItems" text="All Part Items (${orderPartInfo.partNoParentOrderItemCount})" btn-type="info"
+                    condition="orderPartInfo.partNoParentOrderItemCount &gt; orderPartInfo.partNoParentOrderItemList.size()"
+                    parameter-map="[orderId:orderId, orderPartSeqId:orderPartInfo.orderPart.orderPartSeqId]"/>
 
             <form-list name="OrderItems" list="orderPartInfo.partOrderItemList" list-entry="orderItem" transition="updateItem">
                 <row-actions>

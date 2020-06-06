@@ -198,35 +198,56 @@ along with this software (see the LICENSE.md file). If not, see
 
             <hidden-parameters>
                 <parameter name="orderId"/>
+                <parameter name="orderPartSeqId"/>
                 <parameter name="requireInventory" value="false"/>
             </hidden-parameters>
 
-            <field name="orderItemSeqId"><default-field title="Item" container-style="${parentItemSeqId ? 'text-info' : ''}"><display/></default-field></field>
+            <field name="orderItemSeqId">
+                <header-field show-order-by="true"/>
+                <default-field title="Item" container-style="${parentItemSeqId ? 'text-info' : ''}"><display/></default-field>
+            </field>
             <field name="orderPartSeqId" align="center">
-                <header-field><drop-down allow-empty="true">
+                <header-field title="Part" show-order-by="true"><drop-down allow-empty="true">
                     <list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/>
                 </drop-down></header-field>
-                <default-field title="Part"><display text="Part ${orderPartSeqId}"/></default-field>
+                <default-field><display text="Part ${orderPartSeqId}"/></default-field>
             </field>
             <field name="parentItemSeqId" align="center"><default-field title="Parent Item">
                 <display text="${parentItemSeqId ? 'Parent ' + parentItemSeqId : ''}"/></default-field></field>
 
             <field name="itemTypeEnumId">
+                <header-field show-order-by="true">
+                    <drop-down allow-multiple="true">
+                        <entity-options key="${enumId}" text="${description}">
+                            <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
+                                <econdition field-name="enumGroupEnumId" from="isCustomerInternalOrg ? 'EngItemsPurchase' : 'EngItemsSales'"/>
+                                <order-by field-name="description"/></entity-find></entity-options>
+                    </drop-down>
+                </header-field>
                 <default-field title="Type" container-style="${isProductItemType ? 'text-info' : (itemTypeEnumId == 'ItemDiscount' ? 'text-success' : (itemTypeEnumId in ['ItemSalesTax','ItemVatTax'] ? 'text-warning' : ''))}">
                     <display-entity entity-name="moqui.basic.Enumeration" text="${description}${isPromo ? ' (Promotion)' : ''}"/>
                 </default-field>
             </field>
-            <field name="productId"><default-field title="Product">
-                <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor" condition="productId"/>
-            </default-field></field>
+            <field name="productId">
+                <header-field title="Product"><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
+                        link-type="anchor" condition="productId"/></default-field>
+            </field>
             <field name="otherPartyProductId">
+                <header-field show-order-by="true"><text-find/></header-field>
                 <default-field><display/></default-field>
             </field>
             <field name="itemDescription">
+                <header-field show-order-by="true"><text-find/></header-field>
                 <default-field title="Description"><display/></default-field>
             </field>
-            <field name="promoCodeText"><default-field title="Promo Code"><display/></default-field></field>
+            <field name="promoCodeText">
+                <header-field show-order-by="true"><text-find/></header-field>
+                <default-field title="Promo Code"><display/></default-field>
+            </field>
             <field name="comments">
+                <header-field show-order-by="true"><text-find/></header-field>
                 <default-field><display/></default-field>
             </field>
             <field name="requiredByDate">
@@ -235,19 +256,25 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="unitListPrice"><default-field title="List Price">
                 <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
-            <field name="unitAmount"><default-field title="Price"><display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+            <field name="unitAmount">
+                <header-field show-order-by="true"><range-find size="10"/></header-field>
+                <default-field title="Price"><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
+            </field>
             <field name="standardCost">
                 <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
             </field>
 
             <field name="quantity">
+                <header-field show-order-by="true"><range-find size="10"/></header-field>
                 <default-field><display/></default-field>
             </field>
             <field name="quantityCancelled">
+                <header-field show-order-by="true"><range-find size="10"/></header-field>
                 <default-field><display/></default-field>
             </field>
 
             <field name="quantityCancelled">
+                <header-field show-order-by="true"><range-find size="10"/></header-field>
                 <default-field><display/></default-field>
             </field>
             <field name="itemQuantityNotShipped">
@@ -263,8 +290,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="${ec.l10n.format(itemQuantityNotBilled, '#,##0.###')}" condition="isProductItemType"/>
                 <label text="${ec.l10n.format(itemAmountNotBilled, '#,##0.00')}" condition="!isProductItemType"/>
             </default-field></field>
-
-            <!-- TODO here down -->
 
             <field name="assetReservations">
                 <conditional-field condition="isShippable &amp;&amp; isVendorInternalOrg">
