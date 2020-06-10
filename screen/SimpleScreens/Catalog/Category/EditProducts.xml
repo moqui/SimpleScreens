@@ -30,6 +30,14 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
+    <!-- create a new product and add it as a member of this category -->
+    <transition name="createAndAddProduct"><actions>
+        <service-call name="create#mantle.product.Product" in-map="context" out-map="context"/>
+        <service-call name="create#mantle.product.category.ProductCategoryMember" in-map="context"/>
+    </actions><default-response url="."/></transition>
+    <actions>
+        <entity-find-one entity-name="mantle.product.category.ProductCategory" value-field="category" cache="false"/>
+    </actions>
     <widgets>
         <container-dialog id="AddProductDialog" button-text="Add Product">
             <form-single name="AddProductForm" transition="createProductCategoryMember">
@@ -37,6 +45,34 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="productId"><default-field title="Product"><drop-down>
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
                 </default-field></field>
+                <field name="fromDate" from="ec.user.nowTimestamp"><default-field>
+                    <date-time/></default-field></field>
+                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="CreateAddProductDialog" button-text="Create and Add Product">
+            <form-single name="CreateAddProductForm" transition="createAndAddProduct">
+                <field name="productCategoryId"><default-field><hidden/></default-field></field>
+                <!-- new product fields -->
+                <field name="productName"><default-field><text-line/></default-field></field>
+                <field name="productTypeEnumId"><default-field title="Product Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ProductType"/><set field="noCurrentSelectedKey" value="PtVirtual"/>
+                    </widget-template-include>
+                </default-field></field>
+                <field name="ownerPartyId"><default-field title="Owned By Org">
+                    <drop-down no-current-selected-key="${category.ownerPartyId}">
+                        <option key="_NA_" text="N/A"/>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </default-field></field>
+                <!-- assoc type fields -->
                 <field name="fromDate" from="ec.user.nowTimestamp"><default-field>
                     <date-time/></default-field></field>
                 <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
