@@ -153,15 +153,6 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.order.OrderNote" list="orderNoteList">
             <econdition field-name="orderId" operator="in" from="orderIdSet"/><order-by field-name="-noteDate"/></entity-find>
 
-        <entity-find entity-name="mantle.facility.FacilityBoxTypeDetail" list="boxTypeList">
-            <econdition field-name="facilityId" from="firstRouteSegment.originFacilityId"/>
-            <order-by field-name="description"/>
-        </entity-find>
-        <if condition="!boxTypeList">
-            <entity-find entity-name="mantle.shipment.ShipmentBoxType" list="boxTypeList">
-                <order-by field-name="description"/></entity-find>
-        </if>
-
         <set field="shippingPostalAddressList" from="[]"/>
         <if condition="(isOutgoing || isTransfer) &amp;&amp; toPartyId">
             <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="toPartyShippingInfo"
@@ -219,6 +210,17 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-count entity-name="mantle.shipment.ShipmentEmailMessage" count-field="emailMessageCount">
             <econdition field-name="shipmentId"/></entity-find-count>
 
+        <!-- NOTE: here down also in ShipmentPackages.xml screen.actions -->
+
+        <entity-find entity-name="mantle.facility.FacilityBoxTypeDetail" list="boxTypeList">
+            <econdition field-name="facilityId" from="firstRouteSegment.originFacilityId"/>
+            <order-by field-name="description"/>
+        </entity-find>
+        <if condition="!boxTypeList">
+            <entity-find entity-name="mantle.shipment.ShipmentBoxType" list="boxTypeList">
+                <order-by field-name="description"/></entity-find>
+        </if>
+
         <!-- only local print (after Pack Completed dialog) if ('qzPackShipment' + shipmentId) session attribute is true, then set to false to avoid printing again -->
         <set field="localPrintAllLabels" from="false"/>
         <if condition="ec.web.sessionAttributes.get('qzPackShipment' + shipmentId)">
@@ -258,94 +260,16 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="shipShipment" text="Set Shipped" condition="hasNoItems"/>
                 </fail-widgets></section>
             </widgets></section>
-            <section name="PackShipmentSection" condition="!isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPicked']"><widgets>
-                <!-- isOutgoing || isTransfer -->
-                <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="anyItemPacked" type="success">
-                    <label text="Not all items are packed, item quantities will be reduced to packed quantities."
-                            type="p" style="text-warning" condition="!allItemsPacked"/>
-                    <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
-                    <form-single name="SetPackedForm" transition="packShipment" focus-field="submitButton">
-                        <field name="shipmentId"><default-field><display/></default-field></field>
-                        <field name="packedDate" from="ec.user.nowTimestamp">
-                            <default-field><date-time/></default-field></field>
-                        <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
-                    </form-single>
-                </container-dialog>
-            </widgets></section>
-            <section name="ShipShipmentSection" condition="(isIncoming &amp;&amp; shipment.statusId in ['ShipInput', 'ShipScheduled', 'ShipPicked', 'ShipPacked']) ||
-                    ((isOutgoing || isTransfer) &amp;&amp; shipment.statusId == 'ShipPacked')"><widgets>
-                <container-dialog id="SetShippedDialog" button-text="Set Shipped" type="${isOutgoing || isTransfer ? (!hasAllTrackingCodes ? 'danger' : (!hasAllLabels ? 'warning' : 'success')) : 'primary'}">
-                    <label text="Set as Shipped? If a Shipment Shipped email is configured it will be sent to the Customer." condition="isOutgoing" style="text-success" type="p"/>
-                    <container><label text="Not all packages have Labels" type="strong" style="text-warning" condition="!hasAllLabels"/></container>
-                    <container><label text="Not all packages have Tracking Codes" type="strong" style="text-danger" condition="!hasAllTrackingCodes"/></container>
-                    <form-single name="SetShippedForm" transition="shipShipment" focus-field="submitButton">
-                        <field name="shipmentId"><default-field><display/></default-field></field>
-                        <field name="actualStartDate" from="ec.user.nowTimestamp">
-                            <default-field title="Actual Start"><date-time/></default-field></field>
-                        <field name="submitButton"><default-field title="Set Shipped"><submit/></default-field></field>
-                    </form-single>
-                </container-dialog>
-            </widgets></section>
-            <section name="DeliverShipmentSection" condition="(anyReceived &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPacked', 'ShipShipped']) ||
-                    (isOutgoing &amp;&amp; shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
-                <container-dialog id="SetDeliveredDialog" button-text="Set Delivered">
-                    <label text="Set as Delivered and generate invoice for order items if needed?" condition="isIncoming" type="p"/>
-                    <label text="Set as Delivered?" condition="isOutgoing" type="p"/>
-                    <label text="Set to Delivered? No additional items may be received once Delivered." condition="isTransfer"/>
-                    <label text="Not all items are received, item quantities will be reduced to received quantities."
-                            type="p" style="text-warning" condition="isIncoming &amp;&amp; !allReceived"/>
-                    <form-single name="SetDeliveredForm" transition="deliverShipment" focus-field="submitButton">
-                        <field name="shipmentId"><default-field><display/></default-field></field>
-                        <field name="actualArrivalDate" from="ec.user.nowTimestamp">
-                            <default-field title="Actual Arrival"><date-time/></default-field></field>
-                        <field name="submitButton"><default-field title="Set Delivered"><submit/></default-field></field>
-                    </form-single>
-                </container-dialog>
-            </widgets></section>
 
-            <section name="RequestLabelsSection" condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; (isOutgoing || isTransfer) &amp;&amp;
-                    ((shipment.statusId == 'ShipScheduled' &amp;&amp; hasNoItems) || (shipment.statusId in ['ShipPacked', 'ShipShipped']))"><widgets>
-                <link url="requestShipmentLabels" text="Get Labels" condition="destContactMechValid"/>
-                <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning" condition="!destContactMechValid">
-                    <label text="Warning: destination address is incomplete or invalid according to address validation." style="text-warning"/>
-                    <link url="requestShipmentLabels" text="Get Labels Anyway"/>
-                </container-dialog>
-            </widgets></section>
+            <section-include name="PackShipmentSection" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentItems.xml"/>
+            <section-include name="ShipShipmentSection" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentPackages.xml"/>
+            <section-include name="DeliverShipmentSection" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentItems.xml"/>
+
+            <section-include name="RequestLabelsSection" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentPackages.xml"/>
             <link url="trackShipmentLabels" text="Track Labels" condition="shippingGatewayConfigId &amp;&amp; hasAnyLabels"/>
+            <section-include name="PrintLabelsSection" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentPackages.xml"/>
+            <section-include name="QzPrintLabelsSection" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentPackages.xml"/>
 
-            <container-dialog id="PrintLabelsDialog" button-text="Net Print Labels" condition="hasAnyLabels &amp;&amp; networkPrinterList">
-                <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
-                    <field name="shipmentId"><default-field><hidden/></default-field></field>
-                    <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
-                        <list-options list="networkPrinterList" key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})"/>
-                    </drop-down></default-field></field>
-                    <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
-                    <field name="returnLabels"><default-field title=""><radio no-current-selected-key="false">
-                        <option key="false" text="Outgoing Labels"/><option key="true" text="Return Labels"/></radio></default-field></field>
-                    <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
-                </form-single>
-            </container-dialog>
-            <section name="QzPrintLabelsSection" condition="hasAnyLabels"><widgets><render-mode><text type="vuet"><![CDATA[
-                <m-script>
-                    qzPrintAllLabels = function() {
-                        if (!moqui.webrootVue.qzVue || !moqui.printUrlLabel) { return };
-                        moqui.printUrlLabel([
-                        <#list packageRouteSegList! as packageRouteSeg>
-                            <#if packageRouteSeg.labelUrl?has_content>'${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
-                            <#if packageRouteSeg.returnLabelUrl?has_content>'${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
-                        </#list>
-                        ]);
-                        moqui.printUrlMain([
-                        <#list packageRouteSegList! as packageRouteSeg>
-                            <#if packageRouteSeg.internationalInvoiceUrl?has_content>'${getShipmentLabelPath}?intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
-                            <#if packageRouteSeg.returnIntlInvoiceUrl?has_content>'${getShipmentLabelPath}?retLabel=true&intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
-                        </#list>
-                        ]);
-                    }
-                    <#if localPrintAllLabels! == true>qzPrintAllLabels();</#if>
-                </m-script>
-                <button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="qzPrintAllLabels();"><i class="fa fa-print"></i> All Labels</button>
-            ]]></text></render-mode></widgets></section>
             <section name="ShipPackedSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
                 <section name="ShipPackedInSection" condition="isIncoming"><widgets>
                     <link url="receiveEntireShipment" text="Receive Entire Shipment"><parameter name="shipmentId"/></link>
@@ -378,30 +302,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <label text="Are you sure you want to cancel this shipment?"/>
                 <link url="cancelShipment" text="Cancel Shipment"/>
             </container-dialog>
-            <section name="OutgoingTransferSection" condition="isOutgoing || isTransfer"><widgets>
-                <link url="ShipmentPick.pdf" text="Pick" icon="fa fa-download" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
-                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPick?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Pick</button>]]></text></render-mode>
-                <link url="ShipmentPack.pdf" text="Pack" icon="fa fa-download" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
-                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPack?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Pack</button>]]></text></render-mode>
-                <link url="ShipmentByPackage.pdf" text="Package##Shipment" icon="fa fa-download" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
-                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentByPackage?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Package</button>]]></text></render-mode>
-                <link url="ShipmentInsert.pdf" text="Insert" icon="fa fa-download" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
-                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentInsert?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Insert</button>]]></text></render-mode>
-            </widgets></section>
 
-            <section-iterate name="OrderLinks" list="orderIdSet" entry="orderId"><widgets>
-                <link url="orderDetail" text="Order ${orderId}" link-type="anchor-button"/></widgets></section-iterate>
-            <section-iterate name="ReturnLinks" list="returnIdSet" entry="returnId"><widgets>
-                <link url="editReturn" text="Return ${returnId}" link-type="anchor-button"/></widgets></section-iterate>
-            <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
-                <link url="editInvoice" text="Invoice ${invoiceId}" link-type="anchor-button"/></widgets></section-iterate>
-            <!-- no value in this as shown in better context in issuance or receipt list:
-            <section-iterate name="AcctgTransLinks" list="acctgTransIdSet" entry="acctgTransId"><widgets>
-                <link url="editTransaction" text="TX ${acctgTransId}" link-type="anchor-button"/>
-            </widgets></section-iterate>
-            -->
-
-            <link url="packShipmentScreen" text="Pack Screen"/>
             <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
                 <form-list name="AuditLogList" list="auditLogList" skip-form="true">
                     <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
@@ -425,6 +326,33 @@ along with this software (see the LICENSE.md file). If not, see
                         <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
                 </form-list>
             </container-dialog>
+
+            <container>
+                <section name="OutgoingTransferSection" condition="isOutgoing || isTransfer"><widgets>
+                    <link url="ShipmentPick.pdf" text="Pick" icon="fa fa-download" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
+                    <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPick?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Pick</button>]]></text></render-mode>
+                    <link url="ShipmentPack.pdf" text="Pack" icon="fa fa-download" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
+                    <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentPack?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Pack</button>]]></text></render-mode>
+                    <link url="ShipmentByPackage.pdf" text="Package##Shipment" icon="fa fa-download" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/>
+                    <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentByPackage?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Package</button>]]></text></render-mode>
+                    <link url="ShipmentInsert.pdf" text="Insert" icon="fa fa-download" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}"/>
+                    <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentInsert?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Insert</button>]]></text></render-mode>
+                </widgets></section>
+
+                <section-iterate name="OrderLinks" list="orderIdSet" entry="orderId"><widgets>
+                    <link url="orderDetail" text="Order ${orderId}" link-type="anchor-button"/></widgets></section-iterate>
+                <section-iterate name="ReturnLinks" list="returnIdSet" entry="returnId"><widgets>
+                    <link url="editReturn" text="Return ${returnId}" link-type="anchor-button"/></widgets></section-iterate>
+                <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
+                    <link url="editInvoice" text="Invoice ${invoiceId}" link-type="anchor-button"/></widgets></section-iterate>
+                <!-- no value in this as shown in better context in issuance or receipt list:
+                <section-iterate name="AcctgTransLinks" list="acctgTransIdSet" entry="acctgTransId"><widgets>
+                    <link url="editTransaction" text="TX ${acctgTransId}" link-type="anchor-button"/>
+                </widgets></section-iterate>
+                -->
+
+                <link url="packShipmentScreen" text="Pack Screen"/>
+            </container>
 
             <!-- Address Selection - Outgoing -->
             <section name="PostalAddressSelectDestSection" condition="(isOutgoing || isTransfer) &amp;&amp; (allowUpdate || shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
