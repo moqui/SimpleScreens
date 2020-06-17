@@ -17,6 +17,20 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="orderId" required="true"/>
 
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Product/EditProduct"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
+    <transition name="editPaymentMethod"><default-response url="//${appRoot}/Party/PaymentMethod/EditPaymentMethod"/></transition>
+
+    <transition name="systemMessageDetail"><default-response url="//apps/system/SystemMessage/Message/SystemMessageDetail"/></transition>
+
     <transition name="updateOrderHeader"><service-call name="mantle.order.OrderServices.update#OrderHeader"/>
         <default-response url="."/></transition>
     <transition name="updateOrderRecur"><service-call name="mantle.order.OrderServices.update#OrderRecur"/>
@@ -80,21 +94,10 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
-    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
-    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
-    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
     <transition name="setOrderBillingShippingInfo"><service-call name="mantle.order.OrderServices.set#OrderBillingShippingInfo"/>
         <default-response url="."/></transition>
     <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
         <default-response url="."/></transition>
-
-    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
-    <transition name="editProduct"><default-response url="//${appRoot}/Product/EditProduct"/></transition>
-    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
-
-    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
-    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
-    <transition name="editPaymentMethod"><default-response url="//${appRoot}/Party/PaymentMethod/EditPaymentMethod"/></transition>
 
     <transition name="createOrderPart"><service-call name="mantle.order.OrderServices.create#OrderPart"/>
         <default-response url="."/></transition>
@@ -541,6 +544,25 @@ along with this software (see the LICENSE.md file). If not, see
                                     parameter-map="[emailMessageId:emailMessageId]" condition="!(statusId in ['ES_DRAFT', 'ES_CANCELLED'])"
                                     confirmation="Send this email message?"/>
                             </default-field></field>
+                        </form-list>
+                    </box-body-nopad></container-box>
+                </widgets></section>
+
+                <section name="SystemMessageSection" condition="systemMessageList"><widgets>
+                    <container-box><box-header title="System Messages"/><box-body-nopad>
+                        <form-list name="SystemMessageList" list="systemMessageList" skip-form="true">
+                            <field name="systemMessageId"><default-field title="Message">
+                                <link url="systemMessageDetail" text="${systemMessageId}" link-type="anchor"/>
+                            </default-field></field>
+                            <field name="isOutgoing"><default-field title="In/Out"><display text="${isOutgoing == 'Y' ? 'Out' : 'In'}"/></default-field></field>
+                            <field name="initDate"><default-field title="Init"><display/></default-field></field>
+                            <field name="processedDate"><default-field title="Processed"><display/></default-field></field>
+                            <field name="statusId"><default-field title="Status">
+                                <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                            <field name="systemMessageTypeId"><default-field title="Type">
+                                <display-entity entity-name="moqui.service.message.SystemMessageType" text="${description}"/></default-field></field>
+                            <field name="systemMessageRemoteId"><default-field title="Remote">
+                                <display-entity entity-name="moqui.service.message.SystemMessageRemote" text="${description}"/></default-field></field>
                         </form-list>
                     </box-body-nopad></container-box>
                 </widgets></section>
