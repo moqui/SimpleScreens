@@ -32,24 +32,16 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
-        <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
-        <if condition="shipmentItem == null">
-            <!-- see if productId is a pseudoId or ProductIdentification -->
-            <entity-find-one entity-name="mantle.product.Product" value-field="product">
-                <field-map field-name="pseudoId" from="productId"/></entity-find-one>
-            <if condition="product != null"><set field="productId" from="product.productId"/></if>
-            <if condition="product == null">
-                <entity-find entity-name="mantle.product.ProductIdentification" list="prodIdentList">
-                    <econdition field-name="idValue" from="productId"/></entity-find>
-                <if condition="prodIdentList.size() == 1"><set field="productId" from="prodIdentList[0].productId"/></if>
-                <if condition="prodIdentList.size() &gt; 1">
-                    <message type="warning">Found multiple products with ID ${scanId}: ${prodIdentList*.productId.join(', ')}</message></if>
-            </if>
+        <!-- TODO: who would the Product.ownerPartyId be for an incoming shipment, Shipment.toPartyId or let user specify somehow? If Shipment.toPartyId is used and no productId found also look without... -->
+        <!-- NOTE: Product.ownerPartyId for product lookup is NOT the same as the Asset.ownerPartyId below! -->
+        <service-call name="mantle.product.ProductServices.find#ProductByIdValue" out-map="productByIdOut"
+                in-map="[idValue:productId]"/>
+        <set field="productId" from="productByIdOut.productId"/>
+        <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
+        <if condition="product == null"><return error="true" message="No Product found with ID  ${productId}"/></if>
 
-            <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
-            <if condition="shipmentItem == null"><return error="true" message="Shipment ${shipmentId} item ${productId} not found"/></if>
-        </if>
-        <if condition="product == null"><entity-find-one entity-name="mantle.product.Product" value-field="product"/></if>
+        <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
+        <if condition="shipmentItem == null"><return error="true" message="Shipment ${shipmentId} item ${productId} not found"/></if>
 
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
         <service-call name="org.moqui.impl.BasicServices.find#Enumeration" in-map="[enumTypeId:'RejectionReason']" out-map="reasonOut"/>
