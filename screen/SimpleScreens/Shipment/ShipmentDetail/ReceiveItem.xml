@@ -32,13 +32,12 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
-        <!-- TODO: who would the Product.ownerPartyId be for an incoming shipment, Shipment.toPartyId or let user specify somehow? If Shipment.toPartyId is used and no productId found also look without... -->
-        <!-- NOTE: Product.ownerPartyId for product lookup is NOT the same as the Asset.ownerPartyId below! -->
+        <set field="origProductId" from="productId"/>
         <service-call name="mantle.product.ProductServices.find#ProductByIdValue" out-map="productByIdOut"
-                in-map="[idValue:productId]"/>
-        <set field="productId" from="productByIdOut.productId"/>
+                in-map="[idValue:productId, shipmentId:shipmentId]"/>
+        <set field="productId" from="productByIdOut.productId ?: productId"/>
         <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
-        <if condition="product == null"><return error="true" message="No Product found with ID  ${productId}"/></if>
+        <if condition="product == null"><return error="true" message="No Product found with ID ${origProductId}"/></if>
 
         <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
         <if condition="shipmentItem == null"><return error="true" message="Shipment ${shipmentId} item ${productId} not found"/></if>
@@ -73,6 +72,14 @@ along with this software (see the LICENSE.md file). If not, see
                 <break/>
             </if>
         </iterate>
+
+        <!-- if an AssetOwner Party is specified for the Shipment use it as the default Asset.ownerPartyId -->
+        <entity-find entity-name="mantle.shipment.ShipmentParty" list="assetOwnerPartyList">
+            <econdition field-name="shipmentId"/>
+            <econdition field-name="roleTypeId" value="AssetOwner"/>
+            <order-by field-name="partyId"/>
+        </entity-find>
+        <set field="ownerPartyId" from="assetOwnerPartyList ? assetOwnerPartyList[0].partyId : null"/>
 
         <!-- try to get the default acquireCost from order items -->
         <set field="orderShipmentItemSourceList" from="shipmentItemSourceList.findAll({ it.orderId &amp;&amp; it.orderItemSeqId })"/>
