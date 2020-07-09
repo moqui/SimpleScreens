@@ -145,11 +145,15 @@ along with this software (see the LICENSE.md file). If not, see
             <parameter name="shipmentId"/><parameter name="filename" value="ShipmentInsert-${shipmentId}.pdf"/></default-response>
     </transition>
 
+    <transition name="setItemLimit"><actions><script>ec.user.setPreference('shipment.detail.item.limit', pageSize)</script></actions>
+        <default-response url="."/></transition>
+
     <subscreens>
         <subscreens-item name="UpdateContactInfo" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty/UpdateContactInfo.xml"/>
     </subscreens>
     <actions>
-        <set field="pageSize" from="pageSize ?: '10'"/>
+        <set field="defaultItemLimit" from="ec.user.getPreference('shipment.detail.item.limit') ?: '10'"/>
+        <set field="pageSize" from="pageSize ?: defaultItemLimit"/>
 
         <service-call name="mantle.shipment.ShipmentInfoServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
 
@@ -614,7 +618,7 @@ along with this software (see the LICENSE.md file). If not, see
             -->
         </row-col><row-col md="6">
             <section name="ItemLimitSection" condition="(shipmentItemDetailList.size() &gt; 10) || (shipmentPackageList.size() &gt; 10)"><widgets>
-                <form-single name="ItemLimitForm">
+                <form-single name="ItemLimitForm" transition="setItemLimit">
                     <field name="shipmentId"><default-field><hidden/></default-field></field>
                     <field name="pageSize"><default-field title="Item &amp; Package Limit"><drop-down>
                         <option key="10"/><option key="20"/><option key="50"/><option key="100"/>
