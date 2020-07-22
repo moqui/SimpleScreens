@@ -613,7 +613,7 @@ along with this software (see the LICENSE.md file). If not, see
                 Set replacedPostalIdSet = new HashSet()
                 for (int i=0; i < shippingPostalAddressList.size(); i++) {
                     String replAddressId = shippingPostalAddressList.get(i).postalContactMech?.replacesContactMechId
-                    if (replAddressId) replacedPostalIdSet.add(replAddressId)
+                    if (replAddressId && !replAddressId.equals(orderPart.postalContactMechId)) replacedPostalIdSet.add(replAddressId)
                 }
                 Set shippingPostalIdSet = new HashSet()
                 for (int i=0; i < shippingPostalAddressList.size(); ) {
@@ -622,6 +622,7 @@ along with this software (see the LICENSE.md file). If not, see
                     else { shippingPostalIdSet.add(curAddressId); i++ }
                 }
             ]]></script>
+            <set field="shippingAddressInfo" from="orderPart.postalContactMechId ? shippingPostalAddressList.find({ orderPart.postalContactMechId.equals(it.postalContactMechId) }) : null"/>
         </actions><widgets>
             <container style="row shaded-area">
                 <container style="col-lg-5">
@@ -967,50 +968,54 @@ along with this software (see the LICENSE.md file). If not, see
                             </container>
                         </widgets></section-iterate>
                     </widgets></section>
+
                     <!-- Shipping Address, Carrier/Method -->
-                    <container-box><box-header title="Choose a Shipping Address"/><box-toolbar>
+                    <container-box><box-header title="Shipping Address and Method"/><box-toolbar>
                         <dynamic-dialog id="AddPostalInfo" button-text="Add Shipping Address" transition="UpdateContactInfo"
                                 width="800" condition="orderPartInfo.partEditable"
                                 parameter-map="[partyId:customerPartyId, postalContactMechPurposeId:'PostalShippingDest',
                                     telecomContactMechPurposeId:'PhoneShippingDest', orderId:orderId, postalContactMechId:null]"/>
                     </box-toolbar><box-body>
-                        <label text="No shipping address selected" style="text-danger" type="p"
-                                condition="!orderPartInfo.isCustomerInternalOrg &amp;&amp; !orderPart.postalContactMechId"/>
-                        <container style="float-box" type="ul">
-                            <section-iterate name="ShippingAddressList" list="shippingPostalAddressList" entry="postalAddressInfo"><actions>
-                                <set field="contactInfo" from="postalAddressInfo"/>
-                                <set field="checkRadio" from="(orderPart.postalContactMechId &amp;&amp; orderPart.postalContactMechId == contactInfo.postalContactMechId) || (!orderPart.postalContactMechId &amp;&amp; postalAddressInfo_index == 0)"/>
-                            </actions><widgets>
-                                <container type="li" style="box-narrow${checkRadio ? ' active' : ''}">
-                                    <render-mode><text type="html,vuet,qvt"><![CDATA[
-                                        <div class="text-center"><input type="radio" name="shippingPostalContactMechId_${orderPartInfo_index}" value="${contactInfo.postalContactMechId}"<#if checkRadio> checked="checked"</#if>></div>
-                                    ]]></text></render-mode>
-                                    <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                                    <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo"
-                                            width="800" condition="orderPartInfo.partEditable"
-                                            parameter-map="[partyId:customerPartyId, postalContactMechId:contactInfo.postalContactMechId,
+                        <section name="CurrentShippingAddress" condition="shippingAddressInfo != null"><actions>
+                            <set field="contactInfo" from="shippingAddressInfo"/>
+                        </actions><widgets>
+                            <container style="row"><container style="col-sm-6">
+                                <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                            </container><container style="col-sm-6">
+                                <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo"
+                                        width="800" condition="orderPartInfo.partEditable"
+                                        parameter-map="[partyId:customerPartyId, postalContactMechId:contactInfo.postalContactMechId,
                                                 postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, orderId:orderId,
                                                 facilityId:contactInfo.facilityId]"/>
-                                    <container>
-                                        <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}${contactInfo.postalContactMech.validateMessage?'*':''}"
-                                                type="strong" tooltip="${contactInfo.postalContactMech.validateMessage?:''}"/>
-                                        <link url="validateAddress" text="Validate"
-                                                parameter-map="[orderId:orderId, partyId:customerPartyId, facilityId:contactInfo.facilityId, contactMechId:contactInfo.postalContactMechId]"
-                                                condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
-                                    </container>
-                                    <!-- Now in tooltip on Trust label: <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/> -->
+                                <container>
+                                    <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}${contactInfo.postalContactMech.validateMessage?'*':''}"
+                                            type="strong" tooltip="${contactInfo.postalContactMech.validateMessage?:''}"/>
+                                    <link url="validateAddress" text="Validate"
+                                            parameter-map="[orderId:orderId, partyId:customerPartyId, facilityId:contactInfo.facilityId, contactMechId:contactInfo.postalContactMechId]"
+                                            condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
                                 </container>
-                            </widgets></section-iterate>
-                        </container>
+                            </container></container>
+                        </widgets></section>
+
+                        <label text="No shipping address selected" style="text-danger" type="p"
+                                condition="!orderPartInfo.isCustomerInternalOrg &amp;&amp; !orderPart.postalContactMechId"/>
                         <label text="No shipment method selected" style="text-warning" type="p"
                                 condition="!orderPartInfo.isCustomerInternalOrg &amp;&amp; !orderPart.shipmentMethodEnumId"/>
+
+                        <container type="hr"/>
+
                         <form-single name="SetOrderInfoForm" transition="setOrderBillingShippingInfo" map="orderPartInfo.orderPart">
                             <field name="orderId"><default-field><hidden/></default-field></field>
                             <field name="orderPartSeqId"><default-field><hidden/></default-field></field>
                             <field name="paymentMethodId"><default-field><hidden/></default-field></field>
-                            <field name="shippingPostalContactMechId"><default-field><hidden/></default-field></field>
-                            <field name="shippingTelecomContactMechId"><default-field><hidden/></default-field></field>
+                            <!-- <field name="shippingTelecomContactMechId"><default-field><hidden/></default-field></field> -->
 
+                            <field name="shippingPostalContactMechId" from="orderPart.postalContactMechId">
+                                <conditional-field title="Shipping Address" condition="orderPartInfo.partEditable"><drop-down>
+                                    <list-options list="shippingPostalAddressList" key="${postalContactMechId}" text="PostalAddressInfoTemplate"/>
+                                </drop-down></conditional-field>
+                                <default-field><hidden/></default-field>
+                            </field>
                             <field name="carrierAndShipmentMethod">
                                 <conditional-field title="Shipment Method" condition="orderPartInfo.partEditable">
                                     <drop-down no-current-selected-key="${orderPart.carrierPartyId ? orderPart.carrierPartyId + ':' + orderPart.shipmentMethodEnumId : ''}">
@@ -1023,20 +1028,11 @@ along with this software (see the LICENSE.md file). If not, see
                                     <display text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}${orderPartInfo.carrierPartyDetail ? ' - ' + ec.resource.expand('PartyNameTemplate', null, orderPartInfo.carrierPartyDetail) : ''}"/></default-field>
                             </field>
                             <field name="submitButton">
-                                <conditional-field condition="orderPartInfo.partEditable" title="Set Shipping Address and Info">
+                                <conditional-field condition="orderPartInfo.partEditable" title="Set Shipping Address and Method">
                                     <submit/></conditional-field>
                                 <default-field><ignored/></default-field>
                             </field>
-
-                            <field-layout><field-row-big><field-ref name="carrierAndShipmentMethod"/>
-                                <field-ref name="submitButton"/></field-row-big></field-layout>
                         </form-single>
-                        <render-mode><text type="html,vuet,qvt"><![CDATA[
-                            <script>
-                                $("#SetOrderInfoForm_shippingPostalContactMechId_${orderPartInfo_index}").val($("input[name=shippingPostalContactMechId_${orderPartInfo_index}]:checked").val());
-                                $("input[name=shippingPostalContactMechId_${orderPartInfo_index}]:radio").change( function() { $("#SetOrderInfoForm_shippingPostalContactMechId_${orderPartInfo_index}").val($("input[name=shippingPostalContactMechId_${orderPartInfo_index}]:checked").val()); })
-                            </script>
-                        ]]></text></render-mode>
                     </box-body></container-box>
                 </container>
             </container>
