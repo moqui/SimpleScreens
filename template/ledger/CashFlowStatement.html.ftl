@@ -106,7 +106,8 @@ along with this software (see the LICENSE.md file). If not, see
     </tr>
 </#macro>
 
-<table class="table table-striped table-hover table-condensed">
+<div<#if sri.getRenderMode() == 'qvt'> class="q-table__container q-table__card q-table--horizontal-separator q-table--dense q-table--flat"</#if>>
+<table class="<#if sri.getRenderMode() == 'qvt'>q-table<#else>table table-striped table-hover table-condensed</#if>">
     <thead>
         <tr>
             <th>${ec.l10n.localize("Cash Flow Statement")}</th>
@@ -212,3 +213,4 @@ along with this software (see the LICENSE.md file). If not, see
         </tr>
     </tbody>
 </table>
+</div>
