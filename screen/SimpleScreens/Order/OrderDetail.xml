@@ -624,9 +624,10 @@ along with this software (see the LICENSE.md file). If not, see
             ]]></script>
             <set field="shippingAddressInfo" from="orderPart.postalContactMechId ? shippingPostalAddressList.find({ orderPart.postalContactMechId.equals(it.postalContactMechId) }) : null"/>
         </actions><widgets>
+            <container type="hr"/>
             <container style="row shaded-area">
                 <container style="col-lg-5">
-                    <container><label text="${orderPartInfo.isVendorInternalOrg ? 'Sales' : 'Purchase'} Order Part ${orderPart.orderPartSeqId}" type="strong"/></container>
+                    <container><label text="${orderPartInfo.isVendorInternalOrg ? 'Sales' : 'Purchase'} Order Part ${orderPart.orderPartSeqId}" type="h4"/></container>
 
                     <section name="ShipOrderPartSection"><condition>
                         <expression>quantityNotShippedByPart.get(orderPart.orderPartSeqId) &gt; 0 &amp;&amp; !orderHeader.recurCronExpression &amp;&amp;
@@ -875,98 +876,101 @@ along with this software (see the LICENSE.md file). If not, see
                 <container style="col-lg-7">
                     <!-- Payment Information -->
                     <section name="PaymentInfoSection"><widgets>
-                        <label text="OrderDetailPartPaymentIncomplete"
-                                style="text-danger" type="p" condition="orderPartInfo.paymentsTotal &lt; orderPartInfo.orderPart.partTotal"/>
-                        <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0.0, orderHeader?.currencyUomId)}) is greater than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0.0, orderHeader?.currencyUomId)})"
-                                style="text-warning" type="p" condition="(orderPartInfo.paymentsTotal?:0.0) &gt; (orderPartInfo.orderPart.partTotal?:0.0)"/>
-                        <container-dialog id="AddPaymentInfo" button-text="Add Payment" condition="orderPartInfo.partEditable">
-                            <form-single name="AddPaymentForm" transition="addOrderPartPayment" focus-field="paymentMethodId">
-                                <field name="orderId"><default-field><hidden/></default-field></field>
-                                <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
+                        <container-box><box-header title="Payment Information"/><box-toolbar>
+                            <container-dialog id="AddPaymentInfo" button-text="Add Payment" condition="orderPartInfo.partEditable">
+                                <form-single name="AddPaymentForm" transition="addOrderPartPayment" focus-field="paymentMethodId">
+                                    <field name="orderId"><default-field><hidden/></default-field></field>
+                                    <field name="orderPartSeqId" from="orderPartInfo.orderPart.orderPartSeqId"><default-field><hidden/></default-field></field>
 
-                                <field name="paymentMethodId"><default-field title="Payment Method"><drop-down allow-empty="true">
-                                    <entity-options key="${paymentMethodId}" text="PaymentMethodDetailTemplate">
-                                        <entity-find entity-name="mantle.account.method.PaymentMethodDetail">
-                                            <date-filter/>
-                                            <econditions combine="or">
-                                                <econdition field-name="ownerPartyId" from="customerPartyId"/>
-                                                <econdition field-name="ownerPartyId" from="customerBillToPartyId" ignore-if-empty="true"/>
-                                            </econditions>
+                                    <field name="paymentMethodId"><default-field title="Payment Method"><drop-down allow-empty="true">
+                                        <entity-options key="${paymentMethodId}" text="PaymentMethodDetailTemplate">
+                                            <entity-find entity-name="mantle.account.method.PaymentMethodDetail">
+                                                <date-filter/>
+                                                <econditions combine="or">
+                                                    <econdition field-name="ownerPartyId" from="customerPartyId"/>
+                                                    <econdition field-name="ownerPartyId" from="customerBillToPartyId" ignore-if-empty="true"/>
+                                                </econditions>
+                                            </entity-find></entity-options>
+                                    </drop-down></default-field></field>
+                                    <field name="finAccountId"><default-field title="Customer Account">
+                                        <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
+                                            <entity-find entity-name="mantle.account.financial.FinancialAccount">
+                                                <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/></entity-find>
+                                        </entity-options></drop-down>
+                                    </default-field></field>
+                                    <field name="paymentInstrumentEnumId"><default-field title="Instrument"><drop-down allow-empty="true">
+                                        <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                                            <econdition field-name="enumTypeId" value="PaymentInstrument"/>
+                                            <order-by field-name="description"/>
                                         </entity-find></entity-options>
-                                </drop-down></default-field></field>
-                                <field name="finAccountId"><default-field title="Customer Account">
-                                    <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
-                                        <entity-find entity-name="mantle.account.financial.FinancialAccount">
-                                            <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/></entity-find>
-                                    </entity-options></drop-down>
-                                </default-field></field>
-                                <field name="paymentInstrumentEnumId"><default-field title="Instrument"><drop-down allow-empty="true">
-                                    <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
-                                        <econdition field-name="enumTypeId" value="PaymentInstrument"/>
-                                        <order-by field-name="description"/>
-                                    </entity-find></entity-options>
-                                </drop-down></default-field></field>
-                                <field name="paymentTypeEnumId"><default-field title="Payment Type"><drop-down no-current-selected-key="PtInvoicePayment">
-                                    <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
-                                        <econditions combine="or">
-                                            <econdition field-name="enumId" value="PtInvoicePayment"/>
-                                            <econdition field-name="parentEnumId" value="PtInvoicePayment"/>
-                                        </econditions>
-                                        <order-by field-name="description"/>
-                                    </entity-find></entity-options>
-                                </drop-down></default-field></field>
-                                <field name="amount"><default-field><text-line size="10" default-value="${ec.l10n.format(orderPartInfo.partTotalUnpaid ?: 0, '#0.00')}"/></default-field></field>
-                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                            </form-single>
-                        </container-dialog>
-                        <dynamic-dialog id="AddCreditCardDialog" button-text="New Credit Card"
-                                transition="UpdatePaymentMethodInfo" width="800"
-                                parameter-map="[partyId:customerPartyId, paymentMethodTypeEnumId:'PmtCreditCard', orderId:orderId]"/>
-                        <!-- Order Part Existing Payment List -->
-                        <section-iterate name="PaymentInfoListSection" list="orderPartInfo.partPaymentInfoList" entry="partPaymentInfo"><actions>
-                            <set field="methodInfo" from="partPaymentInfo"/>
-                            <entity-find entity-name="mantle.account.method.PaymentGatewayResponse" list="gatewayResponseList">
-                                <econdition field-name="paymentId" from="partPaymentInfo.partPayment.paymentId"/>
-                                <order-by field-name="-transactionDate"/></entity-find>
-                        </actions><widgets>
-                            <container>
-                                <label text="${partPaymentInfo.paymentMethodTypeEnum?.description?:(partPaymentInfo.paymentInstrumentEnum?.description?:'')} (${partPaymentInfo.paymentTypeEnum?.description}) ${ec.l10n.formatCurrency(partPaymentInfo.partPayment.amount, partPaymentInfo.partPayment.amountUomId)}" type="strong"/>
-                                <label text="Status: ${partPaymentInfo.statusItem?.description}" type="strong"/>
-                                <container-dialog id="UpdatePaymentDialog" button-text="Update"
-                                        condition="orderPartInfo.partEditable &amp;&amp; partPaymentInfo.partPayment.statusId in ['PmntProposed', 'PmntPromised']">
-                                    <form-single name="UpdatePaymentForm" transition="updatePayment"
-                                            map="partPaymentInfo.partPayment" extends="AddPaymentForm">
-                                        <field name="orderId"><default-field><hidden/></default-field></field>
-                                        <field name="paymentId"><default-field><hidden/></default-field></field>
-                                        <field name="amount" from=""><default-field><text-line size="10" format="0.00"/></default-field></field>
-                                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
-                                    </form-single>
-                                </container-dialog>
-                                <container-dialog id="GatewayAuthorizeDialog" button-text="Gateway Authorize" condition="partPaymentInfo.partPayment.statusId in ['PmntPromised', 'PmntProposed', 'PmntDeclined']">
-                                    <form-single name="GatewayAuthorizeForm" map="partPaymentInfo.partPayment" transition="gatewayAuthorize">
-                                        <field name="orderId"><default-field><hidden/></default-field></field>
-                                        <field name="paymentId"><default-field><hidden/></default-field></field>
-                                        <field name="cardSecurityCode"><default-field><text-line size="4"/></default-field></field>
-                                        <field name="submitButton"><default-field title="Authorize"><submit/></default-field></field>
-                                    </form-single>
-                                </container-dialog>
-                                <container-dialog id="GatewayHistoryDialog" button-text="Gateway History" condition="gatewayResponseList" width="900">
-                                    <form-list name="GatewayResponseList" skip-form="true"
-                                            extends="component://SimpleScreens/screen/SimpleScreens/Accounting/Payment/EditPayment.xml#GatewayResponseList"/>
-                                </container-dialog>
+                                    </drop-down></default-field></field>
+                                    <field name="paymentTypeEnumId"><default-field title="Payment Type"><drop-down no-current-selected-key="PtInvoicePayment">
+                                        <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                                            <econditions combine="or">
+                                                <econdition field-name="enumId" value="PtInvoicePayment"/>
+                                                <econdition field-name="parentEnumId" value="PtInvoicePayment"/>
+                                            </econditions>
+                                            <order-by field-name="description"/>
+                                        </entity-find></entity-options>
+                                    </drop-down></default-field></field>
+                                    <field name="amount"><default-field><text-line size="10" default-value="${ec.l10n.format(orderPartInfo.partTotalUnpaid ?: 0, '#0.00')}"/></default-field></field>
+                                    <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                                </form-single>
+                            </container-dialog>
+                            <dynamic-dialog id="AddCreditCardDialog" button-text="New Credit Card"
+                                    transition="UpdatePaymentMethodInfo" width="800"
+                                    parameter-map="[partyId:customerPartyId, paymentMethodTypeEnumId:'PmtCreditCard', orderId:orderId]"/>
+                        </box-toolbar><box-body>
+                            <label text="OrderDetailPartPaymentIncomplete"
+                                    style="text-danger" type="p" condition="orderPartInfo.paymentsTotal &lt; orderPartInfo.orderPart.partTotal"/>
+                            <label text="Payments total (${ec.l10n.formatCurrency(orderPartInfo.paymentsTotal ?: 0.0, orderHeader?.currencyUomId)}) is greater than order part total (${ec.l10n.formatCurrency(orderPartInfo.orderPart.partTotal ?: 0.0, orderHeader?.currencyUomId)})"
+                                    style="text-warning" type="p" condition="(orderPartInfo.paymentsTotal?:0.0) &gt; (orderPartInfo.orderPart.partTotal?:0.0)"/>
+                            <!-- Order Part Existing Payment List -->
+                            <section-iterate name="PaymentInfoListSection" list="orderPartInfo.partPaymentInfoList" entry="partPaymentInfo"><actions>
+                                <set field="methodInfo" from="partPaymentInfo"/>
+                                <entity-find entity-name="mantle.account.method.PaymentGatewayResponse" list="gatewayResponseList">
+                                    <econdition field-name="paymentId" from="partPaymentInfo.partPayment.paymentId"/>
+                                    <order-by field-name="-transactionDate"/></entity-find>
+                            </actions><widgets>
                                 <container>
-                                    <link url="editPayment" text="Edit Payment ${partPaymentInfo.partPayment.paymentId}" link-type="anchor"
-                                            parameter-map="[paymentId:partPaymentInfo.partPayment.paymentId]"/>
-                                    <link url="editPaymentMethod" text="Edit ${partPaymentInfo.paymentMethod?.description ?: 'Payment Method ' + partPaymentInfo.partPayment.paymentMethodId}"
-                                            parameter-map="[paymentMethodId:partPaymentInfo.partPayment.paymentMethodId]" link-type="anchor"
-                                            condition="partPaymentInfo.partPayment.paymentMethodId != null"/>
-                                </container>
+                                    <label text="${partPaymentInfo.paymentMethodTypeEnum?.description?:(partPaymentInfo.paymentInstrumentEnum?.description?:'')} (${partPaymentInfo.paymentTypeEnum?.description}) ${ec.l10n.formatCurrency(partPaymentInfo.partPayment.amount, partPaymentInfo.partPayment.amountUomId)}" type="strong"/>
+                                    <label text="Status: ${partPaymentInfo.statusItem?.description}" type="strong"/>
+                                    <container-dialog id="UpdatePaymentDialog" button-text="Update"
+                                            condition="orderPartInfo.partEditable &amp;&amp; partPaymentInfo.partPayment.statusId in ['PmntProposed', 'PmntPromised']">
+                                        <form-single name="UpdatePaymentForm" transition="updatePayment"
+                                                map="partPaymentInfo.partPayment" extends="AddPaymentForm">
+                                            <field name="orderId"><default-field><hidden/></default-field></field>
+                                            <field name="paymentId"><default-field><hidden/></default-field></field>
+                                            <field name="amount" from=""><default-field><text-line size="10" format="0.00"/></default-field></field>
+                                            <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                        </form-single>
+                                    </container-dialog>
+                                    <container-dialog id="GatewayAuthorizeDialog" button-text="Gateway Authorize" condition="partPaymentInfo.partPayment.statusId in ['PmntPromised', 'PmntProposed', 'PmntDeclined']">
+                                        <form-single name="GatewayAuthorizeForm" map="partPaymentInfo.partPayment" transition="gatewayAuthorize">
+                                            <field name="orderId"><default-field><hidden/></default-field></field>
+                                            <field name="paymentId"><default-field><hidden/></default-field></field>
+                                            <field name="cardSecurityCode"><default-field><text-line size="4"/></default-field></field>
+                                            <field name="submitButton"><default-field title="Authorize"><submit/></default-field></field>
+                                        </form-single>
+                                    </container-dialog>
+                                    <container-dialog id="GatewayHistoryDialog" button-text="Gateway History" condition="gatewayResponseList" width="900">
+                                        <form-list name="GatewayResponseList" skip-form="true"
+                                                extends="component://SimpleScreens/screen/SimpleScreens/Accounting/Payment/EditPayment.xml#GatewayResponseList"/>
+                                    </container-dialog>
+                                    <container>
+                                        <link url="editPayment" text="Edit Payment ${partPaymentInfo.partPayment.paymentId}" link-type="anchor"
+                                                parameter-map="[paymentId:partPaymentInfo.partPayment.paymentId]"/>
+                                        <link url="editPaymentMethod" text="Edit ${partPaymentInfo.paymentMethod?.description ?: 'Payment Method ' + partPaymentInfo.partPayment.paymentMethodId}"
+                                                parameter-map="[paymentMethodId:partPaymentInfo.partPayment.paymentMethodId]" link-type="anchor"
+                                                condition="partPaymentInfo.partPayment.paymentMethodId != null"/>
+                                    </container>
 
-                                <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/PaymentMethodInfo.html.gstring"/></render-mode>
-                                <label text="CIM ID: ${methodInfo.paymentMethod.gatewayCimId}" type="div" condition="methodInfo.paymentMethod?.gatewayCimId"/>
-                                <label text="Gateway: ${methodInfo.paymentMethod.gatewayConfig?.description}" type="div" condition="methodInfo.paymentMethod?.paymentGatewayConfigId"/>
-                            </container>
-                        </widgets></section-iterate>
+                                    <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/PaymentMethodInfo.html.gstring"/></render-mode>
+                                    <label text="CIM ID: ${methodInfo.paymentMethod.gatewayCimId}" type="div" condition="methodInfo.paymentMethod?.gatewayCimId"/>
+                                    <label text="Gateway: ${methodInfo.paymentMethod.gatewayConfig?.description}" type="div" condition="methodInfo.paymentMethod?.paymentGatewayConfigId"/>
+                                </container>
+                            </widgets></section-iterate>
+                        </box-body></container-box>
                     </widgets></section>
 
                     <!-- Shipping Address, Carrier/Method -->
