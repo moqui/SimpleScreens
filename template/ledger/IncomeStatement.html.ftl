@@ -60,7 +60,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <#assign currentAmt = (glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
                     <#if findEntryUrl??>
                         <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                        <#if sri.getRenderMode()! == "vuet">
+                        <#if sri.getRenderMode()! == "vuet,qvt">
                             <td class="text-right text-mono"><m-link href="${findEntryInstance.getPathWithParams()}">${ec.l10n.format(currentAmt, currencyFormat)}</m-link><#if (currentAmt >= 0)>&nbsp;</#if></td>
                         <#else>
                             <td class="text-right text-mono"><a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(currentAmt, currencyFormat)}</a><#if (currentAmt >= 0)>&nbsp;</#if></td>

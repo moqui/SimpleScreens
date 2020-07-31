@@ -50,7 +50,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <td class="text-right text-mono">
                         <#if findEntryUrl??>
                             <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                            <#if sri.getRenderMode()! == "vuet">
+                            <#if sri.getRenderMode()! == "vuet,qvt">
                                 <m-link href="${findEntryInstance.getPathWithParams()}">${ec.l10n.format(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}</m-link>
                             <#else>
                                 <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}</a>
