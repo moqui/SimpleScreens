@@ -118,7 +118,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title="Price"><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
             </field>
             <field name="unitAmountHist"><default-field title=" ">
-                <!-- TODO qvt -->
                 <render-mode><text type="html,vuet"><![CDATA[
                     <#assign popoverContent>
                         <table style="width:100%;"><#list itemUnitAmountAuditList as auditInfo><tr>
@@ -129,6 +128,16 @@ along with this software (see the LICENSE.md file). If not, see
                         </tr></#list></table>
                     </#assign>
                     <a role="button" data-toggle="popover" data-placement="left" data-title="${ec.resource.expand('Price History for Item ${orderItemSeqId}', null)}" data-content="${popoverContent?html}">${ec.l10n.localize('Price History')}</a>
+                ]]></text><text type="qvt"><![CDATA[
+                    <div class="text-primary cursor-pointer">${ec.l10n.localize('Price History')}<q-tooltip>
+                        <div>${ec.resource.expand('Price History for Item ${orderItemSeqId}', null)}</div>
+                        <table style="width:100%;"><#list itemUnitAmountAuditList as auditInfo><tr>
+                            <td class="text-right">${ec.l10n.formatCurrency(auditInfo.auditLog.newValueText, orderHeader.currencyUomId, 3)}</td>
+                            <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                            <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                            <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                        </tr></#list></table>
+                    </q-tooltip></div>
                 ]]></text></render-mode>
             </default-field></field>
             <field name="standardCost">
@@ -150,7 +159,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><ignored/></default-field>
             </field>
             <field name="quantityHist"><default-field title=" ">
-                <!-- TODO qvt -->
                 <render-mode><text type="html,vuet"><![CDATA[
                     <#assign popoverContent>
                         <table style="width:100%;"><#list itemQuantityAuditList as auditInfo><tr>
@@ -161,6 +169,16 @@ along with this software (see the LICENSE.md file). If not, see
                         </tr></#list></table>
                     </#assign>
                     <a role="button" data-toggle="popover" data-placement="left" data-title="${ec.resource.expand('Quantity History for Item ${orderItemSeqId}', null)}" data-content="${popoverContent?html}">${ec.l10n.localize('Quantity History')}</a>
+                ]]></text><text type="qvt"><![CDATA[
+                    <div class="text-primary cursor-pointer">${ec.l10n.localize('Quantity History')}<q-tooltip>
+                        <div>${ec.resource.expand('Quantity History for Item ${orderItemSeqId}', null)}</div>
+                        <table style="width:100%;"><#list itemQuantityAuditList as auditInfo><tr>
+                            <td class="text-right">${auditInfo.auditLog.newValueText}</td>
+                            <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                            <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                            <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                        </tr></#list></table>
+                    </q-tooltip></div>
                 ]]></text></render-mode>
             </default-field></field>
             <field name="quantityCancelled"><default-field title="Qty Cancelled"><display/></default-field></field>
