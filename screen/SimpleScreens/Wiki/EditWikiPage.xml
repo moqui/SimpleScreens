@@ -53,8 +53,8 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="wikiType"><default-field><display/></default-field></field>
             <field name="sequenceNum" from="wikiPage?.sequenceNum ?: 50"><default-field><text-line size="2"/></default-field></field>
-            <field name="pageText">
-                <default-field title=""><text-area cols="120" rows="35"/></default-field></field>
+            <field name="pageText"><default-field title="">
+                <text-area cols="120" rows="35" editor-type="${wikiType}" editor-theme="${wikiSpace?.screenThemeId}"/></default-field></field>
             <field name="submitButton">
                 <conditional-field condition="isCreate" title="Create Page"><submit/></conditional-field>
                 <default-field title="Update Page"><submit/></default-field>
@@ -68,28 +68,9 @@ along with this software (see the LICENSE.md file). If not, see
             <field-layout>
                 <field-row-big><field-ref name="parentPath"/><field-ref name="pageName"/><field-ref name="wikiType"/>
                     <field-ref name="sequenceNum"/><field-ref name="submitButton"/><field-ref name="cancelButton"/></field-row-big>
-                <field-row-big><field-ref name="pageText"/></field-row-big>
+                <field-ref name="pageText"/>
                 <!-- <field-ref name="syntaxLink"/> -->
             </field-layout>
         </form-single>
-        <section name="SimpleMdeSection" condition="wikiType == 'md'"><widgets>
-            <!-- TODO qvt -->
-            <render-mode><text type="html,vuet"><![CDATA[
-                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simplemde/1.11.2/simplemde.min.css" type="text/css"/>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/simplemde/1.11.2/simplemde.min.js" type="text/javascript"></script>
-                <script>new SimpleMDE({ element: document.getElementById("EditPageForm_pageText"), indentWithTabs:false, autoDownloadFontAwesome:false, autofocus:true, spellChecker:false, forceSync:true });</script>
-            ]]></text></render-mode>
-        </widgets></section>
-        <section name="CkEditorSection" condition="wikiType == 'html'"><widgets>
-            <!-- TODO qvt -->
-            <render-mode><text type="html,vuet"><![CDATA[
-                <script src="https://cdn.ckeditor.com/4.7.3/full/ckeditor.js" type="text/javascript"></script>
-                <script src="https://cdn.ckeditor.com/4.7.3/full/adapters/jquery.js" type="text/javascript"></script>
-                <script>CKEDITOR.dtd.$removeEmpty['i'] = false;
-                $('#EditPageForm_pageText').ckeditor({ allowedContent:true, linkJavaScriptLinksAllowed:true, fillEmptyBlocks:false,
-                    extraAllowedContent:'p(*)[*]{*};div(*)[*]{*};li(*)[*]{*};ul(*)[*]{*};i(*)[*]{*};span(*)[*]{*}',
-                    width:'100%', height:'600px', removeButtons:'Save,NewPage,Preview' }).editor.on('change', function(evt) { this.updateElement(); });</script>
-            ]]></text></render-mode>
-        </widgets></section>
     </widgets>
 </screen>
