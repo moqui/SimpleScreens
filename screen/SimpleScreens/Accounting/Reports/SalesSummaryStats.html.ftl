@@ -76,20 +76,24 @@ along with this software (see the LICENSE.md file). If not, see
         </div>
     </div></div>
     <#if chartList?has_content>
-        <div class="chart-container" style="position:relative; height:<#if chartBig>500px<#else>90px</#if>; width:100%;"><canvas id="${chartId}"></canvas></div>
-        <script>
-            var ${chartId} = new Chart(document.getElementById("${chartId}"), { type: 'line',
-                data: { labels:${Static["groovy.json.JsonOutput"].toJson(labelList)}, datasets:[
-                    { backgroundColor: "rgba(49, 112, 143, 0.9)", borderColor: "rgba(49, 112, 143, 0.9)", fill: false, data: ${Static["groovy.json.JsonOutput"].toJson(chartList)} }
-                    <#if (maPeriods > 0) && chartMaList?has_content>, { backgroundColor: null, borderColor: "rgba(240, 173, 78, 0.5)", fill: false, data: ${Static["groovy.json.JsonOutput"].toJson(chartMaList)} }</#if>
-                ] },
-                options: { legend:{display:false}, scales:{ xAxes:[{display:<#if chartBig>true<#else>false</#if>}] }, maintainAspectRatio:false }
-            });
-        </script>
+        <#assign chartConfig><@compress single_line=true>
+            { type:'line', data:{labels:${Static["org.moqui.util.WebUtilities"].encodeHtmlJsSafeCollection(labelList)}, datasets:[
+                { backgroundColor:'rgba(49, 112, 143, 0.9)', borderColor:'rgba(49, 112, 143, 0.9)', fill:false, data:${Static["org.moqui.util.WebUtilities"].encodeHtmlJsSafeCollection(chartList)} }
+                <#if (maPeriods > 0) && chartMaList?has_content>, { backgroundColor:null, borderColor:'rgba(240, 173, 78, 0.5)', fill:false, data:${Static["org.moqui.util.WebUtilities"].encodeHtmlJsSafeCollection(chartMaList)} }</#if>
+            ] }, options:{ legend:{display:false}, scales:{ xAxes:[{display:<#if chartBig>true<#else>false</#if>}] }, maintainAspectRatio:false } }
+        </@compress></#assign>
+        <#if sri.getRenderMode() == "vuet" || sri.getRenderMode() == "html">
+            <div class="chart-container" style="position:relative; height:<#if chartBig>500px<#else>90px</#if>; width:100%;"><canvas id="${chartId}"></canvas></div>
+            <script>var ${chartId} = new Chart(document.getElementById("${chartId}"), ${chartConfig});</script>
+        <#elseif sri.getRenderMode() == "qvt">
+            <m-chart height="<#if chartBig>500px<#else>90px</#if>" :config="${chartConfig}"></m-chart>
+        </#if>
     </#if>
 </#macro>
 
+<#if sri.getRenderMode() == "vuet" || sri.getRenderMode() == "html">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" type="text/javascript"></script>
+</#if>
 
 <div class="row">
     <div class="${statsPanelColStyle}">
