@@ -50,12 +50,12 @@ along with this software (see the LICENSE.md file). If not, see
         <h6 class="text-primary">${ec.l10n.format(valThis, mainFormat)}</h6>
     </div><div class="col-xs-7">
         <div>
-            <i class="glyphicon <#if (valThis < valLast)>glyphicon-triangle-bottom text-danger<#else>glyphicon-triangle-top text-success</#if>"></i>
+            <i class="fa <#if (valThis < valLast)>fa-caret-down text-danger<#else>fa-caret-up text-success</#if>"></i>
             <span class="<#if (valThis < valLast)>text-danger<#else>text-success</#if>"><#if valLast != 0>${ec.l10n.format(((valThis - valLast)?abs/valLast)*100, '00')}<#else>0</#if>%</span>
             <span class="small">last (${ec.l10n.format(valLast, mainFormat)})</span>
         </div>
         <div>
-            <i class="glyphicon <#if (valThis < valAvg)>glyphicon-triangle-bottom text-danger<#else>glyphicon-triangle-top text-success</#if>"></i>
+            <i class="fa <#if (valThis < valAvg)>fa-caret-down text-danger<#else>fa-caret-up text-success</#if>"></i>
             <span class="<#if (valThis < valAvg)>text-danger<#else>text-success</#if>"><#if valAvg != 0>${ec.l10n.format(((valThis - valAvg)?abs/valAvg)*100, '00')}<#else>0</#if>%</span>
             <span class="small">avg (${ec.l10n.format(valAvg, mainFormat)})</span>
         </div>
@@ -65,12 +65,12 @@ along with this software (see the LICENSE.md file). If not, see
         <h6 class="text-primary">${ec.l10n.format(valLast, mainFormat)}</h6>
     </div><div class="col-xs-7">
         <div>
-            <i class="glyphicon <#if (valLast < valPrior)>glyphicon-triangle-bottom text-danger<#else>glyphicon-triangle-top text-success</#if>"></i>
+            <i class="fa <#if (valLast < valPrior)>fa-caret-down text-danger<#else>fa-caret-up text-success</#if>"></i>
             <span class="<#if (valLast < valPrior)>text-danger<#else>text-success</#if>"><#if valPrior != 0>${ec.l10n.format(((valLast - valPrior)?abs/valPrior)*100, '00')}<#else>0</#if>%</span>
             <span class="small">prev (${ec.l10n.format(valPrior, mainFormat)})</span>
         </div>
         <div>
-            <i class="glyphicon <#if (valLast < valAvg)>glyphicon-triangle-bottom text-danger<#else>glyphicon-triangle-top text-success</#if>"></i>
+            <i class="fa <#if (valLast < valAvg)>fa-caret-down text-danger<#else>fa-caret-up text-success</#if>"></i>
             <span class="<#if (valLast < valAvg)>text-danger<#else>text-success</#if>"><#if valAvg != 0>${ec.l10n.format(((valLast - valAvg)?abs/valAvg)*100, '00')}<#else>0</#if>%</span>
             <span class="small">avg (${ec.l10n.format(valAvg, mainFormat)})</span>
         </div>
