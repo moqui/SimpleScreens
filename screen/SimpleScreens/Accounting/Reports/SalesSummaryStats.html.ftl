@@ -30,11 +30,17 @@ along with this software (see the LICENSE.md file). If not, see
             </div></div>
         </div>
     <#elseif sri.getRenderMode() == "qvt">
-        <q-card flat bordered class="q-ma-sm"><q-card-section>
-            <h5 class="text-center" style="margin-top:0;margin-bottom:8px;">${title}</h5>
-            <@statsPanelContent title mainFormat valThis valLast valPrior valAvg false chartList chartMaList labelList/>
-        </q-card-section></q-card>
-        <#-- TODO add dialog with larger graph; how to handle display state, maybe some kind of global? -->
+        <m-container-dialog title="${title}">
+            <template v-slot:button>
+                <q-card flat bordered class="q-ma-sm"><q-card-section>
+                    <h5 class="text-center" style="margin-top:0;margin-bottom:8px;">${title}</h5>
+                    <@statsPanelContent title mainFormat valThis valLast valPrior valAvg false chartList chartMaList labelList/>
+                </q-card-section></q-card>
+            </template>
+            <template v-slot:default>
+                <@statsPanelContent modalTitle mainFormat valThis valLast valPrior valAvg true chartList chartMaList labelList/>
+            </template>
+        </m-container-dialog>
     </#if>
 </#macro>
 <#macro statsPanelContent title mainFormat valThis valLast valPrior valAvg chartBig chartList="" chartMaList="" labelList="">
