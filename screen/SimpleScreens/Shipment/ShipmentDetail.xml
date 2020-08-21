@@ -365,20 +365,26 @@ along with this software (see the LICENSE.md file). If not, see
             </container>
 
             <!-- Address Selection - Outgoing -->
-            <section name="PostalAddressOtherDestSection" condition="(isOutgoing || isTransfer) &amp;&amp; (allowUpdate || shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
-                <container><dynamic-dialog id="AddPostalInfoDest" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
-                        parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
+            <section name="PostalAddressOtherDestSection" condition="isOutgoing || isTransfer"><widgets>
+                <container><dynamic-dialog id="AddPostalInfoDest" button-text="Add Dest. Address" transition="UpdateContactInfo" width="800"
+                        parameter-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId,
+                            shipmentRouteSegmentSeqId:lastRouteSegment.shipmentRouteSegmentSeqId, shipmentSetDest:'true']"
+                        condition="allowUpdate || shipment.statusId == 'ShipPacked'"/></container>
                 <label text="No origin shipping address selected" style="text-danger" type="p" condition="!lastRouteSegment.destPostalContactMechId"/>
                 <label text="No shipment method selected" style="text-warning" type="p" condition="!firstRouteSegment.shipmentMethodEnumId"/>
             </widgets></section>
-            <section name="ShippedShippingDestInfo" condition="curDestPaInfo"><actions><set field="contactInfo" from="curDestPaInfo"/></actions><widgets>
+            <section name="ShippedShippingDestInfo" condition="curDestPaInfo"><actions>
+                <set field="contactInfo" from="curDestPaInfo"/>
+            </actions><widgets>
                 <container type="dl" style="dl-horizontal">
                     <label text="Destination Address" type="dt"/>
                     <container type="dd">
                         <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                        <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo" width="800" condition="allowUpdate"
+                        <dynamic-dialog id="UpdatePostalInfo" button-text="Update Address" transition="UpdateContactInfo" width="800"
+                                condition="allowUpdate || shipment.statusId == 'ShipPacked'"
                                 parameter-map="[partyId:toPartyId, postalContactMechId:contactInfo.postalContactMechId,
-                                            postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, shipmentId:shipmentId]"/>
+                                            postalContactMechPurposeId:contactInfo.postalContactMechPurposeId, shipmentId:shipmentId,
+                                            shipmentRouteSegmentSeqId:lastRouteSegment.shipmentRouteSegmentSeqId, shipmentSetDest:'true']"/>
                         <container>
                             <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}${contactInfo.postalContactMech.validateMessage?'*':''}"
                                     type="strong" tooltip="${contactInfo.postalContactMech.validateMessage?:''}"/>
@@ -390,15 +396,19 @@ along with this software (see the LICENSE.md file). If not, see
                 </container>
             </widgets></section>
             <!-- Address Selection - Incoming -->
-            <section name="PostalAddressOtherOriginSection" condition="isIncoming &amp;&amp; allowUpdate"><widgets>
+            <section name="PostalAddressOtherOriginSection" condition="isIncoming"><widgets>
                 <!-- TODO: better handling of postalContactMechPurposeId, using PostalShippingDest for use case of incoming shipments for returns from customers -->
                 <!-- TODO: any changes for postalContactMechPurposeId should be done in actions finds and elsewhere too -->
-                <container><dynamic-dialog id="AddPostalInfoOrigin" button-text="Add Shipping Address" transition="UpdateContactInfo" width="800"
-                        parameter-map="[partyId:fromPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId]"/></container>
+                <container><dynamic-dialog id="AddPostalInfoOrigin" button-text="Add Origin Address" transition="UpdateContactInfo" width="800"
+                        parameter-map="[partyId:fromPartyId, postalContactMechPurposeId:'PostalShippingDest', shipmentId:shipmentId,
+                            shipmentRouteSegmentSeqId:firstRouteSegment.shipmentRouteSegmentSeqId, shipmentSetDest:'true']]"
+                        condition="allowUpdate"/></container>
                 <label text="No shipping address selected" style="text-danger" type="p" condition="!lastRouteSegment.destPostalContactMechId"/>
                 <label text="No shipment method selected" style="text-warning" type="p" condition="!firstRouteSegment.shipmentMethodEnumId"/>
             </widgets></section>
-            <section name="ShippedShippingOriginInfo" condition="curOriginPaInfo"><actions><set field="contactInfo" from="curOriginPaInfo"/></actions><widgets>
+            <section name="ShippedShippingOriginInfo" condition="curOriginPaInfo"><actions>
+                <set field="contactInfo" from="curOriginPaInfo"/>
+            </actions><widgets>
                 <container type="dl" style="dl-horizontal">
                     <label text="Origin Address" type="dt"/>
                     <container type="dd">
@@ -431,7 +441,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="shipmentId"><default-field><hidden/></default-field></field>
 
                 <field name="originPostalContactMechId" from="firstRouteSegment.originPostalContactMechId">
-                    <conditional-field title="Origin Address" condition="isIncoming &amp;&amp; allowUpdate">
+                    <conditional-field title="Origin Address"
+                            condition="isIncoming &amp;&amp; (allowUpdate || shipment.statusId == 'ShipPacked')">
                         <drop-down allow-empty="true">
                             <list-options list="shippingPostalAddressList" key="${postalContactMechId}" text="PostalAddressInfoTemplate"/>
                         </drop-down>
@@ -439,7 +450,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <default-field><hidden/></default-field>
                 </field>
                 <field name="destPostalContactMechId" from="lastRouteSegment.destPostalContactMechId">
-                    <conditional-field title="Destination Address" condition="(isOutgoing || isTransfer) &amp;&amp; allowUpdate">
+                    <conditional-field title="Destination Address"
+                            condition="(isOutgoing || isTransfer) &amp;&amp; (allowUpdate || shipment.statusId == 'ShipPacked')">
                         <drop-down allow-empty="true">
                             <list-options list="shippingPostalAddressList" key="${postalContactMechId}" text="PostalAddressInfoTemplate"/>
                         </drop-down>
