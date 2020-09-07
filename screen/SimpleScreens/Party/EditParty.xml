@@ -95,6 +95,12 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
         <default-response url="."/></transition>
 
+    <transition name="createContactMechOther"><service-call name="mantle.party.ContactServices.create#ContactMechOther"/>
+        <default-response url="."/></transition>
+    <transition name="updatePartyContactOther"><service-call name="mantle.party.ContactServices.update#PartyContactOther"/>
+        <default-response url="."/></transition>
+    <transition-include name="getContactMechPurposesByType" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
     <transition name="createPartyNote"><service-call name="create#mantle.party.PartyNote"/>
         <default-response url="."/></transition>
     <transition name="updatePartyNote"><service-call name="update#mantle.party.PartyNote"/>
@@ -842,18 +848,84 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ContactInfoSection"><actions>
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="contactOut"
                         in-map="[partyId:partyId, getAll:true]"/>
+                <!-- Find 'Other' ContactMechs -->
+                <set field="handledContactMechTypes" from="['CmtPostalAddress', 'CmtTelecomNumber', 'CmtEmailAddress', 'CmtWebAddress']"/>
+                <entity-find entity-name="mantle.party.contact.PartyContactMechInfo" list="otherPcmiList" limit="50">
+                    <date-filter/>
+                    <econdition field-name="partyId"/>
+                    <!-- exclude the 4 types handled directly -->
+                    <econdition field-name="contactMechTypeEnumId" operator="not-in" from="handledContactMechTypes"/>
+                    <order-by field-name="contactMechTypeEnumId,fromDate"/>
+                </entity-find>
             </actions><widgets>
-                <container-box type="info"><box-header title="Email, Web, and Phone"/><box-toolbar>
-                    <dynamic-dialog id="ExpiredOtherDialog" button-text="Old Info" transition="ExpiredContactOther"
+                <container-box type="info"><box-header title="Phone, Email, and Other"/><box-toolbar>
+                    <dynamic-dialog id="ExpiredOtherDialog" button-text="Old" transition="ExpiredContactOther"
                             parameter-map="[partyId:partyId]"/>
 
-                    <dynamic-dialog id="AddEmailInfo" button-text="Add Email" transition="UpdateContactInfo"
-                            parameter-map="[partyId:partyId, createEmail:'true']"/>
-                    <dynamic-dialog id="AddWebUrlInfo" button-text="Add URL" transition="UpdateContactInfo"
-                            parameter-map="[partyId:partyId, createWeb:'true']"/>
-                    <dynamic-dialog id="AddPhoneInfo" button-text="Add Phone" transition="UpdateContactInfo"
+                    <dynamic-dialog id="AddPhoneInfo" button-text="Phone" transition="UpdateContactInfo"
                             parameter-map="[partyId:partyId, createTelecom:'true']"/>
+                    <dynamic-dialog id="AddEmailInfo" button-text="Email" transition="UpdateContactInfo"
+                            parameter-map="[partyId:partyId, createEmail:'true']"/>
+                    <dynamic-dialog id="AddWebUrlInfo" button-text="URL" transition="UpdateContactInfo"
+                            parameter-map="[partyId:partyId, createWeb:'true']"/>
+                    <container-dialog id="OtherCreateDialog" button-text="Other">
+                        <form-single name="OtherCreateForm" transition="createContactMechOther">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="contactMechTypeEnumId"><default-field title="Type">
+                                <drop-down><entity-options key="${enumId}" text="${description}">
+                                    <entity-find entity-name="moqui.basic.Enumeration">
+                                        <econdition field-name="enumTypeId" value="ContactMechType"/>
+                                        <econdition field-name="enumId" operator="not-in" from="handledContactMechTypes"/>
+                                        <order-by field-name="description"/>
+                                    </entity-find>
+                                </entity-options></drop-down>
+                            </default-field></field>
+                            <field name="contactMechPurposeId"><default-field title="Purpose">
+                                <drop-down><dynamic-options transition="getContactMechPurposesByType">
+                                    <depends-on field="contactMechTypeEnumId"/></dynamic-options></drop-down>
+                            </default-field></field>
+                            <field name="infoString"><default-field title="Value">
+                                <text-line size="60"/></default-field></field>
+                            <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
                 </box-toolbar><box-body>
+                    <section-iterate name="PhoneInfoSection" list="contactOut.telecomNumberList" entry="contactInfo"><widgets>
+                        <container-row><row-col lg="6">
+                            <dynamic-dialog id="UpdatePhoneInfo" button-text="Update" transition="UpdateContactInfo"
+                                    parameter-map="[partyId:partyId, telecomContactMechId:contactInfo.telecomContactMechId,
+                                        telecomContactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
+                            <container-dialog id="PhonePurposeDialog" button-text="Purpose">
+                                <form-single name="PhonePurposeForm" transition="storePartyContactMech">
+                                    <field name="partyId"><default-field><hidden/></default-field></field>
+                                    <field name="contactMechId" from="contactInfo.telecomContactMechId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="oldContactMechPurposeId" from="contactInfo.telecomContactMechPurposeId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="contactMechPurposeId" from="contactInfo.telecomContactMechPurposeId"><default-field title="Purpose">
+                                        <drop-down><entity-options key="${contactMechPurposeId}" text="${description}">
+                                            <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
+                                                <econdition field-name="contactMechTypeEnumId" value="CmtTelecomNumber"/>
+                                                <order-by field-name="description"/>
+                                            </entity-find>
+                                        </entity-options></drop-down>
+                                    </default-field></field>
+                                    <field name="extension" from="contactInfo.telecomPartyContactMech?.extension">
+                                        <default-field><text-line size="6" maxlength="8"/></default-field></field>
+                                    <field name="updateButton"><default-field title="Update Purpose"><submit/></default-field></field>
+                                    <field name="addButton"><default-field title="Add Purpose"><submit/></default-field></field>
+                                    <field-layout><field-ref name="contactMechPurposeId"/><field-ref name="extension"/>
+                                        <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </container-dialog>
+                            <link url="removeContactInfo" text=" " icon="fa fa-trash" confirmation="Remove phone number?"
+                                    parameter-map="[partyId:partyId, contactMechId:contactInfo.telecomContactMechId,
+                                        contactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
+                        </row-col><row-col lg="6">
+                            <label text="${contactInfo.telecomContactMechPurpose.description}" type="strong"/>
+                            <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                        </row-col></container-row>
+                    </widgets></section-iterate>
                     <section-iterate name="EmailInfoSection" list="contactOut.emailAddressList" entry="contactInfo"><widgets>
                         <container-row><row-col lg="6">
                             <dynamic-dialog id="UpdateEmailInfo" button-text="Update" transition="UpdateContactInfo"
@@ -922,40 +994,54 @@ along with this software (see the LICENSE.md file). If not, see
                             <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                         </row-col></container-row>
                     </widgets></section-iterate>
-                    <section-iterate name="PhoneInfoSection" list="contactOut.telecomNumberList" entry="contactInfo"><widgets>
+                    <section-iterate name="OtherInfoSection" list="otherPcmiList" entry="otherPcmi"><actions>
+                        <entity-find-one entity-name="moqui.basic.Enumeration" value-field="contactMechTypeEnum" cache="true">
+                            <field-map field-name="enumId" from="otherPcmi.contactMechTypeEnumId"/></entity-find-one>
+                        <entity-find-one entity-name="mantle.party.contact.ContactMechPurpose" value-field="contactMechPurpose" cache="true">
+                            <field-map field-name="contactMechPurposeId" from="otherPcmi.contactMechPurposeId"/></entity-find-one>
+                    </actions><widgets>
                         <container-row><row-col lg="6">
-                            <dynamic-dialog id="UpdatePhoneInfo" button-text="Update" transition="UpdateContactInfo"
-                                    parameter-map="[partyId:partyId, telecomContactMechId:contactInfo.telecomContactMechId,
-                                        telecomContactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
-                            <container-dialog id="PhonePurposeDialog" button-text="Purpose">
-                                <form-single name="PhonePurposeForm" transition="storePartyContactMech">
+                            <container-dialog id="OtherUpdateDialog" button-text="Update">
+                                <form-single name="OtherUpdateForm" transition="updatePartyContactOther">
                                     <field name="partyId"><default-field><hidden/></default-field></field>
-                                    <field name="contactMechId" from="contactInfo.telecomContactMechId">
+                                    <field name="contactMechId" from="otherPcmi.contactMechId">
                                         <default-field><hidden/></default-field></field>
-                                    <field name="oldContactMechPurposeId" from="contactInfo.telecomContactMechPurposeId">
+                                    <field name="contactMechPurposeId" from="otherPcmi.contactMechPurposeId">
                                         <default-field><hidden/></default-field></field>
-                                    <field name="contactMechPurposeId" from="contactInfo.telecomContactMechPurposeId"><default-field title="Purpose">
-                                        <drop-down><entity-options key="${contactMechPurposeId}" text="${description}">
-                                            <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
-                                                <econdition field-name="contactMechTypeEnumId" value="CmtTelecomNumber"/>
-                                                <order-by field-name="description"/>
-                                            </entity-find>
-                                        </entity-options></drop-down>
+                                    <field name="infoString" from="otherPcmi.infoString"><default-field title="Value">
+                                        <text-line size="60"/></default-field></field>
+                                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                </form-single>
+                            </container-dialog>
+                            <container-dialog id="OtherPurposeDialog" button-text="Purpose">
+                                <form-single name="OtherPurposeForm" transition="storePartyContactMech">
+                                    <field name="partyId"><default-field><hidden/></default-field></field>
+                                    <field name="contactMechId" from="otherPcmi.contactMechId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="oldContactMechPurposeId" from="otherPcmi.contactMechPurposeId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="contactMechPurposeId" from="otherPcmi.contactMechPurposeId"><default-field title="Purpose">
+                                        <drop-down>
+                                            <entity-options key="${contactMechPurposeId}" text="${description}">
+                                                <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
+                                                    <econdition field-name="contactMechTypeEnumId" from="otherPcmi.contactMechTypeEnumId" or-null="true"/>
+                                                    <order-by field-name="description"/>
+                                                </entity-find>
+                                            </entity-options>
+                                        </drop-down>
                                     </default-field></field>
-                                    <field name="extension" from="contactInfo.telecomPartyContactMech?.extension">
-                                        <default-field><text-line size="6" maxlength="8"/></default-field></field>
                                     <field name="updateButton"><default-field title="Update Purpose"><submit/></default-field></field>
                                     <field name="addButton"><default-field title="Add Purpose"><submit/></default-field></field>
-                                    <field-layout><field-ref name="contactMechPurposeId"/><field-ref name="extension"/>
+                                    <field-layout><field-ref name="contactMechPurposeId"/>
                                         <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
                                 </form-single>
                             </container-dialog>
-                            <link url="removeContactInfo" text=" " icon="fa fa-trash" confirmation="Remove phone number?"
-                                    parameter-map="[partyId:partyId, contactMechId:contactInfo.telecomContactMechId,
-                                        contactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
+                            <link url="removeContactInfo" text=" " icon="fa fa-trash" confirmation="Remove Contact Info?"
+                                    parameter-map="[partyId:partyId, contactMechId:otherPcmi.contactMechId,
+                                        contactMechPurposeId:otherPcmi.contactMechPurposeId]"/>
                         </row-col><row-col lg="6">
-                            <label text="${contactInfo.telecomContactMechPurpose.description}" type="strong"/>
-                            <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                            <label text="${contactMechTypeEnum.description} - ${contactMechPurpose.description}" type="strong"/>
+                            <container><label text="${otherPcmi.infoString}" type="i"/></container>
                         </row-col></container-row>
                     </widgets></section-iterate>
                 </box-body></container-box>

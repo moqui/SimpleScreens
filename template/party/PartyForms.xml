@@ -120,6 +120,22 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
 
+    <transition name="getContactMechPurposesByType">
+        <parameter name="contactMechTypeEnumId"/>
+        <actions>
+            <entity-find entity-name="mantle.party.contact.ContactMechPurpose" list="cmpList">
+                <econdition field-name="contactMechTypeEnumId" or-null="true"/>
+                <order-by field-name="description"/>
+            </entity-find>
+            <script>
+                def outList = []
+                for (cmp in cmpList) outList.add([value:cmp.contactMechPurposeId, label:cmp.description])
+                ec.web.sendJsonResponse(outList)
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
     <!-- an example of a transition to call store#PartyContactInfo; this does a create or update -->
     <transition name="storeContactInfo"><service-call name="mantle.party.ContactServices.store#PartyContactInfo"/>
         <default-response url="."/></transition>
