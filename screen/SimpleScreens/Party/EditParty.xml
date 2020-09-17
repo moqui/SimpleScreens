@@ -859,36 +859,39 @@ along with this software (see the LICENSE.md file). If not, see
                 </entity-find>
             </actions><widgets>
                 <container-box type="info"><box-header title="Phone, Email, and Other"/><box-toolbar>
-                    <dynamic-dialog id="ExpiredOtherDialog" button-text="Old" transition="ExpiredContactOther"
+                    <dynamic-dialog id="ExpiredOtherDialog" button-text="View Old" transition="ExpiredContactOther"
                             parameter-map="[partyId:partyId]"/>
 
-                    <dynamic-dialog id="AddPhoneInfo" button-text="Phone" transition="UpdateContactInfo"
-                            parameter-map="[partyId:partyId, createTelecom:'true']"/>
-                    <dynamic-dialog id="AddEmailInfo" button-text="Email" transition="UpdateContactInfo"
-                            parameter-map="[partyId:partyId, createEmail:'true']"/>
-                    <dynamic-dialog id="AddWebUrlInfo" button-text="URL" transition="UpdateContactInfo"
-                            parameter-map="[partyId:partyId, createWeb:'true']"/>
-                    <container-dialog id="OtherCreateDialog" button-text="Other">
-                        <form-single name="OtherCreateForm" transition="createContactMechOther">
-                            <field name="partyId"><default-field><hidden/></default-field></field>
-                            <field name="contactMechTypeEnumId"><default-field title="Type">
-                                <drop-down><entity-options key="${enumId}" text="${description}">
-                                    <entity-find entity-name="moqui.basic.Enumeration">
-                                        <econdition field-name="enumTypeId" value="ContactMechType"/>
-                                        <econdition field-name="enumId" operator="not-in" from="handledContactMechTypes"/>
-                                        <order-by field-name="description"/>
-                                    </entity-find>
-                                </entity-options></drop-down>
-                            </default-field></field>
-                            <field name="contactMechPurposeId"><default-field title="Purpose">
-                                <drop-down><dynamic-options transition="getContactMechPurposesByType">
-                                    <depends-on field="contactMechTypeEnumId"/></dynamic-options></drop-down>
-                            </default-field></field>
-                            <field name="infoString"><default-field title="Value">
-                                <text-line size="60"/></default-field></field>
-                            <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
+                    <button-menu text="Add New" icon="fa fa-plus">
+                        <dynamic-dialog id="AddPhoneInfo" button-text="Phone" transition="UpdateContactInfo"
+                                parameter-map="[partyId:partyId, createTelecom:'true']"/>
+                        <dynamic-dialog id="AddEmailInfo" button-text="Email" transition="UpdateContactInfo"
+                                parameter-map="[partyId:partyId, createEmail:'true']"/>
+                        <dynamic-dialog id="AddWebUrlInfo" button-text="URL" transition="UpdateContactInfo"
+                                parameter-map="[partyId:partyId, createWeb:'true']"/>
+                        <container-dialog id="OtherCreateDialog" button-text="Other">
+                            <form-single name="OtherCreateForm" transition="createContactMechOther">
+                                <field name="partyId"><default-field><hidden/></default-field></field>
+                                <field name="contactMechTypeEnumId"><default-field title="Type">
+                                    <drop-down><entity-options key="${enumId}" text="${description}">
+                                        <entity-find entity-name="moqui.basic.Enumeration">
+                                            <econdition field-name="enumTypeId" value="ContactMechType"/>
+                                            <econdition field-name="enumId" operator="not-in" from="handledContactMechTypes"/>
+                                            <order-by field-name="description"/>
+                                        </entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="contactMechPurposeId"><default-field title="Purpose">
+                                    <drop-down><dynamic-options transition="getContactMechPurposesByType">
+                                        <depends-on field="contactMechTypeEnumId"/></dynamic-options></drop-down>
+                                </default-field></field>
+                                <field name="infoString"><default-field title="Value">
+                                    <text-line size="60"/></default-field></field>
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </button-menu>
+
                 </box-toolbar><box-body>
                     <section-iterate name="PhoneInfoSection" list="contactOut.telecomNumberList" entry="contactInfo"><widgets>
                         <container-row><row-col lg="6">
