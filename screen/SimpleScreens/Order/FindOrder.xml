@@ -30,6 +30,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getGeoCountryStates" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <transition name="getWhFacilitiesByOwner">
         <service-call name="mantle.facility.FacilityServices.get#FacilitiesByOwner"
@@ -376,6 +377,31 @@ along with this software (see the LICENSE.md file). If not, see
                     <label text=" (${ec.l10n.format(oiss.quantityHandled, null)} of ${ec.l10n.format(oiss.shipmentQuantity, null)})"/>
                 </container></widgets></section-iterate>
             </default-field></field>
+
+            <field name="countryGeoId">
+                <header-field title="Country" show-order-by="true">
+                    <!-- no default for find option field: no-current-selected-key="${ec.user.getPreference('PostalAddress.DefaultCountry') ?: 'USA'}" -->
+                    <drop-down allow-empty="true">
+                        <entity-options key="${geoId}" text="${geoName}">
+                            <entity-find entity-name="moqui.basic.Geo" list="geoList">
+                                <econdition field-name="geoTypeEnumId" value="GEOT_COUNTRY"/>
+                                <order-by field-name="geoName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Geo" text="${geoCodeAlpha3}"/></default-field>
+            </field>
+            <field name="stateProvinceGeoId">
+                <header-field title="State/Province" show-order-by="true">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="getGeoCountryStates" value-field="geoId" label-field="label">
+                            <depends-on field="countryGeoId"/>
+                        </dynamic-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Geo" text="${geoCodeAlpha2 ?: geoCodeAlpha3}"/></default-field>
+            </field>
 
             <field name="partTotal" align="right" show-total="sum">
                 <header-field show-order-by="true" title="Total"><range-find/></header-field>
