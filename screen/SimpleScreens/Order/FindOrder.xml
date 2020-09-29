@@ -30,6 +30,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getGeoCountryStates" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <transition name="getWhFacilitiesByOwner">
         <service-call name="mantle.facility.FacilityServices.get#FacilitiesByOwner"
@@ -63,14 +64,13 @@ along with this software (see the LICENSE.md file). If not, see
     </actions><default-response type="none"/></transition>
 
     <actions>
+        <set field="itemTypeEnumId" from="salesItemTypeEnumId ?: purchaseItemTypeEnumId"/>
         <set field="onlyProductQuantityBool" from="'true'.equals(onlyProductQuantity)"/>
-        <if condition="onlyProductQuantityBool">
-            <set field="itemTypeEnumId" from="salesItemTypeEnumId ?: purchaseItemTypeEnumId"/>
-            <if condition="!itemTypeEnumId">
-                <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
-                    <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
-                <set field="itemTypeEnumId" from="productItemTypeEgms*.enumId.join(',')"/>
-            </if>
+        <if condition="onlyProductQuantityBool || inventoryAvailable == 'none'">
+            <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+                <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+            <set field="itemTypeEnumId" from="productItemTypeEgms*.enumId.join(',')"/>
+            <!-- NOTE might be better: if itemTypeEnumId specified create a Set containing only types in both -->
         </if>
 
         <set field="orderType" from="orderType ?: 'Any'"/>
@@ -137,6 +137,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="customerPartyId"><default-field title="Customer"><drop-down allow-empty="true">
                         <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Customer']"/>
                     </drop-down></default-field></field>
+                    <field name="otherPartyOrderId"><default-field title="Their Order ID"><text-line size="40"/></default-field></field>
+                    <field name="priority"><default-field><radio no-current-selected-key="5">
+                        <option key="1"/><option key="2"/><option key="3"/><option key="4"/><option key="5"/>
+                        <option key="6"/><option key="7"/><option key="8"/><option key="9"/>
+                    </radio></default-field></field>
                     <field name="shipBeforeDate"><default-field><date-time/></default-field></field>
                     <field name="estimatedDeliveryDate"><default-field title="Delivery Date"><date-time/></default-field></field>
                     <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
@@ -172,18 +177,18 @@ along with this software (see the LICENSE.md file). If not, see
                 </container-dialog>
             </widgets></section>
         </row-col><row-col md="7" style="text-right">
-            <link url="../OrderIssuedInvoiced" text="Issued and Invoiced Report"/>
-            <link url="../SalesAnalysis" text="Sales Analysis Report"/>
-            <link url="../SalesSummary" text="Sales Summary Charts"/>
+            <link url="../OrderIssuedInvoiced" text="Issued and Invoiced Report" parameter-map="[customerPartyId:customerPartyId]"/>
+            <link url="../SalesAnalysis" text="Sales Analysis Report" parameter-map="[customerPartyId:customerPartyId]"/>
+            <link url="../SalesSummary" text="Sales Summary Charts" parameter-map="[customerPartyIds:customerPartyId]"/>
         </row-col></container-row>
 
         <form-list name="OrderList" list="orderList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true"
-                show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
+                show-csv-button="true" show-xlsx-button="true" show-all-button="true">
+            <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList" use-clone="true">
                 <search-form-inputs default-order-by="-entryDate,orderId,orderPartSeqId"
-                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType">
+                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId">
                     <!-- NOTE: OrderOpen no longer included by default to exclude shopping cart orders (salesChannelEnumId == 'ScWeb') -->
-                    <default-parameters partStatusId="OrderPlaced,OrderApproved,OrderHold" partStatusId_op="in"
+                    <default-parameters partStatusId="OrderProposed,OrderRequested,OrderPlaced,OrderApproved,OrderHold" partStatusId_op="in"
                             entryDate_poffset="-3" entryDate_period="30d"/></search-form-inputs>
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal" ignore="!'sales'.equalsIgnoreCase(orderType)"/>
@@ -193,12 +198,16 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="productId" operator="in" from="findProductId" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="greater-equals" from="findQuantity_from" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
+                <econdition field-name="recurCronExpression" operator="is-not-null" ignore="onlyRecurring != 'true'"/>
                 <having-econditions>
                     <econdition field-name="issuedQuantity" operator="greater" from="0.0" ignore="onlyPartlyShipped != 'true'"/>
-                    <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="onlyInventoryUnavailable != 'true'"/>
+                    <econdition field-name="quantityNotAvailable" operator="equals" from="0.0" ignore="inventoryAvailable != 'all'"/>
+                    <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="inventoryAvailable != 'partial' &amp;&amp; inventoryAvailable != 'notall'"/>
+                    <econdition field-name="quantityNotAvailable" operator="less" to-field-name="quantity" ignore="inventoryAvailable != 'partial'"/>
+                    <econdition field-name="quantityNotAvailable" operator="equals" to-field-name="quantity" ignore="inventoryAvailable != 'none'"/>
                 </having-econditions>
                 <!-- NOTE: need to select issuedQuantity,quantityNotAvailable if having conditions are used (EntityFindBuilder doesn't yet add these to sub-select automatically) -->
-                <select-field field-name="orderPartSeqId${onlyPartlyShipped=='true' ? ',issuedQuantity' : ''}${onlyInventoryUnavailable=='true' ? ',quantityNotAvailable' : ''}"/>
+                <select-field field-name="orderPartSeqId${onlyPartlyShipped=='true' ? ',issuedQuantity' : ''}${inventoryAvailable in ['all','partial','none','notall'] ? ',quantityNotAvailable' : ''}${inventoryAvailable in ['partial','none'] ? ',quantity' : ''}"/>
             </entity-find>
             <row-actions>
                 <!-- Customer Classification -->
@@ -231,11 +240,14 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="onlyPartlyShipped"><header-field title="Shipped">
                 <check><option key="true" text="Only Partly Shipped"/></check>
             </header-field></field>
-            <field name="onlyInventoryUnavailable"><header-field title="Inventory">
-                <check><option key="true" text="Only with Unavailable"/></check>
-            </header-field></field>
+            <field name="inventoryAvailable"><header-field title="Inventory Available"><radio no-current-selected-key="any">
+                <option key="any" text="Any"/><option key="all" text="All"/><option key="notall" text="Partial/None"/><option key="partial" text="Partial"/><option key="none" text="None"/>
+            </radio></header-field></field>
             <field name="onlyProductQuantity"><header-field title="Quantity">
                 <check><option key="true" text="Only count Product"/></check>
+            </header-field></field>
+            <field name="onlyRecurring"><header-field title="Recurring">
+                <check><option key="true" text="Only Recurring"/></check>
             </header-field></field>
 
             <field name="orderId"><header-field title="Order" show-order-by="true"><text-find size="20" hide-options="true"/></header-field>
@@ -251,6 +263,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field container-style="${salesChannelEnumId == 'ScWeb' ? 'text-strong text-success' : ''}">
                     <display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
+
+            <field name="priority" align="center"><header-field show-order-by="true"><range-find/></header-field><default-field>
+                <display text="${priority == 1 ? '-- ' : (priority == 2 || priority == 3 ? '- ' : '')}${priority?:''}${priority == 1 ? ' --' : (priority == 2 || priority == 3 ? ' -' : '')}"
+                        style="${priority == 1 ? 'text-strong text-danger' : (priority == 2 || priority == 3 ? 'text-strong text-warning' : '')}"/>
+            </default-field></field>
 
             <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display/></default-field></field>
@@ -281,6 +298,10 @@ along with this software (see the LICENSE.md file). If not, see
                             <order-by field-name="storeName"/></entity-find></entity-options></drop-down>
                 </header-field>
                 <default-field><display-entity entity-name="mantle.product.store.ProductStore" text="${productStoreId}: ${storeName}"/></default-field>
+            </field>
+            <field name="shippingInstructions">
+                <header-field show-order-by="true"><text-find/></header-field>
+                <default-field><display text="${shippingInstructions?.take(35)?:''}${shippingInstructions?.length() &gt; 35 ? '...' : ''}" style="text-strong"/></default-field>
             </field>
 
             <field name="vendorPartyId">
@@ -357,6 +378,31 @@ along with this software (see the LICENSE.md file). If not, see
                 </container></widgets></section-iterate>
             </default-field></field>
 
+            <field name="countryGeoId">
+                <header-field title="Country" show-order-by="true">
+                    <!-- no default for find option field: no-current-selected-key="${ec.user.getPreference('PostalAddress.DefaultCountry') ?: 'USA'}" -->
+                    <drop-down allow-empty="true">
+                        <entity-options key="${geoId}" text="${geoName}">
+                            <entity-find entity-name="moqui.basic.Geo" list="geoList">
+                                <econdition field-name="geoTypeEnumId" value="GEOT_COUNTRY"/>
+                                <order-by field-name="geoName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Geo" text="${geoCodeAlpha3}"/></default-field>
+            </field>
+            <field name="stateProvinceGeoId">
+                <header-field title="State/Province" show-order-by="true">
+                    <drop-down allow-empty="true">
+                        <dynamic-options transition="getGeoCountryStates" value-field="geoId" label-field="label">
+                            <depends-on field="countryGeoId"/>
+                        </dynamic-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Geo" text="${geoCodeAlpha2 ?: geoCodeAlpha3}"/></default-field>
+            </field>
+
             <field name="partTotal" align="right" show-total="sum">
                 <header-field show-order-by="true" title="Total"><range-find/></header-field>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field>
@@ -402,19 +448,34 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
 
-            <form-list-column><field-ref name="orderId"/><field-ref name="otherPartyOrderId"/>
-                <field-ref name="salesChannelEnumId"/></form-list-column>
-            <form-list-column><field-ref name="entryDate"/><field-ref name="placedDate"/>
-                <field-ref name="shipBeforeDate"/></form-list-column>
-            <form-list-column><field-ref name="partStatusId"/><field-ref name="facilityId"/>
-                <field-ref name="productStoreId"/></form-list-column>
-            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
-                <field-ref name="otherParties"/></form-list-column>
-            <form-list-column><field-ref name="shipmentMethodEnumId"/><field-ref name="carrierPartyId"/>
-                <field-ref name="shipments"/></form-list-column>
-            <form-list-column><field-ref name="partTotal"/><!-- <field-ref name="quantityTotal"/> -->
-                <!-- <field-ref name="quantityNotAvailable"/><field-ref name="issuedQuantity"/> --></form-list-column>
-            <form-list-column><field-ref name="submitButton"/></form-list-column>
+            <columns>
+                <column><field-ref name="orderId"/><field-ref name="otherPartyOrderId"/>
+                    <field-ref name="salesChannelEnumId"/></column>
+                <column><field-ref name="partStatusId"/><field-ref name="priority"/>
+                    <field-ref name="partTotal"/></column>
+                <column><field-ref name="entryDate"/><field-ref name="placedDate"/>
+                    <field-ref name="shipBeforeDate"/></column>
+                <column><field-ref name="facilityId"/><field-ref name="productStoreId"/>
+                    <field-ref name="shippingInstructions"/></column>
+                <column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
+                    <field-ref name="otherParties"/></column>
+                <column><field-ref name="shipmentMethodEnumId"/><field-ref name="carrierPartyId"/>
+                    <field-ref name="shipments"/></column>
+            </columns>
+            <columns type="mobile">
+                <column><field-ref name="orderId"/><field-ref name="partStatusId"/><field-ref name="partTotal"/></column>
+                <column><field-ref name="placedDate"/><field-ref name="productStoreId"/><field-ref name="customerPartyId"/></column>
+            </columns>
         </form-list>
+        <!--
+        <section name="ShowSql" condition="orderList_xafind?.getQueryTextList()"><widgets>
+            <container-dialog id="ShowSqlDialog" button-text="Show SQL" type="info">
+                <section-iterate name="ShowSqlIter" list="orderList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                    <label text="${queryText}" type="p"/>
+                    <label text="${orderList_xafind}" type="p"/>
+                </widgets></section-iterate>
+            </container-dialog>
+        </widgets></section>
+        -->
     </widgets>
 </screen>

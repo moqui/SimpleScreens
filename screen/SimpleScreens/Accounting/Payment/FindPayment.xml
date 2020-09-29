@@ -81,18 +81,25 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="../BulkPaymentCheck" text="Bulk Checks"/>
 
         <form-list name="PaymentList" list="paymentList" skip-form="true" header-dialog="true" select-columns="true"
-               saved-finds="true" show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.account.payment.PaymentFindView" list="paymentList">
+               saved-finds="true" show-csv-button="true" show-xlsx-button="true" show-all-button="true">
+            <entity-find entity-name="mantle.account.payment.PaymentFindView" list="paymentList" use-clone="true">
                 <search-form-inputs default-order-by="-effectiveDate" skip-fields="fromRoleTypeId,toRoleTypeId">
                     <default-parameters statusId="PmntProposed,PmntPromised,PmntAuthorized" statusId_op="in"
                             effectiveDate_poffset="-1" effectiveDate_period="30d" paymentType="Any"/></search-form-inputs>
                 <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
                 <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
+                <econditions combine="or">
+                    <econdition field-name="paymentMethodId" from="eitherPaymentMethodId" ignore-if-empty="true"/>
+                    <econdition field-name="toPaymentMethodId" from="eitherPaymentMethodId" ignore-if-empty="true"/>
+                </econditions>
+                <econdition field-name="reconcileStatusId" value="PmtrNot" or-null="true" ignore="onlyNotRec != 'Y'"/>
                 <select-field field-name="amountUomId"/>
             </entity-find>
 
             <field name="paymentType"><header-field><radio no-current-selected-key="Any">
                 <option key="Any"/><option key="Incoming"/><option key="Outgoing"/></radio></header-field></field>
+            <field name="onlyNotRec"><header-field><radio no-current-selected-key="N">
+                <option key="Y"/><option key="N"/></radio></header-field></field>
 
             <field name="paymentId"><header-field show-order-by="true" title="Payment"><text-find default-operator="begins"/></header-field>
                 <default-field><link url="editPayment" text="${paymentId}" link-type="anchor"/></default-field></field>
@@ -139,12 +146,16 @@ along with this software (see the LICENSE.md file). If not, see
                 </header-field>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
+            
             <field name="paymentMethodId"><default-field title="From Payment Method">
                 <display-entity entity-name="mantle.account.method.PaymentMethodAndType" text="PaymentMethodAndTypeTemplate"/>
             </default-field></field>
             <field name="toPaymentMethodId"><default-field title="To Payment Method">
                 <display-entity entity-name="mantle.account.method.PaymentMethodAndType" text="PaymentMethodAndTypeTemplate"/>
             </default-field></field>
+            <field name="eitherPaymentMethodId"><header-field title="Either PM">
+                <display-entity entity-name="mantle.account.method.PaymentMethodAndType" text="PaymentMethodAndTypeTemplate"/>
+            </header-field></field>
 
             <field name="amount" align="right" show-total="sum"><header-field title="Amount" show-order-by="true"><range-find/></header-field>
                 <default-field><display currency-unit-field="amountUomId"/></default-field></field>

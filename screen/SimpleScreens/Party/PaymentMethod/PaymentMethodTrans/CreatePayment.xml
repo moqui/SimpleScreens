@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="partyId" required="true"/>
+    <parameter name="paymentMethodId" required="true"/>
+    <parameter name="fitId" required="true"/>
+
+    <transition name="createPayment"><service-call name="mantle.account.ReconciliationServices.create#TransPayment"/>
+        <default-response url=".."/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.account.method.PaymentMethod" value-field="paymentMethod"/>
+        <entity-find-one entity-name="mantle.account.method.PaymentMethodTrans" value-field="paymentMethodTrans"/>
+
+        <set field="instrumentByTransType" from="[PMTT_CHECK:'PiCompanyCheck', PMTT_PAYMENT:'PiAch', PMTT_OTHER:'PiOther']"/>
+    </actions>
+    <widgets>
+        <label text="Name: ${paymentMethodTrans.transName}" type="p" condition="paymentMethodTrans.transName"/>
+        <label text="Memo: ${paymentMethodTrans.transMemo}" type="p" condition="paymentMethodTrans.transMemo"/>
+        <label text="Ref: ${paymentMethodTrans.refNumber}" type="p" condition="paymentMethodTrans.refNumber"/>
+
+        <form-single name="CreatePaymentForm" transition="createPayment">
+            <field name="partyId"><default-field><hidden/></default-field></field>
+            <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+            <field name="fitId"><default-field><hidden/></default-field></field>
+            <field name="pageIndex"><default-field><hidden/></default-field></field>
+
+            <!-- if paymentMethodTrans.transAmount < 0.0 is an outgoing payment, from PM owner (withdrawal) -->
+            <field name="fromPartyId" from="paymentMethodTrans.transAmount &lt; 0.0 ? paymentMethod.ownerPartyId : null">
+                <conditional-field title="From" condition="paymentMethodTrans.transAmount &lt; 0.0">
+                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/></entity-find>
+                    </entity-options></drop-down>
+                </conditional-field>
+                <default-field title="From">
+                    <drop-down><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                </default-field>
+            </field>
+            <!-- if paymentMethodTrans.transAmount >= 0.0 is an incoming payment, to PM owner (deposit) -->
+            <field name="toPartyId" from="paymentMethodTrans.transAmount &gt;= 0.0 ? paymentMethod.ownerPartyId : null">
+                <conditional-field title="To" condition="paymentMethodTrans.transAmount &gt;= 0.0">
+                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/></entity-find>
+                    </entity-options></drop-down>
+                </conditional-field>
+                <default-field title="To">
+                    <drop-down><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
+                </default-field>
+            </field>
+
+            <field name="paymentInstrumentEnumId" from="instrumentByTransType.get(paymentMethodTrans.transType) ?: 'PiOther'"><default-field title="Instrument">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="PaymentInstrument"/></widget-template-include>
+            </default-field></field>
+            <field name="paymentTypeEnumId"><default-field title="Payment Type">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="PaymentType"/><set field="noCurrentSelectedKey" value="PtInvoicePayment"/></widget-template-include>
+            </default-field></field>
+
+            <field name="statusId"><default-field title="Status">
+                <drop-down no-current-selected-key="PmntDelivered">
+                    <option key="PmntProposed" text="Proposed"/>
+                    <option key="PmntPromised" text="Promised"/>
+                    <option key="PmntAuthorized" text="Authorized"/>
+                    <option key="PmntDelivered" text="Delivered"/>
+                </drop-down>
+            </default-field></field>
+
+            <field name="amount" from="paymentMethodTrans.transAmount?.abs()">
+                <default-field><text-line size="12" format="#,##0.00"/></default-field></field>
+            <field name="amountUomId" from="paymentMethod.currencyUomId"><default-field title="Currency">
+                <display-entity entity-name="moqui.basic.Uom"/></default-field></field>
+
+            <field name="effectiveDate" from="paymentMethodTrans.postedDate"><default-field><date-time/></default-field></field>
+
+            <field name="submitButton"><default-field title="Create Payment"><submit/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>

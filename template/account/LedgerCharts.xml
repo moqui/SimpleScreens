@@ -30,10 +30,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </default-field></field>
                 <field name="timePeriodTypeId"><default-field title=""><drop-down><option key="FiscalMonth" text="Month"/>
                     <option key="FiscalQuarter" text="Quarter"/></drop-down></default-field></field>
+                <field name="periods"><default-field title=""><text-line size="2" default-value="13"/></default-field></field>
                 <field name="thruDate"><default-field title=""><date-time type="date"/></default-field></field>
                 <field name="setOrg"><default-field title="View Charts"><submit/></default-field></field>
                 <field-layout><field-row-big><field-ref name="organizationPartyId"/><field-ref name="timePeriodTypeId"/>
-                    <field-ref name="thruDate"/><field-ref name="setOrg"/></field-row-big></field-layout>
+                    <field-ref name="periods"/><field-ref name="thruDate"/><field-ref name="setOrg"/></field-row-big></field-layout>
             </form-single>
         </widgets></section>
 
@@ -53,7 +54,7 @@ along with this software (see the LICENSE.md file). If not, see
                 ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -64,19 +65,32 @@ along with this software (see the LICENSE.md file). If not, see
             </if>
         </actions><widgets>
             <container-box><box-header title="Operating Revenue and Expense"/><box-toolbar>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(revenueExpenseCsv!"")?js_string}', 'OperatingRevenueExpense.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="RevenueExpenseChart"></canvas></div>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js" type="text/javascript"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" type="text/javascript"></script>
                 <script>
                 var revenueExpenseChart = new Chart(document.getElementById("RevenueExpenseChart"), {
                     type: 'bar',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex];
+                            var datasetLabel = dataset.label || '';
+                            var curValue = dataset.data[tooltipItem.index];
+                            // NOTE: datasetIndex 0 is net revenue, the first dataset in the list
+                            if (tooltipItem.datasetIndex == 0) { return datasetLabel + ": " + moqui.format(curValue, null, "currency"); }
+                            // calculate and show percent of net revenue for expenses
+                            var netRevenue = data.datasets[0].data[tooltipItem.index];
+                            var percentOfNet = netRevenue ? (curValue / netRevenue) * 100.0 : 0.0;
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency") + " (" + percentOfNet.toFixed(1) + "% net)";
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>
@@ -94,7 +108,7 @@ along with this software (see the LICENSE.md file). If not, see
                 ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -105,19 +119,25 @@ along with this software (see the LICENSE.md file). If not, see
             </if>
         </actions><widgets>
             <container-box><box-header title="Net Income History"/><box-toolbar>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(netIncomeCsv!"")?js_string}', 'NetIncomeHistory.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="NetIncomeChart"></canvas></div>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js" type="text/javascript"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" type="text/javascript"></script>
                 <script>
                 var netIncomeChart = new Chart(document.getElementById("NetIncomeChart"), {
                     type: 'bar',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>
@@ -133,7 +153,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 backgroundColor:'rgba(217, 83, 79, 0.5)', borderColor:'rgba(217, 83, 79, 1.0)', pointStyle:'triangle', fill:false] ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -158,19 +178,25 @@ along with this software (see the LICENSE.md file). If not, see
             </if>
         </actions><widgets>
             <container-box><box-header title="Net Income Year Over Year"/><box-toolbar>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(netIncomeYoyCsv!"")?js_string}', 'NetIncomeYoyHistory.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="NetIncomeYoyChart"></canvas></div>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js" type="text/javascript"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" type="text/javascript"></script>
                 <script>
                 var netIncomeYoyChart = new Chart(document.getElementById("NetIncomeYoyChart"), {
                     type: 'line',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>
@@ -194,7 +220,7 @@ along with this software (see the LICENSE.md file). If not, see
                 ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -205,19 +231,25 @@ along with this software (see the LICENSE.md file). If not, see
             </if>
         </actions><widgets>
             <container-box><box-header title="Current Assets and Liabilities"/><box-toolbar>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(assetLiabilityCsv!"")?js_string}', 'CurrentAssetLiability.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="AssetLiabilityChart"></canvas></div>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js" type="text/javascript"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" type="text/javascript"></script>
                 <script>
                 var assetLiabilityChart = new Chart(document.getElementById("AssetLiabilityChart"), {
                     type: 'bar',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>
@@ -234,7 +266,7 @@ along with this software (see the LICENSE.md file). If not, see
                 ]
             </script>
             <service-call name="mantle.party.TimeServices.find#PartyTimePeriodGroups" out-map="periodsOut"
-                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate]"/>
+                    in-map="[partyId:organizationPartyId, timePeriodTypeId:timePeriodTypeId, thruDate:thruDate, groups:(periods?:13)]"/>
             <if condition="periodsOut.timePeriodGroups">
                 <service-call name="mantle.ledger.LedgerReportServices.get#PeriodSeriesSummary" out-map="context"
                         in-map="[organizationPartyId:organizationPartyId, timePeriodGroups:periodsOut.timePeriodGroups, datasets:datasets]"/>
@@ -245,19 +277,25 @@ along with this software (see the LICENSE.md file). If not, see
             </if>
         </actions><widgets>
             <container-box><box-header title="Balance Sheet History"/><box-toolbar>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <button type="button" class="btn btn-primary btn-sm" onclick="moqui.downloadData('${(balanceSheetCsv!"")?js_string}', 'BalanceSheetHistory.csv', 'text/csv')">Get CSV</button>
                 ]]></text></render-mode>
             </box-toolbar><box-body>
-                <render-mode><text type="html,vuet"><![CDATA[
+                <render-mode><text type="html,vuet,qvt"><![CDATA[
                 <div class="chart-container" style="position:relative; height:400px; width:100%;"><canvas id="BalanceSheetChart"></canvas></div>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js" type="text/javascript"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" type="text/javascript"></script>
                 <script>
                 var balanceSheetChart = new Chart(document.getElementById("BalanceSheetChart"), {
                     type: 'bar',
                     data: { labels:${Static["groovy.json.JsonOutput"].toJson(periodLabels!"")},
                         datasets:${Static["groovy.json.JsonOutput"].toJson(datasets!"")} },
-                    options: { scales:{ yAxes: [{ ticks: { beginAtZero:true } }] }, maintainAspectRatio:false }
+                    options: {
+                        scales:{ yAxes:[{ ticks:{ beginAtZero:true } }] }, maintainAspectRatio:false,
+                        tooltips:{ callbacks:{ label: function(tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex]; var datasetLabel = dataset.label || '';
+                            return datasetLabel + ": " + moqui.format(dataset.data[tooltipItem.index], null, "currency");
+                        }}}
+                    }
                 });
                 </script>
                 ]]></text></render-mode>

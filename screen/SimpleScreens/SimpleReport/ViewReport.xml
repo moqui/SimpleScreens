@@ -17,7 +17,10 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="dataDocumentId" required="true"/>
 
+    <transition-include name="DocumentExport.json" location="component://tools/screen/System/DataDocument/Edit/ViewDataDocument.xml"/>
+
     <widgets>
+        <!-- NOTE: this section reused on the QuickViewReport.xml screen, is why it checks for dataDocumentId even though required parameter on this screen -->
         <section name="ViewReportSection" condition="dataDocumentId"><actions>
             <entity-find entity-name="moqui.entity.document.DataDocumentUserGroup" list="ddugList">
                 <econdition field-name="dataDocumentId"/>
@@ -29,10 +32,21 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="aenDef" from="ec.entity.getEntityDefinition(entityName)"/>
             <if condition="aenDef == null"><message error="true">Could not find Report ${dataDocumentId}</message><return/></if>
         </actions><widgets>
+            <container-dialog id="ExportJsonDialog" button-text="Download JSON">
+                <form-single name="ExportDocuments" transition="DocumentExport.json">
+                    <field name="dataDocumentId"><default-field><hidden/></default-field></field>
+                    <field name="fromUpdateStamp"><default-field><date-time/></default-field></field>
+                    <field name="thruUpdateStamp"><default-field><date-time/></default-field></field>
+                    <field name="prettyPrint"><default-field title=""><check><option key="true" text="Pretty Print JSON?"/></check></default-field></field>
+
+                    <field name="submitButton"><default-field title="Download"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+
             <section name="ReportCondView" condition="ddugList"><widgets>
                 <form-list name="DataViewList" list="entityValueList" skip-form="true" dynamic="true" header-dialog="true"
-                        show-csv-button="true" show-all-button="true">
-                    <entity-find entity-name="${entityName}" list="entityValueList" cache="false">
+                        show-csv-button="true" show-xlsx-button="true" show-page-size="true" saved-finds="true">
+                    <entity-find entity-name="${entityName}" list="entityValueList" cache="false" use-clone="true">
                         <search-form-inputs/></entity-find>
                     <field name="dataDocumentId"><header-field><hidden/></header-field></field>
                     <auto-fields-entity entity-name="${entityName}" field-type="find-display"/>

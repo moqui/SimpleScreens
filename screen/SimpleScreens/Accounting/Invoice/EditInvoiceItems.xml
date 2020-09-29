@@ -35,12 +35,18 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getItemTypeGlAccount" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
 
     <actions>
-        <entity-find-one entity-name="mantle.account.invoice.Invoice" value-field="invoice"/>
-        <if condition="invoice == null"><return error="true" message="Invoice ${invoiceId} not found"/></if>
-        <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
-            <econdition field-name="invoiceId"/><order-by field-name="invoiceItemSeqId"/></entity-find>
-        <set field="topItemList" from="invoiceItemList.findAll({ it.parentItemSeqId == null })"/>
+        <service-call name="mantle.account.InvoiceServices.get#InvoiceBasicInfo" out-map="context"
+                in-map="[invoiceId:invoiceId, activeOrgId:activeOrgId]"/>
 
+        <!-- get invoice items -->
+        <entity-find entity-name="mantle.account.invoice.InvoiceItem" list="invoiceItemList">
+            <search-form-inputs/>
+            <econdition field-name="invoiceId"/>
+            <!-- in spite of search-form-inputs use for filtering always order by invoiceItemSeqId -->
+            <order-by field-name="invoiceItemSeqId"/>
+        </entity-find>
+
+        <set field="topItemList" from="invoiceItemList.findAll({ it.parentItemSeqId == null })"/>
         <!-- put items with parentItemSeqId in the list after their parent -->
         <script><![CDATA[
             itemWithChildrenSet = new HashSet()
@@ -54,17 +60,9 @@ along with this software (see the LICENSE.md file). If not, see
             }
         ]]></script>
 
-        <set field="editableStatusIds" from="new HashSet(['InvoiceInProcess', 'InvoiceIncoming', 'InvoiceReceived'])"/>
-        <set field="invoiceEditable" from="invoice.statusId in editableStatusIds"/>
-
-        <entity-find entity-name="mantle.party.PartyRole" list="fromOrgInternalList">
-            <econdition field-name="partyId" from="invoice.fromPartyId"/><econdition field-name="roleTypeId" value="OrgInternal"/></entity-find>
-        <set field="isFromPartyOrgInternal" from="fromOrgInternalList as boolean"/>
-        <set field="organizationPartyId" from="isFromPartyOrgInternal ? invoice.fromPartyId : invoice.toPartyId"/>
-
         <if condition="invoice.invoiceTypeEnumId == 'InvoiceSales' || invoice.invoiceTypeEnumId == 'InvoiceReturn'"><then>
             <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
-                <econdition field-name="enumGroupEnumId" from="isFromPartyOrgInternal ? 'EngItemsSales' : 'EngItemsPurchase'"/><order-by field-name="description"/></entity-find>
+                <econdition field-name="enumGroupEnumId" from="isPayableInvoice ? 'EngItemsPurchase' : 'EngItemsSales'"/><order-by field-name="description"/></entity-find>
         </then><else-if condition="invoice.invoiceTypeEnumId == 'InvoicePayroll'">
             <entity-find entity-name="moqui.basic.EnumAndParent" list="itemTypeEnumList">
                 <econdition field-name="parentEnumId" operator="in" value="ItemPayrollIncome,ItemPayrollDeduct,ItemPayrollTaxes,ItemPayrollExpense"/>
@@ -110,12 +108,12 @@ along with this software (see the LICENSE.md file). If not, see
         </container></widgets></section>
 
         <label text="Invoice Total: ${ec.l10n.formatCurrency(invoice.invoiceTotal, invoice.currencyUomId)}, Unpaid: ${ec.l10n.formatCurrency(invoice.unpaidTotal, invoice.currencyUomId)}"/>
-        <form-list name="EditInvoiceItems" list="invoiceItemList" transition="${invoiceEditable ? 'updateInvoiceItem' : 'updateInvoiceItemClosed'}" multi="true">
+        <form-list name="EditInvoiceItems" list="invoiceItemList" transition="updateInvoiceItem" multi="true">
             <hidden-parameters><parameter name="invoiceId"/></hidden-parameters>
 
-            <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
+            <field name="invoiceItemSeqId"><default-field title="Item"><display style="${parentItemSeqId ? 'text-info' : 'text-strong'}"/></default-field></field>
             <field name="parentItemSeqId" align="center">
-                <conditional-field condition="productId || itemWithChildrenSet.contains(invoiceItemSeqId)">
+                <conditional-field condition="itemWithChildrenSet.contains(invoiceItemSeqId)">
                     <display text=" "/></conditional-field>
                 <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
                     <list-options list="topItemList" key="${invoiceItemSeqId}" text="${invoiceItemSeqId}"/>
@@ -142,7 +140,7 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <field name="itemTypeEnumId">
-                <conditional-field condition="invoiceEditable">
+                <conditional-field condition="invoiceEditable || isAdjustment == 'Y'">
                     <drop-down><list-options list="itemTypeEnumList" key="${enumId}" text="${description}"/></drop-down></conditional-field>
                 <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
             </field>
@@ -152,22 +150,21 @@ along with this software (see the LICENSE.md file). If not, see
                     <depends-on field="itemTypeEnumId"/><depends-on field="productId"/></display>
             </default-field></field>
             <field name="overrideGlAccountId">
-                <conditional-field condition="invoiceEditable" tooltip="Use % (percent) as a wildcard"><drop-down allow-empty="true">
+                <conditional-field condition="invoiceEditable || isAdjustment == 'Y'" tooltip="Use % (percent) as a wildcard"><drop-down allow-empty="true">
                     <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></conditional-field>
                 <default-field title="Override GL Account"><display-entity entity-name="mantle.ledger.account.GlAccount"
                         text="GlAccountNameTemplate"/></default-field>
             </field>
 
-            <field name="quantity"><conditional-field condition="invoiceEditable"><text-line size="4"/></conditional-field>
+            <field name="quantity"><conditional-field condition="invoiceEditable || isAdjustment == 'Y'"><text-line size="4"/></conditional-field>
                 <default-field><display/></default-field></field>
-            <field name="amount"><conditional-field condition="invoiceEditable"><text-line size="8"/></conditional-field>
+            <field name="amount"><conditional-field condition="invoiceEditable || isAdjustment == 'Y'"><text-line size="8"/></conditional-field>
                 <default-field><display format="#,##0.00##"/></default-field></field>
-            <field name="itemDate"><conditional-field condition="invoiceEditable || isAdjustment != 'Y'"><date-time/></conditional-field>
-                <default-field><display/></default-field></field>
+            <field name="itemDate"><default-field><date-time/></default-field></field>
 
             <!-- NOTE: CurrencyRoundingMarker scale here may vary by currency, make configurable -->
             <field name="total" from="(((quantity != null ? quantity : 1.0) * (amount ?: 0.0)) as BigDecimal).setScale(2, BigDecimal.ROUND_HALF_UP)" align="right">
-                <default-field><display format="#,##0.00##"/></default-field></field>
+                <default-field><display format="#,##0.00##" style="${parentItemSeqId ? 'text-info' : 'text-strong'}"/></default-field></field>
             <field name="isAdjustment"><default-field title="Is Adjust"><display/></default-field></field>
 
             <field name="deleteButton"><default-field title="">

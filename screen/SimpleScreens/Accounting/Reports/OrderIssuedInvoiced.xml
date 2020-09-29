@@ -22,15 +22,21 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
+    <actions>
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
+    </actions>
     <widgets>
         <form-list name="OrderIssuedInvoiced" list="oisbsList" skip-form="true" header-dialog="true"
-                   select-columns="true" saved-finds="true" show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.order.OrderItemShipBillSummary" list="oisbsList">
+                   select-columns="true" saved-finds="true" show-csv-button="true" show-xlsx-button="true" show-all-button="true">
+            <entity-find entity-name="mantle.order.OrderItemShipBillSummary" list="oisbsList" use-clone="true">
                 <search-form-inputs default-order-by="placedDate">
-                    <default-parameters statusId_op="in" statusId="OrderPlaced,OrderProcessing,OrderApproved,OrderCompleted,OrderHold"
+                    <default-parameters statusId_op="in" statusId="OrderApproved,OrderCompleted,OrderHold"
                             placedDate_poffset="-3" placedDate_period="30d"/>
                 </search-form-inputs>
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
+                <econdition field-name="itemTypeEnumId" operator="in" from="productItemTypes"/>
                 <econditions combine="or">
                     <econdition field-name="issuedQuantity" operator="is-null"/>
                     <econdition field-name="quantity" operator="not-equals" to-field-name="issuedQuantity"/>

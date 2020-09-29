@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Items" default-menu-index="2">
+
+    <parameter name="shipmentId" required="true"/>
+    <!-- FILTER PASS THROUGH -->
+    <parameter name="filterProductId"/><parameter name="onlyRemaining"/>
+    <parameter name="pageIndex"/>
+
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+
+    <transition name="packShipment"><service-call name="mantle.shipment.ShipmentServices.pack#Shipment"/>
+        <default-response url="."/></transition>
+    <transition name="deliverShipment"><service-call name="mantle.shipment.ShipmentServices.deliver#Shipment"/>
+        <default-response url="."/></transition>
+
+    <transition name="addItem"><service-call name="mantle.shipment.ShipmentServices.create#ShipmentItem"/>
+        <default-response url="."/></transition>
+    <transition name="updateItem"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentItem"/>
+        <default-response url="."/></transition>
+    <transition name="packItem"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProduct"/>
+        <default-response url="."/></transition>
+    <transition name="packItemSource"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentItemSource"/>
+        <default-response url="."/></transition>
+    <transition name="unpackItemIssuance"><service-call name="mantle.shipment.ShipmentServices.unpack#ShipmentItemIssuance"/>
+        <default-response url="."/></transition>
+    <transition name="addItemToPackage"><service-call name="mantle.shipment.ShipmentServices.add#ItemToPackage"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <subscreens>
+        <subscreens-item name="ReceiveItem" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentDetail/ReceiveItem.xml"/>
+        <subscreens-item name="UpdateItemAsset" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentDetail/UpdateItemAsset.xml"/>
+        <subscreens-item name="ItemReserve" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentDetail/ItemReserve.xml"/>
+    </subscreens>
+    <actions>
+        <service-call name="mantle.shipment.ShipmentInfoServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
+
+        <!-- get all products for filter form -->
+        <set field="allProductIds" from="shipmentItemDetailList*.productId"/>
+        <entity-find entity-name="mantle.product.Product" list="allProductList">
+            <econdition field-name="productId" operator="in" from="allProductIds"/>
+            <order-by field-name="pseudoId"/>
+        </entity-find>
+
+        <if condition="filterProductId">
+            <filter-map-list list="shipmentItemDetailList"><field-map field-name="productId" from="filterProductId"/></filter-map-list>
+        </if>
+        <if condition="onlyRemaining == 'Y'">
+            <set field="tempItemDetailList" from="new ArrayList()"/>
+            <iterate list="shipmentItemDetailList" entry="sid">
+                <if condition="isOutgoing || isTransfer">
+                    <if condition="(sid.quantity - (sid.quantityTotal ?: 0.0)) &gt; 0.0">
+                        <script>tempItemDetailList.add(sid)</script><continue/></if>
+                </if>
+                <if condition="isIncoming || isTransfer">
+                    <if condition="(sid.quantity - (sid.quantityAcceptedTotal ?: 0.0) - (sid.quantityRejectedTotal ?: 0.0)) &gt; 0.0">
+                        <script>tempItemDetailList.add(sid)</script><continue/></if>
+                </if>
+            </iterate>
+            <set field="shipmentItemDetailList" from="tempItemDetailList"/>
+        </if>
+
+        <set field="pageSize" from="pageSize ?: '10'"/>
+    </actions>
+    <widgets>
+        <container-box><box-header title="Shipment Items"/><box-toolbar>
+            <section name="PackShipmentSection" condition="!isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPicked']"><widgets>
+                <!-- isOutgoing || isTransfer -->
+                <container-dialog id="SetPackedDialog" button-text="Set Packed" condition="anyItemPacked" type="success">
+                    <label text="Not all items are packed, item quantities will be reduced to packed quantities."
+                            type="p" style="text-danger" condition="!allItemsPacked"/>
+                    <section-iterate name="UnPackedItemMessage" list="shipmentItemDetailList" entry="sid"><actions>
+                        <set field="quantityPackRemaining" from="sid.quantity - (sid.quantityTotal ?: 0)"/>
+                    </actions><widgets>
+                        <label text="${ec.resource.expand('ProductNameTemplate', '', sid)} - ${ec.l10n.format(sid.quantityTotal ?: 0.0, '0.##')} of ${ec.l10n.format(sid.quantity, '0.##')} packed"
+                                type="p" style="text-danger" condition="quantityPackRemaining"/>
+                    </widgets></section-iterate>
+                    <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
+                    <form-single name="SetPackedForm" transition="packShipment" focus-field="submitButton">
+                        <field name="shipmentId"><default-field><display/></default-field></field>
+                        <field name="packedDate" from="ec.user.nowTimestamp">
+                            <default-field><date-time/></default-field></field>
+                        <field name="submitButton"><default-field title="Set Packed"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </widgets></section>
+            <section name="DeliverShipmentSection" condition="(anyReceived &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipPacked', 'ShipShipped']) ||
+                    (isOutgoing &amp;&amp; shipment.statusId in ['ShipPacked', 'ShipShipped'])"><widgets>
+                <container-dialog id="SetDeliveredDialog" button-text="Set Delivered">
+                    <label text="Set as Delivered and generate invoice for order items if needed?" condition="isIncoming" type="p"/>
+                    <label text="Set as Delivered?" condition="isOutgoing" type="p"/>
+                    <label text="Set to Delivered? No additional items may be received once Delivered." condition="isTransfer"/>
+                    <label text="Not all items are received, item quantities will be reduced to received quantities."
+                            type="p" style="text-warning" condition="isIncoming &amp;&amp; !allReceived"/>
+                    <form-single name="SetDeliveredForm" transition="deliverShipment" focus-field="submitButton">
+                        <field name="shipmentId"><default-field><display/></default-field></field>
+                        <field name="actualArrivalDate" from="ec.user.nowTimestamp">
+                            <default-field title="Actual Arrival"><date-time/></default-field></field>
+                        <field name="submitButton"><default-field title="Set Delivered"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </widgets></section>
+
+            <!-- NOTE: don't show this dialog for Sales Return and Purchase Return type shipments, causes issues when trying to
+                change the status to Delivered, and generally makes no sense as the system won't have data needed for responding
+                to returns, knowing that order items were returned, etc -->
+            <section name="ShipItemInputSection" condition="shipment.statusId in ['ShipInput', 'ShipScheduled'] &amp;&amp; !(shipment.shipmentTypeEnumId in ['ShpTpSalesReturn', 'ShpTpPurchaseReturn'])"><widgets>
+                <container-dialog id="AddItemContainer" button-text="Add Item">
+                    <form-single name="AddItemForm" transition="addItem">
+                        <field name="shipmentId"><default-field><hidden/></default-field></field>
+                        <field name="productId"><default-field title="Product">
+                            <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                        </default-field></field>
+                        <field name="quantity"><default-field><text-line size="10"/></default-field></field>
+                        <field name="submitButton"><default-field title="Add Item">
+                            <submit confirmation="WARNING: items added this way will not be associated with an order and will not count toward order item shipped quantity."/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </widgets></section>
+        </box-toolbar><box-body>
+            <form-single name="ItemsOptionsForm" transition="." pass-through-parameters="true">
+                <field name="filterProductId"><default-field title="Product"><drop-down allow-empty="true">
+                    <list-options list="allProductList" key="${productId}" text="ProductNameTemplate"/>
+                    <!-- <dynamic-options transition="getProductList" server-search="true" min-length="0"/> --></drop-down></default-field></field>
+                <field name="onlyRemaining"><default-field><radio no-current-selected-key="N"><option key="Y"/><option key="N"/></radio></default-field></field>
+                <field name="submitBtn"><default-field title="Filter"><submit/></default-field></field>
+                <field-layout><field-row-big><field-ref name="filterProductId"/><field-ref name="onlyRemaining"/>
+                    <field-ref name="submitBtn"/></field-row-big></field-layout>
+                <!-- TODO: when adding fields here make sure to add to sections near "FILTER PASS THROUGH" comments in this screen and in ItemReserve.xml, ReceiveItem.xml, UpdateItemAsset.xml -->
+            </form-single>
+
+            <section-iterate name="ShipmentItemsSection" list="shipmentItemDetailList" entry="sid" paginate="true"><actions>
+                <if condition="isOutgoing || isTransfer">
+                    <set field="quantityPackRemaining" from="sid.quantity - (sid.quantityTotal ?: 0)"/>
+                    <entity-find entity-name="mantle.product.issuance.AssetAndIssuance" list="assetIssuanceList">
+                        <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
+                </if>
+                <set field="allowPack" from="(isOutgoing || isTransfer) &amp;&amp; shipment.statusId in ['ShipInput', 'ShipScheduled', 'ShipPicked'] &amp;&amp; quantityPackRemaining &gt; 0"/>
+                <if condition="isIncoming || isTransfer">
+                    <set field="quantityRecRemaining" from="sid.quantity - (sid.quantityAcceptedTotal ?: 0) - (sid.quantityRejectedTotal ?: 0)"/>
+                    <entity-find entity-name="mantle.product.asset.AssetAndReceipt" list="assetReceiptList">
+                        <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
+                </if>
+                <set field="allowReceive" from="((isIncoming &amp;&amp; shipment.statusId in ['ShipScheduled', 'ShipShipped']) ||
+                        (isTransfer &amp;&amp; shipment.statusId == 'ShipShipped')) &amp;&amp; quantityRecRemaining &gt; 0"/>
+
+                <entity-find-one entity-name="moqui.basic.Uom" value-field="productUom">
+                    <field-map field-name="uomId" from="sid.amountUomId"/></entity-find-one>
+                <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="sisList">
+                    <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
+                <entity-find-one entity-name="mantle.product.Product" value-field="product">
+                    <field-map field-name="productId" from="sid.productId"/></entity-find-one>
+
+                <entity-find entity-name="mantle.shipment.ShipmentPackageContent" list="packageContentList">
+                    <econdition field-name="shipmentId"/><econdition field-name="productId" from="sid.productId"/></entity-find>
+                <set field="packageContentTotal" from="(packageContentList*.quantity).sum() ?: 0.0"/>
+                <set field="quantityNotInPackage" from="((BigDecimal) sid.quantity ?: 0.0) - packageContentTotal"/>
+            </actions><widgets>
+                <container-box type="info"><box-header title="${ec.resource.expand('ProductNameTemplate', '', sid)} (Qty ${ec.l10n.format(sid.quantity ?: 0, '#.##')})"/><box-toolbar>
+                    <section name="PackItemSection" condition="allowPack"><widgets>
+                        <container-dialog id="PackItemContainer" button-text="Pack/Issue Item" type="success">
+                            <form-single name="PackItemForm" transition="packItem" map="sid" pass-through-parameters="true">
+                                <field name="shipmentId"><default-field><hidden/></default-field></field>
+
+                                <!-- FILTER PASS THROUGH -->
+                                <field name="filterProductId"><default-field><hidden/></default-field></field>
+                                <field name="onlyRemaining"><default-field><hidden/></default-field></field>
+                                <field name="pageIndex"><default-field><hidden/></default-field></field>
+
+                                <field name="productId"><default-field title="Product">
+                                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                                <field name="shipmentPackageSeqId"><default-field title="Package##Shipment"><drop-down>
+                                    <option key="" text="New Package"/>
+                                    <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                                </drop-down></default-field></field>
+                                <field name="quantity" from="quantityPackRemaining">
+                                    <default-field><text-line size="8"/></default-field></field>
+                                <field name="packDate" from="shipment.estimatedShipDate ?: ec.user.nowTimestamp">
+                                    <default-field title="Pack Date"><date-time/></default-field></field>
+                                <field name="assetId"><default-field title="Asset">
+                                    <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="0"
+                                            parameter-map="[facilityId:firstRouteSegment.originFacilityId, productId:productId,
+                                                assetTypeEnumId:null, ownerPartyId:null, excludeZeroQoh:'true']"/></drop-down>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Pack Quantity"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </widgets></section>
+                    <section name="ReceiveItemSection" condition="allowReceive"><widgets>
+                        <dynamic-dialog id="ReceiveProductContainer" button-text="Receive Product" transition="ReceiveItem" width="800" type="success">
+                            <parameter name="shipmentId"/><parameter name="productId" from="sid.productId"/>
+                            <parameter name="statusId" value="AstAvailable"/></dynamic-dialog>
+                    </widgets></section>
+                </box-toolbar><box-body>
+                    <container-row>
+                        <row-col lg="5">
+                            <label condition="isOutgoing || isTransfer" text="Packed/Issued: ${ec.l10n.format(sid.quantityTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityPackRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})" type="div"/>
+                            <label condition="isIncoming || isTransfer" text="Receive Accepted: ${ec.l10n.format(sid.quantityAcceptedTotal ?: 0, '#.##')}, Rejected: ${ec.l10n.format(sid.quantityRejectedTotal ?: 0, '#.##')}, Remaining: ${ec.l10n.format(quantityRecRemaining, '#.##')}  (Unit: ${productUom?.description ?: 'N/A'})" type="div"/>
+                        </row-col>
+                        <row-col lg="3">
+                            <section name="ShipItemUpdateSection" condition="allowUpdate"><widgets>
+                                <form-single name="UpdateItemForm" transition="updateItem" map="sid" pass-through-parameters="true">
+                                    <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                    <field name="productId"><default-field><hidden/></default-field></field>
+
+                                    <!-- FILTER PASS THROUGH -->
+                                    <field name="filterProductId"><default-field><hidden/></default-field></field>
+                                    <field name="onlyRemaining"><default-field><hidden/></default-field></field>
+                                    <field name="pageIndex"><default-field><hidden/></default-field></field>
+
+                                    <field name="quantity"><default-field title=""><text-line size="6"/></default-field></field>
+                                    <field name="submitButton"><default-field title="Update Quantity"><submit/></default-field></field>
+                                    <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="submitButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </widgets></section>
+                        </row-col>
+                        <row-col lg="4">
+                            <section name="ShipItemPackageSection"><widgets>
+                                <form-single name="AddItemToPackageForm" transition="addItemToPackage" map="sid" pass-through-parameters="true">
+                                    <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                    <field name="productId"><default-field><hidden/></default-field></field>
+
+                                    <!-- FILTER PASS THROUGH -->
+                                    <field name="filterProductId"><default-field><hidden/></default-field></field>
+                                    <field name="onlyRemaining"><default-field><hidden/></default-field></field>
+                                    <field name="pageIndex"><default-field><hidden/></default-field></field>
+
+                                    <field name="shipmentPackageSeqId"><default-field title=""><drop-down>
+                                        <option key="" text="New"/>
+                                        <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                                    </drop-down></default-field></field>
+                                    <field name="quantity" from="quantityNotInPackage"><default-field title="">
+                                        <text-line size="6"/></default-field></field>
+                                    <field name="submitButton"><default-field title="Add To Package"><submit/></default-field></field>
+                                    <field-layout><field-row-big><field-ref name="shipmentPackageSeqId"/>
+                                        <field-ref name="quantity"/><field-ref name="submitButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </widgets></section>
+                        </row-col>
+                    </container-row>
+                </box-body><box-body-nopad>
+                    <!-- Pack and Issuance -->
+                    <section name="ItemAssetPackSection" condition="isOutgoing || isTransfer"><widgets>
+                        <form-list name="ItemSourceIssuanceList" list="sisList" transition="packItemSource">
+                            <row-actions>
+                                <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
+                                    <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
+                                <set field="resPackForm" from="allowPack &amp;&amp; quantityNotHandled &gt; 0.0 &amp;&amp; existingResList"/>
+                            </row-actions>
+                            <field name="shipmentId"><default-field><hidden/></default-field></field>
+                            <field name="shipmentItemSourceId"><default-field><hidden/></default-field></field>
+
+                            <!-- FILTER PASS THROUGH -->
+                            <field name="filterProductId"><default-field><hidden/></default-field></field>
+                            <field name="onlyRemaining"><default-field><hidden/></default-field></field>
+                            <!-- auto added, not needed: <field name="pageIndex"><default-field><hidden/></default-field></field> -->
+
+                            <field name="orderId"><default-field title="Order Item">
+                                <link url="orderDetail" text="${orderId?:''}:${orderItemSeqId?:''}" link-type="anchor" condition="orderId"/></default-field></field>
+                            <!-- <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field> -->
+
+                            <field name="quantitySis" from="quantity">
+                                <default-field title="Quantity"><display/></default-field></field>
+                            <field name="quantityNotHandled"><default-field title="Not Issued"><display/></default-field></field>
+
+                            <field name="invoiceId"><default-field title="Invoice Item">
+                                <link url="editInvoice" text="${invoiceId?:''}:${invoiceItemSeqId?:''}" link-type="anchor" condition="invoiceId"/></default-field></field>
+
+                            <field name="assetReservations">
+                                <conditional-field condition="existingResList">
+                                    <section-iterate name="ReservationInfoSection" list="existingResList" entry="existingRes"><actions>
+                                        <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
+                                            <field-map field-name="assetId" from="existingRes.assetId"/></entity-find-one>
+                                    </actions><widgets>
+                                        <container>
+                                            <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
+                                            <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
+                                        </container>
+                                        <label text="LotNameTemplate" text-map="assetLot" condition="assetLot?.lotId"/>
+                                    </widgets></section-iterate>
+                                </conditional-field>
+                                <default-field><display text=" "/></default-field>
+                            </field>
+                            <field name="reserveItem"><conditional-field condition="orderId" title="">
+                                <dynamic-dialog id="ItemReserveDialog" button-text="Reserve" transition="ItemReserve" width="960"
+                                        condition="quantityNotHandled &gt; 0.0"/>
+                            </conditional-field></field>
+
+                            <field name="packDate" from="shipment.estimatedShipDate ?: ec.user.nowTimestamp">
+                                <conditional-field condition="resPackForm" title="Pack Date"><date-time/></conditional-field>
+                                <default-field title="Pack Date"><display text=" "/></default-field>
+                            </field>
+                            <field name="shipmentPackageSeqId" from="shipmentPackageList ? shipmentPackageList.get(shipmentPackageList.size()-1).shipmentPackageSeqId : null">
+                                <conditional-field condition="resPackForm" title="Package##Shipment"><drop-down>
+                                    <option key="" text="New"/>
+                                    <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                                </drop-down></conditional-field>
+                                <default-field title="Package##Shipment"><display text=" "/></default-field>
+                            </field>
+                            <field name="quantity" from="quantityNotHandled">
+                                <conditional-field condition="resPackForm" title="Pack Quantity"><text-line size="6"/></conditional-field>
+                                <default-field title="Pack Quantity"><display text=" "/></default-field>
+                            </field>
+                            <field name="packButton">
+                                <conditional-field condition="resPackForm" title="Issue &amp; Pack"><submit/></conditional-field>
+                                <default-field title=""><display text=" "/></default-field>
+                            </field>
+                        </form-list>
+                        <form-list name="ItemAssetIssuanceList" list="assetIssuanceList" skip-form="true">
+                            <row-actions>
+                                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
+                                <entity-find-one entity-name="mantle.product.issuance.AssetReservation" value-field="res"/>
+                                <filter-map-list list="acctgTransList" to-list="issAcctgTransList">
+                                    <field-map field-name="assetIssuanceId"/></filter-map-list>
+                            </row-actions>
+
+                            <field name="assetIssuanceId"><default-field title="Issuance"><display/></default-field></field>
+                            <field name="issuedDate"><default-field title="Issued Date"><display/></default-field></field>
+                            <field name="quantity"><default-field title="Quantity"><display/></default-field></field>
+
+                            <field name="assetId"><default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+                            <field name="assetReservationId">
+                                <conditional-field condition="res">
+                                    <display text="${assetReservationId} - Res: ${ec.l10n.format(res.quantity, null)}, Not Avail: ${ec.l10n.format(res.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(res.quantityNotIssued, null)}"/>
+                                </conditional-field>
+                                <default-field title="Reservation"><display/></default-field>
+                            </field>
+
+                            <field name="orderId"><default-field title="Order Item">
+                                <link url="orderDetail" text="${orderId}:${orderItemSeqId?:''}" link-type="anchor" condition="orderId"/></default-field></field>
+                            <!-- <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field> -->
+
+                            <field name="invoiceId"><default-field title="Invoice Item">
+                                <link url="editInvoice" text="${invoiceId?:''}:${invoiceItemSeqId?:''}" link-type="anchor" condition="invoiceId"/></default-field></field>
+
+                            <field name="acctgTransList"><default-field title="TX">
+                                <section-iterate name="IssAcctgTransList" list="issAcctgTransList" entry="issAcctgTrans"><widgets>
+                                    <link url="editTransaction" text="${issAcctgTrans.acctgTransId}" link-type="anchor"
+                                            parameter-map="[acctgTransId:issAcctgTrans.acctgTransId]"/>
+                                </widgets></section-iterate>
+                            </default-field></field>
+                            <field name="locationSeqId"><default-field title="Was Stored At">
+                                <display text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></default-field></field>
+                            <field name="lotId"><default-field title="Lot">
+                                <display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field></field>
+
+
+                            <!-- FILTER PASS THROUGH -->
+                            <field name="unpackLink"><default-field title=""><link url="unpackItemIssuance" text="Unpack"
+                                    parameter-map="[shipmentId:shipmentId, assetIssuanceId:assetIssuanceId, filterProductId:filterProductId, onlyRemaining:onlyRemaining]"
+                                    condition="!invoiceId &amp;&amp; quantity"
+                                    confirmation="Are you sure? Only do this when necessary to avoid processing a return to receive the item back into inventory."/>
+                            </default-field></field>
+                        </form-list>
+                    </widgets></section>
+                    <!-- Receipt -->
+                    <section name="ItemAssetReceiptSection" condition="isIncoming || isTransfer"><widgets>
+                        <form-list name="ItemSourceReceiptList" list="sisList" skip-form="true">
+                            <row-actions>
+                                <if condition="isTransfer">
+                                    <!-- for isTransfer ShipmentItemSource based sisList quantityNotHandled gets updated on pack so can't use on receipt-->
+                                    <set field="quantityNotHandled" from="quantity"/>
+                                    <entity-find entity-name="mantle.product.receipt.AssetReceipt" list="assetReceiptList">
+                                        <econdition field-name="shipmentItemSourceId"/></entity-find>
+                                    <iterate list="assetReceiptList" entry="assetReceipt">
+                                        <set field="quantityNotHandled" from="quantityNotHandled - (assetReceipt.quantityAccepted ?: 0.0) - (assetReceipt.quantityRejected ?: 0.0)"/>
+                                    </iterate>
+                                </if>
+                            </row-actions>
+                            <field name="orderId"><default-field title="Order">
+                                <link url="orderDetail" text="${orderId?:''}" link-type="anchor"/></default-field></field>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+
+                            <field name="quantity"><default-field><display/></default-field></field>
+                            <field name="quantityNotHandled"><default-field><display/></default-field></field>
+
+                            <field name="invoiceId"><default-field title="Invoice">
+                                <link url="editInvoice" text="${invoiceId?:''}" link-type="anchor"/></default-field></field>
+                            <field name="invoiceItemSeqId"><default-field title="Item"><display/></default-field></field>
+                        </form-list>
+                        <form-list name="ItemAssetReceiptList" list="assetReceiptList" skip-form="true">
+                            <row-actions>
+                                <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
+                                <filter-map-list list="acctgTransList" to-list="recAcctgTransList">
+                                    <field-map field-name="assetReceiptId"/></filter-map-list>
+                            </row-actions>
+
+                            <field name="statusId"><default-field title="Status">
+                                <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+
+                            <field name="receivedDate"><default-field title="Received Date"><display/></default-field></field>
+                            <field name="quantityOnHandTotal" align="right"><default-field title="QOH"><display/></default-field></field>
+                            <field name="quantityAccepted" align="right"><default-field title="Accepted"><display/></default-field></field>
+                            <field name="quantityRejected" align="right"><default-field title="Rejected"><display/></default-field></field>
+
+                            <field name="assetId"><default-field title="Asset"><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+
+                            <field name="orderId"><default-field title="Order"><link url="orderDetail" text="${orderId}" link-type="anchor"/></default-field></field>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="acctgTransList"><default-field title="TX">
+                                <section-iterate name="RecAcctgTransList" list="recAcctgTransList" entry="recAcctgTrans"><widgets>
+                                    <link url="editTransaction" text="${recAcctgTrans.acctgTransId}" link-type="anchor"
+                                            parameter-map="[acctgTransId:recAcctgTrans.acctgTransId]"/>
+                                </widgets></section-iterate>
+                            </default-field></field>
+                            <field name="locationSeqId"><default-field title="Stored At">
+                                <display text="FacilityLocationNameTemplate" text-map="facLoc?:[:]"/></default-field></field>
+                            <field name="lotId"><default-field title="Lot">
+                                <display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field></field>
+
+                            <field name="updateDialog"><header-field title=""/>
+                                <conditional-field condition="shipment.statusId == 'ShipInput'">
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset" width="800">
+                                        <parameter name="shipmentId"/><parameter name="assetId"/>
+                                        <parameter name="statusId" value="AstIncoming"/>
+                                    </dynamic-dialog>
+                                </conditional-field>
+                                <conditional-field condition="statusId == 'AstIncoming'">
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Receive" transition="UpdateItemAsset" width="800">
+                                        <parameter name="shipmentId"/><parameter name="assetId"/>
+                                        <parameter name="statusId" value="AstAvailable"/>
+                                    </dynamic-dialog>
+                                </conditional-field>
+                                <default-field>
+                                    <dynamic-dialog id="UpdateAssetCntr" button-text="Update" transition="UpdateItemAsset" width="800">
+                                        <parameter name="shipmentId"/><parameter name="assetId"/>
+                                        <!-- <parameter name="statusId" value="AstAvailable"/> -->
+                                    </dynamic-dialog>
+                                </default-field>
+                            </field>
+                        </form-list>
+                    </widgets></section>
+                </box-body-nopad></container-box>
+            </widgets></section-iterate>
+        </box-body></container-box>
+    </widgets>
+</screen>

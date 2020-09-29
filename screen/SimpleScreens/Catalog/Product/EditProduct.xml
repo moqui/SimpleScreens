@@ -96,12 +96,13 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
         <link url="findAssetSummary" text="Find Assets" parameter-map="[productId:productId]"/>
 
-        <container-row><row-col lg="5">
+        <container-row><row-col lg="6">
             <form-single name="EditProductForm" map="product" transition="updateProduct">
                 <field name="productId"><default-field><hidden/></default-field></field>
                 <field name="pseudoId"><default-field title="ID"><text-line size="40"/></default-field></field>
                 <field name="productName"><default-field title="Name"><text-line size="80"/></default-field></field>
                 <field name="description"><default-field><text-area cols="80" rows="8"/></default-field></field>
+                <field name="comments"><default-field title="Internal Comments"><text-area cols="80" rows="4"/></default-field></field>
 
                 <field name="productTypeEnumId"><default-field title="Type">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
@@ -111,14 +112,14 @@ along with this software (see the LICENSE.md file). If not, see
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="ProductClass"/><set field="allowEmpty" value="true"/></widget-template-include>
                 </default-field></field>
-                <field name="assetTypeEnumId"><default-field title="Asset Type">
+                <field name="assetTypeEnumId"><conditional-field title="Asset Type" condition="productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse']">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="AssetType"/><set field="allowEmpty" value="true"/></widget-template-include>
-                </default-field></field>
-                <field name="assetClassEnumId"><default-field title="Asset Class">
+                </conditional-field></field>
+                <field name="assetClassEnumId"><conditional-field title="Asset Class" condition="productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse']">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="AssetClass"/><set field="allowEmpty" value="true"/></widget-template-include>
-                </default-field></field>
+                </conditional-field></field>
 
                 <field name="ownerPartyId"><default-field title="Owned By Org"><drop-down allow-empty="true">
                     <option key="_NA_" text="N/A"/>
@@ -157,11 +158,33 @@ along with this software (see the LICENSE.md file). If not, see
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="SignatureRequired"/><set field="allowEmpty" value="true"/></widget-template-include>
                 </default-field></field>
+                <field name="originGeoId"><default-field title="Country of Origin">
+                    <drop-down allow-empty="true">
+                        <entity-options key="${geoId}" text="${geoCodeAlpha3} - ${geoName}">
+                            <entity-find entity-name="moqui.basic.Geo" list="geoList">
+                                <econdition field-name="geoTypeEnumId" value="GEOT_COUNTRY"/>
+                                <order-by field-name="geoCodeAlpha2"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </default-field></field>
 
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+
+                <field-layout>
+                    <fields-not-referenced/>
+                    <field-row><field-ref name="productTypeEnumId"/><field-ref name="productClassEnumId"/></field-row>
+                    <field-row><field-ref name="assetTypeEnumId"/><field-ref name="assetClassEnumId"/></field-row>
+                    <field-ref name="ownerPartyId"/>
+                    <field-row><field-ref name="amountFixed"/><field-ref name="amountUomId"/></field-row>
+                    <field-row><field-ref name="salesIntroductionDate"/><field-ref name="salesDiscontinuationDate"/></field-row>
+                    <field-row><field-ref name="signatureRequiredEnumId"/><field-ref name="originGeoId"/></field-row>
+                    <field-ref name="submitButton"/>
+                </field-layout>
+
             </form-single>
 
-        </row-col><row-col lg="7">
+        </row-col><row-col lg="6">
 
             <container-box><box-header title="Identification"/><box-toolbar>
                 <container-dialog id="AddIdentificationDialog" button-text="Add Identification">
@@ -188,7 +211,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="idValue"><default-field><text-line size="20"/></default-field></field>
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     <field name="removeButton"><default-field title=""><link url="deleteProductIdentification"
-                            icon="glyphicon glyphicon-trash" confirmation="Delete this ID?"/></default-field></field>
+                            icon="fa fa-trash" confirmation="Delete this ID?"/></default-field></field>
                 </form-list>
             </box-body></container-box>
 
@@ -250,7 +273,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
 
                     <field name="removeButton"><default-field title="">
-                        <link url="updateProductFeatureAppl" icon="glyphicon glyphicon-trash" confirmation="Remove this feature?"
+                        <link url="updateProductFeatureAppl" icon="fa fa-trash" confirmation="Remove this feature?"
                                 parameter-map="[productId:productId, productFeatureId:productFeatureId, fromDate:fromDate, thruDate:ec.user.nowTimestamp]"/>
                     </default-field></field>
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
@@ -294,7 +317,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </default-field></field>
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     <field name="deleteButton"><default-field title=""><link url="deleteProductDimension" confirmation="Remove dimension?"
-                            icon="glyphicon glyphicon-trash" parameter-map="[productId:productId, dimensionTypeId:dimensionTypeId]"/></default-field></field>
+                            icon="fa fa-trash" parameter-map="[productId:productId, dimensionTypeId:dimensionTypeId]"/></default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
 
@@ -343,7 +366,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                         <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                         <field name="deleteButton"><default-field title=""><link url="deleteProductLocation" confirmation="Remove location?"
-                                icon="glyphicon glyphicon-trash" parameter-map="[productId:productId, facilityId:facilityId, locationSeqId:locationSeqId]"/></default-field></field>
+                                icon="fa fa-trash" parameter-map="[productId:productId, facilityId:facilityId, locationSeqId:locationSeqId]"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
@@ -397,7 +420,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                         <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                         <field name="deleteButton"><default-field title=""><link url="deleteProductMeter" confirmation="Remove meter?"
-                                icon="glyphicon glyphicon-trash" parameter-map="[productMeterId:productMeterId]"/></default-field></field>
+                                icon="fa fa-trash" parameter-map="[productMeterId:productMeterId]"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
@@ -470,7 +493,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     <field name="deleteButton"><default-field title=""><link url="deleteProductMaintenance" confirmation="Remove scheduled maintenance?"
-                            icon="glyphicon glyphicon-trash" parameter-map="[productMaintenanceId:productMaintenanceId]"/></default-field></field>
+                            icon="fa fa-trash" parameter-map="[productMaintenanceId:productMaintenanceId]"/></default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
         </widgets></section>

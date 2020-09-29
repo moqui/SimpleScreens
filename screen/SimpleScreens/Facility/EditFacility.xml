@@ -32,6 +32,12 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="deleteFacilityBoxType"><service-call name="delete#mantle.facility.FacilityBoxType"/>
         <default-response url="."/></transition>
+    <transition name="createFacilityLocationType"><service-call name="create#mantle.facility.FacilityLocationType"/>
+        <default-response url="."/></transition>
+    <transition name="updateFacilityLocationType"><service-call name="update#mantle.facility.FacilityLocationType"/>
+        <default-response url="."/></transition>
+    <transition name="deleteFacilityLocationType"><service-call name="delete#mantle.facility.FacilityLocationType"/>
+        <default-response url="."/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getGeoStateCounties" location="component://SimpleScreens/template/party/PartyForms.xml"/>
@@ -85,6 +91,12 @@ along with this software (see the LICENSE.md file). If not, see
                         tooltip="If Y do automatic physical inventory to get QOH back to zero after issuance, otherwise error on pack/issue if QOH not sufficient">
                     <drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down>
                 </conditional-field></field>
+                <field name="assetInventoryLocRequire"><conditional-field title="Require Inventory Location" condition="facilityTypeEnumId in ['FcTpWarehouse', 'FcTpRetailStore']"
+                        tooltip="If Y a Location must be specified for all Inventory type Assets on receive and move">
+                    <drop-down allow-empty="true"><option key="Y"/><option key="N"/></drop-down>
+                </conditional-field></field>
+                <field name="defaultDaysToShip"><conditional-field title="Default Days to Ship" condition="facilityTypeEnumId in ['FcTpWarehouse', 'FcTpRetailStore']">
+                    <text-line size="5"/></conditional-field></field>
 
                 <field name="toName"><default-field><text-line size="50"/></default-field></field>
                 <field name="attnName"><default-field><text-line size="50"/></default-field></field>
@@ -127,6 +139,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-row-big title="Size/UOM"><field-ref name="facilitySize"/>
                         <field-ref name="facilitySizeUomId"/></field-row-big>
                     <field-row><field-ref name="assetAllowIssueOverQoh"/><field-ref name="assetAllowOtherOwner"/></field-row>
+                    <field-row><field-ref name="assetInventoryLocRequire"/><field-ref name="defaultDaysToShip"/></field-row>
                     <field-ref name="toName"/><field-ref name="attnName"/>
                     <field-ref name="address1"/><field-ref name="address2"/>
                     <field-row-big title="City/Zip"><field-ref name="city"/>
@@ -194,16 +207,13 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body></container-box>
             </widgets></section>
 
-            <section name="BoxTypesSection"><actions>
-                <entity-find entity-name="mantle.facility.FacilityBoxTypeDetail" list="boxTypeList">
-                    <econdition field-name="facilityId"/><order-by field-name="description"/></entity-find>
-            </actions><widgets>
+            <section name="BoxTypesSection"><widgets>
                 <container-box><box-header title="Box Types"/><box-toolbar>
                     <container-dialog id="AddBoxTypeDialog" button-text="Add Box Type">
                         <form-single name="AddBoxTypeForm" transition="createFacilityBoxType">
                             <field name="facilityId"><default-field><hidden/></default-field></field>
                             <field name="shipmentBoxTypeId"><default-field title="Box Type">
-                                <drop-down allow-empty="true">
+                                <drop-down>
                                     <entity-options key="${shipmentBoxTypeId}" text="${description}">
                                         <entity-find entity-name="mantle.shipment.ShipmentBoxType">
                                             <order-by field-name="description"/></entity-find></entity-options>
@@ -214,10 +224,64 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-dialog>
                 </box-toolbar><box-body-nopad>
                     <form-list name="BoxTypesForm" list="boxTypeList" skip-form="true" skip-header="true">
+                        <entity-find entity-name="mantle.facility.FacilityBoxTypeDetail" list="boxTypeList">
+                            <econdition field-name="facilityId"/><order-by field-name="description"/></entity-find>
                         <field name="pseudoId"><default-field title="ID"><display/></default-field></field>
                         <field name="description"><default-field><display/></default-field></field>
                         <field name="removeButton"><default-field title="">
-                            <link url="deleteFacilityBoxType" text=" " icon="glyphicon glyphicon-trash" confirmation="Remove box type from facility?"/>
+                            <link url="deleteFacilityBoxType" text=" " icon="fa fa-trash" confirmation="Remove box type from facility?"/>
+                        </default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
+
+            <section name="LocationTypesSection"><widgets>
+                <container-box><box-header title="Location Types"/><box-toolbar>
+                    <container-dialog id="AddLocationTypeDialog" button-text="Add Location Type">
+                        <form-single name="AddLocationTypeForm" transition="createFacilityLocationType">
+                            <field name="facilityId"><default-field><hidden/></default-field></field>
+                            <field name="locationTypeEnumId"><default-field title="Location Type">
+                                <drop-down>
+                                    <entity-options key="${enumId}" text="${description}">
+                                        <entity-find entity-name="moqui.basic.Enumeration">
+                                            <econdition field-name="enumTypeId" value="FacilityLocationType"/>
+                                            <order-by field-name="description"/>
+                                        </entity-find></entity-options>
+                                </drop-down>
+                            </default-field></field>
+                            <field name="autoStatusId"><default-field title="Auto Status">
+                                <drop-down allow-empty="true">
+                                    <entity-options key="${statusId}" text="${description}">
+                                        <entity-find entity-name="moqui.basic.StatusItem">
+                                            <econdition field-name="statusTypeId" value="Asset"/>
+                                            <order-by field-name="description"/>
+                                        </entity-find></entity-options>
+                                </drop-down>
+                            </default-field></field>
+                            <field name="submitButton"><default-field title="Add Location Type"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body-nopad>
+                    <form-list name="LocationTypesForm" list="locationTypeList" transition="updateFacilityLocationType" skip-header="true">
+                        <entity-find entity-name="mantle.facility.FacilityLocationType" list="locationTypeList">
+                            <econdition field-name="facilityId"/><order-by field-name="locationTypeEnumId"/></entity-find>
+
+                        <field name="facilityId"><default-field><hidden/></default-field></field>
+                        <field name="locationTypeEnumId"><default-field title="Location Type">
+                            <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                        <field name="autoStatusId"><default-field title="Auto Status">
+                            <drop-down allow-empty="true">
+                                <entity-options key="${statusId}" text="${description}">
+                                    <entity-find entity-name="moqui.basic.StatusItem">
+                                        <econdition field-name="statusTypeId" value="Asset"/>
+                                        <order-by field-name="description"/>
+                                    </entity-find></entity-options>
+                            </drop-down>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+
+                        <field name="removeButton"><default-field title="">
+                            <link url="deleteFacilityLocationType" text=" " icon="fa fa-trash" confirmation="Remove location type from facility?"/>
                         </default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>

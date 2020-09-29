@@ -90,8 +90,16 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="removeContactInfo"><service-call name="mantle.party.ContactServices.delete#PartyContactMech"/>
         <default-response url="."/></transition>
+    <transition name="updateContactMechMutable"><service-call name="mantle.party.ContactServices.update#ContactMechMutable"/>
+        <default-response url="."/></transition>
     <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
         <default-response url="."/></transition>
+
+    <transition name="createContactMechOther"><service-call name="mantle.party.ContactServices.create#ContactMechOther"/>
+        <default-response url="."/></transition>
+    <transition name="updatePartyContactOther"><service-call name="mantle.party.ContactServices.update#PartyContactOther"/>
+        <default-response url="."/></transition>
+    <transition-include name="getContactMechPurposesByType" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <transition name="createPartyNote"><service-call name="create#mantle.party.PartyNote"/>
         <default-response url="."/></transition>
@@ -120,8 +128,20 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
         <if condition="party == null"><return error="true" message="Party not found with ID ${partyId}"/></if>
 
-        <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
-            <field-map field-name="partyId"/></entity-find-one>
+        <!-- FUTURE: support multiple UserAccount records for partyId, for now just get non-disabled first and order by userId for consistency -->
+        <entity-find entity-name="moqui.security.UserAccount" list="userAccountList">
+            <econdition field-name="partyId"/>
+            <econdition field-name="disabled" operator="not-equals" value="Y" or-null="true"/>
+            <order-by field-name="userId"/>
+        </entity-find>
+        <if condition="!userAccountList">
+            <entity-find entity-name="moqui.security.UserAccount" list="userAccountList">
+                <econdition field-name="partyId"/>
+                <econdition field-name="disabled" value="Y"/>
+                <order-by field-name="userId"/>
+            </entity-find>
+        </if>
+        <set field="userAccount" from="userAccountList ? userAccountList[0] : null"/>
 
         <entity-find-count entity-name="mantle.request.RequestAndParty" count-field="requestCount">
             <date-filter/><econdition field-name="partyId"/></entity-find-count>
@@ -316,8 +336,25 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="partyId"/></entity-find>
             </actions><widgets>
                 <container-box type="warning"><box-header title="Roles"/><box-toolbar>
-                    <container-dialog id="AddRoleDialog" button-text="Add Role">
-                        <form-single name="AddRoleForm" transition="createPartyRole">
+                    <container-dialog id="AddDirectRoleDialog" button-text="Add Direct Role">
+                        <label text="Roles applied directly describe how the system should treat the Party, or what the Party is to users of the system." type="p"/>
+                        <label text="These Roles enable system functionality when directly applied to a Party." type="p"/>
+                        <form-single name="AddDirectRoleForm" transition="createPartyRole">
+                            <field name="partyId"><default-field><hidden/></default-field></field>
+                            <field name="roleTypeId"><default-field title="Role"><drop-down>
+                                <entity-options key="${roleTypeId}" text="${description}">
+                                    <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                                        <econdition field-name="roleGroupEnumId" value="RgpDirect"/>
+                                        <order-by field-name="description"/></entity-find>
+                                </entity-options>
+                            </drop-down></default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                    <container-dialog id="AddOtherRoleDialog" button-text="Add Other Role">
+                        <label text="Roles applied directly describe how the system should treat the Party, or what the Party is to users of the system." type="p"/>
+                        <label text="Any Role may be added here to organize parties for searching, etc but many are used to describe a Party's relationship to, or involvement with, other things in the system and have no effect when applied directly." type="p"/>
+                        <form-single name="AddOtherRoleForm" transition="createPartyRole">
                             <field name="partyId"><default-field><hidden/></default-field></field>
                             <field name="roleTypeId"><default-field title="Role">
                                 <drop-down><entity-options key="${roleTypeId}" text="${description}">
@@ -333,7 +370,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="roleTypeId"><default-field title="Role">
                             <display-entity entity-name="mantle.party.RoleType"/>
                         </default-field></field>
-                        <field name="submitButton"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
+                        <field name="submitButton"><default-field title=""><submit icon="fa fa-trash" confirmation="Delete role?"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
@@ -367,7 +404,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="classificationTypeEnumId"><default-field title="Type">
                             <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
                         <field name="description"><default-field title="Class"><display/></default-field></field>
-                        <field name="submitButton"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
+                        <field name="submitButton"><default-field title=""><submit icon="fa fa-trash" confirmation="Delete classification?"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
@@ -407,7 +444,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="expireDate"><default-field><date-time type="date"/></default-field></field>
                         <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                         <field name="removeButton"><default-field title="">
-                            <link url="deletePartyIdentification" text=" " icon="glyphicon glyphicon-trash" confirmation="Delete this ID?"/>
+                            <link url="deletePartyIdentification" text=" " icon="fa fa-trash" confirmation="Delete this ID?"/>
                         </default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
@@ -465,7 +502,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="settingValue"><default-field title="Value">
                             <display text="${valueEnum ? valueEnum.description : settingValue}"/></default-field></field>
                         <field name="submitButton"><default-field title="">
-                            <submit icon="glyphicon glyphicon-trash" confirmation="Really delete setting?"/></default-field></field>
+                            <submit icon="fa fa-trash" confirmation="Really delete setting?"/></default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
             </widgets></section>
@@ -554,10 +591,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="userGroupId"><default-field title="Group">
                             <display-entity entity-name="moqui.security.UserGroup"/>
                         </default-field></field>
-                        <field name="submitButton" align="right"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
+                        <field name="submitButton" align="right"><default-field title=""><submit icon="fa fa-trash" confirmation="Remove from Group?"/></default-field></field>
                     </form-list>
                 </box-body></container-box>
-                <container-box><box-header title="Organizations"/><box-toolbar>
+                <container-box><box-header title="Internal Organization Relationships"/><box-toolbar>
                     <container-dialog id="AddOrgDialog" button-text="Add to Organization">
                         <form-single name="NewToRelForm" transition="createPartyRelationship">
                             <field name="partyId"><default-field><hidden/></default-field></field>
@@ -602,168 +639,173 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="fromDate"><default-field><display/></default-field></field>
                         <field name="thruDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
 
-                        <field name="submitButton" align="right"><default-field title=""><submit icon="glyphicon glyphicon-trash"/></default-field></field>
+                        <field name="submitButton" align="right"><default-field title=""><submit icon="fa fa-trash" confirmation="Remove from Organization?"/></default-field></field>
                     </form-list>
                 </box-body></container-box>
             </widgets></section>
 
-            <section name="AccountRelListSection" condition="roleTypeIdList.contains('Contact')"><actions>
+            <section name="SalesAccountContactSection"><actions>
                 <entity-find entity-name="mantle.party.PartyToAndRelationship" list="accountRelList">
                     <date-filter/><econdition field-name="fromPartyId" from="partyId"/>
                     <econdition field-name="relationshipTypeEnumId" value="PrtContact"/>
                 </entity-find>
-            </actions><widgets>
-                <container-box><box-header title="Contact of Sales Accounts"/><box-toolbar>
-                    <container-dialog id="AddSalesAccountDialog" button-text="Add to Sales Account">
-                        <form-single name="AddSalesAccount" transition="addContact">
-                            <field name="partyId"><default-field><hidden/></default-field></field>
-                            <field name="accountPartyId"><default-field title="Sales Account"><drop-down>
-                                <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Account']"/>
-                            </drop-down></default-field></field>
-                            <field name="fromRoleTypeId"><default-field title="Role">
-                                <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
-                                    <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
-                                        <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
-                                        <order-by field-name="description"/></entity-find></entity-options></drop-down>
-                            </default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <form-list name="AccountRelList" list="accountRelList" list-entry="accountRel" skip-header="true" skip-form="true">
-                        <field name="fromRoleTypeId" from="accountRel.fromRoleTypeId"><default-field title="Role">
-                            <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
-                        <field name="toPartyId"><default-field>
-                            <link url="." text="PartyNameTemplate" text-map="accountRel" link-type="anchor"
-                                    parameter-map="[partyId:accountRel.toPartyId]"/></default-field></field>
-                        <field name="removeButton" align="right"><default-field title="">
-                            <link url="removeContact" icon="glyphicon glyphicon-trash" parameter-map="[partyRelationshipId:accountRel.partyRelationshipId]"
-                                    confirmation="Are you sure you want to remove this contact from the account?"/></default-field></field>
-                    </form-list>
-                </box-body></container-box>
-            </widgets></section>
+                <set field="isSalesContact" from="roleTypeIdList.contains('Contact') || accountRelList"/>
 
-            <section name="ContactRelListSection" condition="roleTypeIdList.contains('Account')"><actions>
-                <entity-find entity-name="mantle.party.PartyFromAndRelationship" list="contactRelList">
-                    <date-filter/><econdition field-name="toPartyId" from="partyId"/>
-                    <econdition field-name="relationshipTypeEnumId" value="PrtContact"/>
-                </entity-find>
+                <set field="isSalesAccount" from="roleTypeIdList.contains('Account') || (roleTypeIdList.contains('Customer') &amp;&amp; party.partyTypeEnumId == 'PtyOrganization')"/>
             </actions><widgets>
-                <container-box><box-header title="Contacts"/><box-toolbar>
-                    <container-dialog id="AddContactAssignDialog" button-text="Add Contact">
-                        <form-single name="AddContactAssignForm" transition="addContact">
-                            <field name="partyId" from="contactPartyId"><default-field title="Contact"><drop-down>
-                                <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:null]"/>
-                            </drop-down></default-field></field>
-                            <field name="fromRoleTypeId"><default-field title="Role">
-                                <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
-                                    <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
-                                        <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
-                                        <order-by field-name="description"/></entity-find></entity-options></drop-down>
-                            </default-field></field>
-                            <field name="accountPartyId" from="partyId"><default-field title="Sales Account">
-                                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
-                            </default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                    <container-dialog id="CreateContactDialog" button-text="New Contact">
-                        <form-single name="CreateContactForm" transition="createContact">
-                            <field name="firstName"><default-field><text-line size="30"/></default-field></field>
-                            <field name="lastName"><default-field><text-line size="30"/></default-field></field>
-                            <field name="fromRoleTypeId"><default-field title="Role">
-                                <drop-down allow-empty="true">
-                                    <entity-options key="${roleTypeId}" text="${description}">
+                <section name="AccountRelListSection" condition="isSalesContact"><widgets>
+                    <container-box><box-header title="Contact of Sales Accounts"/><box-toolbar>
+                        <container-dialog id="AddSalesAccountDialog" button-text="Add to Sales Account">
+                            <form-single name="AddSalesAccount" transition="addContact">
+                                <field name="partyId"><default-field><hidden/></default-field></field>
+                                <field name="accountPartyId"><default-field title="Sales Account"><drop-down>
+                                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Account']"/>
+                                </drop-down></default-field></field>
+                                <field name="fromRoleTypeId"><default-field title="Role">
+                                    <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
                                         <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
                                             <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
-                                            <order-by field-name="description"/></entity-find></entity-options>
-                                </drop-down>
-                            </default-field></field>
-                            <field name="accountPartyId" from="partyId"><default-field title="Sales Account">
-                                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
-                            </default-field></field>
-                            <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <form-list name="ContactRelList" list="contactRelList" list-entry="contactRel" skip-form="true" skip-header="true">
-                        <field name="fromPartyId"><default-field><link url="." text="PartyNameTemplate" text-map="contactRel"
-                                link-type="anchor" parameter-map="[partyId:contactRel.fromPartyId]"/></default-field></field>
-                        <field name="fromRoleTypeId" from="contactRel.fromRoleTypeId"><default-field title="Role">
-                            <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
-                        <field name="removeButton" align="right"><default-field>
-                            <link url="removeContact" icon="glyphicon glyphicon-trash" parameter-map="[partyRelationshipId:contactRel.partyRelationshipId]"
-                                    confirmation="Are you sure you want to remove this contact?"/></default-field>
-                        </field>
-                    </form-list>
-                </box-body></container-box>
-            </widgets></section>
+                                            <order-by field-name="description"/></entity-find></entity-options></drop-down>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar><box-body>
+                        <form-list name="AccountRelList" list="accountRelList" list-entry="accountRel" skip-header="true" skip-form="true">
+                            <field name="fromRoleTypeId" from="accountRel.fromRoleTypeId"><default-field title="Role">
+                                <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
+                            <field name="toPartyId"><default-field>
+                                <link url="." text="PartyNameTemplate" text-map="accountRel" link-type="anchor"
+                                        parameter-map="[partyId:accountRel.toPartyId]"/></default-field></field>
+                            <field name="removeButton" align="right"><default-field title="">
+                                <link url="removeContact" icon="fa fa-trash" parameter-map="[partyRelationshipId:accountRel.partyRelationshipId]"
+                                        confirmation="Are you sure you want to remove this contact from the account?"/></default-field></field>
+                        </form-list>
+                    </box-body></container-box>
+                </widgets></section>
 
-            <section name="ParentAccountRelListSection" condition="roleTypeIdList.contains('Account')"><actions>
-                <entity-find entity-name="mantle.party.PartyToAndRelationship" list="parentAccountRelList">
-                    <date-filter/><econdition field-name="fromPartyId" from="partyId"/>
-                    <econdition field-name="relationshipTypeEnumId" value="PrtOrgRollup"/>
-                </entity-find>
-            </actions><widgets>
-                <container-box><box-header title="Parent Sales Account"/><box-toolbar>
-                    <container-dialog id="AddParentAccountDialog" button-text="Add Parent Account">
-                        <form-single name="AddParentAccount" transition="createPartyRelationship">
-                            <field name="partyId"><default-field><hidden/></default-field></field>
-                            <field name="fromPartyId" from="partyId"><default-field><hidden/></default-field></field>
-                            <field name="fromRoleTypeId" from="'Account'"><default-field><hidden/></default-field></field>
-                            <field name="relationshipTypeEnumId" from="'PrtOrgRollup'"><default-field><hidden/></default-field></field>
-                            <field name="toRoleTypeId" from="'Account'"><default-field><hidden/></default-field></field>
-                            <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+                <section name="ContactRelListSection" condition="isSalesAccount"><actions>
+                    <entity-find entity-name="mantle.party.PartyFromAndRelationship" list="contactRelList">
+                        <date-filter/><econdition field-name="toPartyId" from="partyId"/>
+                        <econdition field-name="relationshipTypeEnumId" value="PrtContact"/>
+                    </entity-find>
+                </actions><widgets>
+                    <container-box><box-header title="Sales Account Contacts"/><box-toolbar>
+                        <container-dialog id="AddContactAssignDialog" button-text="Add Contact">
+                            <form-single name="AddContactAssignForm" transition="addContact">
+                                <field name="partyId" from="contactPartyId"><default-field title="Contact"><drop-down>
+                                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:null]"/>
+                                </drop-down></default-field></field>
+                                <field name="fromRoleTypeId"><default-field title="Role">
+                                    <drop-down allow-empty="true"><entity-options key="${roleTypeId}" text="${description}">
+                                        <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                                            <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
+                                            <order-by field-name="description"/></entity-find></entity-options></drop-down>
+                                </default-field></field>
+                                <field name="accountPartyId" from="partyId"><default-field title="Sales Account">
+                                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                        <container-dialog id="CreateContactDialog" button-text="New Contact">
+                            <form-single name="CreateContactForm" transition="createContact">
+                                <field name="firstName"><default-field><text-line size="30"/></default-field></field>
+                                <field name="lastName"><default-field><text-line size="30"/></default-field></field>
+                                <field name="fromRoleTypeId"><default-field title="Role">
+                                    <drop-down allow-empty="true">
+                                        <entity-options key="${roleTypeId}" text="${description}">
+                                            <entity-find entity-name="mantle.party.RoleGroupMemberAndType" cache="true">
+                                                <econdition field-name="roleGroupEnumId" value="RgpAccountContact"/>
+                                                <order-by field-name="description"/></entity-find></entity-options>
+                                    </drop-down>
+                                </default-field></field>
+                                <field name="accountPartyId" from="partyId"><default-field title="Sales Account">
+                                    <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar><box-body>
+                        <form-list name="ContactRelList" list="contactRelList" list-entry="contactRel" skip-form="true" skip-header="true">
+                            <field name="fromPartyId"><default-field><link url="." text="PartyNameTemplate" text-map="contactRel"
+                                    link-type="anchor" parameter-map="[partyId:contactRel.fromPartyId]"/></default-field></field>
+                            <field name="fromRoleTypeId" from="contactRel.fromRoleTypeId"><default-field title="Role">
+                                <display-entity entity-name="mantle.party.RoleType"/></default-field></field>
+                            <field name="removeButton" align="right"><default-field>
+                                <link url="removeContact" icon="fa fa-trash" parameter-map="[partyRelationshipId:contactRel.partyRelationshipId]"
+                                        confirmation="Are you sure you want to remove this contact?"/></default-field>
+                            </field>
+                        </form-list>
+                    </box-body></container-box>
+                </widgets></section>
 
-                            <field name="toPartyId"><default-field title="Parent Account"><drop-down>
-                                <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Account']"/>
-                            </drop-down></default-field></field>
+                <section name="ParentAccountRelListSection" condition="isSalesAccount"><actions>
+                    <entity-find entity-name="mantle.party.PartyToAndRelationship" list="parentAccountRelList">
+                        <date-filter/><econdition field-name="fromPartyId" from="partyId"/>
+                        <econdition field-name="relationshipTypeEnumId" value="PrtOrgRollup"/>
+                    </entity-find>
+                </actions><widgets>
+                    <container-box><box-header title="Parent Sales Account"/><box-toolbar>
+                        <container-dialog id="AddParentAccountDialog" button-text="Add Parent Account">
+                            <form-single name="AddParentAccount" transition="createPartyRelationship">
+                                <field name="partyId"><default-field><hidden/></default-field></field>
+                                <field name="fromPartyId" from="partyId"><default-field><hidden/></default-field></field>
+                                <field name="fromRoleTypeId" from="'Account'"><default-field><hidden/></default-field></field>
+                                <field name="relationshipTypeEnumId" from="'PrtOrgRollup'"><default-field><hidden/></default-field></field>
+                                <field name="toRoleTypeId" from="'Account'"><default-field><hidden/></default-field></field>
+                                <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
 
-                            <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <form-list name="ParentAccountRelList" list="parentAccountRelList" list-entry="accountRel" skip-form="true" skip-header="true">
-                        <field name="toPartyId"><default-field><link url="." text="PartyNameTemplate" text-map="accountRel"
-                                link-type="anchor" parameter-map="[partyId:accountRel.toPartyId]"/></default-field></field>
-                        <field name="removeButton" align="right"><default-field title="">
-                            <link url="removeContact" icon="glyphicon glyphicon-trash" parameter-map="[partyRelationshipId:accountRel.partyRelationshipId]"
-                                    confirmation="Are you sure you want to remove this account from the parent account?"/></default-field></field>
-                    </form-list>
-                </box-body></container-box>
-            </widgets></section>
-            <section name="ChildAccountRelListSection" condition="roleTypeIdList.contains('Account')"><actions>
-                <entity-find entity-name="mantle.party.PartyFromAndRelationship" list="childAccountRelList">
-                    <date-filter/><econdition field-name="toPartyId" from="partyId"/>
-                    <econdition field-name="relationshipTypeEnumId" value="PrtOrgRollup"/>
-                </entity-find>
-            </actions><widgets>
-                <container-box><box-header title="Child Sales Accounts"/><box-toolbar>
-                    <container-dialog id="AddChildAccountDialog" button-text="Add Child Account">
-                        <form-single name="AddChildAccount" transition="createPartyRelationship">
-                            <field name="partyId"><default-field><hidden/></default-field></field>
-                            <field name="toPartyId" from="partyId"><default-field><hidden/></default-field></field>
-                            <field name="fromRoleTypeId" from="'Account'"><default-field><hidden/></default-field></field>
-                            <field name="relationshipTypeEnumId" from="'PrtOrgRollup'"><default-field><hidden/></default-field></field>
-                            <field name="toRoleTypeId" from="'Account'"><default-field><hidden/></default-field></field>
-                            <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+                                <field name="toPartyId"><default-field title="Parent Account"><drop-down>
+                                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Account']"/>
+                                </drop-down></default-field></field>
 
-                            <field name="fromPartyId"><default-field title="Child Account"><drop-down>
-                                <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Account']"/>
-                            </drop-down></default-field></field>
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar><box-body>
+                        <form-list name="ParentAccountRelList" list="parentAccountRelList" list-entry="accountRel" skip-form="true" skip-header="true">
+                            <field name="toPartyId"><default-field><link url="." text="PartyNameTemplate" text-map="accountRel"
+                                    link-type="anchor" parameter-map="[partyId:accountRel.toPartyId]"/></default-field></field>
+                            <field name="removeButton" align="right"><default-field title="">
+                                <link url="removeContact" icon="fa fa-trash" parameter-map="[partyRelationshipId:accountRel.partyRelationshipId]"
+                                        confirmation="Are you sure you want to remove this account from the parent account?"/></default-field></field>
+                        </form-list>
+                    </box-body></container-box>
+                </widgets></section>
+                <section name="ChildAccountRelListSection" condition="isSalesAccount"><actions>
+                    <entity-find entity-name="mantle.party.PartyFromAndRelationship" list="childAccountRelList">
+                        <date-filter/><econdition field-name="toPartyId" from="partyId"/>
+                        <econdition field-name="relationshipTypeEnumId" value="PrtOrgRollup"/>
+                    </entity-find>
+                </actions><widgets>
+                    <container-box><box-header title="Child Sales Accounts"/><box-toolbar>
+                        <container-dialog id="AddChildAccountDialog" button-text="Add Child Account">
+                            <form-single name="AddChildAccount" transition="createPartyRelationship">
+                                <field name="partyId"><default-field><hidden/></default-field></field>
+                                <field name="toPartyId" from="partyId"><default-field><hidden/></default-field></field>
+                                <field name="fromRoleTypeId" from="'Account'"><default-field><hidden/></default-field></field>
+                                <field name="relationshipTypeEnumId" from="'PrtOrgRollup'"><default-field><hidden/></default-field></field>
+                                <field name="toRoleTypeId" from="'Account'"><default-field><hidden/></default-field></field>
+                                <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
 
-                            <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar><box-body>
-                    <form-list name="ChildAccountRelList" list="childAccountRelList" list-entry="accountRel" skip-form="true" skip-header="true">
-                        <field name="fromPartyId"><default-field><link url="." text="PartyNameTemplate" text-map="accountRel" link-type="anchor"
-                                parameter-map="[partyId:accountRel.fromPartyId]"/></default-field></field>
-                        <field name="removeButton" align="right"><default-field title="">
-                            <link url="removeContact" icon="glyphicon glyphicon-trash" parameter-map="[partyRelationshipId:accountRel.partyRelationshipId]"
-                                    confirmation="Are you sure you want to remove this child account from the parent account?"/></default-field></field>
-                    </form-list>
-                </box-body></container-box>
+                                <field name="fromPartyId"><default-field title="Child Account"><drop-down>
+                                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2" parameter-map="[roleTypeId:'Account']"/>
+                                </drop-down></default-field></field>
+
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </box-toolbar><box-body>
+                        <form-list name="ChildAccountRelList" list="childAccountRelList" list-entry="accountRel" skip-form="true" skip-header="true">
+                            <field name="fromPartyId"><default-field><link url="." text="PartyNameTemplate" text-map="accountRel" link-type="anchor"
+                                    parameter-map="[partyId:accountRel.fromPartyId]"/></default-field></field>
+                            <field name="removeButton" align="right"><default-field title="">
+                                <link url="removeContact" icon="fa fa-trash" parameter-map="[partyRelationshipId:accountRel.partyRelationshipId]"
+                                        confirmation="Are you sure you want to remove this child account from the parent account?"/></default-field></field>
+                        </form-list>
+                    </box-body></container-box>
+                </widgets></section>
             </widgets></section>
 
         </row-col><row-col lg="6">
@@ -806,50 +848,51 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="ContactInfoSection"><actions>
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="contactOut"
                         in-map="[partyId:partyId, getAll:true]"/>
+                <!-- Find 'Other' ContactMechs -->
+                <set field="handledContactMechTypes" from="['CmtPostalAddress', 'CmtTelecomNumber', 'CmtEmailAddress', 'CmtWebAddress']"/>
+                <entity-find entity-name="mantle.party.contact.PartyContactMechInfo" list="otherPcmiList" limit="50">
+                    <date-filter/>
+                    <econdition field-name="partyId"/>
+                    <!-- exclude the 4 types handled directly -->
+                    <econdition field-name="contactMechTypeEnumId" operator="not-in" from="handledContactMechTypes"/>
+                    <order-by field-name="contactMechTypeEnumId,fromDate"/>
+                </entity-find>
             </actions><widgets>
-                <container-box type="info"><box-header title="Email and Phone"/><box-toolbar>
-                    <dynamic-dialog id="ExpiredOtherDialog" button-text="Old Email/Phone" transition="ExpiredContactOther"
+                <container-box type="info"><box-header title="Phone, Email, and Other"/><box-toolbar>
+                    <dynamic-dialog id="ExpiredOtherDialog" button-text="View Old" transition="ExpiredContactOther"
                             parameter-map="[partyId:partyId]"/>
 
-                    <dynamic-dialog id="AddEmailInfo" button-text="Add Email" transition="UpdateContactInfo"
-                            parameter-map="[partyId:partyId, createEmail:'true']"/>
-                    <dynamic-dialog id="AddPhoneInfo" button-text="Add Phone" transition="UpdateContactInfo"
-                            parameter-map="[partyId:partyId, createTelecom:'true']"/>
+                    <button-menu text="Add New" icon="fa fa-plus">
+                        <dynamic-dialog id="AddPhoneInfo" button-text="Phone" transition="UpdateContactInfo"
+                                parameter-map="[partyId:partyId, createTelecom:'true']"/>
+                        <dynamic-dialog id="AddEmailInfo" button-text="Email" transition="UpdateContactInfo"
+                                parameter-map="[partyId:partyId, createEmail:'true']"/>
+                        <dynamic-dialog id="AddWebUrlInfo" button-text="URL" transition="UpdateContactInfo"
+                                parameter-map="[partyId:partyId, createWeb:'true']"/>
+                        <container-dialog id="OtherCreateDialog" button-text="Other">
+                            <form-single name="OtherCreateForm" transition="createContactMechOther">
+                                <field name="partyId"><default-field><hidden/></default-field></field>
+                                <field name="contactMechTypeEnumId"><default-field title="Type">
+                                    <drop-down><entity-options key="${enumId}" text="${description}">
+                                        <entity-find entity-name="moqui.basic.Enumeration">
+                                            <econdition field-name="enumTypeId" value="ContactMechType"/>
+                                            <econdition field-name="enumId" operator="not-in" from="handledContactMechTypes"/>
+                                            <order-by field-name="description"/>
+                                        </entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
+                                <field name="contactMechPurposeId"><default-field title="Purpose">
+                                    <drop-down><dynamic-options transition="getContactMechPurposesByType">
+                                        <depends-on field="contactMechTypeEnumId"/></dynamic-options></drop-down>
+                                </default-field></field>
+                                <field name="infoString"><default-field title="Value">
+                                    <text-line size="60"/></default-field></field>
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+                    </button-menu>
+
                 </box-toolbar><box-body>
-                    <section-iterate name="EmailInfoSection" list="contactOut.emailAddressList" entry="contactInfo"><widgets>
-                        <container-row><row-col lg="6">
-                            <dynamic-dialog id="UpdateEmailInfo" button-text="Update" transition="UpdateContactInfo"
-                                    parameter-map="[partyId:partyId, emailContactMechId:contactInfo.emailContactMechId,
-                                        emailContactMechPurposeId:contactInfo.emailContactMechPurposeId]"/>
-                            <container-dialog id="EmailPurposeDialog" button-text="Purpose">
-                                <form-single name="EmailPurposeForm" transition="storePartyContactMech">
-                                    <field name="partyId"><default-field><hidden/></default-field></field>
-                                    <field name="contactMechId" from="contactInfo.emailContactMechId">
-                                        <default-field><hidden/></default-field></field>
-                                    <field name="oldContactMechPurposeId" from="contactInfo.emailContactMechPurposeId">
-                                        <default-field><hidden/></default-field></field>
-                                    <field name="contactMechPurposeId" from="contactInfo.emailContactMechPurposeId"><default-field title="Purpose">
-                                        <drop-down><entity-options key="${contactMechPurposeId}" text="${description}">
-                                            <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
-                                                <econdition field-name="contactMechTypeEnumId" value="CmtEmailAddress"/>
-                                                <order-by field-name="description"/>
-                                            </entity-find>
-                                        </entity-options></drop-down>
-                                    </default-field></field>
-                                    <field name="updateButton"><default-field title="Update Purpose"><submit/></default-field></field>
-                                    <field name="addButton"><default-field title="Add Purpose"><submit/></default-field></field>
-                                    <field-layout><field-ref name="contactMechPurposeId"/>
-                                        <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
-                                </form-single>
-                            </container-dialog>
-                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash" confirmation="Remove email address?"
-                                    parameter-map="[partyId:partyId, contactMechId:contactInfo.emailContactMechId,
-                                        contactMechPurposeId:contactInfo.emailContactMechPurposeId]"/>
-                        </row-col><row-col lg="6">
-                            <label text="${contactInfo.emailContactMechPurpose.description}" type="p"/>
-                            <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                        </row-col></container-row>
-                    </widgets></section-iterate>
                     <section-iterate name="PhoneInfoSection" list="contactOut.telecomNumberList" entry="contactInfo"><widgets>
                         <container-row><row-col lg="6">
                             <dynamic-dialog id="UpdatePhoneInfo" button-text="Update" transition="UpdateContactInfo"
@@ -878,12 +921,130 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
                                 </form-single>
                             </container-dialog>
-                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash" confirmation="Remove phone number?"
+                            <link url="removeContactInfo" text=" " icon="fa fa-trash" confirmation="Remove phone number?"
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.telecomContactMechId,
                                         contactMechPurposeId:contactInfo.telecomContactMechPurposeId]"/>
                         </row-col><row-col lg="6">
-                            <label text="${contactInfo.telecomContactMechPurpose.description}" type="p"/>
-                            <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                            <label text="${contactInfo.telecomContactMechPurpose.description}" type="strong"/>
+                            <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                        </row-col></container-row>
+                    </widgets></section-iterate>
+                    <section-iterate name="EmailInfoSection" list="contactOut.emailAddressList" entry="contactInfo"><widgets>
+                        <container-row><row-col lg="6">
+                            <dynamic-dialog id="UpdateEmailInfo" button-text="Update" transition="UpdateContactInfo"
+                                    parameter-map="[partyId:partyId, emailContactMechId:contactInfo.emailContactMechId,
+                                        emailContactMechPurposeId:contactInfo.emailContactMechPurposeId]"/>
+                            <container-dialog id="EmailPurposeDialog" button-text="Purpose">
+                                <form-single name="EmailPurposeForm" transition="storePartyContactMech">
+                                    <field name="partyId"><default-field><hidden/></default-field></field>
+                                    <field name="contactMechId" from="contactInfo.emailContactMechId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="oldContactMechPurposeId" from="contactInfo.emailContactMechPurposeId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="contactMechPurposeId" from="contactInfo.emailContactMechPurposeId"><default-field title="Purpose">
+                                        <drop-down><entity-options key="${contactMechPurposeId}" text="${description}">
+                                            <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
+                                                <econdition field-name="contactMechTypeEnumId" value="CmtEmailAddress"/>
+                                                <order-by field-name="description"/>
+                                            </entity-find>
+                                        </entity-options></drop-down>
+                                    </default-field></field>
+                                    <field name="updateButton"><default-field title="Update Purpose"><submit/></default-field></field>
+                                    <field name="addButton"><default-field title="Add Purpose"><submit/></default-field></field>
+                                    <field-layout><field-ref name="contactMechPurposeId"/>
+                                        <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </container-dialog>
+                            <link url="removeContactInfo" text=" " icon="fa fa-trash" confirmation="Remove email address?"
+                                    parameter-map="[partyId:partyId, contactMechId:contactInfo.emailContactMechId,
+                                        contactMechPurposeId:contactInfo.emailContactMechPurposeId]"/>
+                        </row-col><row-col lg="6">
+                            <label text="${contactInfo.emailContactMechPurpose.description}" type="strong"/>
+                            <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                        </row-col></container-row>
+                    </widgets></section-iterate>
+                    <section-iterate name="WebInfoSection" list="contactOut.webAddressList" entry="contactInfo"><widgets>
+                        <container-row><row-col lg="6">
+                            <dynamic-dialog id="UpdateWebInfo" button-text="Update" transition="UpdateContactInfo"
+                                    parameter-map="[partyId:partyId, webContactMechId:contactInfo.webContactMechId,
+                                        webContactMechPurposeId:contactInfo.webContactMechPurposeId]"/>
+                            <container-dialog id="WebPurposeDialog" button-text="Purpose">
+                                <form-single name="WebPurposeForm" transition="storePartyContactMech">
+                                    <field name="partyId"><default-field><hidden/></default-field></field>
+                                    <field name="contactMechId" from="contactInfo.webContactMechId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="oldContactMechPurposeId" from="contactInfo.webContactMechPurposeId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="contactMechPurposeId" from="contactInfo.webContactMechPurposeId"><default-field title="Purpose">
+                                        <drop-down><entity-options key="${contactMechPurposeId}" text="${description}">
+                                            <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
+                                                <econdition field-name="contactMechTypeEnumId" value="CmtWebAddress"/>
+                                                <order-by field-name="description"/>
+                                            </entity-find>
+                                        </entity-options></drop-down>
+                                    </default-field></field>
+                                    <field name="updateButton"><default-field title="Update Purpose"><submit/></default-field></field>
+                                    <field name="addButton"><default-field title="Add Purpose"><submit/></default-field></field>
+                                    <field-layout><field-ref name="contactMechPurposeId"/>
+                                        <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </container-dialog>
+                            <link url="removeContactInfo" text=" " icon="fa fa-trash" confirmation="Remove Web URL?"
+                                    parameter-map="[partyId:partyId, contactMechId:contactInfo.webContactMechId,
+                                        contactMechPurposeId:contactInfo.webContactMechPurposeId]"/>
+                        </row-col><row-col lg="6">
+                            <label text="${contactInfo.webContactMechPurpose.description}" type="strong"/>
+                            <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                        </row-col></container-row>
+                    </widgets></section-iterate>
+                    <section-iterate name="OtherInfoSection" list="otherPcmiList" entry="otherPcmi"><actions>
+                        <entity-find-one entity-name="moqui.basic.Enumeration" value-field="contactMechTypeEnum" cache="true">
+                            <field-map field-name="enumId" from="otherPcmi.contactMechTypeEnumId"/></entity-find-one>
+                        <entity-find-one entity-name="mantle.party.contact.ContactMechPurpose" value-field="contactMechPurpose" cache="true">
+                            <field-map field-name="contactMechPurposeId" from="otherPcmi.contactMechPurposeId"/></entity-find-one>
+                    </actions><widgets>
+                        <container-row><row-col lg="6">
+                            <container-dialog id="OtherUpdateDialog" button-text="Update">
+                                <form-single name="OtherUpdateForm" transition="updatePartyContactOther">
+                                    <field name="partyId"><default-field><hidden/></default-field></field>
+                                    <field name="contactMechId" from="otherPcmi.contactMechId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="contactMechPurposeId" from="otherPcmi.contactMechPurposeId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="infoString" from="otherPcmi.infoString"><default-field title="Value">
+                                        <text-line size="60"/></default-field></field>
+                                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                </form-single>
+                            </container-dialog>
+                            <container-dialog id="OtherPurposeDialog" button-text="Purpose">
+                                <form-single name="OtherPurposeForm" transition="storePartyContactMech">
+                                    <field name="partyId"><default-field><hidden/></default-field></field>
+                                    <field name="contactMechId" from="otherPcmi.contactMechId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="oldContactMechPurposeId" from="otherPcmi.contactMechPurposeId">
+                                        <default-field><hidden/></default-field></field>
+                                    <field name="contactMechPurposeId" from="otherPcmi.contactMechPurposeId"><default-field title="Purpose">
+                                        <drop-down>
+                                            <entity-options key="${contactMechPurposeId}" text="${description}">
+                                                <entity-find entity-name="mantle.party.contact.ContactMechPurpose">
+                                                    <econdition field-name="contactMechTypeEnumId" from="otherPcmi.contactMechTypeEnumId" or-null="true"/>
+                                                    <order-by field-name="description"/>
+                                                </entity-find>
+                                            </entity-options>
+                                        </drop-down>
+                                    </default-field></field>
+                                    <field name="updateButton"><default-field title="Update Purpose"><submit/></default-field></field>
+                                    <field name="addButton"><default-field title="Add Purpose"><submit/></default-field></field>
+                                    <field-layout><field-ref name="contactMechPurposeId"/>
+                                        <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
+                                </form-single>
+                            </container-dialog>
+                            <link url="removeContactInfo" text=" " icon="fa fa-trash" confirmation="Remove Contact Info?"
+                                    parameter-map="[partyId:partyId, contactMechId:otherPcmi.contactMechId,
+                                        contactMechPurposeId:otherPcmi.contactMechPurposeId]"/>
+                        </row-col><row-col lg="6">
+                            <label text="${contactMechTypeEnum.description} - ${contactMechPurpose.description}" type="strong"/>
+                            <container><label text="${otherPcmi.infoString}" type="i"/></container>
                         </row-col></container-row>
                     </widgets></section-iterate>
                 </box-body></container-box>
@@ -920,18 +1081,27 @@ along with this software (see the LICENSE.md file). If not, see
                                         <field-row-big><field-ref name="updateButton"/><field-ref name="addButton"/></field-row-big></field-layout>
                                 </form-single>
                             </container-dialog>
-                            <link url="removeContactInfo" text=" " icon="glyphicon glyphicon-trash" confirmation="Remove address?"
+                            <link url="removeContactInfo" text=" " icon="fa fa-trash" confirmation="Remove Address?"
                                     parameter-map="[partyId:partyId, contactMechId:contactInfo.postalContactMechId,
                                         contactMechPurposeId:contactInfo.postalContactMechPurposeId]"/>
                             <container>
                                 <label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/>
                                 <link url="validateAddress" text="Validate" parameter-map="[partyId:partyId, contactMechId:contactInfo.postalContactMechId]"
                                         condition="!contactInfo.postalContactMech.trustLevelEnumId || contactInfo.postalContactMech.trustLevelEnumId == 'CmtlNew'"/>
+                                <link url="updateContactMechMutable" text="Grey" parameter-map="[contactMechId:contactInfo.postalContactMechId, trustLevelEnumId:'CmtlGreylisted']"
+                                        condition="!(contactInfo.postalContactMech.trustLevelEnumId in ['CmtlGreylisted', 'CmtlBlacklisted'])"
+                                        confirmation="Really greylist this address?" btn-type="warning"/>
+                                <link url="updateContactMechMutable" text="Black" parameter-map="[contactMechId:contactInfo.postalContactMechId, trustLevelEnumId:'CmtlBlacklisted']"
+                                        condition="contactInfo.postalContactMech.trustLevelEnumId != 'CmtlBlacklisted'"
+                                        confirmation="Really blacklist this address?" btn-type="danger"/>
+                                <link url="updateContactMechMutable" text="Unlist" parameter-map="[contactMechId:contactInfo.postalContactMechId, trustLevelEnumId:'CmtlNew']"
+                                        condition="contactInfo.postalContactMech.trustLevelEnumId in ['CmtlGreylisted', 'CmtlBlacklisted']"
+                                        confirmation="Set trust level back to New?" btn-type="danger"/>
                             </container>
                             <label text="${contactInfo.postalContactMech.validateMessage?:''}" type="div"/>
                         </row-col><row-col lg="6">
-                            <label text="${contactInfo.postalContactMechPurpose.description}" type="p"/>
-                            <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                            <label text="${contactInfo.postalContactMechPurpose.description}" type="strong"/>
+                            <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                         </row-col></container-row>
                     </widgets></section-iterate>
                 </box-body></container-box>
@@ -953,13 +1123,15 @@ along with this software (see the LICENSE.md file). If not, see
                     <container style="float-box" type="ul">
                         <section-iterate name="BillingInfoSection" list="ppmiOut.methodInfoList" entry="methodInfo"><widgets>
                             <container type="li">
-                                <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/PaymentMethodInfo.html.gstring"/></render-mode>
+                                <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/PaymentMethodInfo.html.gstring"/></render-mode>
                                 <label text="CIM ID: ${methodInfo.paymentMethod.gatewayCimId}" type="div" condition="methodInfo.paymentMethod.gatewayCimId"/>
                                 <label text="Gateway: ${methodInfo.paymentMethod.gatewayConfig?.description}" type="div" condition="methodInfo.paymentMethod?.paymentGatewayConfigId"/>
                                 <dynamic-dialog id="UpdatePaymentMethodDialog" button-text="Update"
                                         transition="UpdatePaymentMethodInfo" width="800"
                                         parameter-map="[partyId:partyId, paymentMethodId:methodInfo.paymentMethodId]"/>
-                                <link url="removePaymentMethod" text=" " icon="glyphicon glyphicon-trash" parameter-map="[paymentMethodId:methodInfo.paymentMethodId]"/>
+                                <link url="removePaymentMethod" text=" " icon="fa fa-trash"
+                                        parameter-map="[paymentMethodId:methodInfo.paymentMethodId]"
+                                        confirmation="Really delete Payment Method ${methodInfo.paymentMethodId}?"/>
                                 <link url="editPaymentMethod" text="Detail" parameter-map="[partyId:partyId, paymentMethodId:methodInfo.paymentMethodId]"/>
                             </container>
                         </widgets></section-iterate>

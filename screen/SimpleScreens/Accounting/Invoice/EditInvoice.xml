@@ -31,6 +31,8 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateInvoiceClosed"><service-call name="mantle.account.InvoiceServices.update#InvoiceClosed"/>
         <default-response url="."/></transition>
     <transition name="updateStatus"><service-call name="update#mantle.account.invoice.Invoice"/><default-response url="."/></transition>
+    <transition name="reverseInvoice"><service-call name="mantle.account.InvoiceServices.reverse#Invoice"/>
+        <default-response url="."/></transition>
     <transition name="cancelInvoiceAndPayments"><service-call name="mantle.account.InvoiceServices.cancel#InvoiceAndPayments"/>
         <default-response url="."/></transition>
 
@@ -46,6 +48,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
     <transition-include name="getItemTypeGlAccount" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
+
+    <transition name="createCreditMemo"><service-call name="mantle.account.InvoiceServices.create#InvoiceCreditMemo"/>
+        <default-response url="."/></transition>
 
     <transition name="recordPayment"><service-call name="mantle.account.PaymentServices.create#InvoicePayment"/>
         <default-response url="."/></transition>
@@ -90,22 +95,21 @@ along with this software (see the LICENSE.md file). If not, see
         <!-- set statusId for StatusChangeSection -->
         <set field="statusId" from="invoice?.statusId"/>
 
-        <entity-find entity-name="mantle.party.PartyRole" list="fromOrgInternalList">
-            <econdition field-name="partyId" from="invoice.fromPartyId"/><econdition field-name="roleTypeId" value="OrgInternal"/></entity-find>
-        <set field="isFromPartyOrgInternal" from="fromOrgInternalList as boolean"/>
-        <set field="organizationPartyId" from="isFromPartyOrgInternal ? invoice.fromPartyId : invoice.toPartyId"/>
+        <entity-find-one entity-name="mantle.party.PartyDetail" value-field="organizationParty">
+            <field-map field-name="partyId" from="organizationPartyId"/></entity-find-one>
 
         <!-- find associated system messages (EDI, etc) -->
         <entity-find entity-name="moqui.service.message.SystemMessage" list="outSystemMessageList">
             <econdition field-name="invoiceId"/><econdition field-name="isOutgoing" value="Y"/>
             <econdition field-name="statusId" operator="not-equals" value="SmsgCancelled"/>
         </entity-find>
-        <filter-map-list list="outSystemMessageList" to-list="inMessageList"><field-map field-name="docType" value="IN"/></filter-map-list>
+        <!-- don't require docType=IN, applicable for certain EDI SystemMessage records only:
+            <filter-map-list list="outSystemMessageList" to-list="inMessageList"><field-map field-name="docType" value="IN"/></filter-map-list> -->
     </actions>
     <widgets>
         <container-row><row-col lg="6">
             <container>
-                <section name="AdjustSection" condition="statusId in ['InvoiceFinalized', 'InvoiceSent', 'InvoiceApproved']"><widgets>
+                <section name="AdjustSection" condition="statusId in ['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoiceApproved']"><widgets>
                     <container-dialog id="AdjustDialog" button-text="Adjust Invoice">
                         <form-single name="AdjustInvoice" transition="adjustInvoice">
                             <field name="invoiceId"><default-field><hidden/></default-field></field>
@@ -133,7 +137,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                             <field name="typeGlAccount"><default-field title="Default GL Account">
                                 <display dynamic-transition="getItemTypeGlAccount" also-hidden="false" depends-optional="true"
-                                        parameter-map="[organizationPartyId:organizationPartyId, direction:(isFromPartyOrgInternal ? 'O' : 'I')]">
+                                        parameter-map="[organizationPartyId:organizationPartyId, direction:(isPayableInvoice ? 'I' : 'O')]">
                                     <depends-on field="itemTypeEnumId"/><depends-on field="productId"/></display>
                             </default-field></field>
                             <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
@@ -164,12 +168,17 @@ along with this software (see the LICENSE.md file). If not, see
                 -->
 
                 <link url="updateStatus" text="Uncancel" parameter-map="[invoiceId:invoiceId, statusId:'InvoiceInProcess']"
-                        condition="statusId == 'InvoiceCancelled' &amp;&amp; isFromPartyOrgInternal" confirmation="Go back to In Process status?"/>
+                        condition="statusId == 'InvoiceCancelled' &amp;&amp; !isPayableInvoice" confirmation="Go back to In Process status?"/>
                 <link url="updateStatus" text="Uncancel" parameter-map="[invoiceId:invoiceId, statusId:'InvoiceReceived']"
-                        condition="statusId == 'InvoiceCancelled' &amp;&amp; !isFromPartyOrgInternal" confirmation="Go back to Received status?"/>
+                        condition="statusId == 'InvoiceCancelled' &amp;&amp; isPayableInvoice" confirmation="Go back to Received status?"/>
+
+                <link url="cancelInvoiceAndPayments" text="Cancel Invoice and Payments" btn-type="warning"
+                        confirmation="Cancel this invoice and all payments applied to it?" condition="statusId != 'InvoiceCancelled'"/>
+
+                <link url="reverseInvoice" text="Reverse Invoice" btn-type="warning" condition="invoice.invoiceTotal &lt; 0.0"/>
 
                 <!-- see note above about more generic SystemRemote send transition:
-                <section name="SendEdiInvoiceSection" condition="isFromPartyOrgInternal &amp;&amp; invoice.systemMessageRemoteId"><widgets>
+                <section name="SendEdiInvoiceSection" condition="!isPayableInvoice &amp;&amp; invoice.systemMessageRemoteId"><widgets>
                     <link url="produceEdiInvoice" text="${inMessageList ? 'Resend' : 'Send'} EDI Invoice" parameter-map="[invoiceId:invoiceId]"/>
                 </widgets></section>
                 -->
@@ -339,7 +348,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <section name="EmailMessageSection"><widgets>
                 <container-box><box-header title="Email Messages"/><box-toolbar>
-                    <section name="SendFinalizedEmailSection" condition="isFromPartyOrgInternal &amp;&amp; invoice.statusId in ['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoicePmtRecvd']"><actions>
+                    <section name="SendFinalizedEmailSection" condition="!isPayableInvoice &amp;&amp; invoice.statusId in ['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoicePmtRecvd']"><actions>
                         <if condition="invoice.toPartyId">
                             <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="emailInfo"
                                     in-map="[partyId:invoice.toPartyId, emailContactMechPurposeId:'EmailBilling', defaultToPrimaryPurpose:true]"/>
@@ -391,12 +400,41 @@ along with this software (see the LICENSE.md file). If not, see
                 </box-body></container-box>
             </widgets></section>
         </row-col><row-col lg="6">
+            <label text="Payable Invoice ${invoiceId} for ${ec.resource.expand('PartyNameTemplate', null, organizationParty)}" condition="isPayableInvoice"/>
+            <label text="Receivable Invoice ${invoiceId} for ${ec.resource.expand('PartyNameTemplate', null, organizationParty)}" condition="!isPayableInvoice"/>
+
             <section-include name="StatusChangeSection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
             <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
 
             <container-box><box-header title="Payment Applications"/><box-toolbar>
-                <link url="cancelInvoiceAndPayments" text="Cancel Invoice and Payments" confirmation="Cancel this invoice and all payments applied to it?"
-                        condition="statusId != 'InvoiceCancelled'"/>
+                <container-dialog id="NewCreditMemoDialog" button-text="New Credit Memo" condition="unpaidTotal">
+                    <form-single name="NewCreditMemoForm" transition="createCreditMemo">
+                        <field name="originalInvoiceId" from="invoiceId"><default-field><display/></default-field></field>
+
+                        <field name="invoiceDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+
+                        <field name="description"><default-field><text-line size="50"/></default-field></field>
+                        <field name="amount" from="unpaidTotal"><default-field><text-line size="8" format="#,##0.00"/></default-field></field>
+
+                        <field name="itemTypeEnumId"><default-field title="Item Type">
+                            <drop-down><entity-options key="${enumId}" text="${description}">
+                                <entity-find entity-name="moqui.basic.EnumAndGroup">
+                                    <econdition field-name="enumGroupEnumId" value="EngItemsAdjust"/>
+                                    <order-by field-name="description"/></entity-find>
+                            </entity-options></drop-down>
+                        </default-field></field>
+
+                        <field name="typeGlAccount"><default-field title="Default GL Account">
+                            <display dynamic-transition="getItemTypeGlAccount" also-hidden="false" depends-optional="true"
+                                    parameter-map="[organizationPartyId:organizationPartyId, direction:(isPayableInvoice ? 'I' : 'O')]">
+                                <depends-on field="itemTypeEnumId"/><depends-on field="productId"/></display>
+                        </default-field></field>
+                        <field name="overrideGlAccountId"><default-field title="Override GL Account"><drop-down allow-empty="true">
+                            <dynamic-options transition="getGlAccountListPaginated" server-search="true" min-length="0"/></drop-down></default-field></field>
+
+                        <field name="submitButton"><default-field title="Record Credit Memo"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
 
                 <container-dialog id="RecordPaymentContainer" button-text="New Payment for Invoice" condition="unpaidTotal">
                     <form-single name="RecordPaymentForm" transition="recordPayment">

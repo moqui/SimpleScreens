@@ -32,6 +32,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getAssetPoolList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
@@ -47,14 +48,16 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <link url="../FindAsset" text="Find Individual Assets"/>
         <link url="../SelectAsset" text="Move Asset"/>
+        <link url="../../Container" text="Containers"/>
         <link url="../../EditLots" text="Lots"/>
+        <link url="../../AssetPool" text="Pools"/>
         <link url="assetOnHand" text="On Hand Report"/>
 
         <container-dialog id="ReceiveAssetDialog" button-text="Receive Direct" width="800">
             <label text="NOTE: only receive inventory here if there is no Purchase Order and no Incoming Shipment for the inventory." type="p" style="text-warning"/>
             <form-single name="ReceiveAssetForm" transition="receiveAsset">
                 <field name="productId"><default-field title="Product*"><drop-down>
-                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></default-field></field>
+                    <dynamic-options transition="getProductList" server-search="true" min-length="2"/></drop-down></default-field></field>
                 <field name="statusId"><default-field title="Status" tooltip="For inventory defaults to Available, otherwise defaults to In Storage">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
                         <set field="statusTypeId" value="Asset"/><set field="allowEmpty" value="true"/>
@@ -77,7 +80,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="manufacturedDate"><default-field title="Manufactured"><date-time type="date"/></default-field></field>
                 <field name="expectedEndOfLife"><default-field title="Expiration"><date-time type="date"/></default-field></field>
 
-                <field name="ownerPartyId"><default-field title="Owner">
+                <field name="ownerPartyId" from="ownerPartyId ?: activeOrgId"><default-field title="Owner">
                     <label text="Default Asset Owner (${ownerPartyId}) different from Facility owner (${destinationFacility.ownerPartyId}), if not consignment inventory change now" style="text-warning"
                             condition="ownerPartyId &amp;&amp; destinationFacility?.ownerPartyId &amp;&amp; ownerPartyId != destinationFacility.ownerPartyId"/>
                     <label text="Asset Owner will default to Facility owner" condition="!ownerPartyId"/>
@@ -85,8 +88,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,OrgInternal']"/>
                     </drop-down>
                 </default-field></field>
-                <field name="acquireCost"><default-field><text-line size="8" format="#,##0.00"/></default-field></field>
+                <field name="assetPoolId"><default-field title="Pool"><drop-down allow-empty="true">
+                    <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0" depends-optional="true">
+                        <depends-on field="ownerPartyId"/></dynamic-options></drop-down>
+                </default-field></field>
 
+                <field name="acquireCost"><default-field><text-line size="8" format="#,##0.00"/></default-field></field>
                 <field name="quantity"><default-field title="Quantity*"><text-line size="8"/></default-field></field>
 
                 <field name="facilityId"><default-field title="Facility*"><drop-down>
@@ -110,11 +117,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <field-ref name="productId"/>
                     <field-row><field-ref name="statusId"/><field-ref name="receivedDate"/></field-row>
                     <field-row><field-ref name="quantity"/></field-row>
-                    <field-ref name="facilityId"/>
+                    <field-ref name="facilityId"/><field-ref name="ownerPartyId"/><field-ref name="assetPoolId"/>
                     <field-ref name="locationSeqId"/><field-ref name="containerId"/>
                     <field-ref name="mfgPartyId"/><field-ref name="lotId"/><field-ref name="lotNumber"/>
                     <field-row><field-ref name="manufacturedDate"/><field-ref name="expectedEndOfLife"/></field-row>
-                    <field-ref name="acquireCost"/><field-ref name="ownerPartyId"/>
+                    <field-ref name="acquireCost"/>
                     <field-ref name="comments"/>
                     <field-ref name="submitButton"/>
                 </field-layout>
@@ -131,6 +138,14 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="getLocationList" server-search="true" min-length="0" depends-optional="true">
                         <depends-on field="facilityId"/></dynamic-options>
                 </drop-down></default-field></field>
+                <field name="ownerPartyId">
+                    <default-field title="Owner Party"><drop-down allow-empty="true">
+                        <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></default-field>
+                </field>
+                <field name="assetPoolId"><default-field title="Pool"><drop-down allow-empty="true">
+                    <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0" depends-optional="true">
+                        <depends-on field="ownerPartyId"/></dynamic-options></drop-down>
+                </default-field></field>
                 <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
                     <dynamic-options transition="getLotList" server-search="true" min-length="2"/>
                 </drop-down></default-field></field>
@@ -149,18 +164,23 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
         <form-list name="AssetSummary" list="assetList" skip-form="true" header-dialog="true" saved-finds="true"
-                select-columns="true" show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="assetList">
-                <search-form-inputs default-order-by="productName,facilityId,lotId"/>
+                select-columns="true" show-csv-button="true" show-xlsx-button="true" show-all-button="true">
+            <entity-find entity-name="mantle.product.asset.AssetSummaryView" list="assetList" use-clone="true">
+                <search-form-inputs default-order-by="productName,facilityId,lotId" skip-fields="assetTypeEnumId" require-parameters="true"/>
+                <econdition field-name="assetTypeEnumId" ignore-if-empty="true"/>
                 <having-econditions combine="or">
-                    <econdition field-name="quantityOnHandTotal" operator="not-equals" from="0.0"/>
-                    <econdition field-name="availableToPromiseTotal" operator="not-equals" from="0.0"/>
+                    <econdition field-name="quantityOnHandTotal" operator="not-equals" from="0.0" ignore="showZeroQuantity == 'true'"/>
+                    <econdition field-name="availableToPromiseTotal" operator="not-equals" from="0.0" ignore="showZeroQuantity == 'true'"/>
                 </having-econditions>
                 <select-field field-name="productId"/>
             </entity-find>
             <row-actions>
                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true"/>
             </row-actions>
+
+            <field name="showZeroQuantity"><header-field title="Zero Quantity">
+                <check><option key="true" text="Show summary records with zero QOH and ATP"/></check>
+            </header-field></field>
 
             <field name="assetsLink">
                 <default-field title="Assets"><link url="findAsset" text="Assets" parameter-map="[productId:productId, statusId:statusId,
@@ -205,10 +225,12 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
+            <field name="acquireCost"><header-field><range-find size="5"/></header-field>
+                <default-field><display/></default-field></field>
 
             <field name="facilityId">
                 <header-field title="Facility" show-order-by="case-insensitive"><drop-down allow-empty="true">
-                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></header-field>
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[ownerPartId:null]"/></drop-down></header-field>
                 <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
             </field>
             <field name="locationSeqId">
@@ -230,6 +252,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="getLotList" server-search="true" min-length="2"/></drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.product.asset.LotAndMfgParty" text="LotNameTemplate"/></default-field>
             </field>
+            <field name="assetPoolId">
+                <header-field title="Asset Pool"><drop-down allow-empty="true">
+                    <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><display-entity entity-name="mantle.product.asset.AssetPool" text="${pseudoId}: ${description}"/></default-field>
+            </field>
 
             <field name="availableToPromiseTotal" align="right" show-total="true"><header-field title="Available" show-order-by="true"/>
                 <default-field><display/></default-field></field>
@@ -245,17 +272,23 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="physicalChange"><default-field title="PhI Diff">
                 <dynamic-dialog id="PhysicalChange" button-text="PhI Diff" transition="PhysicalChange" width="800" condition="productId"/>
             </default-field></field>
+            <field name="moveLink"><default-field title="Move">
+                <link url="../SelectAsset" text="Move" condition="quantityOnHandTotal"
+                        parameter-map="[productId:productId, facilityId:facilityId, locationSeqId:locationSeqId,
+                            containerId:containerId, lotId:lotId, assetPoolId:assetPoolId]"/>
+            </default-field></field>
 
             <field name="findButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="assetsLink"/></form-list-column>
-            <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/></form-list-column>
-            <form-list-column><field-ref name="assetTypeEnumId"/><field-ref name="classEnumId"/></form-list-column>
-            <form-list-column><field-ref name="statusId"/><field-ref name="ownerPartyId"/></form-list-column>
-            <form-list-column><field-ref name="facilityId"/><field-ref name="lotId"/></form-list-column>
+            <form-list-column><field-ref name="pseudoId"/><field-ref name="productName"/><field-ref name="classEnumId"/></form-list-column>
+            <form-list-column><field-ref name="statusId"/><field-ref name="ownerPartyId"/>
+                <field-ref name="assetPoolId"/></form-list-column>
+            <form-list-column><field-ref name="facilityId"/><field-ref name="locationSeqId"/><field-ref name="lotId"/></form-list-column>
             <form-list-column><field-ref name="availableToPromiseTotal"/><field-ref name="quantityOnHandTotal"/></form-list-column>
             <form-list-column><field-ref name="physicalQuantity"/></form-list-column>
             <!-- <form-list-column><field-ref name="physicalChange"/></form-list-column> -->
+            <form-list-column><field-ref name="moveLink"/></form-list-column>
         </form-list>
     </widgets>
 </screen>

@@ -18,33 +18,30 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="shipmentId" required="true"/>
     <parameter name="productId"/>
     <parameter name="statusId"/>
+    <!-- FILTER PASS THROUGH -->
+    <parameter name="filterProductId"/><parameter name="onlyRemaining"/>
+    <parameter name="pageIndex"/>
 
-    <transition name="receive"><service-call name="mantle.shipment.ShipmentServices.receive#ShipmentProduct"/><default-response url=".."/></transition>
+    <transition name="receive"><service-call name="mantle.shipment.ShipmentServices.receive#ShipmentProduct"/>
+        <default-response url=".."/></transition>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getAssetPoolList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <actions>
-        <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
-        <if condition="shipmentItem == null">
-            <!-- see if productId is a pseudoId or ProductIdentification -->
-            <entity-find-one entity-name="mantle.product.Product" value-field="product">
-                <field-map field-name="pseudoId" from="productId"/></entity-find-one>
-            <if condition="product != null"><set field="productId" from="product.productId"/></if>
-            <if condition="product == null">
-                <entity-find entity-name="mantle.product.ProductIdentification" list="prodIdentList">
-                    <econdition field-name="idValue" from="productId"/></entity-find>
-                <if condition="prodIdentList.size() == 1"><set field="productId" from="prodIdentList[0].productId"/></if>
-                <if condition="prodIdentList.size() &gt; 1">
-                    <message type="warning">Found multiple products with ID ${scanId}: ${prodIdentList*.productId.join(', ')}</message></if>
-            </if>
+        <set field="origProductId" from="productId"/>
+        <service-call name="mantle.product.ProductServices.find#ProductByIdValue" out-map="productByIdOut"
+                in-map="[idValue:productId, shipmentId:shipmentId]"/>
+        <set field="productId" from="productByIdOut.productId ?: productId"/>
+        <entity-find-one entity-name="mantle.product.Product" value-field="product"/>
+        <if condition="product == null"><return error="true" message="No Product found with ID ${origProductId}"/></if>
 
-            <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
-            <if condition="shipmentItem == null"><return error="true" message="Shipment ${shipmentId} item ${productId} not found"/></if>
-        </if>
+        <entity-find-one entity-name="mantle.shipment.ShipmentItem" value-field="shipmentItem"/>
+        <if condition="shipmentItem == null"><return error="true" message="Shipment ${shipmentId} item ${productId} not found"/></if>
 
         <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
         <service-call name="org.moqui.impl.BasicServices.find#Enumeration" in-map="[enumTypeId:'RejectionReason']" out-map="reasonOut"/>
@@ -58,12 +55,36 @@ along with this software (see the LICENSE.md file). If not, see
             <set field="quantityAccepted" from="quantityAccepted - (assetReceipt.quantityAccepted ?: 0.0) - (assetReceipt.quantityRejected ?: 0.0)"/>
         </iterate>
 
-        <!-- try to get the default acquireCost from order items -->
+        <!-- get all SIS records for order and return specific data -->
         <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="shipmentItemSourceList">
-            <econdition field-name="shipmentId"/><econdition field-name="productId"/>
-            <econdition field-name="orderId" operator="is-not-null"/><econdition field-name="orderItemSeqId" operator="is-not-null"/>
+            <econdition field-name="shipmentId"/>
+            <econdition field-name="productId"/>
         </entity-find>
-        <iterate list="shipmentItemSourceList" entry="shipmentItemSource">
+
+        <!-- look up ReturnItem.inventoryStatusId -->
+        <set field="returnShipmentItemSourceList" from="shipmentItemSourceList.findAll({ it.returnId &amp;&amp; it.returnItemSeqId })"/>
+        <iterate list="returnShipmentItemSourceList" entry="returnShipmentItemSource">
+            <entity-find-one entity-name="mantle.order.return.ReturnItem" value-field="returnItem">
+                <field-map field-name="returnId" from="returnShipmentItemSource.returnId"/>
+                <field-map field-name="returnItemSeqId" from="returnShipmentItemSource.returnItemSeqId"/>
+            </entity-find-one>
+            <if condition="returnItem?.inventoryStatusId">
+                <set field="statusId" from="returnItem.inventoryStatusId"/>
+                <break/>
+            </if>
+        </iterate>
+
+        <!-- if an AssetOwner Party is specified for the Shipment use it as the default Asset.ownerPartyId -->
+        <entity-find entity-name="mantle.shipment.ShipmentParty" list="assetOwnerPartyList">
+            <econdition field-name="shipmentId"/>
+            <econdition field-name="roleTypeId" value="AssetOwner"/>
+            <order-by field-name="partyId"/>
+        </entity-find>
+        <set field="ownerPartyId" from="assetOwnerPartyList ? assetOwnerPartyList[0].partyId : null"/>
+
+        <!-- try to get the default acquireCost from order items -->
+        <set field="orderShipmentItemSourceList" from="shipmentItemSourceList.findAll({ it.orderId &amp;&amp; it.orderItemSeqId })"/>
+        <iterate list="orderShipmentItemSourceList" entry="shipmentItemSource">
             <if condition="(!acquireCost || !ownerPartyId) &amp;&amp; shipmentItemSource.orderId &amp;&amp; shipmentItemSource.orderItemSeqId">
                 <entity-find-one entity-name="mantle.order.OrderItem" value-field="orderItem">
                     <field-map field-name="orderId" from="shipmentItemSource.orderId"/>
@@ -76,6 +97,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </if>
             </if>
         </iterate>
+        <!-- if no ownerPartyId from parameter or OrderPart set to activeOrgId if there is one -->
+        <if condition="!ownerPartyId"><set field="ownerPartyId" from="activeOrgId"/></if>
+        <!-- ownerPartyId from Product.ownerPartyId if not yet set (no parameter or activeOrgId) -->
+        <if condition="!ownerPartyId"><set field="ownerPartyId" from="product?.ownerPartyId"/></if>
         <if condition="shipment.shipmentTypeEnumId == 'ShpTpSalesReturn'"><then>
             <if condition="!ownerPartyId">
                 <entity-find-one entity-name="mantle.facility.Facility" value-field="destFacility"/>
@@ -100,6 +125,12 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <form-single name="ReceiveForm" transition="receive">
             <field name="shipmentId"><default-field><hidden/></default-field></field>
+
+            <!-- FILTER PASS THROUGH -->
+            <field name="filterProductId"><default-field><hidden/></default-field></field>
+            <field name="onlyRemaining"><default-field><hidden/></default-field></field>
+            <field name="pageIndex"><default-field><hidden/></default-field></field>
+
             <field name="fromPartyName"><default-field title="Supplier">
                 <display text="PartyNameTemplate" text-map="fromPartyDetail"/></default-field></field>
             <field name="productId">
@@ -136,6 +167,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Supplier,OrgInternal']"/>
                 </drop-down>
             </default-field></field>
+            <field name="assetPoolId"><default-field title="Pool"><drop-down allow-empty="true">
+                <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0" depends-optional="true">
+                    <depends-on field="ownerPartyId"/></dynamic-options>
+            </drop-down></default-field></field>
+
             <field name="acquireCost"><default-field tooltip="Defaults to Standard Cost or Price (Unit Amount) on related order item">
                 <text-line size="8" format="#,##0.00"/></default-field></field>
 
@@ -171,6 +207,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="lotNumber"/>
                 <field-row><field-ref name="manufacturedDate"/><field-ref name="expectedEndOfLife"/></field-row>
                 <field-ref name="ownerPartyId"/>
+                <field-ref name="assetPoolId"/>
                 <field-ref name="acquireCost"/>
                 <field-row><field-ref name="quantityAccepted"/><field-ref name="quantityRejected"/></field-row>
                 <field-row><field-ref name="facilityId"/><field-ref name="rejectionReasonEnumId"/></field-row>

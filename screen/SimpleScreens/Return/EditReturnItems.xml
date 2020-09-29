@@ -17,19 +17,24 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="returnId" required="true"/>
 
-    <transition name="updateReturnItem"><service-call name="update#mantle.order.return.ReturnItem"/>
+    <transition name="updateReturnItem"><service-call name="mantle.order.ReturnServices.update#ReturnItem"/>
         <default-response url="."/></transition>
+    <transition name="deleteReturnItem"><service-call name="mantle.order.ReturnServices.delete#ReturnItem"/>
+        <default-response url="."/></transition>
+
     <transition name="processReturnItemResponses"><service-call name="mantle.order.ReturnServices.process#ReturnItemResponses"/>
         <default-response url="."/></transition>
     <transition name="receiveReturnWithoutShipment"><service-call name="mantle.order.ReturnServices.receive#ReturnWithoutShipment"/>
         <default-response url="."/></transition>
-    <transition name="deleteReturnItem"><service-call name="mantle.order.ReturnServices.delete#ReturnItem"/>
+
+    <transition name="createReturnShipment"><service-call name="mantle.order.ReturnServices.create#ReturnShipment"/>
         <default-response url="."/></transition>
 
     <transition name="salesOrderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="editFinancialAccount"><default-response url="//${appRoot}/Accounting/FinancialAccount/EditFinancialAccount"/></transition>
     <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
     <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
 
     <actions>
         <entity-find-one entity-name="mantle.order.return.ReturnHeader" value-field="returnHeader"/>
@@ -64,8 +69,29 @@ along with this software (see the LICENSE.md file). If not, see
             <if condition="!returnItem.parentItemSeqId"><script>rootItemList.add(returnItem)</script></if>
         </iterate>
 
+        <entity-find entity-name="mantle.shipment.ShipmentItemSource" list="allItemSisList">
+            <econdition field-name="returnId"/></entity-find>
         <entity-find entity-name="mantle.order.return.ReturnItemBilling" list="allItemBillingList">
             <econdition field-name="returnId"/></entity-find>
+
+        <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
+            <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
+        <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
+
+        <set field="allOnShipments" from="true"/>
+        <iterate list="returnItemList" entry="returnItem">
+            <if condition="returnItem.productId">
+                <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="true">
+                    <field-map field-name="productId" from="returnItem.productId"/></entity-find-one>
+                <set field="isProductItemType" from="returnItem.itemTypeEnumId in productItemTypes"/>
+                <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
+
+                <if condition="isShippable">
+                    <set field="itemSisQuantity" from="allItemSisList.findAll({ it.returnItemSeqId == returnItem.returnItemSeqId })*.quantity.sum()"/>
+                    <if condition="itemSisQuantity &lt; returnItem.returnQuantity"><set field="allOnShipments" from="false"/></if>
+                </if>
+            </if>
+        </iterate>
     </actions>
     <widgets>
         <link url="processReturnItemResponses" text="Process Item Responses" condition="!allResponses"
@@ -73,9 +99,14 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="receiveReturnWithoutShipment" text="Receive without Shipment" condition="!allReceived"
                 confirmation="Are you sure, and are all return quantities correct? This will cancel the return shipment, receive full quantity of all Approved or Shipped items, and process item responses."/>
 
+        <link url="createReturnShipment" text="Create Return Shipment" condition="!allOnShipments"
+              confirmation="Create new shipment for items not already on an incoming return shipment?"/>
+
         <form-list name="ReturnItemList" list="returnItemList" transition="updateReturnItem">
             <row-actions>
                 <set field="itemChangeable" from="statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnApproved']"/>
+                <set field="itemStrictChangeable" from="statusId in ['ReturnCreated', 'ReturnRequested']"/>
+
                 <if condition="finAccountTransId">
                     <entity-find-one entity-name="mantle.account.financial.FinancialAccountTrans" value-field="finAccountTrans"/>
                     <set field="finAccountId" from="finAccountTrans.finAccountId"/>
@@ -83,6 +114,38 @@ along with this software (see the LICENSE.md file). If not, see
                 <filter-map-list list="allItemBillingList" to-list="curItemBillingList">
                     <field-map field-name="returnItemSeqId"/></filter-map-list>
                 <set field="invoiceId" from="curItemBillingList ? curItemBillingList[0].invoiceId : null"/>
+                <filter-map-list list="allItemSisList" to-list="curItemSisList">
+                    <field-map field-name="returnItemSeqId"/></filter-map-list>
+
+                <if condition="productId">
+                    <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="true"/>
+                    <set field="isProductItemType" from="itemTypeEnumId in productItemTypes"/>
+                    <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
+
+                    <if condition="itemStrictChangeable &amp;&amp; isProductItemType">
+                        <!-- see if current Product is a variant and if so populate variantProductList -->
+                        <entity-find entity-name="mantle.product.ProductAssoc" list="virtualAssocList">
+                            <date-filter/>
+                            <econdition field-name="toProductId" from="productId"/>
+                            <econdition field-name="productAssocTypeEnumId" value="PatVariant"/>
+                        </entity-find>
+                        <if condition="virtualAssocList">
+                            <entity-find entity-name="mantle.product.ProductAssoc" list="variantAssocList">
+                                <date-filter/>
+                                <econdition field-name="productId" operator="in" from="virtualAssocList*.productId"/>
+                                <econdition field-name="productAssocTypeEnumId" value="PatVariant"/>
+                            </entity-find>
+                            <set field="variantProductIdSet" from="new HashSet(variantAssocList*.toProductId)"/>
+                            <set field="variantProductList" from="new ArrayList(variantProductIdSet.size())"/>
+                            <iterate list="variantProductIdSet" entry="variantProductId">
+                                <entity-find-one entity-name="mantle.product.Product" value-field="variantProduct" cache="true">
+                                    <field-map field-name="productId" from="variantProductId"/></entity-find-one>
+                                <script>variantProductList.add(variantProduct)</script>
+                            </iterate>
+                            <order-map-list list="variantProductList"><order-by field-name="pseudoId"/></order-map-list>
+                        </if>
+                    </if>
+                </if>
             </row-actions>
             <field name="returnId"><default-field><hidden/></default-field></field>
             <field name="returnItemSeqId"><default-field title="Item"><display/></default-field></field>
@@ -117,30 +180,50 @@ along with this software (see the LICENSE.md file). If not, see
                 <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
             <field name="productId"><default-field title="Product">
                 <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+            <field name="replacementProductId">
+                <!-- NOTE: could also allow general product search instead of only alternate variants, or perhaps if there are no alternate variants (!variantProductList) -->
+                <conditional-field condition="itemStrictChangeable &amp;&amp; variantProductList"><drop-down allow-empty="true">
+                    <list-options list="variantProductList" key="${productId}" text="ProductNameTemplate"/>
+                </drop-down></conditional-field>
+                <default-field title="Replacement Product">
+                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field>
+            </field>
+
             <field name="description">
                 <conditional-field condition="itemChangeable"><text-line size="30"/></conditional-field>
                 <default-field><display/></default-field></field>
             <field name="orderItem"><default-field>
                 <link url="salesOrderDetail" text="${orderId}:${orderItemSeqId}" link-type="anchor"
                       condition="orderId"/></default-field></field>
-            <field name="returnQuantity"><conditional-field condition="itemChangeable"><text-line size="4"/></conditional-field>
+            <field name="returnQuantity">
+                <conditional-field condition="itemChangeable &amp;&amp; !responseAmount"><text-line size="4"/></conditional-field>
                 <default-field><display/></default-field></field>
             <field name="inventoryStatusId">
-                <conditional-field condition="itemChangeable">
+                <conditional-field condition="itemChangeable &amp;&amp; isShippable">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                        <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstAvailable"/>
+                        <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstReturned"/>
                         <set field="style" value=" "/></widget-template-include>
                 </conditional-field>
                 <default-field title="Inventory Status"><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
-            <field name="returnPrice"><conditional-field condition="itemChangeable"><text-line size="8"/></conditional-field>
-                <default-field><display currency-unit-field="returnHeader.currencyUomId"/></default-field></field>
-            <field name="receivedQuantity"><default-field><display/></default-field></field>
-            <field name="responseAmount"><default-field><display currency-unit-field="returnHeader.currencyUomId"/></default-field></field>
+            <field name="returnPrice">
+                <conditional-field condition="itemChangeable &amp;&amp; !responseAmount"><text-line size="8"/></conditional-field>
+                <default-field><display currency-unit-field="returnHeader.currencyUomId"/></default-field>
+            </field>
+
+            <field name="receivedQuantity" from="receivedQuantity ?: 0.0"><default-field><display/></default-field></field>
+            <field name="shipments"><default-field>
+                <section-iterate name="ItemShipmentList" list="curItemSisList" entry="curItemSis"><widgets>
+                    <link url="shipmentDetail" text="${curItemSis.shipmentId} (${curItemSis.quantity})" link-type="anchor"
+                          parameter-map="[shipmentId:curItemSis.shipmentId]"/>
+                </widgets></section-iterate>
+            </default-field></field>
             <field name="responseDate"><default-field><display/></default-field></field>
             <field name="replacementOrderId"><default-field title="Replacement Order">
                 <link url="salesOrderDetail" text="${replacementOrderId}" link-type="anchor" condition="replacementOrderId"
                       parameter-map="[orderId:replacementOrderId]"/></default-field></field>
+
+            <field name="responseAmount"><default-field><display currency-unit-field="returnHeader.currencyUomId"/></default-field></field>
             <field name="finAccountTransId"><default-field title="Refund Credit Trans">
                 <link url="editFinancialAccount" text="${finAccountTransId} (Account #${finAccountId})" link-type="anchor"
                       condition="finAccountTransId"/></default-field></field>
@@ -152,22 +235,23 @@ along with this software (see the LICENSE.md file). If not, see
                         parameter-map="[invoiceId:invoiceId]"/></default-field></field>
 
             <field name="submitButton">
-                <conditional-field title="Update" condition="itemChangeable">
-                    <submit/>
-                    <link url="deleteReturnItem" text="" btn-type="danger" icon="glyphicon glyphicon-trash"
-                            condition="statusId in ['ReturnCreated', 'ReturnRequested']"
-                            confirmation="Delete item ${returnItemSeqId}?"/>
-                </conditional-field>
+                <conditional-field title="Update" condition="itemChangeable"><submit/></conditional-field>
                 <default-field title=""><display text=" "/></default-field>
             </field>
+            <field name="buttons"><default-field title="">
+                <link url="deleteReturnItem" text="" btn-type="danger" icon="fa fa-trash"
+                        condition="statusId in ['ReturnCreated', 'ReturnRequested', 'ReturnCancelled']"
+                        confirmation="Delete item ${returnItemSeqId}?"/>
+            </default-field></field>
 
             <form-list-column><field-ref name="returnItemSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="orderItem"/><field-ref name="itemTypeEnumId"/></form-list-column>
             <form-list-column><field-ref name="returnReasonEnumId"/><field-ref name="inventoryStatusId"/></form-list-column>
             <form-list-column><field-ref name="returnResponseEnumId"/><field-ref name="responseImmediate"/></form-list-column>
-            <form-list-column><field-ref name="productId"/><field-ref name="description"/></form-list-column>
+            <form-list-column><field-ref name="productId"/><field-ref name="replacementProductId"/><field-ref name="description"/></form-list-column>
             <form-list-column><field-ref name="returnQuantity"/><field-ref name="returnPrice"/></form-list-column>
-            <form-list-column><field-ref name="receivedQuantity"/><field-ref name="responseDate"/><field-ref name="replacementOrderId"/></form-list-column>
+            <form-list-column><field-ref name="receivedQuantity"/><field-ref name="shipments"/>
+                <field-ref name="responseDate"/><field-ref name="replacementOrderId"/></form-list-column>
             <form-list-column><field-ref name="responseAmount"/><field-ref name="finAccountTransId"/>
                 <field-ref name="refundPaymentId"/><field-ref name="invoiceId"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>

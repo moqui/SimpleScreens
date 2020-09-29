@@ -27,6 +27,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updateBankAccountMutable"><service-call name="mantle.account.PaymentMethodServices.update#BankAccountMutable"/>
         <default-response url="."/></transition>
+    <transition name="removePaymentMethod"><service-call name="mantle.account.PaymentMethodServices.delete#PaymentMethod"/>
+        <default-response url="."/></transition>
 
     <transition-include name="getGlAccountListPaginated" location="component://SimpleScreens/template/account/AccountTransitions.xml"/>
     <transition-include name="getGeoCountryStates" location="component://SimpleScreens/template/party/PartyForms.xml"/>
@@ -65,6 +67,8 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="editParty" text="Edit Party" parameter-map="[partyId:methodInfoFlat.ownerPartyId]"/>
         <link url="findPayment" text="Payments From" parameter-map="[paymentMethodId:paymentMethodId]"/>
         <link url="findPayment" text="Payments To" parameter-map="[toPaymentMethodId:paymentMethodId]"/>
+        <link url="removePaymentMethod" text="Delete (Expire)" confirmation="Delete this Payment Method?" btn-type="danger"
+                parameter-map="[partyId:partyId, paymentMethodId:paymentMethodId]"/>
 
         <form-single name="PaymentMethodInfoForm" transition="storePaymentMethodInfo" map="methodInfoFlat"
                 extends="component://SimpleScreens/template/party/PartyForms.xml#PaymentMethodInfo"/>
@@ -146,10 +150,10 @@ along with this software (see the LICENSE.md file). If not, see
                 </field>
 
                 <field name="nachaNote"><default-field title=""><label text="NACHA fields for ACH (NACHA) export"/></default-field></field>
-                <field name="nachaImmedDest"><default-field title="NACHA Immed. Destination" tooltip="Required for NACHA; usually routing/transit number">
-                    <text-line size="9" maxlength="9"/></default-field></field>
-                <field name="nachaImmedOrig"><default-field title="NACHA Immed. Origin" tooltip="Required for NACHA; company source/origin ID">
-                    <text-line size="9" maxlength="9"/></default-field></field>
+                <field name="nachaImmedDest"><default-field title="*NACHA Immed. Destination" tooltip="Required for NACHA; usually routing/transit number">
+                    <text-line size="9" maxlength="10"/></default-field></field>
+                <field name="nachaImmedOrig"><default-field title="*NACHA Immed. Origin" tooltip="Required for NACHA; company source/origin ID">
+                    <text-line size="9" maxlength="10"/></default-field></field>
                 <field name="nachaImmedDestName"><default-field title="NACHA Immed. Dest. Name" tooltip="Defaults to Bank Name">
                     <text-line size="23" maxlength="23"/></default-field></field>
                 <field name="nachaImmedOrigName"><default-field title="NACHA Immed. Origin Name" tooltip="Defaults to Company Name On Account">
@@ -158,7 +162,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <text-line size="16" maxlength="16"/></default-field></field>
                 <field name="nachaDiscrData"><default-field title="NACHA Discr. Data" tooltip="Optional">
                     <text-line size="20" maxlength="20"/></default-field></field>
-                <field name="nachaCompanyId"><default-field title="NACHA Company ID" tooltip="Required for NACHA; bank-assigned Company ID">
+                <field name="nachaCompanyId"><default-field title="*NACHA Company ID" tooltip="Required for NACHA; bank-assigned Company ID">
                     <text-line size="10" maxlength="10"/></default-field></field>
                 <field name="nachaEntryDescription"><default-field title="NACHA Entry Description" tooltip="Required for NACHA">
                     <text-line size="10" maxlength="10"/></default-field></field>
@@ -183,6 +187,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="ledgerBalance"><default-field><text-line size="10"/></default-field></field>
                 <field name="availableBalance"><default-field><text-line size="10"/></default-field></field>
                 <field name="balanceDate"><default-field><date-time/></default-field></field>
+
+                <field name="thruDateSetAuto"><default-field title="Auto Delete" tooltip="If Yes auto delete when there are no more active Payments">
+                    <radio no-current-selected-key="N"><option key="N" text="No"/><option key="Y" text="Yes"/></radio>
+                </default-field></field>
 
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
             </form-single>

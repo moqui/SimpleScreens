@@ -188,8 +188,9 @@ along with this software (see the LICENSE.md file). If not, see
                 </container-dialog>
 
                 <!-- <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/> -->
-                <link url="ShipmentInsert.pdf" text="Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}" icon="glyphicon glyphicon-download"/>
-                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentInsert?shipmentId=${shipmentId}')"><i class="glyphicon glyphicon-print"></i> Insert</button>]]></text></render-mode>
+                <link url="ShipmentInsert.pdf" text="Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}" icon="fa fa-download"/>
+                <!-- TODO qvt -->
+                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentInsert?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Insert</button>]]></text></render-mode>
 
                 <!-- Pack Completed dialog - disabled unless at least one item packed and non-empty packages have box type and weight -->
                 <container-dialog id="PackCompletedErrorDialog" button-text="Pack Completed" type="warning"
@@ -228,6 +229,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
+                <!-- TODO qvt -->
                 <section name="QzPrintLabelsSection" condition="hasAnyLabels"><widgets><render-mode><text type="vuet"><![CDATA[
                     <m-script>
                         qzPrintAllLabels = function() {
@@ -238,13 +240,31 @@ along with this software (see the LICENSE.md file). If not, see
                                 <#if packageRouteSeg.returnLabelUrl?has_content>'${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
                             </#list>
                             ]);
+                            moqui.printUrlMain([
+                            <#list packageRouteSegList! as packageRouteSeg>
+                                <#if packageRouteSeg.internationalInvoiceUrl?has_content>'${getShipmentLabelPath}?intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                                <#if packageRouteSeg.returnIntlInvoiceUrl?has_content>'${getShipmentLabelPath}?retLabel=true&intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                            </#list>
+                            ]);
                         }
                         <#if localPrintAllLabels! == true>qzPrintAllLabels();</#if>
                     </m-script>
-                    <button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="qzPrintAllLabels();"><i class="glyphicon glyphicon-print"></i> All Labels</button>
+                    <button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="qzPrintAllLabels();"><i class="fa fa-print"></i> All Labels</button>
                 ]]></text></render-mode></widgets></section>
 
-                <link url="shipShipment" text="Set Shipped" condition="shipment.statusId == 'ShipPacked'" btn-type="success"/>
+                <section name="ShipShipmentSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
+                    <container-dialog id="SetShippedDialog" button-text="Set Shipped" type="${!hasAllTrackingCodes ? 'danger' : (!hasAllLabels ? 'warning' : 'success')}">
+                        <label text="Set as Shipped? If a Shipment Shipped email is configured it will be sent to the Customer." condition="isOutgoing" style="text-success" type="p"/>
+                        <container><label text="Not all packages have Labels" type="strong" style="text-warning" condition="!hasAllLabels"/></container>
+                        <container><label text="Not all packages have Tracking Codes" type="strong" style="text-danger" condition="!hasAllTrackingCodes"/></container>
+                        <form-single name="SetShippedForm" transition="shipShipment" focus-field="submitButton">
+                            <field name="shipmentId"><default-field><display/></default-field></field>
+                            <field name="actualStartDate" from="ec.user.nowTimestamp">
+                                <default-field title="Actual Start"><date-time/></default-field></field>
+                            <field name="submitButton"><default-field title="Set Shipped"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </widgets></section>
             </row-col></container-row>
 
             <!-- needed? no, request labels dialog allows carrier/method set: small manual set carrier/method form -->
@@ -391,14 +411,24 @@ along with this software (see the LICENSE.md file). If not, see
                             confirmation="Delete package ${shipmentPackage.shipmentPackageSeqId}?"
                             parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackage.shipmentPackageSeqId]"/>
 
-                    <link url="${packageRouteSeg.labelUrl}" text="Label" url-type="plain" target-window="_blank" icon="glyphicon glyphicon-download"
-                            style="btn-info" condition="packageRouteSeg?.labelUrl"/>
-                    <section name="QzPrintLabelSection" condition="packageRouteSeg?.labelUrl"><widgets><render-mode>
-                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Label</button>]]></text></render-mode></widgets></section>
-                    <link url="${packageRouteSeg.returnLabelUrl}" text="Ret Lbl" url-type="plain" target-window="_blank" icon="glyphicon glyphicon-download"
-                            style="btn-info" condition="packageRouteSeg?.returnLabelUrl"/>
-                    <section name="QzPrintRetLabelSection" condition="packageRouteSeg?.returnLabelUrl"><widgets><render-mode>
-                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="glyphicon glyphicon-print"></i> Ret Lbl</button>]]></text></render-mode></widgets></section>
+                    <link url="${packageRouteSeg.labelUrl}" text="Label" url-type="plain" target-window="_blank"
+                            btn-type="info" icon="fa fa-download" condition="packageRouteSeg?.labelUrl"/>
+                    <link url="getShipmentLabel" text="Label" target-window="_blank" btn-type="info" icon="fa fa-download"
+                            condition="packageRouteSeg?.labelImage"
+                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:packageRouteSeg.shipmentPackageSeqId, shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
+                    <!-- TODO qvt -->
+                    <section name="QzPrintLabelSection" condition="packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage"><widgets><render-mode>
+                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="fa fa-print"></i> Label</button>]]></text></render-mode></widgets></section>
+
+                    <link url="${packageRouteSeg.returnLabelUrl}" text="Ret Label" url-type="plain" target-window="_blank"
+                            btn-type="info" icon="fa fa-download" condition="packageRouteSeg?.returnLabelUrl"/>
+                    <link url="getShipmentLabel" text="Ret Label" target-window="_blank" btn-type="info" icon="fa fa-download"
+                            condition="packageRouteSeg?.returnLabelImage"
+                            parameter-map="[retLabel:'true', shipmentId:shipmentId, shipmentPackageSeqId:packageRouteSeg.shipmentPackageSeqId, shipmentRouteSegmentSeqId:packageRouteSeg.shipmentRouteSegmentSeqId]"/>
+                    <!-- TODO qvt -->
+                    <section name="QzPrintRetLabelSection" condition="packageRouteSeg?.returnLabelUrl || packageRouteSeg?.returnLabelImage"><widgets><render-mode>
+                        <text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlLabel('${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}')"><i class="fa fa-print"></i> Ret Lbl</button>]]></text></render-mode></widgets></section>
+
                     <container-dialog id="PrintLabelDialog" button-text="Net Print" type="success"
                             condition="(packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null) &amp;&amp; networkPrinterList">
                         <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
@@ -435,7 +465,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <row-col sm="2"><label text="Message" type="strong" condition="packageRouteSeg?.gatewayMessage"/></row-col>
                         <row-col sm="6"><label text="${packageRouteSeg?.gatewayMessage?:'N/A'}" condition="packageRouteSeg?.gatewayMessage"/></row-col>
                     </container-row>
-                    <section name="LabelRefundSection" condition="packageRouteSeg?.gatewayRefundId"><widgets>
+                    <section name="LabelRefundSection" condition="packageRouteSeg?.gatewayRefundStatus"><widgets>
                         <container-row>
                             <row-col sm="2"><label text="Refund" type="strong"/></row-col>
                             <row-col sm="2"><label text="${packageRouteSeg?.gatewayRefundStatus?:'N/A'}"/></row-col>
@@ -485,7 +515,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <row-col xs="9"><label text="${orderCarrierShipmentMethod?.description ? orderCarrierShipmentMethod.description : (orderCarrierDetail ? orderCarrierDetail.pseudoId : 'N/A') + ' ' + (orderShipmentMethodEnum ? orderShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
                 <section name="ShippedShippingInfo" condition="curDestPaInfo"><actions><set field="contactInfo" from="curDestPaInfo"/></actions><widgets>
                     <container-row><row-col xs="3" style="text-right"><label text="Dest" type="strong"/></row-col><row-col xs="9">
-                        <render-mode><text type="html,vuet" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                        <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
                         <container><label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/></container>
                     </row-col></container-row>
                 </widgets></section>
@@ -541,7 +571,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
                                 <field name="productId"><default-field title="Product">
                                     <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
-                                <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title="Package"><drop-down>
+                                <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title="Package##Shipment"><drop-down>
                                     <option key="" text="New Package"/>
                                     <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
                                 </drop-down></default-field></field>
@@ -626,11 +656,11 @@ along with this software (see the LICENSE.md file). If not, see
                                 <default-field><display text=" "/></default-field>
                             </field>
                             <field name="shipmentPackageSeqId" from="activePackageSeqId">
-                                <conditional-field condition="resPackForm" title="Package"><drop-down>
+                                <conditional-field condition="resPackForm" title="Package##Shipment"><drop-down>
                                     <option key="" text="New"/>
                                     <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
                                 </drop-down></conditional-field>
-                                <default-field title="Package"><display text=" "/></default-field>
+                                <default-field title="Package##Shipment"><display text=" "/></default-field>
                             </field>
                             <field name="quantity" from="quantityNotHandled">
                                 <conditional-field condition="resPackForm" title="Pack Qty"><text-line size="3"/></conditional-field>

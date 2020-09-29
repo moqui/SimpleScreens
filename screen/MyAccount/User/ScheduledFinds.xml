@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Scheduled Finds" default-menu-index="7">
+
+    <actions>
+        <set field="userAccount" from="ec.user.userAccount"/>
+    </actions>
+    <widgets>
+        <label text="Your account has no Email Address (username ${userAccount.username}), set one on the Account screen"
+                condition="!userAccount.emailAddress" style="text-danger" type="strong"/>
+        <label text="Email will be sent to ${userAccount.emailAddress} (username ${userAccount.username})"
+                condition="userAccount.emailAddress" style="text-success" type="strong"/>
+
+        <form-list name="ScreenScheduledList" list="screenScheduledList" header-dialog="true">
+            <entity-find entity-name="moqui.screen.ScreenScheduledAndFind" list="screenScheduledList">
+                <search-form-inputs default-order-by="screenPath,description"/>
+                <econdition field-name="userId" from="ec.user.userId"/>
+                <select-field field-name="screenPath,formListFindId"/>
+            </entity-find>
+            <row-actions>
+                <set field="cronDescription" from="org.moqui.impl.service.ScheduledJobRunner.getCronDescription(cronExpression, ec.user.getLocale(), true)"/>
+            </row-actions>
+
+            <field name="screenScheduledId"><default-field><hidden/></default-field></field>
+
+            <field name="screenLink"><default-field title="">
+                <link text="View" url="${screenPath}" parameter-map="[formListFindId:formListFindId]"/></default-field></field>
+
+            <field name="screenPath">
+                <header-field title="Screen"><text-find hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="description">
+                <header-field title="Saved Find"><text-find hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+
+            <field name="renderMode"><default-field>
+                <display text="${renderMode == 'xsl-fo' ? 'PDF' : renderMode.toUpperCase()}"/></default-field></field>
+            <field name="noResultsAbort"><default-field title="No Results Skip">
+                <display text="${noResultsAbort == 'Y' ? 'Yes' : 'No'}"/></default-field></field>
+
+            <!-- TODO: something user friendly for this, cron to human readable? -->
+            <field name="cronExpression"><default-field><display text="[${cronExpression}] ${cronDescription}"/></default-field></field>
+
+            <field name="fromDate"><default-field red-when="after-now"><display/></default-field></field>
+            <field name="thruDate"><default-field red-when="before-now"><display/></default-field></field>
+
+            <!-- not really good for end-user facing: <field name="saveToLocation"><default-field><display/></default-field></field> -->
+            
+            <field name="emailTemplateId"><default-field title="Email Template">
+                <display-entity entity-name="moqui.basic.email.EmailTemplate" text="${description}"/></default-field></field>
+
+            <field name="emailSubject">
+                <header-field><text-find hide-options="true"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+
+            <field name="submitButton">
+                <header-field><submit text="Find"/></header-field>
+                <default-field><dynamic-dialog button-text="Update" id="UpdateScheduledFind" transition="EditScheduledFind"/></default-field>
+            </field>
+
+            <form-list-column><field-ref name="screenLink"/></form-list-column>
+            <form-list-column><field-ref name="screenPath"/><field-ref name="description"/></form-list-column>
+            <form-list-column><field-ref name="renderMode"/><field-ref name="noResultsAbort"/></form-list-column>
+            <form-list-column><field-ref name="cronExpression"/></form-list-column>
+            <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
+            <form-list-column><field-ref name="emailTemplateId"/><field-ref name="emailSubject"/></form-list-column>
+            <form-list-column><field-ref name="submitButton"/></form-list-column>
+        </form-list>
+    </widgets>
+</screen>

@@ -3,8 +3,8 @@ define({
     data: function() { return { activeOrg:null, userOrgList:null } },
     template:
     '<div id="active-org-menu" class="nav navbar-right dropdown">' +
-        '<a id="active-org-menu-link" href="#" class="dropdown-toggle btn btn-default btn-sm navbar-btn" data-toggle="dropdown" title="Organization">' +
-            '<i class="glyphicon glyphicon-globe"></i> {{activeOrg ? activeOrg.pseudoId : ""}}</a>' +
+        '<a id="active-org-menu-link" href="#" class="dropdown-toggle btn btn-sm navbar-btn" :class="{ \'btn-success\':activeOrg, \'btn-default\':!activeOrg }" data-toggle="dropdown" title="Organization">' +
+            '<i class="fa fa-globe"></i> {{activeOrg ? activeOrg.pseudoId : ""}}</a>' +
         '<ul v-if="userOrgList" class="dropdown-menu">' +
             '<li v-if="activeOrg"><a @click.prevent="updateActive(null)">Clear Active Organization</a></li>' +
             '<li v-for="userOrg in userOrgList"><a @click.prevent="updateActive(userOrg.partyId)">{{userOrg.pseudoId}}: {{userOrg.organizationName}}</a></li>' +

@@ -1,0 +1,54 @@
+<!-- This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License. -->
+<template>
+    <q-btn-group flat>
+        <q-btn dense to="/apps/my/User/Notifications" icon="info" :class="{'text-warning':notificationCount}">
+            <q-tooltip>Notifications</q-tooltip><q-badge transparent color="transparent" :text-color="notificationCount?'warning':''" :label="notificationCount"/></q-btn>
+        <q-btn dense to="/apps/my/User/Messages/FindMessage?statusId=CeReceived&toCurrentUser=true" icon="message">
+            <q-tooltip>Messages</q-tooltip><q-badge transparent color="transparent" :label="messageCount"/></q-btn>
+        <q-btn dense to="/apps/my/User/Calendar/MyCalendar" icon="calendar_today">
+            <q-tooltip>Events This Week</q-tooltip><q-badge transparent color="transparent" :label="eventCount"/></q-btn>
+        <q-btn dense to="/apps/my/User/Task/MyTasks" icon="done">
+            <q-tooltip>Open Tasks</q-tooltip><q-badge transparent color="transparent" :label="taskCount"/></q-btn>
+    </q-btn-group>
+</template>
+<script>
+module.exports = {
+    data: function() { return { notificationCount:0, messageCount:0, eventCount:0, taskCount:0, updateInterval:null, updateErrors:0 } },
+    methods: {
+        updateCounts: function() {
+            var lastNavDiff = Date.now() - this.$root.lastNavTime;
+            if (this.updateInterval && lastNavDiff > (60*60*1000)) {
+                console.log('No nav in ' + lastNavDiff + 'ms clearing updateCounts interval');
+                clearInterval(this.updateInterval); this.updateInterval = null;
+                return;
+            }
+
+            var vm = this; $.ajax({ type:'GET', url:(this.$root.appRootPath + '/rest/s1/mantle/my/noticeCounts'),
+                dataType:'json', headers:{Accept:'application/json'},
+                success: function(countObj) { if (countObj) {
+                    if (countObj.notificationCount) vm.notificationCount = countObj.notificationCount;
+                    if (countObj.messageCount) vm.messageCount = countObj.messageCount;
+                    if (countObj.eventCount) vm.eventCount = countObj.eventCount;
+                    if (countObj.taskCount) vm.taskCount = countObj.taskCount;
+                    vm.updateErrors = 0;
+                }},
+                error: function(jqXHR, textStatus, errorThrown) {
+                    vm.updateErrors++;
+                    console.log('updateCounts ' + textStatus + ' (' + jqXHR.status + '), message ' + errorThrown + ', ' + vm.updateErrors + '/5 errors so far, interval id ' + vm.updateInterval);
+                    if (vm.updateErrors > 4 && vm.updateInterval) { console.log('updateCounts clearing interval');
+                        clearInterval(vm.updateInterval); vm.updateInterval = null; }
+                }
+            });
+        },
+        notificationListener: function(jsonObj, webSocket) {
+            // TODO: improve this to look for new message, event, and task notifications and increment their counters (or others to decrement...)
+            if (jsonObj && jsonObj.persistOnSend === true) this.notificationCount++;
+        }
+    },
+    mounted: function() {
+        this.updateCounts();
+        this.updateInterval = setInterval(this.updateCounts, 2*60*1000); /* update every 2 minutes */
+        this.$root.notificationClient.registerListener("ALL", this.notificationListener);
+    }
+};
+</script>

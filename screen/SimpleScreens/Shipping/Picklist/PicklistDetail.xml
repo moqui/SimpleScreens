@@ -28,9 +28,17 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="addShipment"><default-response url="../AddShipment"/></transition>
     <transition name="removeShipment">
         <parameter name="shipmentId"/>
-        <service-call name="update#mantle.shipment.Shipment" in-map="[shipmentId:shipmentId, shipWorkEffortId:null]"/>
+        <service-call name="update#mantle.shipment.Shipment" in-map="[shipmentId:shipmentId, shipWorkEffortId:null, binLocationNumber:null]"/>
         <default-response url="."/>
     </transition>
+
+    <transition name="completeShipmentLoadShip"><service-call name="mantle.work.ShipmentWorkServices.complete#ShipmentLoadShip"/>
+        <default-response url="."/></transition>
+    <transition name="closeShipmentLoadShip"><service-call name="mantle.work.ShipmentWorkServices.close#ShipmentLoadShip"/>
+        <default-response url="."/></transition>
+    <transition name="setStatusFromShipments"><service-call name="mantle.work.ShipmentWorkServices.set#ShipmentLoadStatusFromShipments"/>
+        <default-response url="."/></transition>
+
     <transition name="updateShipmentLoad"><service-call name="update#mantle.work.effort.WorkEffort"/>
         <default-response url="."/></transition>
     <transition name="updateShipment"><service-call name="update#mantle.shipment.Shipment"/>
@@ -70,6 +78,9 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="changedEntityName" value="mantle.work.effort.WorkEffort"/>
         <set field="pkPrimaryValue" from="workEffortId"/>
 
+        <entity-find-count entity-name="mantle.shipment.Shipment" count-field="shipmentCount">
+            <econdition field-name="shipWorkEffortId" from="workEffortId"/></entity-find-count>
+
         <!-- Equipment Assignments -->
         <entity-find entity-name="mantle.work.effort.WorkEffortAssetAndAssign" list="assetList">
             <date-filter/><econdition field-name="workEffortId"/><order-by field-name="assetName"/></entity-find>
@@ -90,23 +101,62 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="facilityId"><default-field title="Facility"><drop-down>
                         <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse,FcTpDock']"/>
                     </drop-down></default-field></field>
-                    <field name="estimatedStartDate"><default-field title="Ship Date"><date-time/></default-field></field>
+                    <field name="ownerPartyId"><default-field title="Owner Org"><drop-down allow-empty="true">
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
+                    <field name="productStoreId"><default-field title="Store"><drop-down allow-empty="true">
+                        <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                            <entity-find entity-name="mantle.product.store.ProductStore">
+                                <order-by field-name="storeName"/></entity-find></entity-options>
+                    </drop-down></default-field></field>
+
+                    <field name="estimatedStartDate"><default-field title="Est. Start"><date-time/></default-field></field>
                     <field name="estimatedWorkDuration"><default-field title="Est. Hours"><text-line size="8"/></default-field></field>
+
+                    <field name="actualStartDate"><default-field title="Actual Start"><date-time/></default-field></field>
+                    <field name="actualCompletionDate"><default-field title="Actual Complete"><date-time/></default-field></field>
+
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     <field-layout>
                         <field-row><field-ref name="workEffortId"/><field-ref name="workEffortName"/></field-row>
                         <fields-not-referenced/>
                         <field-row><field-ref name="estimatedStartDate"/><field-ref name="estimatedWorkDuration"/></field-row>
+                        <field-row><field-ref name="actualStartDate"/><field-ref name="actualCompletionDate"/></field-row>
                         <field-ref name="submitButton"/>
                     </field-layout>
                 </form-single>
             </row-col>
             <row-col lg="6">
-                <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+                <container-box><box-header title="Status: ${workEffort.status?.description ?: statusId}"/><box-toolbar>
+                    <link url="updateShipmentLoad" text="Approve" parameter-map="[statusId:'WeApproved']"
+                            condition="shipmentCount &amp;&amp; statusId == 'WeInPlanning'" btn-type="success"/>
+                    <link url="updateShipmentLoad" text="Begin (In Progress)" parameter-map="[statusId:'WeInProgress']"
+                            condition="shipmentCount &amp;&amp; statusId in ['WeInPlanning', 'WeApproved']"/>
+
+                    <link url="completeShipmentLoadShip" text="Force Complete" btn-type="warning"
+                            condition="shipmentCount &amp;&amp; !(statusId in ['WeInPlanning', 'WeComplete', 'WeClosed', 'WeCancelled'])"
+                            confirmation="Remove all Shipments in the Input and Scheduled statuses and set Picklist status to Complete (or Cancelled if no remaining Shipments or all remaining are Cancelled)?"/>
+                    <link url="closeShipmentLoadShip" text="Force Close" btn-type="danger"
+                            condition="!(statusId in ['WeClosed', 'WeCancelled'])"
+                            confirmation="Remove all Shipments in the Input, Scheduled, Picked, and Packed statuses and set Picklist status to Closed (or Cancelled if no remaining Shipments or all remaining are Cancelled)?"/>
+
+                    <link url="setStatusFromShipments" text="Auto Set" confirmation="Auto set status from Shipment statuses?"/>
+                </box-toolbar><box-body-nopad/></container-box>
+                <section-include name="StatusHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+
+                <section name="OldStatusSection" condition="allStatus"><widgets>
+                    <section-include name="StatusChangeAndHistorySection" location="component://SimpleScreens/template/basic/StatusWidgets.xml"/>
+                </widgets></section>
             </row-col>
         </container-row>
 
-        <container-box><box-header><label text="Shipments" type="h5"/></box-header><box-toolbar>
+        <container-box><box-header title="Shipments"/><box-toolbar>
             <link url="addShipment" text="Add Shipments"/>
         </box-toolbar><box-body>
             <form-list name="ListShipments" list="shipmentList" transition="updateShipment" multi="true">
@@ -192,7 +242,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="packButton"><default-field title=""><link url="packShipment" text="Pack"/></default-field></field>
                 <field name="removeButton"><default-field title="">
-                    <link url="removeShipment" text=" " icon="glyphicon glyphicon-trash"/></default-field></field>
+                    <link url="removeShipment" text=" " icon="fa fa-trash"/></default-field></field>
 
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
 
@@ -210,7 +260,7 @@ along with this software (see the LICENSE.md file). If not, see
         </box-body></container-box>
 
         <container-box>
-            <box-header><label text="People Assigned" type="h5"/></box-header>
+            <box-header title="People Assigned"/>
             <box-toolbar>
                 <container-dialog id="AddPartyAssignDialog" button-text="Add Person">
                     <form-single name="AddPartyAssignForm" transition="addAssignment">
@@ -254,7 +304,7 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body>
         </container-box>
         <container-box>
-            <box-header><label text="Equipment" type="h5"/></box-header>
+            <box-header title="Equipment"/>
             <box-toolbar>
                 <container-dialog id="AddAsset" button-text="Add Equipment">
                     <form-single name="AddAsset" transition="addAssetAssign">
@@ -288,7 +338,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </actions>
                     <widgets>
                         <container-box>
-                            <box-header><label text="AssetNameTemplate" type="h5"/></box-header>
+                            <box-header title="AssetNameTemplate"/>
                             <box-toolbar>
                                 <link url="equipmentDetail" text="Edit Equipment"/>
                                 <link url="updateAssetAssign" text="Remove from Load"

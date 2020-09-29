@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Edit Scheduled Find" default-menu-include="false" standalone="true">
+
+    <parameter name="screenScheduledId" required="true"/>
+
+    <transition name="updateScreenScheduled">
+        <parameter name="screenScheduledId"/>
+        <actions>
+            <entity-find-one entity-name="moqui.screen.ScreenScheduled" value-field="screenScheduled"/>
+            <if condition="screenScheduled == null"><return error="true" message="Scheduled Find not found with ID ${screenScheduledId}"/></if>
+            <if condition="screenScheduled.userId != ec.user.userId">
+                <return error="true" message="Scheduled Find with ID ${screenScheduledId} belongs to a different user"/></if>
+            <if condition="cronSelected"><set field="cronExpression" from="cronSelected"/></if>
+            <script>
+                if (cronExpression) {
+                    try { org.moqui.impl.service.ScheduledJobRunner.getExecutionTime((String) cronExpression) } catch (Exception e) {
+                        ec.message.addError("Invalid Cron expression '${cronExpression}': ${e.message}")
+                        return
+                    }
+                }
+            </script>
+            <service-call name="update#moqui.screen.ScreenScheduled" in-map="context" out-map="context"/>
+        </actions>
+        <default-response url=".."/>
+    </transition>
+
+    <actions>
+        <entity-find-one entity-name="moqui.screen.ScreenScheduled" value-field="screenScheduled"/>
+        <set field="cronDescription" from="org.moqui.impl.service.ScheduledJobRunner.getCronDescription(screenScheduled?.cronExpression, ec.user.getLocale(), true)"/>
+    </actions>
+    <widgets>
+        <label text="To disable set a Thru Date in the past or clear the Schedule and Cron Expression" type="p"/>
+
+        <form-single name="EditScreenScheduled" transition="updateScreenScheduled" map="screenScheduled">
+            <field name="screenScheduledId"><default-field><hidden/></default-field></field>
+
+            <field name="screenPath"><default-field title="Screen"><display/></default-field></field>
+            <field name="formListFindId"><default-field title="Saved Find">
+                <display-entity entity-name="moqui.screen.form.FormListFind"/></default-field></field>
+
+            <field name="renderMode"><default-field><drop-down>
+                <option key="xlsx" text="XLSX"/><option key="csv" text="CSV"/><option key="xsl-fo" text="PDF"/>
+            </drop-down></default-field></field>
+            <field name="noResultsAbort"><default-field title="No Results Skip"><radio no-current-selected-key="N">
+                <option key="N" text="No"/><option key="Y" text="Yes"/>
+            </radio></default-field></field>
+
+            <field name="cronDescription"><default-field title="Schedule Description"><display/></default-field></field>
+            <field name="cronSelected" from="cronExpression"><default-field title="Schedule"><drop-down allow-empty="true">
+                <option key="${cronExpression}" text="Current: ${cronDescription}"/><!-- NOTE: first in list so that if matches another option will be overridden -->
+                <option key="0 0 6 ? * *" text="Daily at 6 AM"/>
+                <option key="0 0 6 ? * MON-FRI" text="Daily Monday to Friday at 6 AM"/>
+                <option key="0 0 6 ? * MON" text="Weekly on Monday at 6 AM"/>
+                <option key="0 0 6 1 * ?" text="Monthly on the 1st at 6 AM"/>
+            </drop-down></default-field></field>
+            <field name="cronExpression"><default-field tooltip="Ignored if Schedule selected, clear to set manually here">
+                <text-line size="20"/></default-field></field>
+
+            <field name="fromDate"><default-field><date-time/></default-field></field>
+            <field name="thruDate"><default-field><date-time/></default-field></field>
+
+            <!-- not really good for end-user facing: <field name="saveToLocation"><default-field><text-line size="60"/></default-field></field> -->
+
+            <field name="emailTemplateId"><default-field title="Email Template">
+                <drop-down><!-- NOTE: could allow-empty for when saveToLocation is used, but for this form required -->
+                    <entity-options key="${emailTemplateId}" text="${description}">
+                        <entity-find entity-name="moqui.basic.email.EmailTemplate">
+                            <econdition field-name="emailTypeEnumId" value="EMT_SCREEN_RENDER"/>
+                            <order-by field-name="description"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down>
+            </default-field></field>
+
+            <field name="emailSubject"><default-field><text-line size="60"/></default-field></field>
+
+            <field name="submitButton"><default-field><submit text="Update"/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>

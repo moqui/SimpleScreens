@@ -13,13 +13,13 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
-        default-menu-index="2" menu-image="glyphicon glyphicon-search" menu-image-type="icon">
+        default-menu-index="2" menu-image="fa fa-search" menu-image-type="icon">
 
     <actions>
         <set field="originalQueryString" from="queryString"/>
         <if condition="queryString">
             <!-- add wildcards to query string for partial words -->
-            <script>queryString = (queryString.split(' ') as List).collect({ it.matches(/\w*/) ? (it + '*') : it }).join(' ')</script>
+            <set field="queryString" from="elasticQueryAutoWildcard(queryString, false)"/>
 
             <!-- if we have activeOrgId or filterOrgIds see if user has active org or user org filters -->
             <set field="activeOrgId" from="ec.user.context?.activeOrgId"/>
@@ -89,6 +89,12 @@ along with this software (see the LICENSE.md file). If not, see
             <field-layout><field-row-big><field-ref name="documentType"/><field-ref name="queryString"/>
                 <field-ref name="submitButton"/></field-row-big></field-layout>
         </form-single>
+
+        <!-- show messages, mainly for 'Invalid search...' message -->
+        <section-iterate name="messageInfos" list="ec.message.messageInfos" entry="messageInfo"><widgets>
+            <container><label text="${messageInfo.message}" type="strong" style="text-${messageInfo.typeString}"/></container>
+        </widgets></section-iterate>
+
         <form-list name="SearchResults" list="documentList">
             <row-actions>
                 <entity-find-one entity-name="moqui.entity.document.DataDocument" value-field="dataDocument" cache="true">

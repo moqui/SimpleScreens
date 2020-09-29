@@ -39,11 +39,11 @@ along with this software (see the LICENSE.md file). If not, see
         </else></if>
 
         <script>
-            // look back 6 months
+            // look back 12 months
             Calendar asOfCal = ec.user.getNowCalendar()
             asOfCal.setTimeInMillis(asOfDate.time)
             Calendar lookBackCal = (Calendar) asOfCal.clone()
-            lookBackCal.add(Calendar.MONTH, -6)
+            lookBackCal.add(Calendar.MONTH, -12)
             lookBackDate = new Timestamp(lookBackCal.getTimeInMillis())
             Calendar shortLookBackCal = (Calendar) asOfCal.clone()
             shortLookBackCal.add(Calendar.MONTH, -1)
@@ -87,33 +87,55 @@ along with this software (see the LICENSE.md file). If not, see
             <field-layout><field-row-big><field-ref name="invoiceType"/><field-ref name="organizationPartyId"/>
                 <field-ref name="timePeriodId"/><field-ref name="submitButton"/></field-row-big></field-layout>
         </form-single>
-        <label text="As of Date ${ec.l10n.format(asOfDate, '')} Look Back Date ${ec.l10n.format(lookBackDate, '')}" type="p"/>
+        <container>
+            <link url="${sri.getScreenUrlInstance().getScreenOnlyPath()}" url-type="plain" text="XLS Export" condition="organizationPartyId"
+                  parameter-map="ec.web.requestParameters + [saveFilename:('InvoiceReconciliation_' + organizationPartyId + '.xlsx'),
+                    renderMode:'xlsx', pageNoLimit:'true', lastStandalone:'true']"/>
+            <label text="As of Date ${ec.l10n.format(asOfDate, '')} Look Back Date ${ec.l10n.format(lookBackDate, '')}" type="span"/>
+        </container>
 
         <section name="AgingGlSummarySection" condition="timePeriodId"><actions>
             <!-- similar query to InvoiceAgingDetail screen -->
-            <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
+            <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList" use-clone="true">
                 <econdition field-name="statusId" operator="in" from="statusIdList"/>
                 <econdition field-name="fromPartyId" from="organizationPartyId" ignore="invoiceType != 'Receivable'"/>
                 <econdition field-name="toPartyId" from="organizationPartyId" ignore="invoiceType != 'Payable'"/>
-                <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
-                <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
+
+                <!-- IITM sub-select conditions -->
+                <econditions combine="or">
+                    <!-- NOTE: adjustment items are posted to GL by itemDate, all other items posted by invoiceDate; do query to match that -->
+                    <econditions>
+                        <econdition field-name="isAdjustment" operator="not-equals" value="Y" or-null="true"/>
+                        <econdition field-name="itemInvoiceDate" operator="less-equals" from="asOfDate"/>
+                    </econditions>
+                    <econditions>
+                        <econdition field-name="isAdjustment" value="Y"/>
+                        <econdition field-name="itemDate" operator="less-equals" from="asOfDate"/>
+                    </econditions>
+                </econditions>
+                <!-- PAPP sub-select conditions -->
                 <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+                <!-- TPAPP sub-select conditions -->
                 <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
-                <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
+                <!-- main select condition -->
+                <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
+                <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
                 <econditions combine="or">
                     <econdition field-name="itemsTotal" operator="not-equals" to-field-name="totalAmountApplied"/>
-                    <econditions combine="and">
+                    <econditions>
+                        <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
                         <econdition field-name="amountApplied" operator="is-null"/>
                         <econdition field-name="toAmountApplied" operator="is-null"/>
                     </econditions>
                 </econditions>
+
                 <select-field field-name="invoiceId,itemsTotal,amountApplied,toAmountApplied,totalAmountApplied"/>
             </entity-find>
             <set field="itemsTotalSum" from="invoiceAgingList.sum({ it.itemsTotal ?: 0.0 }) ?: 0.0"/>
             <set field="amountAppliedSum" from="(invoiceAgingList.sum({ it.amountApplied ?: 0.0 }) ?: 0.0) + (invoiceAgingList.sum({ it.toAmountApplied ?: 0.0 }) ?: 0.0)"/>
             <set field="invoiceUnpaid" from="itemsTotalSum - amountAppliedSum"/>
 
-            <entity-find entity-name="mantle.ledger.report.GlAccountOrgTimePeriodDetail" list="glSummaryList">
+            <entity-find entity-name="mantle.ledger.report.GlAccountOrgTimePeriodDetail" list="glSummaryList" use-clone="true">
                 <econdition field-name="organizationPartyId"/><econdition field-name="timePeriodId"/>
                 <econdition field-name="glAccountClassEnumId"/>
                 <econdition field-name="endingBalance" operator="not-equals" from="0.0"/>
@@ -140,16 +162,32 @@ along with this software (see the LICENSE.md file). If not, see
 
         <container-box><box-header title="Invoices where Unpaid different from GL Amount"/><box-body-nopad>
             <form-list name="InvoiceVsGlList" list="invoiceGlList" skip-form="true">
-                <entity-find entity-name="mantle.account.invoice.InvoiceGlImpactSummary" list="invoiceGlList">
-                    <!-- do by account class instead: <econdition field-name="acctgTransTypeEnumId" operator="in" from="txTypeEnumIdList"/> -->
+                <entity-find entity-name="mantle.account.invoice.InvoiceGlImpactSummary" list="invoiceGlList" use-clone="true">
+
+                    <!-- IITM sub-select conditions -->
+                    <econditions combine="or">
+                        <!-- NOTE: adjustment items are posted to GL by itemDate, all other items posted by invoiceDate; do query to match that -->
+                        <econditions>
+                            <econdition field-name="isAdjustment" operator="not-equals" value="Y" or-null="true"/>
+                            <econdition field-name="itemInvoiceDate" operator="less-equals" from="asOfDate"/>
+                        </econditions>
+                        <econditions>
+                            <econdition field-name="isAdjustment" value="Y"/>
+                            <econdition field-name="itemDate" operator="less-equals" from="asOfDate"/>
+                        </econditions>
+                    </econditions>
+                    <!-- PAPP sub-select conditions -->
+                    <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+                    <!-- TPAPP sub-select conditions -->
+                    <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
+                    <!-- main select condition -->
+                    <econdition field-name="invoiceDate" operator="greater-equals" from="lookBackDate"/>
+
                     <econdition field-name="statusId" operator="in" from="statusIdList"/>
                     <econdition field-name="fromPartyId" from="organizationPartyId" ignore="invoiceType != 'Receivable'"/>
                     <econdition field-name="toPartyId" from="organizationPartyId" ignore="invoiceType != 'Payable'"/>
-                    <econdition field-name="invoiceDate" operator="greater-equals" from="lookBackDate"/>
-                    <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
-                    <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
-                    <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
 
+                    <!-- do by account class instead: <econdition field-name="acctgTransTypeEnumId" operator="in" from="txTypeEnumIdList"/> -->
                     <econdition field-name="debitGlAccountClassEnumId" from="glAccountClassEnumId"/>
                     <econdition field-name="debitTransactionDate" operator="less-equals" from="asOfDate"/>
                     <econdition field-name="creditGlAccountClassEnumId" from="glAccountClassEnumId"/>
@@ -184,6 +222,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <container-dialog id="ShowSqlInvoiceDialog" button-text="Show SQL">
                     <section-iterate name="ShowSqlInvoiceIter" list="invoiceGlList_xafind?.getQueryTextList()" entry="queryText"><widgets>
                         <label text="${queryText}" type="p"/>
+                        <label text="${invoiceGlList_xafind}" type="p"/>
                     </widgets></section-iterate>
                 </container-dialog>
             </widgets></section>
@@ -191,7 +230,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <container-box><box-header title="Payments where Applied different from GL Amount"/><box-body-nopad>
             <form-list name="PaymentVsGlList" list="paymentGlList" skip-form="true">
-                <entity-find entity-name="mantle.account.payment.PaymentGlImpactSummary" list="paymentGlList">
+                <entity-find entity-name="mantle.account.payment.PaymentGlImpactSummary" list="paymentGlList" use-clone="true">
                     <econdition field-name="toPartyId" from="organizationPartyId" ignore="invoiceType != 'Receivable'"/>
                     <econdition field-name="fromPartyId" from="organizationPartyId" ignore="invoiceType != 'Payable'"/>
                     <!-- look back just 1 month for these, use lookBackDate to look back full range -->
@@ -229,6 +268,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <container-dialog id="ShowSqlPaymentDialog" button-text="Show SQL">
                     <section-iterate name="ShowSqlPaymentIter" list="paymentGlList_xafind?.getQueryTextList()" entry="queryText"><widgets>
                         <label text="${queryText}" type="p"/>
+                        <label text="${paymentGlList_xafind}" type="p"/>
                     </widgets></section-iterate>
                 </container-dialog>
             </widgets></section>
@@ -237,7 +277,7 @@ along with this software (see the LICENSE.md file). If not, see
 
         <container-box><box-header title="GL Transactions not Posted"/><box-body-nopad>
             <form-list name="NotPostedTxList" list="notPostedTxList" skip-form="true">
-                <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="notPostedTxList">
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTrans" list="notPostedTxList" use-clone="true">
                     <econdition field-name="transactionDate" operator="greater-equals" from="lookBackDate"/>
                     <econdition field-name="transactionDate" operator="less-equals" from="asOfDate"/>
                     <econdition field-name="isPosted" operator="not-equals" value="Y" or-null="true"/>
@@ -271,7 +311,7 @@ along with this software (see the LICENSE.md file). If not, see
         </box-body-nopad></container-box>
         <container-box><box-header title="GL Transactions where Debits do not equal Credits"/><box-body-nopad>
             <form-list name="CreditNeqDebitTxList" list="neqTxList" skip-form="true">
-                <entity-find entity-name="mantle.ledger.transaction.AcctgTransDebitCreditSummary" list="neqTxList">
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTransDebitCreditSummary" list="neqTxList" use-clone="true">
                     <econdition field-name="transactionDate" operator="greater-equals" from="lookBackDate"/>
                     <econdition field-name="transactionDate" operator="less-equals" from="asOfDate"/>
                     <econdition field-name="debitTotal" operator="not-equals" to-field-name="creditTotal"/>
@@ -307,7 +347,7 @@ along with this software (see the LICENSE.md file). If not, see
         </box-body-nopad></container-box>
         <container-box><box-header title="AR/AP Transactions with no Invoice"/><box-body-nopad>
             <form-list name="NoInvoiceTxList" list="noInvoiceTxList" skip-form="true">
-                <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="noInvoiceTxList">
+                <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntryGlaSummary" list="noInvoiceTxList" use-clone="true">
                     <!-- do by account class instead: <econdition field-name="acctgTransTypeEnumId" operator="in" from="txTypeEnumIdList"/> -->
                     <econdition field-name="glAccountClassEnumId"/>
                     <econdition field-name="transactionDate" operator="greater-equals" from="lookBackDate"/>
@@ -335,7 +375,7 @@ along with this software (see the LICENSE.md file). If not, see
         </box-body-nopad></container-box>
         <container-box><box-header title="Payment Applications with Invoice after Period"/><box-body-nopad>
             <form-list name="ApplicationFutureInvoiceList" list="applicationFutureInvoiceList" skip-form="true">
-                <entity-find entity-name="mantle.account.payment.PaymentApplicationAndInvoice" list="applicationFutureInvoiceList">
+                <entity-find entity-name="mantle.account.payment.PaymentApplicationAndInvoice" list="applicationFutureInvoiceList" use-clone="true">
                     <econdition field-name="appliedDate" operator="greater-equals" from="fromDate"/>
                     <econdition field-name="appliedDate" operator="less-equals" from="thruDate"/>
                     <econdition field-name="invoiceDate" operator="greater" from="thruDate"/>

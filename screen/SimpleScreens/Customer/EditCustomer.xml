@@ -77,8 +77,16 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="removeContactInfo"><service-call name="mantle.party.ContactServices.delete#PartyContactMech"/>
         <default-response url="."/></transition>
+    <transition name="updateContactMechMutable"><service-call name="mantle.party.ContactServices.update#ContactMechMutable"/>
+        <default-response url="."/></transition>
     <transition name="validateAddress"><service-call name="mantle.shipment.CarrierServices.validate#PostalAddress"/>
         <default-response url="."/></transition>
+
+    <transition name="createContactMechOther"><service-call name="mantle.party.ContactServices.create#ContactMechOther"/>
+        <default-response url="."/></transition>
+    <transition name="updatePartyContactOther"><service-call name="mantle.party.ContactServices.update#PartyContactOther"/>
+        <default-response url="."/></transition>
+    <transition-include name="getContactMechPurposesByType" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <transition name="createPartyNote"><service-call name="create#mantle.party.PartyNote"/><default-response url="."/></transition>
     <transition name="updatePartyNote"><service-call name="update#mantle.party.PartyNote"/><default-response url="."/></transition>
@@ -106,8 +114,20 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
         <if condition="party == null"><return error="true" message="Customer not found with ID ${partyId}"/></if>
 
-        <entity-find-one entity-name="moqui.security.UserAccount" value-field="userAccount">
-            <field-map field-name="partyId"/></entity-find-one>
+        <!-- FUTURE: support multiple UserAccount records for partyId, for now just get non-disabled first and order by userId for consistency -->
+        <entity-find entity-name="moqui.security.UserAccount" list="userAccountList">
+            <econdition field-name="partyId"/>
+            <econdition field-name="disabled" operator="not-equals" value="Y" or-null="true"/>
+            <order-by field-name="userId"/>
+        </entity-find>
+        <if condition="!userAccountList">
+            <entity-find entity-name="moqui.security.UserAccount" list="userAccountList">
+                <econdition field-name="partyId"/>
+                <econdition field-name="disabled" value="Y"/>
+                <order-by field-name="userId"/>
+            </entity-find>
+        </if>
+        <set field="userAccount" from="userAccountList ? userAccountList[0] : null"/>
 
         <entity-find-count entity-name="mantle.request.RequestAndParty" count-field="requestCount">
             <date-filter/><econdition field-name="partyId"/></entity-find-count>
@@ -138,10 +158,7 @@ along with this software (see the LICENSE.md file). If not, see
             <section-include name="PartyIdentificationSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
             <section-include name="UserSecuritySection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
 
-            <section-include name="AccountRelListSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
-            <section-include name="ContactRelListSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
-            <section-include name="ParentAccountRelListSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
-            <section-include name="ChildAccountRelListSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
+            <section-include name="SalesAccountContactSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
         </row-col><row-col lg="6">
             <section-include name="NotesSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>
             <section-include name="ContactInfoSection" location="component://SimpleScreens/screen/SimpleScreens/Party/EditParty.xml"/>

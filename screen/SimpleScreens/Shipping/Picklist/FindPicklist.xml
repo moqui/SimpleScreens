@@ -31,11 +31,27 @@ along with this software (see the LICENSE.md file). If not, see
             <container-dialog id="NewPicklistContainer" button-text="New Picklist">
                 <form-single name="NewPicklist" transition="createPicklist">
                     <field name="facilityId"><default-field title="Facility"><drop-down>
-                        <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse,FcTpDock']"/>
+                        <dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                                parameter-map="[facilityTypeEnumId:'FcTpWarehouse,FcTpDock']"/>
                     </drop-down></default-field></field>
+                    <field name="ownerPartyId"><default-field title="Owner Org"><drop-down allow-empty="true">
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
+                    <field name="productStoreId"><default-field title="Store"><drop-down allow-empty="true">
+                        <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                            <entity-find entity-name="mantle.product.store.ProductStore">
+                                <order-by field-name="storeName"/></entity-find></entity-options>
+                    </drop-down></default-field></field>
+
                     <field name="workEffortName"><default-field title="Name"><text-line size="40"/></default-field></field>
                     <field name="estimatedStartDate" from="ec.user.nowTimestamp">
-                        <default-field title="Start Date"><date-time/></default-field></field>
+                        <default-field title="Est. Start"><date-time/></default-field></field>
                     <field name="estimatedWorkDuration"><default-field title="Est. Hours">
                         <text-line size="8" default-value="1"/></default-field></field>
                     <!-- <field name="assetIdList"><default-field title="Truck / Equipment">
@@ -49,7 +65,7 @@ along with this software (see the LICENSE.md file). If not, see
         </container>
 
         <form-list name="PicklistList" list="picklistList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true">
-            <entity-find entity-name="mantle.work.effort.WorkEffortShipmentLoadFind" list="picklistList">
+            <entity-find entity-name="mantle.work.effort.WorkEffortShipmentLoadFind" list="picklistList" use-clone="true">
                 <search-form-inputs default-order-by="estimatedStartDate">
                     <default-parameters statusId="WeInPlanning,WeApproved,WeInProgress,WeOnHold" statusId_op="in"/></search-form-inputs>
                 <econdition field-name="purposeEnumId" value="WepShipmentShip"/>
@@ -57,9 +73,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <select-field field-name="workEffortName,facilityOwnerPartyId"/>
             </entity-find>
             <row-actions>
-                <entity-find entity-name="mantle.work.effort.WorkEffortAssetAndAssign" list="assetList">
+                <entity-find entity-name="mantle.work.effort.WorkEffortAssetAndAssign" list="assetList" use-clone="true">
                     <date-filter/><econdition field-name="workEffortId"/><order-by field-name="assetName"/></entity-find>
-                <entity-find entity-name="mantle.shipment.Shipment" list="shipmentList">
+                <entity-find entity-name="mantle.shipment.Shipment" list="shipmentList" use-clone="true">
                     <econdition field-name="shipWorkEffortId" from="workEffortId"/>
                     <order-by field-name="shipmentId"/>
                 </entity-find>
@@ -83,9 +99,30 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
             <field name="facilityId">
                 <header-field title="Facility" show-order-by="true"><drop-down allow-empty="true">
-                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse,FcTpDock']"/>
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"
+                            parameter-map="[facilityTypeEnumId:'FcTpWarehouse,FcTpDock']"/>
                 </drop-down></header-field>
                 <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
+            <field name="productStoreId">
+                <header-field title="Store" show-order-by="true"><drop-down allow-empty="true">
+                    <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                        <entity-find entity-name="mantle.product.store.ProductStore">
+                            <order-by field-name="storeName"/></entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><display-entity entity-name="mantle.product.store.ProductStore" text="${productStoreId}: ${storeName}"/></default-field>
+            </field>
+            <field name="ownerPartyId">
+                <header-field title="Owner Org"><drop-down allow-empty="true">
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></header-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
 
             <field name="assetId"><header-field title="Equipment">
@@ -111,6 +148,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <form-list-column><field-ref name="estimatedStartDate"/><field-ref name="workEffortId"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="facilityId"/></form-list-column>
+            <form-list-column><field-ref name="productStoreId"/><field-ref name="ownerPartyId"/></form-list-column>
             <form-list-column><field-ref name="assetList"/><field-ref name="shipmentList"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>

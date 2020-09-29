@@ -44,16 +44,25 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
         <entity-find-related-one value-field="workEffort" relationship-name="mantle.facility.Facility" to-value-field="facility"/>
         <set field="facilityId" from="facilityId != null ? facilityId : (facility?.parentFacilityId ?: facility?.facilityId)"/>
+
+        <!-- hard override for vendorPartyId if workEffort.ownerPartyId -->
+        <if condition="workEffort.ownerPartyId"><set field="vendorPartyId" from="workEffort.ownerPartyId"/></if>
+        <!-- hard override for productStoreId if workEffort.productStoreId -->
+        <if condition="workEffort.productStoreId"><set field="productStoreId" from="workEffort.productStoreId"/></if>
+
+        <service-call name="mantle.work.ShipmentWorkServices.make#ShipmentLoadOrderConditions" out-map="context"
+                in-map="[excludeOnPicklist:excludeOnPicklist, inventoryCategoryId:inventoryCategoryId]"/>
     </actions>
     <widgets>
         <form-list name="AddOrderList" list="orderList" transition="addOrderPartToLoad" multi="true"
                 header-dialog="true" select-columns="true" saved-finds="true">
-            <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList">
+            <!-- NOTE: see similar entity-find in ShipmentWorkServices.create#ShipmentLoadsForOrders in mantle-usl -->
+            <entity-find entity-name="mantle.order.OrderPartFindView" list="orderList" use-clone="true">
                 <search-form-inputs default-order-by="shipmentMethodSequenceNum,placedDate,orderId,orderPartSeqId"
-                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType,facilityId,workEffortId">
-                    <default-parameters partStatusId="OrderApproved"/></search-form-inputs>
+                        skip-fields="vendorRoleTypeId,customerRoleTypeId,customerClassificationId,itemTypeEnumId,orderType,partStatusId,facilityId,workEffortId"/>
                 <!-- NOTE: not limiting by date, ie placedDate_poffset="-3" placedDate_period="30d" -->
                 <date-filter from-field-name="customerClassFromDate" thru-field-name="customerClassThruDate" ignore="!customerClassificationId"/>
+                <econdition field-name="partStatusId" value="OrderApproved"/>
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
                 <econdition field-name="itemTypeEnumId" operator="in" from="itemTypeEnumIdList"/>
                 <econdition field-name="facilityId" ignore-if-empty="true"/>
@@ -61,15 +70,22 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="productId" operator="in" from="findProductId" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="greater-equals" from="findQuantity_from" ignore-if-empty="true"/>
                 <econdition field-name="quantity" operator="less-equals" from="findQuantity_thru" ignore-if-empty="true"/>
-                <econdition field-name="shipWorkEffortId" operator="is-null" ignore="excludeOnPicklist == 'false'"/>
                 <econdition field-name="locationTypeEnumId" value="FltPick"/>
+
+                <econdition-object field="excludeOnPicklistCond"/><!-- NOTE: ignored if null -->
+                <econdition-object field="inventoryCategoryCond"/>
+
+                <econdition field-name="shipWorkEffortId" operator="is-not-null" ignore="excludeOnPicklist == 'false'"/>
+                <econdition field-name="shipItemQuantity" operator="greater" from="0.0" ignore="excludeOnPicklist == 'false'"/>
+
                 <having-econditions>
                     <econdition field-name="quantityTotal" to-field-name="resQuantity" ignore="excludeNotPickLoc == 'false'"/>
                     <!-- useless when filtering by pick locations: <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="onlyInventoryUnavailable != 'true'"/> -->
                     <econdition field-name="issuedQuantity" operator="greater" from="0.0" ignore="onlyPartlyShipped != 'true'"/>
                 </having-econditions>
+                <select-field field-name="orderPartSeqId,shipmentMethodEnumId,quantityTotal"/>
                 <!-- NOTE: always need to select resQuantity,issuedQuantity if having conditions are used (EntityFindBuilder doesn't yet add these to sub-select automatically) -->
-                <select-field field-name="orderPartSeqId,shipmentMethodEnumId,quantityTotal,resQuantity,issuedQuantity"/>
+                <select-field field-name="resQuantity${onlyPartlyShipped != 'true' ? '' : ',issuedQuantity'}"/>
             </entity-find>
             <row-actions>
                 <!-- Shipment method description -->
@@ -80,19 +96,19 @@ along with this software (see the LICENSE.md file). If not, see
                     <date-filter/><econdition field-name="partyId" from="customerPartyId"/>
                     <econdition field-name="classificationTypeEnumId" value="PcltCustomer"/></entity-find>
                 <!-- Shipments -->
-                <entity-find entity-name="mantle.order.OrderItemShipSummary" list="oissList">
+                <entity-find entity-name="mantle.order.OrderItemShipSummary" list="oissList" use-clone="true">
                     <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
                     <having-econditions><econdition field-name="shipmentQuantity" operator="greater" from="0.0"/></having-econditions>
                     <select-field field-name="shipmentId,shipmentQuantity,quantityHandled"/>
                 </entity-find>
                 <!-- Other Parties -->
-                <entity-find entity-name="mantle.order.OrderPartPartyDetail" list="partPartyList">
+                <entity-find entity-name="mantle.order.OrderPartPartyDetail" list="partPartyList" use-clone="true">
                     <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
                     <select-field field-name="partyId,pseudoId,firstName,lastName,organizationName,description"/>
                 </entity-find>
                 <!-- Total Quantity: query separate if findQuantity_from || findQuantity_thru, will be wrong if there are items filtered by this constraint -->
                 <if condition="findQuantity_from || findQuantity_thru">
-                    <entity-find entity-name="mantle.order.OrderItemSummary" list="totalQtyList">
+                    <entity-find entity-name="mantle.order.OrderItemSummary" list="totalQtyList" use-clone="true">
                         <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
                         <select-field field-name="quantity"/>
                     </entity-find>
@@ -186,10 +202,10 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <field name="partStatusId">
-                <header-field title="Status" show-order-by="true">
+                <header-field title="Status" show-order-by="true"/>
+                <!-- don't let user specify status, always look at Approved orders:
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
-                        <set field="statusTypeId" value="OrderHeader"/><set field="allowMultiple" value="true"/></widget-template-include>
-                </header-field>
+                        <set field="statusTypeId" value="OrderHeader"/><set field="allowMultiple" value="true"/></widget-template-include> -->
                 <default-field container-style="text-strong"><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
             </field>
             <!-- NOTE: generally always in the same facility as the picklist but allow exceptions -->
@@ -238,6 +254,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </drop-down>
             </header-field></field>
 
+            <!-- not generally useful for picklists
             <field name="otherPartyId"><header-field>
                 <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
             </header-field></field>
@@ -254,9 +271,10 @@ along with this software (see the LICENSE.md file). If not, see
                             text="* ${ec.resource.expand('PartyNameTemplate','',partParty)} - ${partParty.description?:'N/A'}"/>
                 </container></widgets></section-iterate>
             </default-field></field>
+            -->
 
             <field name="partTotal" align="right">
-                <header-field show-order-by="true" title="Total"><range-find/></header-field>
+                <header-field show-order-by="true" title="Amount Total"><range-find/></header-field>
                 <default-field><display currency-unit-field="currencyUomId"/></default-field></field>
             <field name="quantityTotal" align="right">
                 <header-field show-order-by="true" title="Quantity Total"><range-find/></header-field>
@@ -275,6 +293,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display/></default-field>
             </field>
 
+            <!-- not so useful for adding orders to picklists:
             <field name="purchaseItemTypeEnumId"><header-field title="Purchase Item Type">
                 <drop-down allow-multiple="true">
                     <entity-options key="${enumId}" text="${description}">
@@ -291,14 +310,25 @@ along with this software (see the LICENSE.md file). If not, see
                             <order-by field-name="description"/></entity-find></entity-options>
                 </drop-down>
             </header-field></field>
+            -->
             <field name="findProductId"><header-field title="Product">
                 <drop-down allow-multiple="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
             </header-field></field>
+            <field name="inventoryCategoryId"><header-field title="Inventory Category"><drop-down allow-multiple="true">
+                <entity-options key="${productCategoryId}" text="ProductCategoryNameTemplate">
+                    <entity-find entity-name="mantle.product.category.ProductCategory">
+                        <econdition field-name="productCategoryTypeEnumId" value="PctInventoryGroup"/>
+                        <econdition field-name="ownerPartyId" from="workEffort?.ownerPartyId" ignore-if-empty="true"/>
+                    </entity-find>
+                </entity-options>
+            </drop-down></header-field></field>
 
             <field name="externalId"><header-field><text-find hide-options="true" default-operator="begins"/></header-field>
                 <default-field><display/></default-field></field>
             <field name="displayId"><header-field><text-find hide-options="true" default-operator="begins"/></header-field>
                 <default-field><display/></default-field></field>
+
+            <!-- <field name="shipmentCount"><default-field><display/></default-field></field> -->
 
             <field name="submitButton">
                 <header-field title="Find"><submit/></header-field>
@@ -316,11 +346,22 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="salesChannelEnumId"/></form-list-column>
             <form-list-column><field-ref name="partStatusId"/><field-ref name="facilityId"/>
                 <field-ref name="productStoreId"/></form-list-column>
-            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/>
-                <field-ref name="otherParties"/></form-list-column>
+            <form-list-column><field-ref name="vendorPartyId"/><field-ref name="customerPartyId"/></form-list-column>
             <form-list-column><field-ref name="partTotal"/><field-ref name="quantityTotal"/>
                 <field-ref name="resPickLocQuantity"/></form-list-column>
+            <!-- <form-list-column><field-ref name="shipmentCount"/></form-list-column> -->
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
+
+        <!--
+        <section name="ShowSql" condition="orderList_xafind?.getQueryTextList()"><widgets>
+            <container-dialog id="ShowSqlDialog" button-text="Show SQL" type="info">
+                <section-iterate name="ShowSqlIter" list="orderList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                    <label text="${queryText}" type="p"/>
+                    <label text="${orderList_xafind}" type="p"/>
+                </widgets></section-iterate>
+            </container-dialog>
+        </widgets></section>
+        -->
     </widgets>
 </screen>

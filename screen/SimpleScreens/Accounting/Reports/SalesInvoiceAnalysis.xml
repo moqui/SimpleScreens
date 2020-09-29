@@ -25,26 +25,31 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <set field="invoiceDate_poffset" from="invoiceDate_poffset ?: '-1'"/>
         <set field="invoiceDate_period" from="invoiceDate_period ?: 'month'"/>
-        <set field="issuedDate_poffset" from="invoiceDate_poffset"/>
-        <set field="issuedDate_period" from="invoiceDate_period"/>
-        <set field="issuedDate_pdate" from="invoiceDate_pdate"/>
 
         <entity-find entity-name="moqui.basic.EnumGroupMember" list="productItemTypeEgms" cache="true">
             <econdition field-name="enumGroupEnumId" value="EngItemsProduct"/></entity-find>
         <set field="productItemTypes" from="productItemTypeEgms*.enumId"/>
+
+        <if condition="!assetClassEnumId"><set field="assetClassEnumId" value="AsClsInventoryFin"/></if>
     </actions>
     <widgets>
         <form-list name="SalesInvoiceAnalysis" list="summaryList" skip-form="true" header-dialog="true"
-                   saved-finds="true" show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.account.invoice.InvoiceProductSalesSummary" list="summaryList">
-                <search-form-inputs default-order-by="pseudoId" paginate="false"/><!-- see defaults in actions -->
+                   saved-finds="true" show-csv-button="true" show-xlsx-button="true" show-all-button="true">
+            <entity-find entity-name="mantle.account.invoice.InvoiceItemSalesSummary" list="summaryList" use-clone="true">
+                <search-form-inputs default-order-by="pseudoId" paginate="false" skip-fields="assetClassEnumId"/><!-- see defaults in actions -->
                 <econdition field-name="invoiceStatusId" operator="in" from="['InvoiceFinalized', 'InvoiceSent', 'InvoiceAcked', 'InvoicePmtRecvd']"/>
                 <econdition field-name="itemTypeEnumId" operator="in" from="productItemTypes"/>
-                <!-- <econdition field-name="productId" operator="is-not-null"/> -->
+                <!-- <econdition field-name="assetClassEnumId" operator="in"/> -->
                 <select-field field-name="productId"/>
             </entity-find>
 
             <field name="invoiceDate"><header-field title="Period"><date-period/></header-field></field>
+            <!--
+            <field name="assetClassEnumId"><header-field title="Asset Class">
+                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                    <set field="enumTypeId" value="AssetClass"/><set field="allowMultiple" value="true"/></widget-template-include>
+            </header-field></field>
+            -->
 
             <field name="productId">
                 <header-field title="Product" show-order-by="true"><drop-down allow-empty="true" allow-multiple="true">
@@ -61,6 +66,18 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="editProduct" text="${productName}" link-type="anchor"/>
                     <label text="${pseudoId} Products" condition="!productId"/><!-- for the totals row -->
                 </default-field>
+            </field>
+
+            <field name="productStoreId">
+                <header-field title="Store" show-order-by="true"><drop-down allow-empty="true" allow-multiple="true">
+                    <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
+                        <entity-find entity-name="mantle.product.store.ProductStore">
+                            <order-by field-name="storeName"/></entity-find></entity-options>
+                </drop-down></header-field>
+                <!-- maybe add this at some point along with select-columns (issue with derived fields doing that for now)
+                <default-field><link url="editProductStore" text="${productStoreId}: ${storeName}" link-type="anchor" condition="productStoreId"
+                        entity-name="mantle.product.store.ProductStore"/></default-field>
+                -->
             </field>
 
             <field name="minAmount" align="right" show-total="min"><default-field title="Min"><display format="#,##0.00"/></default-field></field>

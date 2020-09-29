@@ -39,6 +39,8 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="originalQueryString" from="queryString"/>
 
+        <set field="queryString" from="queryString ? elasticQueryAutoWildcard(queryString, false) : ''"/>
+
         <if condition="pseudoId"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'pseudoId:' + pseudoId"/></if>
         <if condition="name"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'name:\&quot;' + name + '*\&quot;'"/></if>
         <if condition="idValue"><set field="queryString" from="(queryString ? queryString + ' AND ' : '' ) + 'idValue:' + idValue"/></if>
@@ -77,9 +79,6 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.product.Product" list="amountUomList" distinct="true">
             <select-field field-name="amountUomId"/></entity-find>
         <set field="amountUomIds" from="amountUomList.amountUomId"/>
-
-        <entity-find entity-name="mantle.product.category.ProductCategoryAndType" list="allCategoryList">
-            <order-by field-name="typeDescription,categoryName"/></entity-find>
     </actions>
     <widgets>
         <container-dialog id="AddCategoryContainer" button-text="Add All to Category" condition="productIds">
@@ -138,21 +137,14 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax"
                 url-type="plain" link-type="anchor" target-window="_blank" text="Search String Reference"/>
 
-        <render-mode><text type="html,vuet"><![CDATA[
-            <div class="row"><div class="form-group">
-                <label class="control-label col-lg-2 text-right" for="ProductsForm-header-term">${ec.l10n.localize('Search Any Field')}</label>
-                <div class="col-lg-10"><input type="text" name="queryString" value="${(originalQueryString!'')?html}"
-                    size="80" id="ProductsForm_header_term" class="form-control" form="ProductsForm_header"></div>
-            </div></div>
-        ]]></text></render-mode>
         <form-list name="ProductsForm" list="documentList" list-entry="document" skip-form="true" header-dialog="true" select-columns="true">
             <row-actions>
-                <set field="productId" from="document._id"/>
+                <set field="productId" from="document?._id"/>
                 <script>if (document) context.putAll(document)</script>
             </row-actions>
 
-            <!-- using custom html field above the form:
-            <field name="queryString" from="originalQueryString"><header-field title="Any Field"><text-line size="40"/></header-field></field> -->
+            <field name="queryString" from="originalQueryString">
+                <header-field title="Any Field"><text-line size="40"/></header-field></field>
 
             <field name="pseudoId">
                 <header-field title="ID" show-order-by="true"><text-line size="40"/></header-field>

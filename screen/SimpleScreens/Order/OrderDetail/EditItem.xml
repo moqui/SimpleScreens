@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="orderId" required="true"/>
+    <parameter name="orderItemSeqId" required="true"/>
+    <parameter name="pageIndex"/>
+
+    <transition name="updateItem"><service-call name="mantle.order.OrderServices.update#OrderItem"/>
+        <default-response url=".."/></transition>
+
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <actions>
+        <entity-find-one entity-name="mantle.order.OrderHeader" value-field="orderHeader"/>
+
+        <service-call name="mantle.order.OrderInfoServices.get#OrderItemDisplayInfo" out-map="context"
+                in-map="[orderId:orderId, orderItemSeqId:orderItemSeqId]"/>
+
+        <entity-find-count entity-name="mantle.party.PartyRole" count-field="isCustomerInternalOrg">
+            <econdition field-name="partyId" from="orderPart.customerPartyId"/>
+            <econdition field-name="roleTypeId" value="OrgInternal"/>
+        </entity-find-count>
+        <entity-find-count entity-name="mantle.party.PartyRole" count-field="isVendorInternalOrg">
+            <econdition field-name="partyId" from="orderPart.vendorPartyId"/>
+            <econdition field-name="roleTypeId" value="OrgInternal"/>
+        </entity-find-count>
+
+        <entity-find entity-name="mantle.order.OrderPart" list="orderPartList">
+            <econdition field-name="orderId"/><order-by field-name="orderPartSeqId"/></entity-find>
+    </actions>
+    <widgets>
+        <form-single name="EditOrderItem" transition="updateItem" map="orderItem">
+            <field name="orderId"><default-field><hidden/></default-field></field>
+            <field name="pageIndex"><default-field><hidden/></default-field></field>
+            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+            <field name="orderPartSeqId">
+                <conditional-field title="Order Part" condition="partEditable &amp;&amp; isPromo != 'Y'"><drop-down>
+                    <list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/></drop-down></conditional-field>
+                <default-field title="Order Part"><display text="Part ${orderPartSeqId}"/></default-field>
+            </field>
+            <field name="parentItemSeqId">
+                <conditional-field condition="isProductItemType || orderItemTotalOut.childItemCount">
+                    <ignored/></conditional-field>
+                <conditional-field condition="partEditable &amp;&amp; isPromo != 'Y'" title="Parent"><drop-down allow-empty="true">
+                    <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId}"/></drop-down></conditional-field>
+                <default-field title="Parent Item"><display text="${parentItemSeqId ? 'Parent ' + parentItemSeqId : ''}"/></default-field>
+            </field>
+
+            <field name="itemTypeEnumId" from="orderItem.itemTypeEnumId"><default-field title="Type">
+                <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+            <field name="productId" from="orderItem.productId">
+                <conditional-field condition="orderItem.productId" title="Product">
+                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></conditional-field>
+                <default-field><ignored/></default-field>
+            </field>
+
+            <field name="itemTypeEnumId">
+                <!-- <conditional-field condition="partEditable" title="Type">
+                    <drop-down no-current-selected-key="ItemInventory">
+                        <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="ItemType"/><order-by field-name="description"/>
+                        </entity-find></entity-options></drop-down>
+                </conditional-field> -->
+                <default-field title="Type" container-style="${isProductItemType ? 'text-info' : (itemTypeEnumId == 'ItemDiscount' ? 'text-success' : (itemTypeEnumId in ['ItemSalesTax','ItemVatTax'] ? 'text-warning' : ''))}">
+                    <display-entity entity-name="moqui.basic.Enumeration" text="${description}${isPromo ? ' (Promotion)' : ''}"/>
+                </default-field>
+            </field>
+            <field name="productId">
+                <conditional-field title="Product" condition="isProductItemType &amp;&amp; partEditable">
+                    <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+                </conditional-field>
+                <default-field title="Product">
+                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/>
+                </default-field>
+            </field>
+            <field name="otherPartyProductId">
+                <conditional-field condition="isProductItemType &amp;&amp; partEditable">
+                    <text-line size="25"/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="itemDescription">
+                <conditional-field title="Description" condition="partEditable &amp;&amp; isPromo != 'Y'">
+                    <text-line size="60"/></conditional-field>
+                <default-field title="Description"><display/></default-field>
+            </field>
+            <field name="promoCodeText"><conditional-field title="Promo Code" condition="promoCodeText">
+                <display/></conditional-field></field>
+            <field name="comments">
+                <conditional-field condition="partEditable &amp;&amp; isPromo != 'Y'">
+                    <text-line size="30"/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+
+            <field name="requiredByDate">
+                <conditional-field condition="isProductItemType &amp;&amp; partEditable"><date-time/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+
+            <field name="unitListPrice"><default-field title="List Price">
+                <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+            <field name="unitAmount">
+                <conditional-field title="Price" condition="partEditable &amp;&amp; isPromo != 'Y'">
+                    <text-line size="8" format="#,##0.00#"/></conditional-field>
+                <default-field title="Price"><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
+            </field>
+            <field name="unitAmountHist"><default-field title=" ">
+                <render-mode><text type="html,vuet"><![CDATA[
+                    <#assign popoverContent>
+                        <table style="width:100%;"><#list itemUnitAmountAuditList as auditInfo><tr>
+                            <td class="text-right">${ec.l10n.formatCurrency(auditInfo.auditLog.newValueText, orderHeader.currencyUomId, 3)}</td>
+                            <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                            <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                            <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                        </tr></#list></table>
+                    </#assign>
+                    <a role="button" data-toggle="popover" data-placement="left" data-title="${ec.resource.expand('Price History for Item ${orderItemSeqId}', null)}" data-content="${popoverContent?html}">${ec.l10n.localize('Price History')}</a>
+                ]]></text><text type="qvt"><![CDATA[
+                    <div class="text-primary cursor-pointer">${ec.l10n.localize('Price History')}<q-tooltip>
+                        <div>${ec.resource.expand('Price History for Item ${orderItemSeqId}', null)}</div>
+                        <table style="width:100%;"><#list itemUnitAmountAuditList as auditInfo><tr>
+                            <td class="text-right">${ec.l10n.formatCurrency(auditInfo.auditLog.newValueText, orderHeader.currencyUomId, 3)}</td>
+                            <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                            <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                            <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                        </tr></#list></table>
+                    </q-tooltip></div>
+                ]]></text></render-mode>
+            </default-field></field>
+            <field name="standardCost">
+                <conditional-field condition="partEditable &amp;&amp; isProductItemType &amp;&amp; isCustomerInternalOrg">
+                    <text-line size="10" format="#,##0.00#"/></conditional-field>
+                <conditional-field condition="isProductItemType &amp;&amp; isCustomerInternalOrg">
+                    <display currency-unit-field="orderHeader.currencyUomId"/></conditional-field>
+            </field>
+
+            <field name="quantity">
+                <conditional-field condition="partEditable &amp;&amp; isPromo != 'Y'"><text-line size="5"/></conditional-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="quantity_changeReason">
+                <conditional-field title="Quantity Reason" condition="partEditable &amp;&amp; isPromo != 'Y'">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="OrderItemQuantityReason"/><set field="allowEmpty" value="true"/></widget-template-include>
+                </conditional-field>
+                <default-field><ignored/></default-field>
+            </field>
+            <field name="quantityHist"><default-field title=" ">
+                <render-mode><text type="html,vuet"><![CDATA[
+                    <#assign popoverContent>
+                        <table style="width:100%;"><#list itemQuantityAuditList as auditInfo><tr>
+                            <td class="text-right">${auditInfo.auditLog.newValueText}</td>
+                            <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                            <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                            <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                        </tr></#list></table>
+                    </#assign>
+                    <a role="button" data-toggle="popover" data-placement="left" data-title="${ec.resource.expand('Quantity History for Item ${orderItemSeqId}', null)}" data-content="${popoverContent?html}">${ec.l10n.localize('Quantity History')}</a>
+                ]]></text><text type="qvt"><![CDATA[
+                    <div class="text-primary cursor-pointer">${ec.l10n.localize('Quantity History')}<q-tooltip>
+                        <div>${ec.resource.expand('Quantity History for Item ${orderItemSeqId}', null)}</div>
+                        <table style="width:100%;"><#list itemQuantityAuditList as auditInfo><tr>
+                            <td class="text-right">${auditInfo.auditLog.newValueText}</td>
+                            <td class="text-center">${ec.resource.expand('UsernameTemplate', '', auditInfo.userAccount)}</td>
+                            <td class="text-center">${ec.l10n.format(auditInfo.auditLog.changedDate, 'yyyy-MM-dd HH:mm')}</td>
+                            <td class="text-center">${(auditInfo.changeReasonEnum.description)!(auditInfo.auditLog.changeReason)!''}</td>
+                        </tr></#list></table>
+                    </q-tooltip></div>
+                ]]></text></render-mode>
+            </default-field></field>
+            <field name="quantityCancelled"><default-field title="Qty Cancelled"><display/></default-field></field>
+            <field name="itemQuantityNotShipped"><default-field title="Qty Not Shipped"><display format="#,##0.###"/></default-field></field>
+            <!--
+            <field name="itemQuantityNotBilled"><default-field title="Qty Not Billed"><display format="#,##0.###"/></default-field></field>
+            <field name="itemAmountNotBilled"><default-field title="Amt Not Billed"><display format="#,##0.00"/></default-field></field>
+            -->
+            <field name="itemNotBilled"><default-field title="Not Billed">
+                <display text="${isProductItemType ? ec.l10n.format(itemQuantityNotBilled, '#,##0.###') : ec.l10n.format(itemAmountNotBilled, '#,##0.00')}"/>
+            </default-field></field>
+
+
+            <field name="submitButton"><default-field title="Update Item"><submit/></default-field></field>
+
+            <field-layout>
+                <field-row><field-ref name="orderPartSeqId"/><field-ref name="orderItemSeqId"/></field-row>
+                <field-ref name="itemTypeEnumId"/><field-ref name="productId"/>
+                <fields-not-referenced/>
+                <field-row><field-ref name="unitAmount"/><field-ref name="unitListPrice"/></field-row>
+                <field-row><field-ref name="unitAmountHist"/><field-ref name="standardCost"/></field-row>
+                <field-row><field-ref name="quantity"/><field-ref name="quantity_changeReason"/></field-row>
+                <field-row><field-ref name="quantityHist"/><field-ref name="quantityCancelled"/></field-row>
+                <field-row><field-ref name="itemQuantityNotShipped"/><field-ref name="itemNotBilled"/></field-row>
+                <field-ref name="submitButton"/>
+            </field-layout>
+        </form-single>
+        <render-mode><text type="html,vuet"><![CDATA[<script>$(function () { $('[data-toggle="popover"]').popover({ sanitize:false, html:true, trigger:"hover click" }); })</script>]]></text></render-mode>
+    </widgets>
+</screen>

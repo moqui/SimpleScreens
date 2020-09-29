@@ -25,7 +25,7 @@ along with this software (see the LICENSE.md file). If not, see
             <else-if condition="'receivable'.equalsIgnoreCase(invoiceType)"><set field="fromRoleTypeId" value="OrgInternal"/></else-if></if>
 
         <set field="periodDays" from="(periodDays ?: '30') as int"/>
-        <set field="statusId" from="statusId ?: (invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved' : 'InvoiceFinalized,InvoiceSent')"/>
+        <set field="statusId" from="statusId ?: (invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved' : 'InvoiceFinalized,InvoiceSent,InvoiceAcked')"/>
         <set field="statusId_op" value="in"/>
         <set field="dbConfName" from="ec.entity.getDatabaseConfName('mantle.account.invoice.Invoice')"/>
         <!-- special case where must be named asOfDate as InvoiceAgingSummary looks for this field in the context -->
@@ -47,7 +47,7 @@ along with this software (see the LICENSE.md file). If not, see
         <label text="NOTE: For invoices with no Due Date specified try running the report by Invoice Date."/>
 
         <form-list name="InvoiceAgingList" list="invoiceAgingList" skip-form="true" header-dialog="true" saved-finds="true"
-                show-all-button="true" show-csv-button="true">
+                show-all-button="true" show-csv-button="true" show-xlsx-button="true">
             <entity-find entity-name="mantle.account.invoice.InvoiceAgingSummary" list="invoiceAgingList">
                 <search-form-inputs default-order-by="-totalDue" skip-fields="fromRoleTypeId,toRoleTypeId"/>
                 <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>

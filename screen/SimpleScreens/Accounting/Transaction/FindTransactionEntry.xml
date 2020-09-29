@@ -21,6 +21,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editPayment"><default-response url="../../Payment/EditPayment"/></transition>
     <transition name="editGlAccount"><default-response url="../../GlAccount/EditGlAccount"/></transition>
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
 
@@ -28,18 +29,26 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
+    <transition-include name="emailScreenAsync" location="component://webroot/template/screen/BasicTransitions.xml"/>
+
     <actions>
         <set field="glAccountCodeMask" from="ec.user.getPreference('GlAccountCodeMask')"/>
         <set field="accountCodeFormatter" from="masker(glAccountCodeMask, '0')"/><!-- will be null if no mask -->
     </actions>
     <widgets>
+        <section-include name="EmailScreenSection" location="component://webroot/template/screen/BasicTransitions.xml"/>
+
         <form-list name="TransactionEntryList" list="acctgTransEntryList" skip-form="true" header-dialog="true"
-                   select-columns="true" saved-finds="true" show-csv-button="true">
+                   select-columns="true" saved-finds="true" show-csv-button="true" show-xlsx-button="true" show-all-button="true">
             <entity-find entity-name="mantle.ledger.transaction.AcctgTransAndEntrySummary" list="acctgTransEntryList">
                 <search-form-inputs default-order-by="-transactionDate,-acctgTransId,acctgTransEntrySeqId">
                     <default-parameters transactionDate_poffset="-1" transactionDate_period="30d"/></search-form-inputs>
+                <econdition field-name="reconcileStatusId" value="AterNot" or-null="true" ignore="onlyNotRec != 'Y'"/>
                 <select-field field-name="amount,debitCreditFlag"/><!-- always select amount and debit/credit flag in case are not displayed but debit/credit are -->
             </entity-find>
+
+            <field name="onlyNotRec"><header-field><radio no-current-selected-key="N">
+                <option key="Y"/><option key="N"/></radio></header-field></field>
 
             <field name="acctgTransId"><header-field show-order-by="true" title="TX ID"/><default-field>
                 <link url="editTransaction" text="${acctgTransId}" link-type="anchor"/></default-field></field>
@@ -81,11 +90,13 @@ along with this software (see the LICENSE.md file). If not, see
                         entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" condition="otherPartyId"/></default-field>
             </field>
 
-            <field name="invoiceId"><header-field title="Invoice" show-order-by="true"><text-find size="20" hide-options="ignore-case"/></header-field>
+            <field name="invoiceId"><header-field title="Invoice" show-order-by="true"><text-find size="20" hide-options="ignore-case" default-operator="equals"/></header-field>
                 <default-field><link url="editInvoice" text="${invoiceId}" link-type="anchor" condition="invoiceId"/></default-field></field>
-            <field name="paymentId"><header-field title="Payment" show-order-by="true"><text-find size="20" hide-options="ignore-case"/></header-field>
+            <field name="paymentId"><header-field title="Payment" show-order-by="true"><text-find size="20" hide-options="ignore-case" default-operator="equals"/></header-field>
                 <default-field><link url="editPayment" text="${paymentId}" link-type="anchor" condition="paymentId"/></default-field></field>
-            <field name="assetId"><header-field title="Asset" show-order-by="true"><text-find size="10" hide-options="ignore-case"/></header-field>
+            <field name="shipmentId"><header-field title="Shipment" show-order-by="true"><text-find size="20" hide-options="ignore-case" default-operator="equals"/></header-field>
+                <default-field><link url="shipmentDetail" text="${shipmentId}" link-type="anchor" condition="shipmentId"/></default-field></field>
+            <field name="assetId"><header-field title="Asset" show-order-by="true"><text-find size="10" hide-options="ignore-case" default-operator="equals"/></header-field>
                 <default-field><link url="assetDetail" text="${assetId}" link-type="anchor" condition="assetId"/></default-field></field>
             <field name="productId">
                 <header-field title="Product" show-order-by="true"><drop-down allow-empty="true">

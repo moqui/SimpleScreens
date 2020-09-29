@@ -22,7 +22,10 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="../EditInvoice"/></transition>
     <transition name="createProjectInvoiceItems"><service-call name="mantle.account.InvoiceServices.create#ProjectInvoiceItems"/>
         <default-response url="."/></transition>
+    <transition name="createWorkerInvoiceItems"><service-call name="mantle.account.InvoiceServices.create#WorkerInvoiceItems"/>
+        <default-response url="."/></transition>
 
+    <transition-include name="getProjectList" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
     <transition-include name="getOpenClientInvoicesByProject" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
     <transition-include name="getOpenVendorInvoicesByFromParty" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
     <transition-include name="getProjectParties" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
@@ -57,10 +60,10 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-dialog id="NewPayableDialog" button-text="New Payable">
             <form-single name="NewPayableForm" transition="createInvoice">
-                <field name="fromPartyId"><default-field title="From">
+                <field name="fromPartyId"><default-field title="From Supplier">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
-                <field name="toPartyId"><default-field title="Organization">
+                <field name="toPartyId"><default-field title="To Organization">
                     <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
                         <entity-find entity-name="mantle.party.PartyDetailAndRole">
                             <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
@@ -92,7 +95,7 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
         <container-dialog id="NewReceivableDialog" button-text="New Receivable">
             <form-single name="NewReceivableForm" transition="createInvoice" extends="NewPayableForm">
-                <field name="fromPartyId"><default-field title="Organization">
+                <field name="fromPartyId"><default-field title="From Organization">
                     <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
                         <entity-find entity-name="mantle.party.PartyDetailAndRole">
                             <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
@@ -101,21 +104,31 @@ along with this software (see the LICENSE.md file). If not, see
                             <order-by field-name="organizationName"/></entity-find>
                     </entity-options></drop-down>
                 </default-field></field>
-                <field name="toPartyId"><default-field title="To">
+                <field name="toPartyId"><default-field title="To Customer">
                     <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down>
                 </default-field></field>
             </form-single>
         </container-dialog>
+        <container-dialog id="NewCustCreditDialog" button-text="Customer Credit Memo">
+            <label text="A Customer Credit Memo is a Payable Invoice that may be applied to one or more Receivable Invoices" type="p"/>
+            <form-single name="NewCustCreditForm" transition="createInvoice" extends="NewPayableForm">
+                <field name="fromPartyId"><default-field title="From Customer"/></field>
+                <field name="invoiceTypeEnumId" from="'InvoiceCreditMemo'"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="NewSupCreditDialog" button-text="Supplier Credit Memo">
+            <label text="A Supplier Credit Memo is a Receivable Invoice that may be applied to one or more Payable Invoices" type="p"/>
+            <form-single name="NewSupCreditForm" transition="createInvoice" extends="NewReceivableForm">
+                <field name="toPartyId"><default-field title="To Supplier"/></field>
+                <field name="invoiceTypeEnumId" from="'InvoiceCreditMemo'"><default-field><hidden/></default-field></field>
+            </form-single>
+        </container-dialog>
 
         <section name="ProjectInvoiceSection"><widgets>
-            <container-dialog id="ProjectInvoiceDialog" button-text="Invoice Project Client" width="700">
+            <container-dialog id="ProjectInvoiceDialog" button-text="Project Client Invoice" width="700">
                 <form-single name="ProjectInvoice" transition="createProjectInvoiceItems">
                     <field name="workEffortId"><default-field title="Project">
-                        <drop-down><entity-options key="${workEffortId}" text="WorkEffortNameTemplate">
-                            <entity-find entity-name="mantle.work.effort.WorkEffort">
-                                <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
-                                <order-by field-name="workEffortId"/></entity-find>
-                        </entity-options></drop-down>
+                        <drop-down><dynamic-options transition="getProjectList" server-search="true" min-length="0"/></drop-down>
                     </default-field></field>
 
                     <field name="thruDate"><default-field><date-time type="date-time"/></default-field></field>
@@ -127,15 +140,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="submitButton"><default-field title="Invoice Time and Expenses"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
-            <container-dialog id="WorkerInvoiceDialog" button-text="Worker Invoice" width="700">
-                <form-single name="WorkerInvoice" transition="createProjectInvoiceItems">
+            <container-dialog id="ProjectWorkerInvoiceDialog" button-text="Project Worker Invoice" width="700">
+                <form-single name="ProjectWorkerInvoice" transition="createProjectInvoiceItems">
                     <field name="ratePurposeEnumId"><default-field><hidden default-value="RaprVendor"/></default-field></field>
                     <field name="workEffortId"><default-field title="Project">
-                        <drop-down><entity-options key="${workEffortId}" text="${workEffortId} - ${workEffortName}">
-                            <entity-find entity-name="mantle.work.effort.WorkEffort">
-                                <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
-                                <order-by field-name="workEffortId"/></entity-find>
-                        </entity-options></drop-down>
+                        <drop-down><dynamic-options transition="getProjectList" server-search="true" min-length="0"/></drop-down>
                     </default-field></field>
                     <field name="workerPartyId"><default-field title="Worker"><drop-down>
                         <dynamic-options transition="getProjectParties" value-field="partyId" label-field="name"
@@ -153,6 +162,32 @@ along with this software (see the LICENSE.md file). If not, see
                 </form-single>
             </container-dialog>
         </widgets></section>
+
+        <container-dialog id="WorkerInvoiceDialog" button-text="Worker Invoice" width="700">
+            <form-single name="WorkerInvoice" transition="createWorkerInvoiceItems">
+                <field name="ratePurposeEnumId"><default-field><hidden default-value="RaprVendor"/></default-field></field>
+                <field name="vendorPartyId"><default-field title="Employer">
+                    <drop-down><entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                            <econdition field-name="roleTypeId" operator="in" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/></entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="workerPartyId"><default-field title="Worker"><drop-down>
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/>
+                </drop-down></default-field></field>
+
+                <field name="thruDate"><default-field><date-time type="date-time"/></default-field></field>
+                <field name="invoiceId"><default-field title="Existing Invoice"><drop-down>
+                    <dynamic-options transition="getOpenVendorInvoicesByFromParty" value-field="invoiceId" label-field="label"
+                            server-search="true" min-length="0">
+                        <depends-on field="workerPartyId"/></dynamic-options>
+                </drop-down></default-field></field>
+                <field name="submitButton"><default-field title="Invoice Time"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
 
         <container-dialog id="CustomerStatementDialog" button-text="Customer Statement PDF">
             <form-single name="CustomerStatementForm" transition="receivableStatement">
@@ -189,8 +224,8 @@ along with this software (see the LICENSE.md file). If not, see
         </form-single>
         -->
         <form-list name="InvoiceList" list="invoiceList" skip-form="true" header-dialog="true" select-columns="true"
-                   saved-finds="true" show-csv-button="true" show-all-button="true">
-            <entity-find entity-name="mantle.account.invoice.InvoiceFindView" list="invoiceList">
+                   saved-finds="true" show-csv-button="true" show-xlsx-button="true" show-all-button="true">
+            <entity-find entity-name="mantle.account.invoice.InvoiceFindView" list="invoiceList" use-clone="true">
                 <search-form-inputs default-order-by="invoiceDate,invoiceId" skip-fields="fromRoleTypeId,toRoleTypeId">
                     <default-parameters statusId="InvoiceInProcess,InvoiceFinalized,InvoiceSent,InvoiceAcked,InvoiceIncoming,InvoiceReceived,InvoiceApproved"
                             statusId_op="in" invoiceDate_poffset="-3" invoiceDate_period="30d"/></search-form-inputs>
@@ -209,7 +244,7 @@ along with this software (see the LICENSE.md file). If not, see
                             ((dueDateDays as BigDecimal) / periodDaysBd).setScale(0, BigDecimal.ROUND_DOWN).intValue() + 1) : null
                     if (dueDateIdx != null && dueDateIdx > 5) dueDateIdx = 5
 
-                    if (statusId in ['InvoiceInProcess','InvoiceFinalized','InvoiceSent']) {
+                    if (statusId in ['InvoiceInProcess','InvoiceFinalized','InvoiceSent','InvoiceAcked']) {
                         if (invoiceDateIdx != null) receivableAgingList[invoiceDateIdx] = receivableAgingList[invoiceDateIdx] + unpaidTotal
                         if (dueDateIdx != null) receivableDueAgingList[dueDateIdx] = receivableDueAgingList[dueDateIdx] + unpaidTotal
                         hasReceivableAging.set(true)

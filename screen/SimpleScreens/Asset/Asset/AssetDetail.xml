@@ -21,6 +21,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updateAssetAcquireCost"><service-call name="mantle.product.AssetServices.update#AssetAcquireCost"/>
         <default-response url="."/></transition>
+    <transition name="checkAssetReservations"><service-call name="mantle.product.AssetServices.check#AssetReservations"/>
+        <default-response url="."/></transition>
 
     <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
@@ -41,6 +43,7 @@ along with this software (see the LICENSE.md file). If not, see
     <widgets>
         <container-row><row-col lg="5">
             <link url="findTransactionEntry" text="TX Entries" link-type="anchor-button" parameter-map="[assetId:assetId]"/>
+            <link url="checkAssetReservations" text="Check Reservations" parameter-map="[assetId:assetId]"/>
             <container-dialog id="UpdateCostDialog" button-text="Update Cost &amp; Owner">
                 <label text="This will update all GL transactions for this Asset including receipt, issuance, and physical inventory changes."/>
                 <label text="NOTE: this should only be used to correct data as it rewrites the accounting history for this asset. Do not use to change ownership for a business transaction like a sale." type="p"/>
@@ -52,6 +55,27 @@ along with this software (see the LICENSE.md file). If not, see
                     </default-field></field>
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                 </form-single>
+            </container-dialog>
+            <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
+                <form-list name="AuditLogList" list="auditLogList" skip-form="true">
+                    <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
+                        <econdition field-name="changedEntityName" value="mantle.product.asset.Asset"/>
+                        <econdition field-name="changedFieldName" operator="not-equals" value="statusId"/>
+                        <econdition field-name="pkPrimaryValue" from="assetId"/>
+                        <select-field field-name="changedEntityName"/>
+                        <order-by field-name="-changedDate"/>
+                    </entity-find>
+
+                    <field name="changedDate"><default-field title="Date"><display/></default-field></field>
+                    <field name="changedByUserId"><default-field title="User">
+                        <display-entity text="UsernameTemplate" entity-name="mantle.party.PersonWithUserAccount" key-field-name="userId"/></default-field></field>
+                    <field name="changedFieldName"><default-field title="Field">
+                        <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedFieldName)}"/></default-field></field>
+                    <field name="oldValueText"><default-field title="From">
+                        <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, oldValueText)}"/></default-field></field>
+                    <field name="newValueText"><default-field title="To">
+                        <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
+                </form-list>
             </container-dialog>
 
             <form-single name="EditAsset" map="asset" transition="updateAsset">
@@ -84,6 +108,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="containerId"><default-field title="Container">
                     <link url="editContainer" text="${containerId}" link-type="anchor"/></default-field></field>
 
+                <field name="assetPoolId"><default-field title="Pool">
+                    <display-entity entity-name="mantle.product.asset.AssetPool" text="${pseudoId}: ${description}"/></default-field></field>
+
                 <field name="ownerPartyId"><default-field title="Owner Party">
                     <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                 </default-field></field>
@@ -107,6 +134,11 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
                     <dynamic-options transition="getLotList" server-search="true" min-length="2"/></drop-down></default-field></field>
+
+                <field name="serialNumber"><conditional-field condition="isFixedAsset || hasQuantity != 'Y' || quantityOnHandTotal == 1.0">
+                    <text-line size="40"/></conditional-field></field>
+                <field name="softIdentifier"><conditional-field title="Soft Identifier" condition="isFixedAsset || hasQuantity != 'Y' || quantityOnHandTotal == 1.0">
+                    <text-line size="40"/></conditional-field></field>
 
                 <field name="assetName"><conditional-field title="Name" condition="isFixedAsset">
                     <text-line size="60"/></conditional-field></field>
@@ -143,11 +175,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-list name="ReservationsListForm" list="assetReservationList" skip-form="true">
                     <field name="assetReservationId"><default-field title="ID"><display/></default-field></field>
                     <field name="reservedDate"><default-field title="Date"><display format="yyyy-MM-dd HH:mm"/></default-field></field>
-                    <field name="quantity"><default-field><display/></default-field></field>
-                    <field name="quantityNotAvailable"><default-field title="Not Avail"><display/></default-field></field>
-                    <field name="quantityNotIssued"><default-field title="Not Issued"><display/></default-field></field>
+                    <field name="quantity" show-total="true" align="right"><default-field><display/></default-field></field>
+                    <field name="quantityNotAvailable" show-total="true" align="right"><default-field title="Not Avail"><display/></default-field></field>
+                    <field name="quantityNotIssued" show-total="true" align="right"><default-field title="Not Issued"><display/></default-field></field>
                     <field name="orderId"><default-field title="Order">
-                        <link url="orderDetail" text="${orderId?:'N/A'}" link-type="anchor"/>
+                        <link url="orderDetail" text="${orderId}" link-type="anchor" condition="orderId"/>
                     </default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
@@ -187,9 +219,9 @@ along with this software (see the LICENSE.md file). If not, see
                             </conditional-field>
                             <conditional-field condition="assetReservationId">
                                 <label text="Reservation #${assetReservationId}"/>
-                                <label text="(reservation removed)" condition="!assetReservation"/>
-                                <link url="orderDetail" text="Order #${assetReservation.orderId}" link-type="anchor"
-                                        parameter-map="[orderId:assetReservation.orderId]" condition="assetReservation?.orderId"/>
+                                <label text=" (reservation removed)" condition="!assetReservation"/>
+                                <link url="orderDetail" text="Order #${assetReservation?.orderId ?: orderId}" link-type="anchor"
+                                        parameter-map="[orderId:(assetReservation?.orderId ?: orderId)]" condition="assetReservation?.orderId ?: orderId"/>
                             </conditional-field>
                             <conditional-field condition="otherAssetId">
                                 <link url="." text="Move, other asset: ${otherAssetId}" link-type="anchor" parameter-map="[assetId:otherAssetId]"/>

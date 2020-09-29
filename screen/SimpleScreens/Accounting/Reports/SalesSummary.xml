@@ -24,16 +24,16 @@ along with this software (see the LICENSE.md file). If not, see
 
         <service-call name="mantle.sales.SalesReportServices.get#SalesOrderSummary" out-map="context"
                 in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, maPeriods:maPeriods,
-                    vendorPartyIds:vendorPartyIds, productStoreIds:productStoreIds,
+                    vendorPartyIds:vendorPartyIds, customerPartyIds:customerPartyIds, productStoreIds:productStoreIds,
                     customerClassificationIds:customerClassificationIds, productIds:productIds]"/>
         <service-call name="mantle.sales.SalesReportServices.get#SalesInvoiceSummary" out-map="context"
                 in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, maPeriods:maPeriods,
-                    fromPartyIds:vendorPartyIds, productStoreIds:productStoreIds,
+                    fromPartyIds:vendorPartyIds, toPartyIds:customerPartyIds, productStoreIds:productStoreIds,
                     customerClassificationIds:customerClassificationIds, productIds:productIds]"/>
 
-        <service-call name="mantle.sales.SalesReportServices.get#SalesTopProduct" out-map="context"
+        <service-call name="mantle.sales.SalesReportServices.get#SalesTopProduct" out-map="context" transaction="force-new" ignore-error="true"
                 in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate, topLimit:(topLimit?:15)]"/>
-        <service-call name="mantle.sales.SalesReportServices.get#InvoicesByCustomerClass" out-map="context"
+        <service-call name="mantle.sales.SalesReportServices.get#InvoicesByCustomerClass" out-map="context" transaction="force-new" ignore-error="true"
                 in-map="[interval:(interval?:'w'), intervalCount:intervalCount, thruDate:thruDate]"/>
 
         <script><![CDATA[
@@ -126,6 +126,13 @@ along with this software (see the LICENSE.md file). If not, see
                 <order-by field-name="description"/>
             </entity-find>
         </if>
+        <if condition="customerPartyIds">
+            <set field="customerPartyIdList" from="customerPartyIds instanceof List ? customerPartyIds : (customerPartyIds.split(',') as List)"/>
+            <entity-find entity-name="mantle.party.PartyDetail" list="selectedCustomerPartyList">
+                <econdition field-name="partyId" operator="in" from="customerPartyIdList"/>
+                <order-by field-name="pseudoId"/>
+            </entity-find>
+        </if>
         <if condition="productIds">
             <set field="productIdList" from="productIds instanceof List ? productIds : (productIds.split(',') as List)"/>
             <entity-find entity-name="mantle.product.Product" list="selectedProductList">
@@ -144,10 +151,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="maPeriods"><default-field title="MA Periods" tooltip="Moving Average look back periods, set to 0 to disable">
                     <text-line size="2" default-value="0"/></default-field></field>
 
-                <field name="vendorPartyIds"><default-field title="Vendor"><drop-down allow-empty="true" allow-multiple="true">
+                <field name="vendorPartyIds"><default-field title="Vendors"><drop-down allow-empty="true" allow-multiple="true">
                     <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'OrgInternal']"/>
                 </drop-down></default-field></field>
-                <field name="productStoreIds"><default-field title="Store"><drop-down allow-empty="true" allow-multiple="true">
+                <field name="productStoreIds"><default-field title="Stores"><drop-down allow-empty="true" allow-multiple="true">
                     <entity-options key="${productStoreId}" text="${productStoreId}: ${storeName}">
                         <entity-find entity-name="mantle.product.store.ProductStore">
                             <order-by field-name="storeName"/></entity-find></entity-options>
@@ -161,6 +168,10 @@ along with this software (see the LICENSE.md file). If not, see
                                 <order-by field-name="description"/></entity-find></entity-options>
                     </drop-down>
                 </default-field></field>
+                <field name="customerPartyIds"><default-field title="Customers"><drop-down allow-empty="true" allow-multiple="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'Customer']"/>
+                </drop-down></default-field></field>
+
                 <field name="productIds"><default-field title="Products"><drop-down allow-multiple="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="0" parameter-map="[assetClassEnumId:'AsClsInventoryFin']"/>
                 </drop-down></default-field></field>
@@ -175,14 +186,15 @@ along with this software (see the LICENSE.md file). If not, see
             <label text="Vendors: ${selectedVendorPartyList.collect({ ec.resource.expand('PartyNameTemplate', '', it) }).join(', ')}" condition="selectedVendorPartyList" type="h5"/>
             <label text="Stores: ${selectedProductStoreList.collect({ it.productStoreId + ': ' + it.storeName }).join(', ')}" condition="selectedProductStoreList" type="h5"/>
             <label text="Customer Classes: ${selectedClassificationList*.description.join(', ')}" condition="selectedClassificationList" type="h5"/>
+            <label text="Customers: ${selectedCustomerPartyList.collect({ ec.resource.expand('PartyNameTemplate', '', it) }).join(', ')}" condition="selectedCustomerPartyList" type="h5"/>
             <label text="Products: ${selectedProductList.collect({ ec.resource.expand('ProductNameTemplate', '', it) }).join(', ')}" condition="selectedProductList" type="h5"/>
         </container>
 
-        <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryStats.html.ftl"/></render-mode>
+        <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryStats.html.ftl"/></render-mode>
 
-        <render-mode><text type="html,vuet" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryCharts.html.ftl"/></render-mode>
+        <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/screen/SimpleScreens/Accounting/Reports/SalesSummaryCharts.html.ftl"/></render-mode>
 
-        <container-box><box-header title="Top Products Ordered (${[w:'Week', M:'Month', q:'Quarter', y:'Year'].get(interval?:'w')} from ${ec.l10n.format(topProductStart, 'dd MMM yyyy')} to ${ec.l10n.format(topProductEnd - 1, 'dd MMM yyyy')})"/><box-body-nopad>
+        <container-box><box-header title="Top Products Ordered (${[d:'Day', w:'Week', M:'Month', q:'Quarter', y:'Year'].get(interval?:'w')} from ${ec.l10n.format(topProductStart, 'dd MMM yyyy')} to ${ec.l10n.format((topProductEnd ? topProductEnd - 1 : null), 'dd MMM yyyy')})"/><box-body-nopad>
             <form-list name="TopProductList" list="topProductList" skip-form="true">
                 <field name="productId"><default-field title="Product">
                     <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
@@ -231,7 +243,7 @@ along with this software (see the LICENSE.md file). If not, see
             </form-list>
         </box-body-nopad></container-box>
 
-        <container-box><box-header title="Invoices by Customer Classification (last period)"/><box-body-nopad>
+        <container-box><box-header title="Invoices by Customer Classification (${[d:'Day', w:'Week', M:'Month', q:'Quarter', y:'Year'].get(interval?:'w')} from ${ec.l10n.format(topCustomerClassStart, 'dd MMM yyyy')} to ${ec.l10n.format((topCustomerClassEnd ? topCustomerClassEnd - 1 : null), 'dd MMM yyyy')})"/><box-body-nopad>
             <form-list name="TopCustomerClassList" list="topCustomerClassList" skip-form="true">
                 <row-actions><set field="rowStyle" from="customerClassId ? '' : 'text-strong'"/></row-actions>
                 <field name="classDescription"><default-field title="Classification"><display/></default-field></field>
@@ -270,6 +282,8 @@ along with this software (see the LICENSE.md file). If not, see
                     <display/></default-field></field>
                 <field name="invoiceCount" align="right"><default-field title="Invoices" container-style="${rowStyle}">
                     <display/></default-field></field>
+                <!-- <field name="invoiceIdCount" align="right"><default-field title="Invoice IDs" container-style="${rowStyle}">
+                    <display/></default-field></field> -->
                 <field name="productQuantityTotal" align="right"><default-field title="Product Quantity" container-style="${rowStyle}">
                     <display/></default-field></field>
                 <field name="invoiceTotal" align="right"><default-field title="Invoices Total" container-style="${rowStyle}">

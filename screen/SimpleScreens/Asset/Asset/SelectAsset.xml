@@ -19,6 +19,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="locationSeqId"/>
     <parameter name="containerId"/>
     <parameter name="productId"/>
+    <parameter name="assetPoolId"/>
     <parameter name="lotId"/>
     <parameter name="quantity"/>
     <parameter name="toScanLocation"/>
@@ -50,11 +51,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
-    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getLotList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getAssetPoolList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <transition name="assetMove">
         <actions>
@@ -244,12 +247,28 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="createContMessage"><conditional-field condition="createContainerId" title="">
                         <label text="Scanned ID was not a known location or container, scan a location to create a container with the ID" style="text-warning"/>
                     </conditional-field></field>
+                    <field name="assetPoolId"><default-field title="From Pool"><drop-down allow-empty="true">
+                        <entity-options key="${assetPoolId}" text="${pseudoId}: ${description}">
+                            <entity-find entity-name="mantle.product.asset.AssetAndPool" distinct="true">
+                                <econdition field-name="facilityId"/>
+                                <econdition field-name="productId"/>
+                                <econditions combine="or">
+                                    <econdition field-name="locationSeqId"/>
+                                    <econdition field-name="containerId"/>
+                                </econditions>
+                                <select-field field-name="assetPoolId,pseudoId,description"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
                     <field name="toScanLocation"><default-field title="Scan Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
                         <text-line size="20"/></default-field></field>
                     <!-- <field name="containerId"><default-field title="Scan Container ID" tooltip="Can be Container ID or Serial Number (Plate ID)">
                         <text-line size="20"/></default-field></field> -->
                     <field name="createContainerId"><default-field title="Create Container ID">
                         <text-line size="20"/></default-field></field>
+                    <field name="toAssetPoolId"><default-field title="To Pool"><drop-down allow-empty="true">
+                        <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0"/>
+                    </drop-down></default-field></field>
                     <field name="quantity"><default-field title="Quantity" tooltip="For partial move, defaults to entire asset">
                         <text-line size="20"/></default-field></field>
                     <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
@@ -260,11 +279,24 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="locationSeqId"><default-field><hidden/></default-field></field>
                     <field name="containerId"><default-field><hidden/></default-field></field>
                     <field name="productId"><default-field><hidden/></default-field></field>
-                    <field name="toLocationSeqId"><default-field title="Location"><drop-down allow-empty="true">
+                    <field name="assetPoolId"><default-field title="From Pool"><drop-down allow-empty="true">
+                        <entity-options key="${assetPoolId}" text="${pseudoId}: ${description}">
+                            <entity-find entity-name="mantle.product.asset.AssetAndPool" distinct="true">
+                                <econdition field-name="facilityId"/>
+                                <econdition field-name="productId"/>
+                                <econditions combine="or">
+                                    <econdition field-name="locationSeqId"/>
+                                    <econdition field-name="containerId"/>
+                                </econditions>
+                                <select-field field-name="assetPoolId,pseudoId,description"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
+                    <field name="toLocationSeqId" from="locationSeqId"><default-field title="To Location"><drop-down allow-empty="true">
                         <dynamic-options transition="getLocationList" server-search="true" min-length="0">
                             <depends-on field="facilityId"/></dynamic-options>
                     </drop-down></default-field></field>
-                    <field name="toContainerId"><default-field title="Container"><drop-down>
+                    <field name="toContainerId" from="containerId"><default-field title="To Container"><drop-down>
                         <!-- NOTE: don't allow-empty, if there is at least one container in the location it should go in a container, for movable bin support -->
                         <!-- TODO: would be nice to allow-empty but auto-select first if there is at least one -->
                         <dynamic-options transition="getContainerList" server-search="true" min-length="0">
@@ -272,6 +304,9 @@ along with this software (see the LICENSE.md file). If not, see
                     </drop-down></default-field></field>
                     <field name="createContainerId"><default-field title="Create Container ID">
                         <text-line size="20"/></default-field></field>
+                    <field name="toAssetPoolId" from="assetPoolId"><default-field title="To Pool"><drop-down allow-empty="true">
+                        <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0"/>
+                    </drop-down></default-field></field>
                     <field name="quantity"><default-field title="Quantity">
                         <text-line size="10"/></default-field></field>
                     <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>

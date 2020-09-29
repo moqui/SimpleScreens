@@ -23,7 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createMessage"><service-call name="mantle.party.CommunicationServices.create#Message"/>
         <default-response url="."/></transition>
 
-    <transition-include name="getPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
 
     <actions>
         <if condition="toCurrentUser == 'true'"><set field="toPartyId" from="ec.user.userAccount.partyId"/></if>
@@ -31,8 +31,8 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find entity-name="mantle.party.communication.CommunicationEventAndPurpose" list="commEventList">
             <search-form-inputs default-order-by="-entryDate"/>
             <econditions combine="or">
-                <econdition field-name="fromPartyId" from="partyId"/>
-                <econdition field-name="toPartyId" from="partyId"/>
+                <econdition field-name="fromPartyId" from="partyId" ignore-if-empty="true"/>
+                <econdition field-name="toPartyId" from="partyId" ignore-if-empty="true"/>
             </econditions>
             <econdition field-name="communicationEventTypeId" operator="in" value="Email,Message,Comment"/>
             <select-field field-name="communicationEventId"/><select-field field-name="entryDate"/>
@@ -51,9 +51,9 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="fromPartyId" from="ec.user.userAccount.partyId"><default-field title="From">
                     <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/>
                 </default-field></field>
-                <field name="toPartyId"><default-field title="To">
-                    <text-line ac-transition="getPartyList" ac-min-length="2" size="60"/>
-                </default-field></field>
+                <field name="toPartyId"><default-field title="To"><drop-down>
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/>
+                </drop-down></default-field></field>
                 <field name="purposeEnumId"><default-field title="Purpose">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                         <set field="enumTypeId" value="CommunicationPurpose"/><set field="allowEmpty" value="true"/></widget-template-include>
@@ -71,6 +71,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <entity-find entity-name="mantle.party.communication.CommunicationEventPurpose" list="cepList">
                     <econdition field-name="communicationEventId"/><order-by field-name="purposeEnumId"/></entity-find>
             </row-actions>
+            <hidden-parameters><parameter name="partyId"/></hidden-parameters>
+
             <field name="entryDate"><header-field show-order-by="true"/>
                 <default-field title="Date"><display format="yyyy-MM-dd HH:mm"/></default-field>
             </field>
@@ -82,12 +84,16 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title="Status"><display-entity entity-name="moqui.basic.StatusItem" also-hidden="false"/></default-field>
             </field>
             <field name="fromPartyId">
-                <header-field title="From"><text-line ac-transition="getPartyList" ac-min-length="2" size="25"/></header-field>
+                <header-field title="From"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/>
+                </drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" also-hidden="false"
                         key-field-name="partyId" text="PartyNameTemplate"/></default-field>
             </field>
             <field name="toPartyId">
-                <header-field title="To"><text-line ac-transition="getPartyList" ac-min-length="2" size="25"/></header-field>
+                <header-field title="To"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/>
+                </drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" also-hidden="false"
                         key-field-name="partyId" text="PartyNameTemplate"/></default-field>
             </field>
@@ -96,15 +102,20 @@ along with this software (see the LICENSE.md file). If not, see
             </default-field></field>
             
             <field name="communicationEventTypeId">
-                <header-field title="Type"><drop-down allow-empty="true"><option key="Comment"/><option key="Email"/>
-                    <option key="Message"/></drop-down></header-field>
+                <header-field title="Type"><drop-down allow-multiple="true">
+                    <entity-options text="${description}">
+                        <entity-find entity-name="mantle.party.communication.CommunicationEventType">
+                            <order-by field-name="description"/></entity-find>
+                    </entity-options>
+                    <option key="Comment"/><option key="Email"/>
+                    <option key="Message"/>
+                </drop-down></header-field>
                 <default-field><display-entity entity-name="mantle.party.communication.CommunicationEventType"/></default-field>
             </field>
-            <field name="purposeEnumId">
-                <header-field title="Purpose" show-order-by="true">
+            <field name="purposeList">
+                <header-field title="Purposes" show-order-by="true">
                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
-                        <set field="enumTypeId" value="CommunicationPurpose"/><set field="allowEmpty" value="true"/>
-                        <set field="style" value=" "/></widget-template-include>
+                        <set field="enumTypeId" value="CommunicationPurpose"/><set field="allowMultiple" value="true"/></widget-template-include>
                 </header-field>
                 <default-field>
                     <section-iterate name="PurposeListSection" list="cepList" entry="cep">
@@ -120,10 +131,16 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="submitButton">
                 <header-field title="Find"><submit/></header-field>
                 <default-field>
-                    <link url="editMessage" text="Edit" link-type="anchor"/>
-                    <link url="messageThread" text="Thread" link-type="anchor"/>
+                    <link url="editMessage" text="Edit"/>
+                    <link url="messageThread" text="Thread"/>
                 </default-field>
             </field>
+
+            <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
+            <form-list-column><field-ref name="subject"/></form-list-column>
+            <form-list-column><field-ref name="entryDate"/><field-ref name="statusId"/></form-list-column>
+            <form-list-column><field-ref name="communicationEventTypeId"/><field-ref name="purposeList"/></form-list-column>
+            <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
     </widgets>
 </screen>

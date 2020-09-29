@@ -30,26 +30,40 @@ along with this software (see the LICENSE.md file). If not, see
 
         <set field="orderBySave" from="orderByField ?: 'toName'"/>
         <set field="orderByField" from="null"/>
-        <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList">
+        <entity-find entity-name="mantle.account.invoice.InvoicePaymentApplicationSummary" list="invoiceAgingList" use-clone="true">
             <search-form-inputs/>
-            <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent,InvoiceAcked,InvoicePmtRecvd"/>
-            <econdition field-name="invoiceDate" operator="less-equals" from="asOfDate"/>
-            <econdition field-name="itemDate" operator="less-equals" from="asOfDate" or-null="true"/>
-            <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
-            <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
-            <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
+            <!-- IITM sub-select conditions -->
             <econditions combine="or">
-                <!-- NOTE would be nice to constrain to itemsTotal != (amountApplied + toAmountApplied), do in post filter -->
-                <econdition field-name="itemsTotal" operator="not-equals" to-field-name="amountApplied"/>
-                <econditions combine="and">
+                <!-- NOTE: adjustment items are posted to GL by itemDate, all other items posted by invoiceDate; do query to match that -->
+                <econditions>
+                    <econdition field-name="isAdjustment" operator="not-equals" value="Y" or-null="true"/>
+                    <econdition field-name="itemInvoiceDate" operator="less-equals" from="asOfDate"/>
+                </econditions>
+                <econditions>
+                    <econdition field-name="isAdjustment" value="Y"/>
+                    <econdition field-name="itemDate" operator="less-equals" from="asOfDate"/>
+                </econditions>
+            </econditions>
+            <!-- PAPP sub-select conditions -->
+            <econdition field-name="appliedDate" operator="less-equals" from="asOfDate"/>
+            <!-- TPAPP sub-select conditions -->
+            <econdition field-name="toAppliedDate" operator="less-equals" from="asOfDate"/>
+            <!-- main select condition -->
+            <econdition field-name="fromRoleTypeId" ignore-if-empty="true"/>
+            <econdition field-name="toRoleTypeId" ignore-if-empty="true"/>
+            <econditions combine="or">
+                <econdition field-name="itemsTotal" operator="not-equals" to-field-name="totalAmountApplied"/>
+                <econditions>
+                    <econdition field-name="itemsTotal" operator="not-equals" from="0.0"/>
                     <econdition field-name="amountApplied" operator="is-null"/>
                     <econdition field-name="toAmountApplied" operator="is-null"/>
                 </econditions>
             </econditions>
+            <econdition field-name="statusId" operator="in" value="InvoiceFinalized,InvoiceSent,InvoiceAcked,InvoicePmtRecvd"/>
             <select-field field-name="fromPartyId,toPartyId,toPseudoId,toName,invoiceId,invoiceDate,dueDate"/>
             <select-field field-name="itemsTotal,amountApplied,toAmountApplied"/>
         </entity-find>
-        <entity-find entity-name="mantle.account.payment.PaymentAndApplicationSummary" list="paymentAndAppList">
+        <entity-find entity-name="mantle.account.payment.PaymentAndApplicationSummary" list="paymentAndAppList" use-clone="true">
             <econdition field-name="fromPartyId" from="toPartyId" ignore-if-empty="true"/>
             <econdition field-name="toPartyId" from="fromPartyId" ignore-if-empty="true"/>
             <econdition field-name="paymentTypeEnumId" operator="in" value="PtInvoicePayment,PtPrePayment,PtPrePaymentInventory"/>
@@ -152,7 +166,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <field-ref name="submitButton"/></field-row-big></field-layout>
         </form-single>
 
-        <form-list name="InvoiceAgingList" list="agingInfoList" skip-form="true" header-dialog="true" show-csv-button="true">
+        <form-list name="InvoiceAgingList" list="agingInfoList" skip-form="true" header-dialog="true"
+                   show-csv-button="true" show-xlsx-button="true">
 
             <field name="periodDays"><header-field><text-line size="6"/></header-field></field>
             <field name="dateField"><header-field title="Age By"><drop-down><option key="dueDate" text="Due Date"/>

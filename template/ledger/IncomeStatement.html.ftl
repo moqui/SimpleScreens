@@ -60,7 +60,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <#assign currentAmt = (glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
                     <#if findEntryUrl??>
                         <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                        <td class="text-right text-mono"><a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(currentAmt, currencyFormat)}</a><#if (currentAmt >= 0)>&nbsp;</#if></td>
+                        <#if sri.getRenderMode()! == "vuet,qvt">
+                            <td class="text-right text-mono"><m-link href="${findEntryInstance.getPathWithParams()}">${ec.l10n.format(currentAmt, currencyFormat)}</m-link><#if (currentAmt >= 0)>&nbsp;</#if></td>
+                        <#else>
+                            <td class="text-right text-mono"><a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(currentAmt, currencyFormat)}</a><#if (currentAmt >= 0)>&nbsp;</#if></td>
+                        </#if>
                     <#else>
                         <td class="text-right text-mono">${ec.l10n.format(currentAmt, currencyFormat)}<#if (currentAmt >= 0)>&nbsp;</#if></td>
                     </#if>
@@ -104,10 +108,11 @@ along with this software (see the LICENSE.md file). If not, see
     </#if>
 </#macro>
 
-<table class="table table-striped table-hover table-condensed">
+<div<#if sri.getRenderMode() == 'qvt'> class="q-table__container q-table__card q-table--horizontal-separator q-table--dense q-table--flat"</#if>>
+<table class="<#if sri.getRenderMode() == 'qvt'>q-table<#else>table table-striped table-hover table-condensed</#if>">
     <thead>
         <tr>
-            <th>${organizationName!""} - ${ec.l10n.localize("Income Statement")} <small>(${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')})</small></th>
+            <th class="text-left">${organizationName!""} - ${ec.l10n.localize("Income Statement")} <small>(${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')})</small></th>
             <#if (timePeriodIdList?size > 1)><th class="text-right">${ec.l10n.localize("All Periods")}</th></#if>
             <#list timePeriodIdList as timePeriodId>
                 <th class="text-right">${timePeriodIdMap[timePeriodId].periodName}</th>
@@ -117,7 +122,6 @@ along with this software (see the LICENSE.md file). If not, see
         </tr>
     </thead>
     <tbody>
-
         <@showClass classInfoById.REVENUE 1/>
         <@showClass classInfoById.COST_OF_SALES 1 true/>
         <tr class="text-success" style="border-bottom: solid black;">
@@ -204,15 +208,16 @@ along with this software (see the LICENSE.md file). If not, see
         </tr>
     </tbody>
 </table>
+</div>
 
 <#if showCharts>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js" type="text/javascript"></script>
-    <ul class="float-plain" style="margin-top:12px;">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" type="text/javascript"></script>
+    <div class="row" style="margin-top:12px;">
     <#if (timePeriodIdList?size > 1) && topExpenseByTimePeriod['ALL']?has_content>
         <#assign topExpenseList = topExpenseByTimePeriod['ALL']>
-        <li>
+        <div class="col" style="max-width:400px;">
             <div class="text-center"><strong>Expenses All Periods</strong></div>
-            <canvas id="ExpenseChartAll" style="width:360px;"></canvas>
+            <canvas width="380" id="ExpenseChartAll" style="max-width:360px;"></canvas>
             <script>
                 var expenseChartAll = new Chart(document.getElementById("ExpenseChartAll"), { type: 'pie',
                     data: { labels:[<#list topExpenseList! as topExpense>'${topExpense.className}'<#sep>,</#list>],
@@ -221,13 +226,13 @@ along with this software (see the LICENSE.md file). If not, see
                     }
                 });
             </script>
-        </li>
+        </div>
     </#if>
     <#list timePeriodIdList as timePeriodId><#if topExpenseByTimePeriod[timePeriodId]?has_content>
         <#assign topExpenseList = topExpenseByTimePeriod[timePeriodId]>
-        <li>
+        <div class="col" style="max-width:400px;">
             <div class="text-center"><strong>Expenses ${timePeriodIdMap[timePeriodId].periodName}</strong></div>
-            <canvas id="ExpenseChart${timePeriodId_index}" style="width:360px;"></canvas>
+            <canvas width="380" id="ExpenseChart${timePeriodId_index}"></canvas>
             <script>
                 var expenseChartAll = new Chart(document.getElementById("ExpenseChart${timePeriodId_index}"), { type: 'pie',
                     data: { labels:[<#list topExpenseList! as topExpense>'${topExpense.className}'<#sep>,</#list>],
@@ -236,7 +241,7 @@ along with this software (see the LICENSE.md file). If not, see
                     }
                 });
             </script>
-        </li>
+        </div>
     </#if></#list>
-    </ul>
+    </div>
 </#if>

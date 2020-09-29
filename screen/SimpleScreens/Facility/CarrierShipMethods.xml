@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Carrier Shipment Methods" default-menu-include="false">
+
+    <transition name="createCarrierShipmentMethod"><service-call name="create#mantle.shipment.carrier.CarrierShipmentMethod"/>
+        <default-response url="."/></transition>
+    <transition name="updateCarrierShipmentMethod"><service-call name="update#mantle.shipment.carrier.CarrierShipmentMethod"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <set field="pageSize" from="pageSize ?: '20'"/>
+    </actions>
+    <widgets>
+        <container-dialog id="AddCarrierShipmentMethodDialog" button-text="Add Carrier Shipment Method">
+            <form-single name="CreateCarrierShipmentMethod" transition="createCarrierShipmentMethod">
+                <field name="sequenceNum"><default-field title="Sequence"><text-line size="4"/></default-field></field>
+
+                <field name="carrierPartyId">
+                    <default-field title="Carrier"><drop-down>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="Carrier"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field>
+                </field>
+                <field name="shipmentMethodEnumId"><default-field title="Ship Method">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentMethod"/></widget-template-include>
+                </default-field></field>
+
+                <field name="description"><default-field><text-line size="30"/></default-field></field>
+                <field name="carrierServiceCode"><default-field title="Carrier Code"><text-line size="15"/></default-field></field>
+                <field name="scaCode"><default-field title="SCA Code"><text-line size="10"/></default-field></field>
+                <field name="gatewayServiceCode"><default-field title="Gateway Code"><text-line size="35"/></default-field></field>
+
+                <field name="submitButton"><default-field><submit text="Create"/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="CarrierShipmentMethodList" list="carrierShipMethList" header-dialog="true" select-columns="true"
+                transition="updateCarrierShipmentMethod" multi="true">
+            <entity-find entity-name="mantle.shipment.carrier.CarrierShipmentMethod" list="carrierShipMethList">
+                <search-form-inputs default-order-by="sequenceNum,carrierPartyId"/>
+            </entity-find>
+
+            <field name="sequenceNum">
+                <header-field title="Sequence" show-order-by="true"/>
+                <default-field><text-line size="4"/></default-field>
+            </field>
+
+            <field name="carrierPartyId">
+                <header-field title="Carrier" show-order-by="true"><drop-down allow-empty="true">
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="Carrier"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></header-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="${pseudoId}"/></default-field>
+            </field>
+            <field name="shipmentMethodEnumId">
+                <header-field title="Ship Method" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentMethod"/><set field="allowMultiple" value="true"/>
+                        <set field="showNot" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+
+            <field name="description">
+                <header-field show-order-by="case-insensitive"><text-find hide-options="true"/></header-field>
+                <default-field><text-line size="30"/></default-field>
+            </field>
+
+            <field name="carrierServiceCode">
+                <header-field title="Carrier Code" show-order-by="true"><text-find hide-options="true"/></header-field>
+                <default-field><text-line size="15"/></default-field>
+            </field>
+            <field name="scaCode">
+                <header-field title="SCA Code" show-order-by="true"><text-find hide-options="true"/></header-field>
+                <default-field><text-line size="10"/></default-field>
+            </field>
+            <field name="gatewayServiceCode">
+                <header-field title="Gateway Code" show-order-by="true"><text-find hide-options="true"/></header-field>
+                <default-field><text-line size="35"/></default-field>
+            </field>
+
+            <field name="submitButton">
+                <header-field title="Find"><submit/></header-field>
+                <default-field><submit text="Update"/></default-field>
+            </field>
+        </form-list>
+    </widgets>
+</screen>

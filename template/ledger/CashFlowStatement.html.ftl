@@ -50,7 +50,11 @@ along with this software (see the LICENSE.md file). If not, see
                     <td class="text-right text-mono">
                         <#if findEntryUrl??>
                             <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                            <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}</a>
+                            <#if sri.getRenderMode()! == "vuet,qvt">
+                                <m-link href="${findEntryInstance.getPathWithParams()}">${ec.l10n.format(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}</m-link>
+                            <#else>
+                                <a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}</a>
+                            </#if>
                         <#else>
                             ${ec.l10n.format(glAccountInfo.postedByTimePeriod[timePeriodId]!0, currencyFormat)}
                         </#if>
@@ -102,7 +106,8 @@ along with this software (see the LICENSE.md file). If not, see
     </tr>
 </#macro>
 
-<table class="table table-striped table-hover table-condensed">
+<div<#if sri.getRenderMode() == 'qvt'> class="q-table__container q-table__card q-table--horizontal-separator q-table--dense q-table--flat"</#if>>
+<table class="<#if sri.getRenderMode() == 'qvt'>q-table<#else>table table-striped table-hover table-condensed</#if>">
     <thead>
         <tr>
             <th>${ec.l10n.localize("Cash Flow Statement")}</th>
@@ -208,3 +213,4 @@ along with this software (see the LICENSE.md file). If not, see
         </tr>
     </tbody>
 </table>
+</div>

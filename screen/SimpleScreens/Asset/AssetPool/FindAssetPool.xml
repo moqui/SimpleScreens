@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" default-menu-title="Pools">
+
+    <transition name="createAssetPool"><service-call name="create#mantle.product.asset.AssetPool"/>
+        <default-response url="../EditAssetPool"/></transition>
+
+    <transition name="editAssetPool"><default-response url="../EditAssetPool"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editProductStore"><default-response url="//${appRoot}/ProductStore/EditProductStore"/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+
+    <widgets>
+        <container-dialog id="CreateAssetPoolDialog" button-text="Create Pool">
+            <form-single name="CreateAssetPoolForm" transition="createAssetPool">
+                <field name="pseudoId"><default-field><text-line size="20"/></default-field></field>
+                <field name="description"><default-field><text-line size="40"/></default-field></field>
+                <field name="ownerPartyId"><default-field title="Owned By Org"><drop-down>
+                    <option key="_NA_" text="N/A"/>
+                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                            <econdition field-name="disabled" value="N" or-null="true"/>
+                            <order-by field-name="organizationName"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down></default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-list name="AssetPoolList" list="assetPoolList" skip-form="true" header-dialog="true">
+            <entity-find entity-name="mantle.product.asset.AssetPoolDetail" list="assetPoolList">
+                <search-form-inputs default-order-by="pseudoId"/>
+                <econdition field-name="partyId" from="findPartyId" ignore-if-empty="true"/>
+                <econdition field-name="productStoreId" from="findProductStoreId" ignore-if-empty="true"/>
+                <select-field field-name="assetPoolId"/>
+            </entity-find>
+            <row-actions>
+                <entity-find entity-name="mantle.product.asset.AssetPoolPartyDetail" list="poolPartyList">
+                    <econdition field-name="assetPoolId"/>
+                    <order-by field-name="pseudoId"/>
+                </entity-find>
+                <entity-find entity-name="mantle.product.asset.AssetPoolStoreDetail" list="poolStoreList">
+                    <econdition field-name="assetPoolId"/>
+                    <order-by field-name="storeName"/>
+                </entity-find>
+            </row-actions>
+
+            <field name="assetPoolId"><default-field><hidden/></default-field></field>
+
+            <field name="pseudoId"><header-field show-order-by="true" title="ID"><text-find hide-options="true"/></header-field>
+                <default-field><link url="editAssetPool" text="${pseudoId}" link-type="anchor"/></default-field></field>
+            <field name="description"><header-field show-order-by="case-insensitive"><text-find/></header-field>
+                <default-field><display/></default-field></field>
+            <field name="ownerPartyId">
+                <header-field>
+                    <drop-down allow-empty="true">
+                        <option key="_NA_" text="N/A"/>
+                        <entity-options key="${partyId}" text="PartyNameTemplate">
+                            <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                <econdition field-name="disabled" value="N" or-null="true"/>
+                                <order-by field-name="organizationName"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
+            </field>
+
+            <field name="findPartyId"><header-field title="Party"><drop-down allow-empty="true">
+                <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field></field>
+            <field name="partyList"><default-field title="Party">
+                <section-iterate name="PartyListSection" list="poolPartyList" entry="poolParty"><widgets><container>
+                    <link url="editParty" text="PartyNameTemplate" text-map="poolParty"
+                            link-type="anchor" parameter-map="[partyId:poolParty.partyId]"/>
+                    <label text=" (${poolParty.roleDescription})" condition="poolParty.roleDescription"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
+
+            <field name="findProductStoreId"><header-field title="Party"><drop-down allow-empty="true">
+                <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field></field>
+            <field name="storeList"><default-field title="Store">
+                <section-iterate name="StoreListSection" list="poolStoreList" entry="poolStore"><widgets><container>
+                    <link url="editProductStore" text="${poolStore.storeName}"
+                            link-type="anchor" parameter-map="[productStoreId:poolStore.productStoreId]"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
+
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+    </widgets>
+</screen>

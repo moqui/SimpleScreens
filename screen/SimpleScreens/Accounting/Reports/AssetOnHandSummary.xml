@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Asset On Hand Summary" default-menu-include="false">
+
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="editReturn"><default-response url="//${appRoot}/Return/EditReturn"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="emailScreenAsync" location="component://webroot/template/screen/BasicTransitions.xml"/>
+
+    <actions>
+        <if condition="!dateRange_period &amp;&amp; !dateRange_from">
+            <set field="dateRange_period" from="dateRange_period ?: 'week'"/>
+            <set field="dateRange_poffset" from="dateRange_poffset ?: '-1'"/>
+        </if>
+
+        <set field="rangeList" from="ec.user.getPeriodRange('dateRange', context)"/>
+        <!-- special case for AssetOnHandSummary, these 2 Timestamps must be in the context -->
+        <set field="fromDate" from="rangeList[0]"/>
+        <set field="thruDate" from="rangeList[1] ?: ec.user.nowTimestamp"/>
+
+        <set field="fieldDescriptions" from="[
+            [fieldName:'Shipments In', description:'All Incoming Shipments except Return Shipments'],
+            [fieldName:'Returns', description:'Return Shipments'],
+            [fieldName:'Produced', description:'Produced by Production Run'],
+            [fieldName:'Other Receipts', description:'All Receipts except Incoming Shipments and Production Runs'],
+            [fieldName:'All Receipts', description:'All Asset Receipts'],
+            [fieldName:'Shipments Out', description:'All Outgoing Shipments'],
+            [fieldName:'Consumed', description:'Consumed by Production Run'],
+            [fieldName:'Other Issuances', description:'All Issuances except Outgoing Shipments and Production Runs'],
+            [fieldName:'All Issuances', description:'All Asset Issuances'],
+            [fieldName:'Adjustments', description:'Physical Inventory Adjustments'],
+        ]"/>
+    </actions>
+    <widgets>
+        <section-include name="EmailScreenSection" location="component://webroot/template/screen/BasicTransitions.xml"/>
+        <container-dialog id="FieldDescDialog" button-text="Field Descriptions">
+            <form-list name="FieldDescriptions" list="fieldDescriptions" skip-form="true" paginate="false">
+                <field name="fieldName"><default-field><display style="text-strong"/></default-field></field>
+                <field name="description"><default-field><display/></default-field></field>
+            </form-list>
+        </container-dialog>
+
+        <form-list name="AssetOnHandSummary" list="summaryList" skip-form="true" header-dialog="true" saved-finds="true"
+                select-columns="true" show-all-button="true" show-csv-button="true" show-xlsx-button="true">
+            <entity-find entity-name="mantle.product.asset.AssetOnHandSummary" list="summaryList" use-clone="true">
+                <search-form-inputs default-order-by="pseudoId" require-parameters="true"/>
+                <!-- NOTE: this query will get slower over time, not a good approach for large inventory histories but only way to
+                    get valuation at any point in time unless we calculate and save interim values -->
+                <econdition field-name="effectiveDate" operator="less-equals" from="thruDate"/>
+                <econdition field-name="quantityOnHandDiff" operator="not-equals" from="0.0"/>
+                <!-- don't do this: show all that have ever had inventory, and this excludes anything with Starting 0 and Change 0 even if there were shipments in and out during the period
+                <having-econditions><econditions combine="or">
+                    <econdition field-name="startingOnHand" operator="not-equals" from="0.0"/>
+                    <econdition field-name="onHandChange" operator="not-equals" from="0.0"/>
+                </econditions></having-econditions>
+                -->
+                <select-field field-name="productId,pseudoId,productName,startingOnHand,onHandChange"/>
+            </entity-find>
+            <row-actions>
+                <if condition="locationSeqId">
+                    <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc" cache="true">
+                        <field-map field-name="facilityId"/><field-map field-name="locationSeqId"/></entity-find-one>
+                </if>
+            </row-actions>
+
+            <field name="dateRange"><header-field><date-period/></header-field></field>
+            <field name="ownerPartyId">
+                <header-field title="Owner Party"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="0" parameter-map="[roleTypeId:'OrgInternal']"/>
+                </drop-down></header-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"/></default-field>
+            </field>
+            <field name="facilityId">
+                <header-field title="Facility"><drop-down allow-empty="true">
+                    <entity-options text="FacilityNameTemplate"><entity-find entity-name="mantle.facility.Facility">
+                        <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                        <order-by field-name="facilityName"/>
+                    </entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
+            <field name="locationSeqId">
+                <header-field title="Location"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLocationList" server-search="true" min-length="0"><depends-on field="facilityId"/></dynamic-options>
+                </drop-down></header-field>
+                <default-field><label text="FacilityLocationNameTemplate" text-map="facLoc" condition="facLoc != null"/></default-field>
+            </field>
+
+            <field name="productId">
+                <header-field title="Product" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="pseudoId">
+                <header-field title="Product ID" show-order-by="true"/>
+                <default-field><link url="editProduct" text="${pseudoId}" link-type="anchor"/></default-field>
+            </field>
+            <field name="productName">
+                <header-field title="Product Name" show-order-by="true"/>
+                <default-field><link url="editProduct" text="${productName}" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="effectiveDate"><default-field title="Effective Date"><display/></default-field></field>
+            <field name="shipmentId"><header-field title="Shipment" show-order-by="true"/>
+                <default-field><link url="shipmentDetail" text="${shipmentId}" link-type="anchor" condition="shipmentId"/></default-field></field>
+            <field name="returnId"><header-field title="Return" show-order-by="true"/>
+                <default-field><link url="editReturn" text="${returnId}" link-type="anchor" condition="returnId"/></default-field></field>
+            <field name="assetId"><header-field title="Asset" show-order-by="true"/>
+                <default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+            <field name="receivedDate">
+                <header-field title="Received Date" show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="assetIssuanceId"><header-field title="Issuance" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="assetReceiptId"><header-field title="Receipt" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="physicalInventoryId"><header-field title="Physical Inv" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+
+            <field name="startingOnHand" align="right"><default-field title="Starting"><display/></default-field></field>
+
+            <field name="receiptsShipmentNotReturn" align="right"><default-field title="Shipments In"><display/></default-field></field>
+            <field name="receiptsReturns" align="right"><default-field title="Returns"><display/></default-field></field>
+            <field name="receiptsWorkEffort" align="right"><default-field title="Produced"><display/></default-field></field>
+            <field name="receiptsOther" align="right"><default-field title="Other Receipts"><display/></default-field></field>
+            <field name="receiptsAll" align="right"><default-field title="All Receipts"><display/></default-field></field>
+
+            <field name="issuancesShipments" align="right"><default-field title="Shipments Out"><display/></default-field></field>
+            <field name="issuancesWorkEffort" align="right"><default-field title="Consumed"><display/></default-field></field>
+            <field name="issuancesOther" align="right"><default-field title="Other Issuances"><display/></default-field></field>
+            <field name="issuancesAll" align="right"><default-field title="All Issuances"><display/></default-field></field>
+
+            <field name="physicalAdjustments" align="right"><default-field title="Adjustments"><display/></default-field></field>
+
+            <field name="onHandChange" align="right"><default-field title="Change"><display/></default-field></field>
+            <field name="endingOnHand" from="(startingOnHand ?: 0.0) + (onHandChange ?: 0.0)" align="right">
+                <default-field title="Ending"><display/></default-field></field>
+
+            <field name="find"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="pseudoId"/></form-list-column>
+            <form-list-column><field-ref name="productName"/></form-list-column>
+            <form-list-column><field-ref name="startingOnHand"/></form-list-column>
+            <form-list-column><field-ref name="receiptsShipmentNotReturn"/></form-list-column>
+            <form-list-column><field-ref name="receiptsOther"/></form-list-column>
+            <form-list-column><field-ref name="receiptsReturns"/></form-list-column>
+            <form-list-column><field-ref name="issuancesShipments"/></form-list-column>
+            <form-list-column><field-ref name="physicalAdjustments"/></form-list-column>
+            <form-list-column><field-ref name="onHandChange"/></form-list-column>
+            <form-list-column><field-ref name="endingOnHand"/></form-list-column>
+        </form-list>
+
+        <section name="ShowSql" condition="summaryList_xafind?.getQueryTextList()"><widgets>
+            <container-dialog id="ShowSqlDialog" button-text="Show SQL" type="info">
+                <section-iterate name="ShowSqlIter" list="summaryList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                    <label text="${queryText}" type="p"/>
+                    <label text="${summaryList_xafind}" type="p"/>
+                </widgets></section-iterate>
+            </container-dialog>
+        </widgets></section>
+    </widgets>
+</screen>

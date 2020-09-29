@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Items" default-menu-index="2">
+
+    <parameter name="orderId" required="true"/>
+    <parameter name="orderPartSeqId"/>
+    <parameter name="pageIndex"/>
+
+    <transition name="editProduct"><default-response url="//${appRoot}/Product/EditProduct"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+
+    <transition name="addProductItem"><service-call name="mantle.order.OrderServices.add#OrderProductQuantity"/>
+        <default-response url="."/></transition>
+    <transition name="createItem"><service-call name="mantle.order.OrderServices.create#OrderItem"/>
+        <default-response url="."/></transition>
+    <transition name="updateItem"><service-call name="mantle.order.OrderServices.update#OrderItem"/>
+        <default-response url="."/></transition>
+    <transition name="deleteItem"><service-call name="mantle.order.OrderServices.delete#OrderItem"/>
+        <default-response url="."/></transition>
+
+    <transition name="updateOrderPart"><service-call name="mantle.order.OrderServices.update#OrderPart"/>
+        <default-response url="."/></transition>
+
+    <transition name="removeOrderItemReservations"><service-call name="mantle.product.AssetServices.remove#OrderItemReservations"/>
+        <default-response url="."/></transition>
+    <transition name="cancelOrderItem"><service-call name="mantle.order.OrderServices.cancel#OrderItem"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getProductPrice" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+
+    <subscreens>
+        <subscreens-item name="EditItem" location="component://SimpleScreens/screen/SimpleScreens/Order/OrderDetail/EditItem.xml"/>
+        <subscreens-item name="ItemReserve" location="component://SimpleScreens/screen/SimpleScreens/Order/OrderDetail/ItemReserve.xml"/>
+        <subscreens-item name="ReturnItem" location="component://SimpleScreens/screen/SimpleScreens/Order/OrderDetail/ReturnItem.xml"/>
+    </subscreens>
+
+    <actions>
+        <entity-find-one entity-name="mantle.order.OrderHeader" value-field="orderHeader"/>
+        <!-- NOTE: orderPart will be null if no orderPartSeqId parm -->
+        <if condition="orderPartSeqId"><entity-find-one entity-name="mantle.order.OrderPart" value-field="orderPart"/></if>
+
+        <if condition="orderPart != null">
+            <entity-find-count entity-name="mantle.party.PartyRole" count-field="isCustomerInternalOrg">
+                <econdition field-name="partyId" from="orderPart.customerPartyId"/>
+                <econdition field-name="roleTypeId" value="OrgInternal"/>
+            </entity-find-count>
+            <entity-find-count entity-name="mantle.party.PartyRole" count-field="isVendorInternalOrg">
+                <econdition field-name="partyId" from="orderPart.vendorPartyId"/>
+                <econdition field-name="roleTypeId" value="OrgInternal"/>
+            </entity-find-count>
+        </if>
+
+        <entity-find entity-name="mantle.order.OrderPart" list="orderPartList">
+            <econdition field-name="orderId"/><order-by field-name="orderPartSeqId"/></entity-find>
+
+        <set field="editableStatusIds" from="new HashSet(['OrderBeingChanged', 'OrderOpen', 'OrderRequested',
+                'OrderProposed', 'OrderPlaced', 'OrderHold', 'OrderProcessing', 'OrderWishList', 'OrderGiftRegistry', 'OrderAutoReorder'])"/>
+        <set field="orderEditable" from="editableStatusIds.contains(orderHeader.statusId)"/>
+        <set field="partEditable" from="orderPart != null ? editableStatusIds.contains(orderPart.statusId) : null"/>
+
+        <!-- the main OrderItem query, top-level only for pagination by top-level items -->
+        <set field="pageSize" from="pageSize ?: '10'"/>
+        <entity-find entity-name="mantle.order.OrderItem" list="orderItemList">
+            <search-form-inputs default-order-by="orderPartSeqId,orderItemSeqId" skip-fields="orderId"/>
+            <econdition field-name="orderId"/>
+            <econdition field-name="parentItemSeqId" operator="is-null"/>
+            <!-- NOTE: quite a few fields always selected, necessary for calculated values, etc -->
+            <!-- just select all by not specifying any fields to select:
+            <select-field field-name="orderId,orderItemSeqId,orderPartSeqId,parentItemSeqId,itemTypeEnumId,productId"/>
+            <select-field field-name="quantity,selectedAmount,unitAmount,unitListPrice,isPromo"/>
+            -->
+        </entity-find>
+        <set field="topItemSeqIds" from="orderItemList*.orderItemSeqId"/>
+        <if condition="topItemSeqIds">
+            <entity-find entity-name="mantle.order.OrderItem" list="childOrderItemList">
+                <econdition field-name="orderId"/>
+                <econdition field-name="parentItemSeqId" operator="in" from="topItemSeqIds"/>
+                <order-by field-name="orderItemSeqId"/>
+            </entity-find>
+            <script><![CDATA[
+                // NOTE: must use orderItemList.size() on each iteration as EntityList size will change with child items added
+                for (int oiIdx = 0; oiIdx < orderItemList.size(); oiIdx++) {
+                    Map orderItem = (Map) orderItemList.get(oiIdx)
+                    String orderItemSeqId = orderItem.orderItemSeqId
+                    List childList = childOrderItemList.findAll({ orderItemSeqId.equals(it.parentItemSeqId) })
+                    for (int cIdx = 0; cIdx < childList.size(); cIdx++) {
+                        Map childItem = (Map) childList.get(cIdx)
+                        oiIdx++
+                        orderItemList.add(oiIdx, childItem)
+                    }
+                }
+            ]]></script>
+        </if>
+    </actions>
+
+    <widgets>
+        <container><label text="Active Order Part: ${orderPartSeqId}" type="strong" condition="orderPartSeqId"/></container>
+
+        <section name="AddItemsSection" condition="partEditable != null ? partEditable : orderEditable"><widgets>
+            <container-dialog id="AddProductItemContainer" button-text="Add Product Item">
+                <form-single name="AddProductItemForm" transition="addProductItem" focus-field="productId">
+                    <field name="orderId"><default-field><hidden/></default-field></field>
+                    <field name="updateExisting"><default-field><hidden default-value="false"/></default-field></field>
+                    <field name="requireInventory"><default-field><hidden default-value="false"/></default-field></field>
+
+                    <field name="orderPartSeqId"><default-field><drop-down>
+                        <list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/>
+                    </drop-down></default-field></field>
+                    
+                    <field name="assetClassEnumId"><default-field title="Asset Class">
+                        <drop-down allow-empty="true" no-current-selected-key="AsClsInventoryFin">
+                            <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
+                                <econdition field-name="parentEnumId" value="AsClsInventory"/><order-by field-name="sequenceNum,description"/>
+                            </entity-find></entity-options>
+                        </drop-down>
+                    </default-field></field>
+                    <field name="productId"><default-field title="Product">
+                        <drop-down><dynamic-options transition="getProductList" server-search="true" min-length="0" depends-optional="true">
+                            <depends-on field="assetClassEnumId"/></dynamic-options></drop-down>
+                    </default-field></field>
+                    <field name="quantity"><default-field><text-line size="8" default-value="1"/></default-field></field>
+                    <field name="unitAmount"><default-field title="Price" tooltip="Leave empty to use Calc Price">
+                        <text-line size="10"/></default-field></field>
+                    <field name="calcAmount"><default-field title="Calc Price">
+                        <display dynamic-transition="getProductPrice" parameter-map="[orderId:orderId, priceFormat:'#,##0.00']">
+                            <depends-on field="productId"/><depends-on field="quantity"/><depends-on field="orderPartSeqId"/></display>
+                    </default-field></field>
+                    <field name="standardCost"><conditional-field condition="isCustomerInternalOrg"
+                            tooltip="Cost for accounting if different from Price, used to set Asset Acquire Cost on receipt">
+                        <text-line size="10"/></conditional-field></field>
+                    <field name="requiredByDate" from="orderPart?.shipBeforeDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
+                    <!-- <field name="itemDescription"><default-field><text-line size="60"/></default-field></field> -->
+                    <field name="itemTypeEnumId" from="null"><conditional-field condition="isCustomerInternalOrg" title="Item Type">
+                        <drop-down no-current-selected-key="ItemInventory">
+                            <option key="ItemInventory" text="Inventory"/>
+                            <option key="ItemAsset" text="Fixed Asset"/>
+                            <option key="ItemExpSupplies" text="Supplies"/>
+                        </drop-down>
+                    </conditional-field><default-field title="Item Type">
+                        <drop-down no-current-selected-key="ItemProduct">
+                            <option key="ItemProduct" text="Product"/>
+                            <option key="ItemAsset" text="Fixed Asset"/>
+                            <option key="ItemRental" text="Rental Asset"/>
+                            <option key="ItemReplacement" text="Replacement"/>
+                        </drop-down>
+                    </default-field></field>
+
+                    <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+            <container-dialog id="AddOtherItemContainer" button-text="Add Other Item">
+                <form-single name="AddOtherItemForm" transition="createItem" focus-field="itemTypeEnumId">
+                    <field name="orderId"><default-field><hidden/></default-field></field>
+                    <field name="requireInventory"><default-field><hidden default-value="false"/></default-field></field>
+
+                    <field name="orderPartSeqId"><default-field><drop-down>
+                        <list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/>
+                    </drop-down></default-field></field>
+
+                    <field name="parentItemSeqId"><default-field title="Parent Item"><drop-down allow-empty="true">
+                        <list-options list="applicableParentItems" key="${orderItemSeqId}" text="${orderItemSeqId} - ${itemDescription}"/>
+                    </drop-down></default-field></field>
+                    <field name="itemTypeEnumId"><default-field title="Item Type">
+                        <drop-down no-current-selected-key="ItemShipping">
+                            <entity-options key="${enumId}" text="${description}">
+                                <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
+                                    <econdition field-name="enumGroupEnumId" from="isCustomerInternalOrg ? 'EngItemsPurchase' : 'EngItemsSales'"/>
+                                    <order-by field-name="description"/></entity-find></entity-options>
+                        </drop-down>
+                    </default-field></field>
+                    <field name="itemDescription"><default-field title="Description"><text-line size="60"/></default-field></field>
+                    <field name="quantity"><default-field><text-line size="8" default-value="1"/></default-field></field>
+                    <field name="unitAmount"><default-field title="Price"><text-line size="10"/></default-field></field>
+                    <field name="requiredByDate"><default-field><date-time format="yyyy-MM-dd HH:mm"/></default-field></field>
+
+                    <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+        </widgets></section>
+        <section name="PartFlagsSection" condition="orderPart != null &amp;&amp; partEditable"><widgets>
+            <link url="updateOrderPart" text="Ship Calc" btn-type="danger" icon="fa fa-remove"
+                    condition="orderPart.disableShippingCalc == 'Y'"
+                    parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId, disableShippingCalc:'N']"/>
+            <link url="updateOrderPart" text="Ship Calc" btn-type="success" icon="fa fa-check"
+                    condition="orderPart.disableShippingCalc != 'Y'"
+                    parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId, disableShippingCalc:'Y']"/>
+
+            <link url="updateOrderPart" text="Tax Calc" btn-type="danger" icon="fa fa-remove"
+                    condition="orderPart.disableTaxCalc == 'Y'"
+                    parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId, disableTaxCalc:'N']"/>
+            <link url="updateOrderPart" text="Tax Calc" btn-type="success" icon="fa fa-check"
+                    condition="orderPart.disableTaxCalc != 'Y'"
+                    parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId, disableTaxCalc:'Y']"/>
+
+            <link url="updateOrderPart" text="Promos" btn-type="danger" icon="fa fa-remove"
+                    condition="orderPart.disablePromotions == 'Y'"
+                    parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId, disablePromotions:'N']"/>
+            <link url="updateOrderPart" text="Promos" btn-type="success" icon="fa fa-check"
+                    condition="orderPart.disablePromotions != 'Y'"
+                    parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId, disablePromotions:'Y']"/>
+        </widgets></section>
+
+        <form-list name="OrderItems" list="orderItemList" list-entry="orderItem" skip-form="true" header-dialog="true"
+                show-page-size="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
+            <row-actions>
+                <if condition="orderPart == null">
+                    <set field="orderPart" from="orderPartList.find({ it.orderPartSeqId == orderItem.orderPartSeqId })"/></if>
+                <service-call name="mantle.order.OrderInfoServices.get#OrderItemDisplayInfo" out-map="context"
+                        in-map="[orderId:orderId, orderItemSeqId:orderItemSeqId, orderItem:orderItem, orderPart:orderPart]"/>
+                <!-- <log level="warn" message="itemCanDelete ${itemCanDelete} quantity ${quantity} itemQuantityNotShipped ${itemQuantityNotShipped} itemQuantityNotBilled ${itemQuantityNotBilled} returnableOut.returnedQuantity ${returnableOut.returnedQuantity}"/> -->
+            </row-actions>
+
+            <hidden-parameters>
+                <parameter name="orderId"/>
+                <parameter name="requireInventory" value="false"/>
+            </hidden-parameters>
+
+            <field name="orderItemSeqId">
+                <header-field show-order-by="true"/>
+                <default-field title="Item" container-style="${parentItemSeqId ? 'text-info' : 'text-strong'}"><display/></default-field>
+            </field>
+            <field name="orderPartSeqId" align="center">
+                <header-field title="Part" show-order-by="true"><drop-down allow-empty="true">
+                    <list-options list="orderPartList" key="${orderPartSeqId}" text="${orderPartSeqId}"/>
+                </drop-down></header-field>
+                <default-field><display text="Part ${orderPartSeqId}"/></default-field>
+            </field>
+            <field name="parentItemSeqId" align="center"><default-field title="Parent Item">
+                <display text="${parentItemSeqId ? 'Parent ' + parentItemSeqId : ''}"/></default-field></field>
+
+            <field name="itemTypeEnumId">
+                <header-field show-order-by="true">
+                    <drop-down allow-multiple="true">
+                        <entity-options key="${enumId}" text="${description}">
+                            <entity-find entity-name="moqui.basic.EnumAndGroup" list="itemTypeEnumList">
+                                <econdition field-name="enumGroupEnumId" from="isCustomerInternalOrg ? 'EngItemsPurchase' : 'EngItemsSales'"/>
+                                <order-by field-name="description"/></entity-find></entity-options>
+                    </drop-down>
+                </header-field>
+                <default-field title="Type" container-style="${isProductItemType ? 'text-info text-strong' : (itemTypeEnumId == 'ItemDiscount' ? 'text-success' : (itemTypeEnumId in ['ItemSalesTax','ItemVatTax'] ? 'text-warning' : ''))}">
+                    <display-entity entity-name="moqui.basic.Enumeration" text="${description}${isPromo ? ' (Promotion)' : ''}"/>
+                </default-field>
+            </field>
+            <field name="productId">
+                <header-field title="Product"><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product"
+                        link-type="anchor" condition="productId"/></default-field>
+            </field>
+            <field name="otherPartyProductId">
+                <header-field show-order-by="true"><text-find/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="itemDescription">
+                <header-field show-order-by="true"><text-find/></header-field>
+                <default-field title="Description" container-style="${parentItemSeqId ? '' : 'text-strong'}"><display/></default-field>
+            </field>
+            <field name="promoCodeText">
+                <header-field show-order-by="true"><text-find/></header-field>
+                <default-field title="Promo Code"><display/></default-field>
+            </field>
+            <field name="comments">
+                <header-field show-order-by="true"><text-find/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="requiredByDate">
+                <default-field><display/></default-field>
+            </field>
+
+            <field name="unitListPrice"><default-field title="List Price">
+                <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+            <field name="unitAmount">
+                <header-field show-order-by="true"><range-find size="10"/></header-field>
+                <default-field title="Price"><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
+            </field>
+            <field name="standardCost">
+                <default-field><display currency-unit-field="orderHeader.currencyUomId"/></default-field>
+            </field>
+
+            <field name="quantity">
+                <header-field show-order-by="true"><range-find size="10"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="quantityCancelled">
+                <header-field show-order-by="true"><range-find size="10"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+
+            <field name="quantityCancelled">
+                <header-field show-order-by="true"><range-find size="10"/></header-field>
+                <default-field><display/></default-field>
+            </field>
+            <field name="itemQuantityNotShipped">
+                <default-field title="Qty Not Shipped"><display format="#,##0.###"/></default-field>
+            </field>
+            <field name="itemQuantityNotBilled">
+                <default-field title="Qty Not Billed"><display format="#,##0.###"/></default-field>
+            </field>
+            <field name="itemAmountNotBilled">
+                <default-field title="Amt Not Billed"><display format="#,##0.00"/></default-field>
+            </field>
+            <field name="itemNotBilled"><default-field title="Not Billed">
+                <label text="${ec.l10n.format(itemQuantityNotBilled, '#,##0.###')}" condition="isProductItemType"/>
+                <label text="${ec.l10n.format(itemAmountNotBilled, '#,##0.00')}" condition="!isProductItemType"/>
+            </default-field></field>
+
+            <field name="assetReservations">
+                <conditional-field condition="isShippable &amp;&amp; isVendorInternalOrg">
+                    <section-iterate name="ReservationInfoSection" list="resInfoList" entry="resInfo"><widgets><container>
+                        <link url="assetDetail" text="Asset ${resInfo.existingRes.assetId}" parameter-map="[assetId:resInfo.existingRes.assetId]" link-type="anchor"/>
+                        <label text=" - Res: ${ec.l10n.format(resInfo.existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(resInfo.existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(resInfo.existingRes.quantityNotIssued, null)}"
+                                type="span" style="${resInfo.existingRes.quantityNotAvailable ? 'text-danger' : ''}"/>
+                        <container>
+                            <label text="Lot" type="strong" condition="resInfo.assetLot?.lotId"/>
+                            <label text="${ec.resource.expand('LotNameTemplate', '', resInfo.assetLot)}" condition="resInfo.assetLot?.lotId"/>
+                        </container>
+                    </container></widgets></section-iterate>
+                    <label text="Multiple lots ${lotIdSet}" condition="singleLot &amp;&amp; lotIdSet.size() &gt; 1" type="div" style="text-danger"/>
+                    <label text="Oldest lot ${ec.l10n.format(oldestLotExpire, 'yyyy-MM-dd')} older than last lot expire ${ec.l10n.format(newerThanExpireDate, 'yyyy-MM-dd')}"
+                            condition="newerInventory &amp;&amp; newerThanExpireDate!=null &amp;&amp; oldestLotExpire!=null &amp;&amp; oldestLotExpire &lt; newerThanExpireDate"
+                            type="div" style="text-danger"/>
+                    <dynamic-dialog id="ItemReserveDialog" button-text="Reserve Assets" transition="ItemReserve" width="960"
+                            condition="partEditable || orderPart.statusId == 'OrderApproved'"/>
+                    <link url="removeOrderItemReservations" text="" btn-type="danger" icon="fa fa-trash" condition="resInfoList"
+                            confirmation="Remove inventory reservations for item ${orderItemSeqId}?"/>
+                </conditional-field>
+                <default-field><display text=" "/></default-field>
+            </field>
+
+            <field name="itemTotal" from="orderItemTotalOut?.itemTotal" align="right"><default-field>
+                <display currency-unit-field="orderHeader.currencyUomId"/></default-field></field>
+            <field name="itemPlusChildrenTotal" from="orderItemTotalOut?.itemPlusChildrenTotal" align="right">
+                <conditional-field condition="productId"><display currency-unit-field="orderHeader.currencyUomId"/></conditional-field>
+                <default-field title="With Children"><display text=""/></default-field>
+            </field>
+
+            <field name="returns"><default-field>
+                <label text="OrderDetailItemBilled" type="div"/>
+                <label text="OrderDetailItemReturned" type="div"/>
+                <section-iterate name="ReturnLinkSection" list="returnIdSet" entry="returnId"><widgets>
+                    <link url="editReturn" text="#${returnId}" link-type="anchor"/></widgets></section-iterate>
+                <label text="OrderDetailItemReturnable" type="div"/>
+            </default-field></field>
+            <field name="returnItem">
+                <conditional-field condition="openReturnList &amp;&amp; returnableOut.returnableQuantity &gt; 0">
+                    <dynamic-dialog id="ReturnItemCtr" button-text="Return" transition="ReturnItem">
+                        <parameter name="orderId"/><parameter name="orderItemSeqId" from="orderItem.orderItemSeqId"/></dynamic-dialog>
+                </conditional-field>
+                <default-field title=""><display text=" "/></default-field>
+            </field>
+
+            <field name="editButton"><default-field title="">
+                <dynamic-dialog id="EditItemDialog" button-text="Edit" transition="EditItem">
+                    <parameter name="orderId"/><parameter name="orderItemSeqId" from="orderItem.orderItemSeqId"/></dynamic-dialog>
+            </default-field>
+
+            </field>
+            <field name="deleteButton"><conditional-field condition="partEditable &amp;&amp; isPromo != 'Y'">
+                <link url="deleteItem" text="" btn-type="danger" icon="fa fa-trash" condition="itemCanDelete" confirmation="Delete item ${orderItemSeqId}?"/>
+            </conditional-field><default-field title=""/></field>
+
+            <field name="closeButton"><default-field title="">
+                <link url="cancelOrderItem" text="Close" btn-type="warning" link-type="hidden-form"
+                        confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity will be cancelled."
+                        condition="isProductItemType &amp;&amp; itemQuantityNotShipped &amp;&amp; orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"
+                        parameter-map="[orderItem:null]"/>
+            </default-field></field>
+
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="orderItemSeqId"/><field-ref name="orderPartSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
+            <form-list-column><field-ref name="itemTypeEnumId"/><field-ref name="productId"/>
+                <field-ref name="otherPartyProductId"/></form-list-column>
+            <form-list-column><field-ref name="itemDescription"/><field-ref name="comments"/><field-ref name="requiredByDate"/></form-list-column>
+            <form-list-column><field-ref name="unitListPrice"/><field-ref name="unitAmount"/><field-ref name="quantity"/></form-list-column>
+            <form-list-column><field-ref name="itemQuantityNotShipped"/><field-ref name="itemNotBilled"/><field-ref name="assetReservations"/><field-ref name="standardCost"/></form-list-column>
+            <form-list-column><field-ref name="itemTotal"/><field-ref name="itemPlusChildrenTotal"/></form-list-column>
+            <form-list-column><field-ref name="returns"/><field-ref name="returnItem"/></form-list-column>
+            <form-list-column><field-ref name="editButton"/><field-ref name="deleteButton"/><field-ref name="closeButton"/></form-list-column>
+        </form-list>
+    </widgets>
+</screen>

@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Shipment Package Summary" default-menu-include="false">
+
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+    <transition name="editReturn"><default-response url="//${appRoot}/Return/EditReturn"/></transition>
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
+    <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="emailScreenAsync" location="component://webroot/template/screen/BasicTransitions.xml"/>
+
+    <actions>
+        <if condition="!dateRange_period &amp;&amp; !dateRange_from">
+            <set field="dateRange_period" from="dateRange_period ?: 'week'"/>
+            <set field="dateRange_poffset" from="dateRange_poffset ?: '-1'"/>
+        </if>
+        <set field="rangeList" from="ec.user.getPeriodRange('dateRange', context)"/>
+        <set field="dateRangeFrom" from="rangeList[0]"/>
+        <set field="dateRangeThru" from="rangeList[1] ?: ec.user.nowTimestamp"/>
+
+        <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="outgoingTypeOut"
+                in-map="[parentEnumId:'ShpTpOutgoing']"/>
+        <set field="outShipmentTypeSet" from="outgoingTypeOut.enumIdSet"/>
+        <service-call name="org.moqui.impl.BasicServices.find#EnumerationByParent" out-map="incomingTypeOut"
+                in-map="[parentEnumId:'ShpTpIncoming']"/>
+        <set field="inShipmentTypeSet" from="incomingTypeOut.enumIdSet"/>
+
+        <if condition="!statusId"><set field="statusId" value="ShipPacked,ShipShipped,ShipDelivered"/></if>
+
+        <set field="requireParameters" from="fromOrToPartyId || originOrDestFacilityId ? 'false' : 'true'"/>
+    </actions>
+    <widgets>
+        <section-include name="EmailScreenSection" location="component://webroot/template/screen/BasicTransitions.xml"/>
+        <form-list name="ShipmentPackageSummary" list="summaryList" skip-form="true" header-dialog="true" saved-finds="true"
+                select-columns="true" show-all-button="true" show-csv-button="true" show-xlsx-button="true">
+            <entity-find entity-name="mantle.shipment.ShipmentPackageSummary" list="summaryList" use-clone="true">
+                <search-form-inputs default-order-by="actualStartDate,actualArrivalDate"
+                        require-parameters="${requireParameters}" skip-fields="statusId"/>
+
+                <econdition field-name="statusId" operator="in" ignore-if-empty="true"/>
+                <econditions combine="or">
+                    <econditions>
+                        <econdition field-name="actualStartDate" operator="greater-equals" from="dateRangeFrom"/>
+                        <econdition field-name="actualStartDate" operator="less" from="dateRangeThru"/>
+                        <econdition field-name="shipmentTypeEnumId" operator="in" from="outShipmentTypeSet"/>
+                    </econditions>
+                    <econditions>
+                        <econdition field-name="actualArrivalDate" operator="greater-equals" from="dateRangeFrom"/>
+                        <econdition field-name="actualArrivalDate" operator="less" from="dateRangeThru"/>
+                        <econdition field-name="shipmentTypeEnumId" operator="in" from="inShipmentTypeSet"/>
+                    </econditions>
+                </econditions>
+                <econditions combine="or">
+                    <econdition field-name="fromPartyId" from="fromOrToPartyId" ignore-if-empty="true"/>
+                    <econdition field-name="toPartyId" from="fromOrToPartyId" ignore-if-empty="true"/>
+                </econditions>
+                <econditions combine="or">
+                    <econdition field-name="originFacilityId" from="originOrDestFacilityId" ignore-if-empty="true"/>
+                    <econdition field-name="destinationFacilityId" from="originOrDestFacilityId" ignore-if-empty="true"/>
+                </econditions>
+            </entity-find>
+
+            <field name="requiredFields"><header-field title="">
+                <label text="To get results an option other than Actual Date and Status is required"/>
+            </header-field></field>
+
+            <field name="dateRange"><header-field title="Actual Date"><date-period/></header-field></field>
+
+            <field name="fromOrToPartyId"><header-field title="From or To Party">
+                <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                        parameter-map="[roleTypeId:'OrgInternal']"/></drop-down>
+            </header-field></field>
+            <field name="fromPartyId">
+                <header-field title="From Party"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                        parameter-map="[partyId:fromPartyId]" condition="fromPartyId"/></default-field>
+            </field>
+            <field name="toPartyId">
+                <header-field title="To Party"><drop-down allow-empty="true">
+                    <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></header-field>
+                <default-field><link url="editParty" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"
+                        parameter-map="[partyId:toPartyId]" condition="toPartyId"/></default-field>
+            </field>
+            <field name="originOrDestFacilityId">
+                <header-field title="Origin or Dest Facility"><drop-down allow-empty="true">
+                    <entity-options text="FacilityNameTemplate"><entity-find entity-name="mantle.facility.Facility">
+                        <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                        <order-by field-name="facilityName"/>
+                    </entity-find></entity-options>
+                </drop-down></header-field>
+            </field>
+            <field name="originFacilityId">
+                <header-field title="Origin Facility"><drop-down allow-empty="true">
+                    <entity-options text="FacilityNameTemplate"><entity-find entity-name="mantle.facility.Facility">
+                        <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                        <order-by field-name="facilityName"/>
+                    </entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
+            <field name="destinationFacilityId">
+                <header-field title="Dest Facility"><drop-down allow-empty="true">
+                    <entity-options text="FacilityNameTemplate"><entity-find entity-name="mantle.facility.Facility">
+                        <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/>
+                        <order-by field-name="facilityName"/>
+                    </entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="productId">
+                <header-field title="Product" show-order-by="true"><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
+            </field>
+
+            <field name="shipmentId"><header-field title="Shipment" show-order-by="true"/>
+                <default-field><link url="shipmentDetail" text="${shipmentId}" link-type="anchor" condition="shipmentId"/></default-field></field>
+            <field name="statusId">
+                <header-field title="Status" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="Shipment"/><set field="allowMultiple" value="true"/>
+                        <set field="showNot" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+            </field>
+            <field name="shipmentTypeEnumId">
+                <header-field title="Type" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentType"/><set field="allowEmpty" value="true"/>
+                        <set field="showNot" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="entryDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
+            <field name="packedDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
+            <field name="actualStartDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
+            <field name="actualArrivalDate"><header-field show-order-by="true"><date-period/></header-field><default-field><display/></default-field></field>
+
+            <field name="orderId"><header-field title="Order ID"/>
+                <default-field><link url="orderDetail" text="${orderId}" link-type="anchor" condition="orderId"/></default-field></field>
+            <field name="orderDisplayId"><default-field title="Order Display ID">
+                <link url="orderDetail" text="${orderDisplayId}" link-type="anchor" condition="orderId"/>
+                <label text="${orderDisplayId?:''}" condition="!orderId"/>
+            </default-field></field>
+            <field name="orderPlacedDate"><default-field title="Order Placed"><display/></default-field></field>
+            <field name="orderPartSeqId"><header-field title="Order Part"/><default-field><display/></default-field></field>
+
+            <field name="returnId"><header-field title="Return"/>
+                <default-field><link url="editReturn" text="${returnId}" link-type="anchor" condition="returnId"/></default-field></field>
+            <field name="returnDisplayId"><header-field title="Return Display"/>
+                <default-field><link url="editReturn" text="${returnDisplayId}" link-type="anchor" condition="returnId"/></default-field></field>
+            <field name="returnEntryDate"><default-field title="Return Entry"><display/></default-field></field>
+
+            <field name="shipmentPackageSeqId"><default-field title="Shipment Package #"><display/></default-field></field>
+            <field name="trackingCode"><default-field><display/></default-field></field>
+            <field name="trackingStatusEnumId">
+                <header-field title="Tracking Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentTrackingStatus"/><set field="allowMultiple" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+            <field name="returnTrackingCode"><default-field><display/></default-field></field>
+            <field name="returnTrackingStatusEnumId">
+                <header-field title="Return Tracking Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                        <set field="enumTypeId" value="ShipmentTrackingStatus"/><set field="allowMultiple" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+            </field>
+
+            <field name="shipmentBoxTypeId">
+                <header-field title="Box Type"><drop-down allow-empty="true">
+                    <entity-options text="${pseudoId}: ${description}"><entity-find entity-name="mantle.shipment.ShipmentBoxType">
+                        <order-by field-name="description"/></entity-find></entity-options>
+                </drop-down></header-field>
+                <default-field><display-entity entity-name="mantle.shipment.ShipmentBoxTypeDetail"
+                        text="${pseudoId}: ${description} (${ec.l10n.format(boxLength,'')}x${ec.l10n.format(boxWidth,'')}x${ec.l10n.format(boxHeight,'')}${dimensionAbbreviation})"/></default-field>
+            </field>
+            <field name="boxPseudoId"><default-field title="Box ID"><display/></default-field></field>
+            <field name="boxDescription"><default-field><display/></default-field></field>
+            <field name="boxLength"><default-field><display/></default-field></field>
+            <field name="boxWidth"><default-field><display/></default-field></field>
+            <field name="boxHeight"><default-field><display/></default-field></field>
+            <field name="dimensionUomId"><default-field title="Box Dim. UOM"><display-entity entity-name="moqui.basic.Uom"/></default-field></field>
+            <field name="boxWeight"><default-field><display/></default-field></field>
+            <field name="boxWeightUomId"><default-field title="Box Weight UOM"><display-entity entity-name="moqui.basic.Uom"/></default-field></field>
+
+            <field name="packageCount" align="right" show-total="sum"><default-field><display/></default-field></field>
+            <field name="quantityTotal" align="right" show-total="sum"><default-field title="Pkg Quantity"><display/></default-field></field>
+
+            <field name="estimatedAmountTotal" align="right" show-total="sum"><default-field title="Ship Cost"><display format="#,##0.00"/></default-field></field>
+            <field name="baseAmountTotal" align="right" show-total="sum"><default-field title="Ship Cost (base)"><display format="#,##0.00"/></default-field></field>
+
+            <field name="weightTotal" align="right" show-total="sum"><default-field title="Pkg Weight"><display/></default-field></field>
+            <field name="weightUomId"><default-field title="Package Weight UOM"><display-entity entity-name="moqui.basic.Uom"/></default-field></field>
+
+            <!-- TODO: orderProductQuantity, orderProductQuantity, shippingDiscountTotal depend on orderId, orderPartySeqId
+                (must be selected... OR MUCH BETTER TODO: change SQL generator to recognize this and auto add to select clause of sub-select) -->
+            <field name="orderProductQuantity" align="right"><default-field title="Order All Product Quantity"><display/></default-field></field>
+            <field name="shippingChargeTotal" align="right"><default-field title="Order Shipping Charge Total"><display format="#,##0.00"/></default-field></field>
+            <field name="shippingDiscountTotal" align="right"><default-field title="Order Shipping Discount Total"><display format="#,##0.00"/></default-field></field>
+            <!-- TODO: somehow auto select shippingChargeTotal, quantityTotal, orderProductQuantity if this is displayed -->
+            <field name="shippingCharge" align="right" show-total="sum" from="orderProductQuantity ? (shippingChargeTotal?:0.0) * ((quantityTotal?:0.0) / orderProductQuantity) : 0.0">
+                <default-field title="Shipping Charge Prorated"><display format="#,##0.00"/></default-field></field>
+            <!-- TODO: somehow auto select shippingDiscountTotal, quantityTotal, orderProductQuantity if this is displayed -->
+            <field name="shippingDiscount" align="right" show-total="sum" from="orderProductQuantity ? (shippingDiscountTotal?:0.0) * ((quantityTotal?:0.0) / orderProductQuantity): 0.0">
+                <default-field title="Shipping Discount Prorated"><display format="#,##0.00"/></default-field></field>
+
+            <field name="find"><header-field title="Find"><submit/></header-field></field>
+
+            <form-list-column><field-ref name="shipmentId"/><field-ref name="shipmentTypeEnumId"/></form-list-column>
+            <form-list-column><field-ref name="actualStartDate"/><field-ref name="actualArrivalDate"/></form-list-column>
+            <form-list-column><field-ref name="orderId"/><field-ref name="orderDisplayId"/></form-list-column>
+            <form-list-column><field-ref name="orderPlacedDate"/><field-ref name="packedDate"/></form-list-column>
+            <form-list-column><field-ref name="returnId"/><field-ref name="returnDisplayId"/></form-list-column>
+
+            <form-list-column><field-ref name="fromPartyId"/><field-ref name="toPartyId"/></form-list-column>
+
+            <form-list-column><field-ref name="trackingCode"/><field-ref name="shipmentBoxTypeId"/></form-list-column>
+            <form-list-column><field-ref name="quantityTotal"/></form-list-column>
+            <form-list-column><field-ref name="estimatedAmountTotal"/></form-list-column>
+            <form-list-column><field-ref name="weightTotal"/></form-list-column>
+        </form-list>
+
+        <section name="ShowSql" condition="summaryList_xafind?.getQueryTextList()"><widgets>
+            <container-dialog id="ShowSqlDialog" button-text="Show SQL" type="info">
+                <section-iterate name="ShowSqlIter" list="summaryList_xafind?.getQueryTextList()" entry="queryText"><widgets>
+                    <label text="${queryText}" type="p"/>
+                    <label text="${summaryList_xafind}" type="p"/>
+                </widgets></section-iterate>
+            </container-dialog>
+        </widgets></section>
+    </widgets>
+</screen>

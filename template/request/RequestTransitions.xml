@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd">
+
+    <transition name="getRequestList">
+        <parameter name="term"/>
+        <parameter name="requestTypeEnumId"/>
+        <parameter name="rootWorkEffortId"/>
+        <parameter name="indexName"/>
+        <parameter name="documentType"/>
+        <actions>
+            <set field="indexName" from="searchIndexName ?: 'mantle'"/>
+            <set field="documentType" from="searchRequestDocType ?: 'MantleRequest'"/>
+            <!-- <log message="====== getRequestList indexName=${indexName}, documentType=${documentType}, term=${term}, requestTypeEnumId=${requestTypeEnumId}, rootWorkEffortId=${rootWorkEffortId}"/> -->
+
+            <set field="outList" from="[]"/>
+
+            <entity-find-one entity-name="mantle.request.Request" value-field="request">
+                <field-map field-name="requestId" from="term"/></entity-find-one>
+            <if condition="request != null"><script>outList.add([value:request.requestId, label:ec.resource.expand("RequestNameTemplate", "", request)])</script></if>
+
+            <script><![CDATA[
+                StringBuilder termSb = new StringBuilder()
+                termSb.append(term).append('*')
+                if (requestTypeEnumId) termSb.append(' AND requestTypeEnumId:').append(requestTypeEnumId)
+                if (rootWorkEffortId) termSb.append(' AND rootWorkEffortId:').append(rootWorkEffortId)
+            ]]></script>
+            <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
+                    in-map="[queryString:termSb.toString(), indexName:indexName, documentType:documentType]"/>
+            <script>
+                for (def document in documentList) {
+                    outList.add([value:document._id, label:ec.resource.expand('${requestId}: ${name?:"N/A"} - ${type?:"N/A"} - ${status?:"N/A"}', "", document)])
+                    // ec.logger.warn("document: ${document}")
+                }
+                ec.web.sendJsonResponse(outList)
+            </script>
+
+            <script>ec.web.sendJsonResponse(outList)</script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+
+    <widgets>
+    </widgets>
+</screen>

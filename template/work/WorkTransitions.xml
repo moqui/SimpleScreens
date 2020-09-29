@@ -14,18 +14,88 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd">
 
-    <transition name="getProjectParties">
+    <transition name="getProjectList">
+        <parameter name="term"/>
+        <parameter name="statusId"/>
         <actions>
-            <service-call name="mantle.work.ProjectServices.get#ProjectParties" out-map="context"
-                    in-map="[rootWorkEffortId:workEffortId, addOptional:'false']"/>
-            <script>ec.web.sendJsonResponse(resultList)</script>
+            <set field="outList" from="[]"/>
+
+            <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort">
+                <field-map field-name="workEffortId" from="term"/></entity-find-one>
+            <if condition="workEffort != null">
+                <script>outList.add([value:workEffort.workEffortId, label:ec.resource.expand("WorkEffortNameTemplate", "", workEffort)])</script>
+            </if>
+
+            <entity-find entity-name="mantle.work.effort.WorkEffortAndParty" list="projectList" limit="50">
+                <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+                <econdition field-name="statusId" operator="in" ignore-if-empty="true"/>
+                <econditions combine="or">
+                    <econdition field-name="workEffortId" operator="like" value="%${term}%" ignore-case="true" ignore-if-empty="true"/>
+                    <econdition field-name="workEffortName" operator="like" value="%${term}%" ignore-case="true" ignore-if-empty="true"/>
+                    <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true" ignore-if-empty="true"/>
+                </econditions>
+                <select-field field-name="workEffortId,workEffortName"/>
+                <order-by field-name="workEffortId"/>
+            </entity-find>
+
+            <script>
+                for (def project in projectList)
+                    outList.add([value:project.workEffortId, label:ec.resource.expand("WorkEffortNameTemplate", "", project)])
+                ec.web.sendJsonResponse(outList)
+            </script>
         </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="getUserProjectList">
+        <parameter name="term"/>
+        <parameter name="statusId"/>
+        <actions>
+            <set field="outList" from="[]"/>
+
+            <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort">
+                <field-map field-name="workEffortId" from="term"/></entity-find-one>
+            <if condition="workEffort != null">
+                <script>outList.add([value:workEffort.workEffortId, label:ec.resource.expand("WorkEffortNameTemplate", "", workEffort)])</script>
+            </if>
+
+            <entity-find entity-name="mantle.work.effort.WorkEffortAndParty" list="projectList" limit="50">
+                <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+                <econdition field-name="statusId" operator="in" ignore-if-empty="true"/>
+                <econditions combine="or">
+                    <econdition field-name="workEffortId" operator="like" value="%${term}%" ignore-case="true" ignore-if-empty="true"/>
+                    <econdition field-name="workEffortName" operator="like" value="%${term}%" ignore-case="true" ignore-if-empty="true"/>
+                    <econdition field-name="description" operator="like" value="%${term}%" ignore-case="true" ignore-if-empty="true"/>
+                </econditions>
+                <econditions combine="or">
+                    <econdition field-name="visibilityEnumId" operator="in" value="WevGeneral,WevAllUsers"/>
+                    <econditions><date-filter/><econdition field-name="partyId" from="ec.user.userAccount.partyId"/></econditions>
+                </econditions>
+                <select-field field-name="workEffortId,workEffortName"/>
+                <order-by field-name="workEffortId"/>
+            </entity-find>
+
+            <script>
+                for (def project in projectList)
+                    outList.add([value:project.workEffortId, label:ec.resource.expand("WorkEffortNameTemplate", "", project)])
+                ec.web.sendJsonResponse(outList)
+            </script>
+        </actions>
+        <default-response type="none"/>
+    </transition>
+    <transition name="getProjectParties">
+        <service-call name="mantle.work.ProjectServices.get#ProjectParties" out-map="context"
+                in-map="[rootWorkEffortId:workEffortId, addOptional:'false']" web-send-json-response="resultList"/>
+        <default-response type="none"/>
+    </transition>
+    <transition name="getProjectMilestones">
+        <service-call name="mantle.work.ProjectServices.get#ProjectMilestones" web-send-json-response="resultList"/>
         <default-response type="none"/>
     </transition>
 
     <transition name="getTaskList">
         <parameter name="term"/>
         <parameter name="rootWorkEffortId"/>
+        <parameter name="assignedPartyId"/>
         <parameter name="indexName"/>
         <parameter name="documentType"/>
         <actions>
@@ -46,6 +116,7 @@ along with this software (see the LICENSE.md file). If not, see
                     StringBuilder termSb = new StringBuilder()
                     termSb.append(term).append('*')
                     if (rootWorkEffortId) termSb.append(' AND project:').append(rootWorkEffortId)
+                    if (assignedPartyId) termSb.append(' AND parties.partyId:').append(assignedPartyId)
                     ]]></script>
                 <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
                         in-map="[queryString:termSb.toString(), indexName:indexName, documentType:documentType]"/>
@@ -61,6 +132,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <transition name="getOpenClientInvoicesByProject">
+        <parameter name="workEffortId"/>
         <actions>
             <entity-find entity-name="mantle.work.effort.WorkEffortParty" list="billToList">
                 <date-filter/><econdition field-name="workEffortId"/>
@@ -88,6 +160,7 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response type="none"/>
     </transition>
     <transition name="getOpenVendorInvoicesByFromParty">
+        <parameter name="workerPartyId"/>
         <actions>
             <entity-find entity-name="mantle.account.invoice.Invoice" list="invoiceList">
                 <econdition field-name="invoiceTypeEnumId" value="InvoiceSales"/>
