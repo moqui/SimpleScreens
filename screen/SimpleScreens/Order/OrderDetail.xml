@@ -247,9 +247,31 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="rejectOrder" text="Reject Quote Request" link-type="hidden-form" confirmation="Reject quote request and reject order?"
                         condition="orderHeader.statusId == 'OrderRequested'"/>
 
-                <link url="cancelOrder" text="Close Order" link-type="hidden-form" btn-type="warning"
-                        confirmation="OrderDetailConfirmCloseOrder"
-                        condition="orderHeader.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"/>
+                <container-dialog id="CloseOrderDialog" button-text="Close Order" type="warning"
+                        condition="orderHeader.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']">
+                    <!-- list of OrderPart with Facility, OrderItems with Item #, Quantity, Quantity Shipped, Quantity to Cancel -->
+                    <section-iterate name="CloseOrderPartList" list="orderPartInfoList" entry="orderPartInfo"><actions>
+                        <set field="partProductItems" from="orderPartInfo.partNoParentOrderItemList?.findAll({ it.itemTypeEnumId in productItemTypes })"/>
+                    </actions><widgets>
+                        <label text="Order Part ${orderPartInfo.orderPart.orderPartSeqId} Facility ${ec.resource.expand('FacilityNameTemplate', null, orderPartInfo.facility)}" type="h4"/>
+                        <form-list name="CloseOrderPartItems" list="partProductItems" skip-form="true">
+                            <row-actions>
+                                <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
+                                <set field="itemQuantityShipped" from="(quantity?:0.0) - itemQuantityNotShipped"/>
+                            </row-actions>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="productId"><default-field title="Product">
+                                <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                            <field name="quantity"><default-field><display/></default-field></field>
+                            <field name="itemQuantityShipped"><default-field title="Shipped"><display/></default-field></field>
+                            <field name="itemQuantityNotShipped"><default-field title="To Cancel">
+                                <display style="${itemQuantityNotShipped ? 'text-danger' : ''}"/></default-field></field>
+                        </form-list>
+                    </widgets></section-iterate>
+                    <label text="OrderDetailConfirmCloseOrder" type="p"/>
+                    <link url="cancelOrder" text="Close Order" link-type="hidden-form" btn-type="warning"
+                            confirmation="OrderDetailConfirmCloseOrder"/>
+                </container-dialog>
 
                 <container-dialog id="AddPartDialog" button-text="Add Part"
                         condition="orderHeader.statusId in ['OrderOpen', 'OrderProposed', 'OrderBeingChanged', 'OrderPlaced']">
@@ -784,9 +806,33 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList &amp;&amp; !orderHeader.recurCronExpression"
                             confirmation="Really create return for this order part?"
                             parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"/>
-                    <link url="cancelOrderPart" text="Close Part" link-type="hidden-form" btn-type="warning"
-                            confirmation="OrderDetailConfirmClosePart"
-                            condition="orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"/>
+
+                    <container-dialog id="ClosePartDialog" button-text="Close Part" type="warning"
+                            condition="orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']">
+                        <!-- show Facility, OrderItems with Item #, Quantity, Quantity Shipped, Quantity to Cancel -->
+                        <section name="ClosePartInfo"><actions>
+                            <set field="partProductItems" from="orderPartInfo.partNoParentOrderItemList?.findAll({ it.itemTypeEnumId in productItemTypes })"/>
+                        </actions><widgets>
+                            <label text="Order Part ${orderPartInfo.orderPart.orderPartSeqId} Facility ${ec.resource.expand('FacilityNameTemplate', null, orderPartInfo.facility)}" type="h4"/>
+                            <form-list name="CloseOrderPartItems" list="partProductItems" skip-form="true">
+                                <row-actions>
+                                    <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
+                                    <set field="itemQuantityShipped" from="(quantity?:0.0) - itemQuantityNotShipped"/>
+                                </row-actions>
+                                <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                                <field name="productId"><default-field title="Product">
+                                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                                <field name="quantity"><default-field><display/></default-field></field>
+                                <field name="itemQuantityShipped"><default-field title="Shipped"><display/></default-field></field>
+                                <field name="itemQuantityNotShipped"><default-field title="To Cancel">
+                                    <display style="${itemQuantityNotShipped ? 'text-danger' : ''}"/></default-field></field>
+                            </form-list>
+                        </widgets></section>
+
+                        <label text="OrderDetailConfirmClosePart" type="p"/>
+                        <link url="cancelOrderPart" text="Close Part" link-type="hidden-form" btn-type="warning"
+                                confirmation="OrderDetailConfirmClosePart"/>
+                    </container-dialog>
 
                     <label text="Warning: both vendor and customer are internal organizations" style="text-danger" type="p"
                            condition="orderPartInfo.isVendorInternalOrg &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
@@ -1230,6 +1276,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <set field="isProductItemType" from="orderItem.itemTypeEnumId in productItemTypes"/>
                     <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
+                    <set field="itemQuantityShipped" from="(orderItem.quantity?:0.0) - itemQuantityNotShipped"/>
                     <set field="itemTotalNotBilled" from="totalNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemCanDelete" from="(!isShippable || itemQuantityNotShipped == quantity) &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnedQuantity == 0"/>
@@ -1442,7 +1489,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="closeButton"><default-field title="">
                     <link url="cancelOrderItem" text="Close" btn-type="warning" link-type="hidden-form"
-                            confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity will be cancelled."
+                            confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity (${ec.l10n.format(itemQuantityNotShipped, null)}) will be cancelled."
                             condition="isProductItemType &amp;&amp; itemQuantityNotShipped &amp;&amp; orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"
                             parameter-map="[orderItem:null]"/>
                 </default-field></field>
