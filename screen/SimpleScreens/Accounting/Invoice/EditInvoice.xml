@@ -352,6 +352,18 @@ along with this software (see the LICENSE.md file). If not, see
                         <if condition="invoice.toPartyId">
                             <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="emailInfo"
                                     in-map="[partyId:invoice.toPartyId, emailContactMechPurposeId:'EmailBilling', alsoIncludePrimaryPurpose:true]"/>
+                            <set field="emailAddressList" from="emailInfo.emailAddressList ?: []"/>
+                            <!-- also find Sales Contacts and include their email addresses -->
+                            <entity-find entity-name="mantle.party.PartyRelationship" list="contactRelList">
+                                <date-filter/>
+                                <econdition field-name="toPartyId" from="invoice.toPartyId"/>
+                                <econdition field-name="relationshipTypeEnumId" value="PrtContact"/>
+                            </entity-find>
+                            <iterate list="contactRelList" entry="contactRel">
+                                <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="contactEmailInfo" out-map-add-to-existing="false"
+                                        in-map="[partyId:contactRel.fromPartyId, emailContactMechPurposeId:'EmailBilling', alsoIncludePrimaryPurpose:true]"/>
+                                <if condition="contactEmailInfo.emailAddressList"><script>emailAddressList.addAll(contactEmailInfo.emailAddressList)</script></if>
+                            </iterate>
                         </if>
                     </actions><widgets>
                         <container-dialog id="SendPastDueEmailDialog" button-text="Send Past Due Email">
@@ -361,7 +373,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="toPartyId" from="invoice.toPartyId"><default-field><hidden/></default-field></field>
                                 <field name="toAddresses"><default-field title="To Address"><text-line size="40"/></default-field></field>
                                 <field name="toAddressList"><default-field title="To Address">
-                                    <drop-down allow-multiple="true"><list-options list="emailInfo.emailAddressList" key="${emailAddress}"
+                                    <drop-down allow-multiple="true"><list-options list="emailAddressList" key="${emailAddress}"
                                             text="${emailAddress} (${emailContactMechPurpose.description})"/></drop-down>
                                 </default-field></field>
                                 <field name="daysPastDue"><default-field title="Days Past Due"><text-line size="4" default-value="7"/></default-field></field>
@@ -376,7 +388,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="emailTypeEnumId" from="'PsetInvoiceFinalized'"><default-field><hidden/></default-field></field>
                                 <field name="toAddresses"><default-field title="To Address"><text-line size="40"/></default-field></field>
                                 <field name="toAddressList"><default-field title="To Address">
-                                    <drop-down allow-multiple="true"><list-options list="emailInfo.emailAddressList" key="${emailAddress}"
+                                    <drop-down allow-multiple="true"><list-options list="emailAddressList" key="${emailAddress}"
                                             text="${emailAddress} (${emailContactMechPurpose.description})"/></drop-down>
                                 </default-field></field>
                                 <field name="submitButton"><default-field title="Send Email"><submit/></default-field></field>
