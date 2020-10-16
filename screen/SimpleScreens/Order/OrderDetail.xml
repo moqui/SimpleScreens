@@ -289,7 +289,6 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
-                <link url="cloneOrder" text="Clone" confirmation="Create new order based on this one?" parameter-map="[baseOrderId:orderId]"/>
                 <link url="approveOrder" text="Uncomplete Order" link-type="hidden-form" confirmation="Change back to Approved status to allow shipping, etc?"
                         condition="ec.user.hasPermission('ORDER_APPROVE') &amp;&amp; orderHeader.statusId == 'OrderCompleted'"/>
 
@@ -298,6 +297,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="PrintOrderData.pdf" condition="firstPartInfo.isVendorInternalOrg" text="Order data Sheet PDF" parameter-map="[orderId: orderId]"/>
                 <link url="PrintOrderProd.pdf" condition="firstPartInfo.isVendorInternalOrg" text="Order production PDF" parameter-map="[orderId: orderId]"/>
 
+                <link url="cloneOrder" text="Clone" confirmation="Create new order based on this one?" parameter-map="[baseOrderId:orderId]"/>
                 <container-dialog id="RecurDialog" button-text="Recurring" type="${orderHeader.recurCronExpression ? (orderHeader.statusId == 'OrderApproved' ? 'success' : 'warning') : 'primary'}">
                     <label text="Order is not in Approved status" type="p" style="text-warning" condition="orderHeader.statusId != 'OrderApproved'"/>
                     <label text="Recurring orders in the Approved status will be automatically cloned according to the schedule and the clone will be automatically Placed. If there are no Approve Warnings the cloned order will be automatically Approved. If Auto Invoice is set to Y then if Approved will also create an Invoice for the Order." type="p"/>
@@ -322,6 +322,32 @@ along with this software (see the LICENSE.md file). If not, see
 
                         <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     </form-single>
+                </container-dialog>
+
+                <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
+                    <form-list name="AuditLogList" list="auditLogList" skip-form="true">
+                        <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
+                            <econdition field-name="changedEntityName" operator="in"
+                                    from="['mantle.order.OrderHeader', 'mantle.order.OrderPart', 'mantle.order.OrderItem']"/>
+                            <!-- with statusId on OrderPart include these as well for orders: <econdition field-name="changedFieldName" operator="not-equals" value="statusId"/> -->
+                            <econdition field-name="pkPrimaryValue" from="orderId"/>
+                            <select-field field-name="changedEntityName"/>
+                            <order-by field-name="-changedDate,pkSecondaryValue"/>
+                        </entity-find>
+
+                        <field name="changedDate"><default-field title="Date"><display/></default-field></field>
+                        <field name="changedByUserId"><default-field title="User">
+                            <display-entity text="UsernameTemplate" entity-name="mantle.party.PersonWithUserAccount" key-field-name="userId"/></default-field></field>
+                        <field name="pkSecondaryValue"><default-field title="Part/Item"><display/></default-field></field>
+                        <field name="changedEntityName"><default-field title="Entity">
+                            <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedEntityName.substring(changedEntityName.lastIndexOf('.')+1))}"/></default-field></field>
+                        <field name="changedFieldName"><default-field title="Field">
+                            <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedFieldName)}"/></default-field></field>
+                        <field name="oldValueText"><default-field title="From">
+                            <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, oldValueText)}"/></default-field></field>
+                        <field name="newValueText"><default-field title="To">
+                            <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
+                    </form-list>
                 </container-dialog>
 
                 <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
