@@ -16,6 +16,9 @@ along with this software (see the LICENSE.md file). If not, see
         default-menu-title="Packages" default-menu-index="3">
 
     <parameter name="shipmentId" required="true"/>
+    <!-- FILTER PASS THROUGH -->
+    <parameter name="filterProductId"/>
+    <parameter name="pageIndex"/>
 
     <transition name="shipShipment"><service-call name="mantle.shipment.ShipmentServices.ship#Shipment"/>
         <default-response url="."/></transition>
@@ -52,6 +55,21 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <set field="pageSize" from="pageSize ?: '10'"/>
         <service-call name="mantle.shipment.ShipmentInfoServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
+
+        <set field="filteredShipmentPackageList" from="shipmentPackageList"/>
+        <if condition="filterProductId">
+            <filter-map-list list="allShipmentPackageContentList" to-list="filteredShipmentPackageContentList">
+                <field-map field-name="productId" from="filterProductId"/></filter-map-list>
+            <set field="shipmentPackageSeqIdSet" from="new HashSet(filteredShipmentPackageContentList*.shipmentPackageSeqId)"/>
+            <set field="filteredShipmentPackageList" from="shipmentPackageList.findAll({ shipmentPackageSeqIdSet.contains(it.shipmentPackageSeqId) })"/>
+        </if>
+
+        <!-- get all products for filter form -->
+        <set field="allProductIds" from="shipmentItemDetailList*.productId"/>
+        <entity-find entity-name="mantle.product.Product" list="allProductList">
+            <econdition field-name="productId" operator="in" from="allProductIds"/>
+            <order-by field-name="pseudoId"/>
+        </entity-find>
 
         <!-- NOTE: here down also in ShipmentDetail.xml screen.actions -->
 
@@ -148,7 +166,16 @@ along with this software (see the LICENSE.md file). If not, see
                     parameter-map="[resetExisting:true]" confirmation="Remove existing packages and create new based on auto-package data?"/>
                 <link url="createPackage" text="Add Package"/>
             </box-toolbar><box-body>
-                <section-iterate name="PackageListSection" list="shipmentPackageList" entry="shipmentPackage" paginate="true"><actions>
+                <form-single name="PackageOptionsForm" transition="." pass-through-parameters="true">
+                    <field name="filterProductId"><default-field title="Product"><drop-down allow-empty="true">
+                        <list-options list="allProductList" key="${productId}" text="ProductNameTemplate"/>
+                        <!-- <dynamic-options transition="getProductList" server-search="true" min-length="0"/> --></drop-down></default-field></field>
+                    <field name="submitBtn"><default-field title="Filter"><submit/></default-field></field>
+                    <field-layout><field-row-big><field-ref name="filterProductId"/><field-ref name="submitBtn"/></field-row-big></field-layout>
+                    <!-- TODO: when adding fields here make sure to add to sections near "FILTER PASS THROUGH" comments in this screen and in ItemReserve.xml, ReceiveItem.xml, UpdateItemAsset.xml -->
+                </form-single>
+
+                <section-iterate name="PackageListSection" list="filteredShipmentPackageList" entry="shipmentPackage" paginate="true"><actions>
                     <set field="shipmentBoxType" from="shipmentPackage.boxType"/>
                     <set field="weightUom" from="shipmentPackage.weightUom"/>
                     <set field="shipmentPackageContentList" from="allShipmentPackageContentList.findAll({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId })"/>
@@ -165,6 +192,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
                                 <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
                                 <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
+
+                                <!-- FILTER PASS THROUGH -->
+                                <field name="filterProductId"><default-field><hidden/></default-field></field>
 
                                 <field name="shipmentBoxTypeId"><default-field title="Box Type"><drop-down allow-empty="true">
                                     <list-options list="boxTypeList" key="${shipmentBoxTypeId}" text="${description}"/>
@@ -206,6 +236,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 condition="shippingGatewayConfigId &amp;&amp; hasLabel &amp;&amp; !hasReturnLabel">
                             <form-single name="RequestRetLabel" transition="requestShipmentLabels">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                <!-- FILTER PASS THROUGH -->
+                                <field name="filterProductId"><default-field><hidden/></default-field></field>
+
                                 <field name="shipmentPackageSeqId" from="shipmentPackage.shipmentPackageSeqId">
                                     <default-field><hidden/></default-field></field>
                                 <field name="shipmentRouteSegmentSeqId" from="packageRouteSeg.shipmentRouteSegmentSeqId">
@@ -286,6 +319,9 @@ along with this software (see the LICENSE.md file). If not, see
                                 condition="(packageRouteSeg?.labelUrl || packageRouteSeg?.labelImage != null) &amp;&amp; networkPrinterList">
                             <form-single name="PrintShipmentLabel" transition="printShipmentLabels">
                                 <field name="shipmentId"><default-field><hidden/></default-field></field>
+                                <!-- FILTER PASS THROUGH -->
+                                <field name="filterProductId"><default-field><hidden/></default-field></field>
+
                                 <field name="shipmentPackageSeqId" from="shipmentPackage.shipmentPackageSeqId">
                                     <default-field><hidden/></default-field></field>
                                 <field name="shipmentRouteSegmentSeqId" from="packageRouteSeg.shipmentRouteSegmentSeqId">
@@ -358,6 +394,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <form-list name="ShipmentPackageContentList" list="shipmentPackageContentList" transition="updatePackageContent">
                             <field name="shipmentId"><default-field><hidden/></default-field></field>
                             <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
+                            <!-- FILTER PASS THROUGH -->
+                            <field name="filterProductId"><default-field><hidden/></default-field></field>
+
                             <field name="productId"><default-field title="Product">
                                 <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/>
                             </default-field></field>
