@@ -157,6 +157,18 @@ along with this software (see the LICENSE.md file). If not, see
 
         <service-call name="mantle.shipment.ShipmentInfoServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
 
+        <!-- get first 'open' package for default -->
+        <set field="activePackage" from="shipmentPackageList?.find({ it.weight == null || it.shipmentBoxTypeId == null })"/>
+        <set field="activePackageSeqId" from="activePackage?.shipmentPackageSeqId"/>
+
+        <set field="filteredShipmentPackageList" from="shipmentPackageList"/>
+        <if condition="filterProductId">
+            <filter-map-list list="allShipmentPackageContentList" to-list="filteredShipmentPackageContentList">
+                <field-map field-name="productId" from="filterProductId"/></filter-map-list>
+            <set field="shipmentPackageSeqIdSet" from="new HashSet(filteredShipmentPackageContentList*.shipmentPackageSeqId)"/>
+            <set field="filteredShipmentPackageList" from="shipmentPackageList.findAll({ shipmentPackageSeqIdSet.contains(it.shipmentPackageSeqId) })"/>
+        </if>
+
         <entity-find entity-name="mantle.facility.Facility" list="facilityList">
             <econdition field-name="facilityTypeEnumId" value="FcTpWarehouse"/><order-by field-name="facilityName"/></entity-find>
         <entity-find entity-name="mantle.order.OrderNote" list="orderNoteList">
