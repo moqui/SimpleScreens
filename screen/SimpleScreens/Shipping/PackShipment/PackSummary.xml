@@ -73,7 +73,7 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
-        <service-call name="mantle.shipment.ShipmentServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
+        <service-call name="mantle.shipment.ShipmentInfoServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
         <if condition="!isOutgoing &amp;&amp; !isTransfer"><return error="true" message="Shipment ${shipmentId} is not an outgoing or transfer shipment"/></if>
         <set field="statusPrePacked" from="shipment.statusId in ['ShipInput', 'ShipScheduled', 'ShipPicked']"/>
 
@@ -149,20 +149,20 @@ along with this software (see the LICENSE.md file). If not, see
                - if got labels and a network printer is selected send to printer
         -->
 
-        <container-row><row-col lg="6">
-            <container-row><row-col xs="4">
+        <container-row><row-col md="6">
+            <container-box><box-header>
                 <container style="text-strong">
                     <label text="Pack Shipment "/>
                     <link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/>
                     <label text=" (${statusItem.description})" condition="statusItem"/>
                 </container>
-            </row-col><row-col xs="8" style="text-right">
+            </box-header><box-toolbar>
                 <container-dialog id="CancelDialog" button-text="Cancel" type="danger"
-                                  condition="!(shipment.statusId in ['ShipDelivered', 'ShipRejected', 'ShipCancelled'])">
+                        condition="!(shipment.statusId in ['ShipDelivered', 'ShipRejected', 'ShipCancelled'])">
                     <label text="Invoices associated with this shipment will be CANCELLED: ${invoiceIdSet.join(', ')}"
-                           condition="isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-danger"/>
+                            condition="isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-danger"/>
                     <label text="Invoices (found ${invoiceIdSet.size()} associated with this shipment) will not be changed, must be cancelled manually"
-                           condition="!isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-warning"/>
+                            condition="!isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-warning"/>
                     <label text="Items have been packed/issued, these will be un-packed and returned to inventory" condition="anyItemPacked" type="p" style="text-danger"/>
                     <label text="Items have been received, all receipt quantities will be set to zero" condition="anyReceived" type="p" style="text-danger"/>
                     <label text="Labels will not be refunded automatically, refund manually if needed" condition="hasAnyLabels" type="p" style="text-warning"/>
@@ -251,57 +251,80 @@ along with this software (see the LICENSE.md file). If not, see
                         </form-single>
                     </container-dialog>
                 </widgets></section>
-            </row-col></container-row>
+            </box-toolbar><box-body>
+                <!-- needed? no, request labels dialog allows carrier/method set: small manual set carrier/method form -->
 
-            <!-- needed? no, request labels dialog allows carrier/method set: small manual set carrier/method form -->
+                <!--
+                    scan input (product or asset ID, other product IDs like SKU/UPC/etc), auto-focused
+                    quantity input default 1 (with up/down buttons?)
+                    package drop-down with active package selected
+                -->
+                <section name="PackScanSection" condition="statusPrePacked"><widgets>
+                    <form-single name="PackScanForm" transition="packShipmentProductScan" focus-field="scanInput">
+                        <field name="shipmentId"><default-field><hidden/></default-field></field>
+                        <field name="quantity" from="1"><default-field><text-line size="4"/></default-field></field>
+                        <field name="scanInput"><default-field title="Product"><text-line size="25"/></default-field></field>
+                        <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title="Package"><drop-down>
+                            <option key="" text="New"/>
+                            <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                        </drop-down></default-field></field>
+                        <field name="packButton"><default-field title="Pack Item"><submit/></default-field></field>
+                        <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="scanInput"/>
+                            <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
+                    </form-single>
+                </widgets></section>
 
-            <!--
-                scan input (product or asset ID, other product IDs like SKU/UPC/etc), auto-focused
-                quantity input default 1 (with up/down buttons?)
-                package drop-down with active package selected
-            -->
-            <section name="PackScanSection" condition="statusPrePacked"><widgets>
-                <form-single name="PackScanForm" transition="packShipmentProductScan" focus-field="scanInput">
-                    <field name="shipmentId"><default-field><hidden/></default-field></field>
-                    <field name="quantity" from="1"><default-field title=""><text-line size="4"/></default-field></field>
-                    <field name="scanInput"><default-field title=""><text-line size="25"/></default-field></field>
-                    <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title=""><drop-down>
-                        <option key="" text="New"/>
-                        <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
-                    </drop-down></default-field></field>
-                    <field name="packButton"><default-field title="Pack Item"><submit/></default-field></field>
-                    <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="scanInput"/>
-                        <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
-                </form-single>
-            </widgets></section>
+                <section name="PackedSummarySection"><actions>
+                    <set field="quantityTotal" from="shipmentItemSourceList*.quantity.sum()"/>
+                    <set field="quantityNotHandledTotal" from="shipmentItemSourceList*.quantityNotHandled.sum({ it ?: 0.0 })"/>
+                    <set field="quantityHandledTotal" from="quantityTotal - quantityNotHandledTotal"/>
+                </actions><widgets>
+                    <container style="text-center">
+                        <label text="Packed ${ec.l10n.format(quantityHandledTotal, '#,##0.##')} of ${ec.l10n.format(quantityTotal, '#,##0.##')}"
+                                type="h3" style="${quantityHandledTotal ? (quantityHandledTotal == quantityTotal ? 'text-success' : 'text-warning') : 'text-danger'}"/>
+                    </container>
+                </widgets></section>
+            </box-body></container-box>
+
+
 
             <!-- close package form, set current package box type and weight -->
             <!-- clears active package (if box type and weight specified) so next item scan goes in new package -->
             <!-- NOTE: don't auto package for this screen, should be store level setting or something; maybe even kill package contents records if there are any? solution for now is Reset button on Package -->
-            <section name="ClosePackageSection" condition="activePackageAndRouteSeg"><widgets>
-                <form-single name="ClosePackageForm" map="activePackageAndRouteSeg" transition="updatePackageAndRouteSeg">
-                    <field name="shipmentId"><default-field><hidden/></default-field></field>
-                    <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
+            <section name="ActivePackageSection" condition="activePackageAndRouteSeg"><actions>
+                <set field="shipmentPackageContentList" from="allShipmentPackageContentList.findAll({ activePackageSeqId.equals(it.shipmentPackageSeqId) })"/>
+            </actions><widgets>
+                <container-box><box-header title="Active Package ${activePackageAndRouteSeg.shipmentPackageSeqId}"/><box-body>
+                    <form-single name="ClosePackageForm" map="activePackageAndRouteSeg" transition="updatePackageAndRouteSeg">
+                        <field name="shipmentId"><default-field><hidden/></default-field></field>
+                        <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
 
-                    <field name="shipmentPackageSeqId"><default-field title="" container-style="text-strong">
-                        <display text="Pkg ${shipmentPackageSeqId}"/></default-field></field>
-                    <field name="shipmentBoxTypeId"><default-field title=""><drop-down allow-empty="true">
-                        <list-options list="boxTypeList" key="${shipmentBoxTypeId}" text="${pseudoId}: ${description}"/>
-                    </drop-down></default-field></field>
-                    <field name="weight"><default-field title=""><text-line size="4" default-transition="getPackageWeight"
-                            parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackageSeqId]">
-                        <depends-on field="shipmentBoxTypeId"/><depends-on field="weightUomId"/>
-                    </text-line></default-field></field>
-                    <field name="weightUomId" from="weightUomId ?: 'WT_lb'"><default-field title="">
-                        <display-entity entity-name="moqui.basic.Uom" text="${abbreviation ?: description}"/></default-field></field>
+                        <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
+                        <field name="shipmentBoxTypeId"><default-field title="Box Type"><drop-down allow-empty="true">
+                            <list-options list="boxTypeList" key="${shipmentBoxTypeId}" text="${pseudoId}: ${description}"/>
+                        </drop-down></default-field></field>
+                        <field name="weight"><default-field><text-line size="4" default-transition="getPackageWeight"
+                                parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackageSeqId]">
+                            <depends-on field="shipmentBoxTypeId"/><depends-on field="weightUomId"/>
+                        </text-line></default-field></field>
+                        <field name="weightUomId" from="weightUomId ?: 'WT_lb'"><default-field title="">
+                            <display-entity entity-name="moqui.basic.Uom" text="${abbreviation ?: description}"/></default-field></field>
 
-                    <field name="submitButton"><default-field title="Close Pkg ${shipmentPackageSeqId}"><submit/></default-field></field>
-                    <field-layout><field-row-big><field-ref name="shipmentPackageSeqId"/><field-ref name="shipmentBoxTypeId"/>
-                        <field-ref name="weight"/><field-ref name="weightUomId"/><field-ref name="submitButton"/></field-row-big></field-layout>
-                </form-single>
+                        <field name="submitButton"><default-field title="Close Pkg ${shipmentPackageSeqId}"><submit/></default-field></field>
+                        <field-layout><field-row-big><field-ref name="shipmentPackageSeqId"/><field-ref name="shipmentBoxTypeId"/>
+                            <field-ref name="weight"/><field-ref name="weightUomId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+                    </form-single>
+                </box-body><box-body-nopad>
+                    <form-list name="ShipmentPackageContentList" list="shipmentPackageContentList" skip-form="true">
+                        <field name="productId"><default-field title="Product">
+                            <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/>
+                        </default-field></field>
+                        <field name="quantity"><default-field><display/></default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
             </widgets></section>
 
-        </row-col><row-col lg="6">
+        </row-col><row-col md="6">
 
             <!-- warning if payment not authorized -->
             <section-iterate name="ShipmentPaymentListSection" list="shipmentPaymentList" entry="shipmentPayment"><actions>
