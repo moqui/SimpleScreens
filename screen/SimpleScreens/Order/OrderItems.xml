@@ -18,6 +18,7 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="orderId" required="true"/>
     <parameter name="orderPartSeqId"/>
     <parameter name="pageIndex"/>
+    <parameter name="pageSize"/>
 
     <transition name="editProduct"><default-response url="//${appRoot}/Product/EditProduct"/></transition>
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
@@ -218,7 +219,9 @@ along with this software (see the LICENSE.md file). If not, see
                 show-page-size="true" select-columns="true" show-csv-button="true" show-xlsx-button="true">
             <row-actions>
                 <if condition="orderPart == null">
-                    <set field="orderPart" from="orderPartList.find({ it.orderPartSeqId == orderItem.orderPartSeqId })"/></if>
+                    <set field="orderPart" from="orderPartList.find({ it.orderPartSeqId == orderItem.orderPartSeqId })"/>
+                    <set field="partEditable" from="orderPart != null ? editableStatusIds.contains(orderPart.statusId) : null"/>
+                </if>
                 <service-call name="mantle.order.OrderInfoServices.get#OrderItemDisplayInfo" out-map="context"
                         in-map="[orderId:orderId, orderItemSeqId:orderItemSeqId, orderItem:orderItem, orderPart:orderPart]"/>
                 <!-- <log level="warn" message="itemCanDelete ${itemCanDelete} quantity ${quantity} itemQuantityNotShipped ${itemQuantityNotShipped} itemQuantityNotBilled ${itemQuantityNotBilled} returnableOut.returnedQuantity ${returnableOut.returnedQuantity}"/> -->
@@ -363,17 +366,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title=""><display text=" "/></default-field>
             </field>
 
-            <field name="editButton"><default-field title="">
+            <field name="editButton"><default-field title="Actions">
                 <dynamic-dialog id="EditItemDialog" button-text="Edit" transition="EditItem">
                     <parameter name="orderId"/><parameter name="orderItemSeqId" from="orderItem.orderItemSeqId"/></dynamic-dialog>
-            </default-field>
-
-            </field>
-            <field name="deleteButton"><conditional-field condition="partEditable &amp;&amp; isPromo != 'Y'">
-                <link url="deleteItem" text="" btn-type="danger" icon="fa fa-trash" condition="itemCanDelete" confirmation="Delete item ${orderItemSeqId}?"/>
-            </conditional-field><default-field title=""/></field>
-
-            <field name="closeButton"><default-field title="">
+                <link url="deleteItem" text="" btn-type="danger" icon="fa fa-trash" condition="partEditable &amp;&amp; itemCanDelete" confirmation="Delete item ${orderItemSeqId}?"/>
                 <link url="cancelOrderItem" text="Close" btn-type="warning" link-type="hidden-form"
                         confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity will be cancelled."
                         condition="isProductItemType &amp;&amp; itemQuantityNotShipped &amp;&amp; orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"
@@ -390,7 +386,7 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="itemQuantityNotShipped"/><field-ref name="itemNotBilled"/><field-ref name="assetReservations"/><field-ref name="standardCost"/></form-list-column>
             <form-list-column><field-ref name="itemTotal"/><field-ref name="itemPlusChildrenTotal"/></form-list-column>
             <form-list-column><field-ref name="returns"/><field-ref name="returnItem"/></form-list-column>
-            <form-list-column><field-ref name="editButton"/><field-ref name="deleteButton"/><field-ref name="closeButton"/></form-list-column>
+            <form-list-column><field-ref name="editButton"/></form-list-column>
         </form-list>
     </widgets>
 </screen>
