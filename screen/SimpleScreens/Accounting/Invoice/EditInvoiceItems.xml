@@ -108,7 +108,7 @@ along with this software (see the LICENSE.md file). If not, see
         </container></widgets></section>
 
         <label text="Invoice Total: ${ec.l10n.formatCurrency(invoice.invoiceTotal, invoice.currencyUomId)}, Unpaid: ${ec.l10n.formatCurrency(invoice.unpaidTotal, invoice.currencyUomId)}"/>
-        <form-list name="EditInvoiceItems" list="invoiceItemList" transition="updateInvoiceItem" multi="true">
+        <form-list name="EditInvoiceItems" list="invoiceItemList" transition="updateInvoiceItem" multi="true" header-dialog="true">
             <hidden-parameters><parameter name="invoiceId"/></hidden-parameters>
 
             <field name="invoiceItemSeqId"><default-field title="Item"><display style="${parentItemSeqId ? 'text-info' : 'text-strong'}"/></default-field></field>
@@ -121,15 +121,23 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field title="Parent"><display/></default-field>
             </field>
 
-            <field name="description"><default-field><text-line size="60"/></default-field></field>
+            <field name="description">
+                <header-field><text-find/></header-field>
+                <default-field><text-line size="60"/></default-field>
+            </field>
             <field name="productId">
+                <header-field><drop-down allow-empty="true">
+                    <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></header-field>
                 <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
                     <dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down></conditional-field>
                 <default-field title="Product"><display text=" "/><!-- need display to not hide but get hidden field for typeGlAccount display.@dynamic-transition -->
                     <link url="editProduct" text="ProductNameTemplate" entity-name="mantle.product.Product" link-type="anchor" condition="productId"/>
                 </default-field>
             </field>
-            <field name="otherPartyProductId"><default-field><text-line size="25"/></default-field></field>
+            <field name="otherPartyProductId">
+                <header-field><text-find/></header-field>
+                <default-field><text-line size="25"/></default-field>
+            </field>
             <field name="assetId">
                 <conditional-field condition="invoiceEditable"><drop-down allow-empty="true">
                     <dynamic-options transition="getAssetList" server-search="true" min-length="0">
@@ -140,6 +148,8 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <field name="itemTypeEnumId">
+                <header-field><drop-down allow-empty="true">
+                    <list-options list="itemTypeEnumList" key="${enumId}" text="${description}"/></drop-down></header-field>
                 <conditional-field condition="invoiceEditable || isAdjustment == 'Y'">
                     <drop-down><list-options list="itemTypeEnumList" key="${enumId}" text="${description}"/></drop-down></conditional-field>
                 <default-field title="Type"><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
@@ -173,6 +183,7 @@ along with this software (see the LICENSE.md file). If not, see
             </default-field></field>
 
             <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
 
             <form-list-column><field-ref name="invoiceItemSeqId"/><field-ref name="parentItemSeqId"/></form-list-column>
             <form-list-column><field-ref name="description"/><field-ref name="productId"/><field-ref name="otherPartyProductId"/>
