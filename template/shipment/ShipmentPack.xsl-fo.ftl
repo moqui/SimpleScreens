@@ -44,6 +44,13 @@ along with this software (see the LICENSE.md file). If not, see
 
     <fo:page-sequence master-reference="letter-portrait" initial-page-number="1" force-page-count="no-force">
         <fo:static-content flow-name="xsl-region-before">
+            <#if logoImageLocation?has_content>
+                <fo:block-container absolute-position="absolute" top="0in" left="0.1in" width="2in">
+                    <fo:block text-align="left" space-after="0.2in">
+                        <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" width="2in" scaling="uniform"/>
+                    </fo:block>
+                </fo:block-container>
+            </#if>
             <#if fromPartyDetail?has_content><fo:block font-size="14pt" text-align="center"><@encodeText fromPartyDetail.organizationName!""/><@encodeText fromPartyDetail.firstName!""/> <@encodeText fromPartyDetail.lastName!""/></fo:block></#if>
             <fo:block font-size="12pt" text-align="center" margin-bottom="0.1in">Shipment Pack Sheet</fo:block>
             <#if logoImageLocation?has_content>
@@ -172,7 +179,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-row font-size="9pt" border-top="solid black">
                             <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">
                                 <fo:instream-foreign-object>
-                                    <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="${productInfo.pseudoId}">
+                                    <barcode:barcode xmlns:barcode="http://barcode4j.krysalis.org/ns" message="<@encodeText productInfo.pseudoId/>">
                                         <barcode:code128>
                                             <barcode:height>0.4in</barcode:height>
                                             <barcode:module-width>0.25mm</barcode:module-width>
