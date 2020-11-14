@@ -48,6 +48,7 @@ along with this software (see the LICENSE.md file). If not, see
         <iterate list="assetLotList" entry="assetLot"><script>qohByLotId.put(assetLot.lotId, assetLot.quantityOnHandTotal)</script></iterate>
     </actions>
     <widgets>
+
         <form-single name="RecordQuantity" transition="recordQuantity">
             <field name="productId"><default-field title="Product">
                 <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
@@ -55,13 +56,6 @@ along with this software (see the LICENSE.md file). If not, see
                 <display text="FacilityNameTemplate" text-map="facility"/></default-field></field>
             <field name="locationSeqId"><default-field title="Location">
                 <display text="FacilityLocationNameTemplate" text-map="facLoc?:[locationSeqId:'None']"/></default-field></field>
-            <field name="ownerPartyId"><default-field title="Owner Party">
-                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
-            <field name="assetPoolId">
-                <default-field title="Pool"><drop-down allow-empty="true">
-                    <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0"
-                            parameter-map="[partyId:ownerPartyId]"/></drop-down></default-field>
-            </field>
             <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
                 <entity-options key="${lotId}" text="${lotId}: ${pseudoId?:mfgParty?.pseudoId?:''} ${lotNumber?:'No Lot #'} Mfg ${ec.l10n.format(manufacturedDate, 'yyyy-MM-dd')?:'N/A'} Exp ${ec.l10n.format(expirationDate, 'yyyy-MM-dd')} QOH ${ec.l10n.format(qohByLotId.get(lotId), null)}">
                     <entity-find entity-name="mantle.product.asset.LotAndMfgParty">
@@ -69,12 +63,24 @@ along with this software (see the LICENSE.md file). If not, see
                         <order-by field-name="lotNumber"/>
                     </entity-find></entity-options>
             </drop-down></default-field></field>
+
+            <field name="ownerPartyId"><default-field title="Owner Party">
+                <display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field></field>
+            <field name="assetPoolId">
+                <default-field title="Pool"><drop-down allow-empty="true">
+                    <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0"
+                            parameter-map="[partyId:ownerPartyId]"/></drop-down></default-field>
+            </field>
             <field name="statusId"><default-field title="Status">
                 <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
                     <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstAvailable"/></widget-template-include>
             </default-field></field>
 
+            <!-- FUTURE: consider making this user selectable along with strictLocation and strictLot for 'None' vs 'All' behavior on null -->
+            <field name="strictAll" from="'true'"><default-field><hidden/></default-field></field>
+
             <field name="quantity"><default-field title="Physical Quantity"><text-line size="6"/></default-field></field>
+            <!-- NOTE: the ignored quantityChange field is a placeholder for the form in PhysicalChange.xml that extends this form -->
             <field name="quantityChange"><default-field><ignored/></default-field></field>
             <field name="comments"><default-field><text-area cols="60" rows="5"/></default-field></field>
             <field name="varianceReasonEnumId"><default-field title="Variance Reason">
