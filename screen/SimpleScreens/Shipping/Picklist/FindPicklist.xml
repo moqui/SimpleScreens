@@ -19,11 +19,13 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="../PicklistDetail"/></transition>
 
     <transition name="picklistDetail"><default-response url="../PicklistDetail"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
     <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
     <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
     <transition name="equipmentDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
     <widgets>
@@ -73,6 +75,8 @@ along with this software (see the LICENSE.md file). If not, see
                 <select-field field-name="workEffortName,facilityOwnerPartyId"/>
             </entity-find>
             <row-actions>
+                <entity-find entity-name="mantle.work.effort.WorkEffortAndPartyDetail" list="weapdList">
+                    <date-filter/><econdition field-name="workEffortId"/><order-by field-name="firstName,organizationName"/></entity-find>
                 <entity-find entity-name="mantle.work.effort.WorkEffortAssetAndAssign" list="assetList" use-clone="true">
                     <date-filter/><econdition field-name="workEffortId"/><order-by field-name="assetName"/></entity-find>
                 <entity-find entity-name="mantle.shipment.Shipment" list="shipmentList" use-clone="true">
@@ -125,30 +129,42 @@ along with this software (see the LICENSE.md file). If not, see
                 <default-field><display-entity entity-name="mantle.party.PartyDetail" text="PartyNameTemplate"/></default-field>
             </field>
 
+            <field name="partyId"><header-field title="Person">
+                <drop-down allow-empty="true"><dynamic-options transition="searchPartyList" server-search="true" min-length="0"
+                        parameter-map="[roleTypeId:'Employee,Worker']"/></drop-down>
+            </header-field></field>
+            <field name="partyList"><default-field title="People">
+                <section-iterate name="PartyList" list="weapdList" entry="weapd"><widgets>
+                    <container><link url="editParty" text="PartyNameTemplate" text-map="weapd"
+                            link-type="anchor" parameter-map="[partyId:weapd.partyId]"/></container>
+                </widgets></section-iterate>
+            </default-field></field>
+
             <field name="assetId"><header-field title="Equipment">
-                <drop-down><dynamic-options transition="getAssetList" server-search="true" min-length="0"
+                <drop-down allow-empty="true"><dynamic-options transition="getAssetList" server-search="true" min-length="0"
                         parameter-map="[assetTypeEnumId:'AstTpEquipment']"/></drop-down>
             </header-field></field>
             <field name="assetList"><default-field title="Equipment">
-                <section-iterate name="AssetList" list="assetList" entry="asset">
-                    <widgets><link url="equipmentDetail" text="AssetNameTemplate" text-map="asset"
-                            link-type="anchor" parameter-map="[assetId:asset.assetId]"/></widgets>
-                </section-iterate>
+                <section-iterate name="AssetList" list="assetList" entry="asset"><widgets>
+                    <container><link url="equipmentDetail" text="AssetNameTemplate" text-map="asset"
+                            link-type="anchor" parameter-map="[assetId:asset.assetId]"/></container>
+                </widgets></section-iterate>
             </default-field></field>
             <field name="shipmentId"><header-field title="Shipments"><text-find size="10" hide-options="true"/></header-field></field>
             <field name="shipmentList"><default-field title="Shipments">
-                <section-iterate name="ShipmentList" list="shipmentList" entry="shipment">
-                    <widgets><link url="shipmentDetail" text="${shipment.shipmentId}" link-type="anchor"
-                            parameter-map="[shipmentId:shipment.shipmentId]"/></widgets>
-                </section-iterate>
+                <section-iterate name="ShipmentList" list="shipmentList" entry="shipment"><widgets>
+                    <container><link url="shipmentDetail" text="${shipment.shipmentId}" link-type="anchor"
+                            parameter-map="[shipmentId:shipment.shipmentId]"/></container>
+                </widgets></section-iterate>
             </default-field></field>
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field>
                 <default-field><display text=" "/></default-field></field>
 
-            <form-list-column><field-ref name="estimatedStartDate"/><field-ref name="workEffortId"/></form-list-column>
+            <form-list-column><field-ref name="workEffortId"/><field-ref name="estimatedStartDate"/></form-list-column>
             <form-list-column><field-ref name="statusId"/><field-ref name="facilityId"/></form-list-column>
             <form-list-column><field-ref name="productStoreId"/><field-ref name="ownerPartyId"/></form-list-column>
+            <form-list-column><field-ref name="partyList"/></form-list-column>
             <form-list-column><field-ref name="assetList"/><field-ref name="shipmentList"/></form-list-column>
             <form-list-column><field-ref name="submitButton"/></form-list-column>
         </form-list>
