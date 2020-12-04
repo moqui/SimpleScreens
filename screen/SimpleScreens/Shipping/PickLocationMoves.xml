@@ -24,15 +24,15 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
 
-    <actions>
-    </actions>
     <widgets>
-        <form-list name="PickMoveList" list="pickMoveList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true">
+        <form-list name="PickMoveList" list="pickMoveList" skip-form="true" header-dialog="true" select-columns="true" saved-finds="true"
+                show-csv-button="true" show-xlsx-button="true" show-page-size="true">
             <entity-find entity-name="mantle.product.issuance.AssetAndReservationSummary" list="pickMoveList">
-                <search-form-inputs default-order-by="-quantity"/>
+                <search-form-inputs default-order-by="-quantity" require-parameters="true"/>
                 <econdition field-name="locationTypeEnumId" operator="not-equals" value="FltPick" or-null="true"/>
                 <having-econditions><econdition field-name="quantityOnHandTotal" operator="greater" from="0.0"/></having-econditions>
                 <select-field field-name="productId,facilityId,locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
+                <select-field field-name="quantity,reservationCount"/>
             </entity-find>
             <row-actions>
                 <!-- is there a configured Pick location for the product in the facility? -->
@@ -44,12 +44,23 @@ along with this software (see the LICENSE.md file). If not, see
                 <!-- if no configured location(s) look for existing/prior Asset pick locations -->
                 <if condition="!pickLocList">
                     <!-- NOTE: this could get heavy/slow over time, consider not doing here, only on individual move screen; nice for move report though -->
-                    <entity-find entity-name="mantle.product.asset.AssetLocationDetail" list="pickLocList" distinct="true">
+                    <entity-find entity-name="mantle.product.asset.AssetLocationSummary" list="pickLocList" distinct="true">
                         <econdition field-name="productId"/><econdition field-name="facilityId"/>
                         <econdition field-name="locationTypeEnumId" value="FltPick"/>
-                        <select-field field-name="locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId"/>
+                        <having-econditions>
+                            <econdition field-name="quantityOnHandTotal" operator="greater" from="0.0" ignore="showAllPickLocations == 'Y'"/>
+                        </having-econditions>
+                        <select-field field-name="locationSeqId,description,areaId,aisleId,sectionId,levelId,positionId,quantityOnHandTotal"/>
                     </entity-find>
                 </if>
+                <!-- Need Qty as quantity (Res Qty) - ATP in Pick Locations for Product and Facility -->
+                <entity-find entity-name="mantle.product.asset.AssetLocationSummary" list="pickLocQtyList">
+                    <econdition field-name="productId"/><econdition field-name="facilityId"/>
+                    <econdition field-name="locationTypeEnumId" value="FltPick"/>
+                    <select-field field-name="availableToPromiseTotal"/>
+                </entity-find>
+                <set field="pickAtpTotal" from="pickLocQtyList ? (pickLocQtyList[0].availableToPromiseTotal ?: 0.0) : 0.0"/>
+                <set field="needQuantity" from="quantity &gt; pickAtpTotal ? (quantity - pickAtpTotal) : 0.0"/>
             </row-actions>
 
             <field name="facilityId">
@@ -65,9 +76,12 @@ along with this software (see the LICENSE.md file). If not, see
             </default-field></field>
 
             <field name="locationSeqId"><default-field title="Location">
-                <display text="${locationSeqId?:''} ${description?:''} [${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}]"/></default-field></field>
+                <display text="${description?:''} ${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}"/></default-field></field>
             <field name="locationTypeEnumId"><header-field title="Loc Type" show-order-by="true"/>
                 <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+
+            <field name="areaId"><header-field title="Area"><text-find default-operator="begins" size="10"/></header-field></field>
+            <field name="aisleId"><header-field title="Aisle"><text-find default-operator="begins" size="10"/></header-field></field>
 
             <field name="containerId"><default-field title="Container">
                 <display-entity entity-name="mantle.product.asset.Container" text="ContainerNameTemplate"/></default-field></field>
@@ -76,34 +90,45 @@ along with this software (see the LICENSE.md file). If not, see
 
             <field name="assetId"><default-field title="Asset">
                 <link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+
+            <!-- quantityOnHandTotal from AssetAndReservationSummary query gets wrong number as it is added repeatedly for each applicable reservation -->
+            <field name="quantityOnHandTotal" from="(quantityOnHandTotal ?: 0.0) / (reservationCount ?: 1.0)"><header-field title="QOH" show-order-by="true"/>
+                <default-field><display/></default-field></field>
+            <field name="reservationCount"><header-field title="Res Cnt" show-order-by="true"/>
+                <default-field><display/></default-field></field>
             <field name="quantity"><header-field title="Res Qty" show-order-by="true"/>
                 <default-field><display/></default-field></field>
-            <!-- leave out for now, probably not needed/useful; from AssetAndReservationSummary query gets wrong number as it is added repeatedly for each applicable reservation:
-            <field name="quantityOnHandTotal"><default-field title="QOH"><display/></default-field></field>
-            -->
+            <field name="needQuantity"><default-field title="Need Qty">
+                <display text="${ec.l10n.format(needQuantity, '#,##0.##')} (Pick ATP ${ec.l10n.format(pickAtpTotal, '#,##0.##')})"/></default-field></field>
 
             <field name="recLocations"><default-field title="Pick Location(s)">
                 <section-iterate name="RecLocList" list="pickLocList" entry="recLoc"><widgets>
-                    <label text="${locationSeqId?:''} ${description?:''} [${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}]"
+                    <label text="${description?:''} ${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '} - QOH ${ec.l10n.format(quantityOnHandTotal, '#,##0.##')}"
                             text-map="recLoc" type="div"/>
                 </widgets></section-iterate>
             </default-field></field>
 
-            <field name="moveLink"><default-field title="Move">
-                <link url="selectAsset" text="Move" parameter-map="[quantity:quantity]"/>
+            <field name="moveDialog"><default-field>
+                <dynamic-dialog id="QuickMoveDialog" button-text="Move" transition="QuickMove"/>
+            </default-field></field>
+
+            <field name="moveLink"><default-field title="Move Link">
+                <link url="selectAsset" text="Move Screen" parameter-map="[quantity:quantity]"/>
                 <link url="moveAsset" text="Move Asset" condition="assetId" parameter-map="[quantity:quantity]"/>
             </default-field></field>
 
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
 
-            <form-list-column><field-ref name="facilityId"/></form-list-column>
-            <form-list-column><field-ref name="productId"/></form-list-column>
-            <form-list-column><field-ref name="locationSeqId"/></form-list-column>
-            <form-list-column><field-ref name="locationTypeEnumId"/></form-list-column>
-            <form-list-column><field-ref name="quantity"/></form-list-column>
-            <!-- <form-list-column><field-ref name="quantityOnHandTotal"/></form-list-column> -->
-            <form-list-column><field-ref name="recLocations"/></form-list-column>
-            <form-list-column><field-ref name="moveLink"/></form-list-column>
+            <columns>
+                <column><field-ref name="facilityId"/><field-ref name="productId"/></column>
+                <column><field-ref name="locationSeqId"/><field-ref name="locationTypeEnumId"/></column>
+                <column><field-ref name="quantityOnHandTotal"/></column>
+                <column><field-ref name="quantity"/><field-ref name="reservationCount"/></column>
+                <column><field-ref name="needQuantity"/></column>
+                <column><field-ref name="recLocations"/></column>
+                <column><field-ref name="moveDialog"/></column>
+                <column><field-ref name="moveLink"/></column>
+            </columns>
         </form-list>
     </widgets>
 </screen>
