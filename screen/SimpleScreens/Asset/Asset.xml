@@ -15,5 +15,17 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-index="11" menu-image="/ssstatic/images/Asset.png">
     <subscreens default-item="FindSummary"/>
-    <widgets><subscreens-panel id="AssetPanel" type="tab"/></widgets>
+    <actions>
+        <if condition="assetId">
+            <entity-find-one entity-name="mantle.product.asset.Asset" value-field="asset"/>
+            <entity-find-one entity-name="mantle.product.Product" value-field="product">
+                <field-map field-name="productId" from="asset.productId"/>
+            </entity-find-one>
+        </if>
+    </actions>
+    <widgets>
+        <label text="AssetNameTemplate" text-map="asset" type="strong" condition="asset"/>
+        <label text=": ${product.productName}" type="strong" condition="asset"/>
+        <subscreens-panel id="AssetPanel" type="tab"/>
+    </widgets>
 </screen>
