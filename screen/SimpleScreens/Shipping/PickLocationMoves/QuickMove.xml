@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" standalone="true">
+
+    <parameter name="productId" required="true"/>
+    <parameter name="facilityId" required="true"/>
+    <parameter name="locationSeqId"/>
+    <!-- FUTURE:
+    <parameter name="containerId"/>
+    <parameter name="assetPoolId"/>
+    <parameter name="lotId"/>
+    -->
+    <parameter name="quantity"/>
+
+    <transition name="moveProduct"><service-call name="mantle.product.AssetServices.moveVerify#Product"/>
+        <default-response type="screen-last"/></transition>
+
+    <actions>
+        <if condition="locationSeqId">
+            <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facilityLocation"/>
+            <!-- also get QOH for location -->
+            <entity-find entity-name="mantle.product.asset.AssetQuantitySummary" list="locQtySummaryList">
+                <econdition field-name="productId"/>
+                <econdition field-name="facilityId"/><econdition field-name="locationSeqId"/>
+                <select-field field-name="quantityOnHandTotal"/>
+            </entity-find>
+            <set field="quantityOnHandTotal" from="locQtySummaryList ? locQtySummaryList[0].quantityOnHandTotal : 0.0"/>
+        </if>
+        <!-- Need Qty as quantity (Res Qty) - ATP in Pick Locations for Product and Facility -->
+        <entity-find entity-name="mantle.product.asset.AssetLocationSummary" list="pickLocQtyList">
+            <econdition field-name="productId"/><econdition field-name="facilityId"/>
+            <econdition field-name="locationTypeEnumId" value="FltPick"/>
+            <select-field field-name="availableToPromiseTotal"/>
+        </entity-find>
+        <set field="pickAtpTotal" from="pickLocQtyList ? (pickLocQtyList[0].availableToPromiseTotal ?: 0.0) : 0.0"/>
+        <set field="reservedQuantity" from="quantity ? new BigDecimal((String) quantity) : 0.0"/>
+        <set field="needQuantity" from="reservedQuantity &gt; pickAtpTotal ? (reservedQuantity - pickAtpTotal) : 0.0"/>
+    </actions>
+    <widgets>
+        <form-single name="ScanMoveAssetForm" transition="moveProduct" focus-field="scanLocation">
+            <field name="productId"><default-field title="Product">
+                <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+            <field name="facilityId"><default-field title="Facility">
+                <display-entity entity-name="mantle.facility.Facility" text="FacilityNameTemplate"/></default-field></field>
+            <field name="locationSeqId"><default-field title="From Location">
+                <display text="${locationSeqId} - ${description?:''} ${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '} - QOH ${ec.l10n.format(quantityOnHandTotal, '#,##0.##')}" text-map="facilityLocation"/>
+            </default-field></field>
+            <field name="verifyLocationSeqId"><default-field title="Verify From Location">
+                <text-line size="20"/></default-field></field>
+            <field name="toScanLocation"><default-field title="Scan To Location" tooltip="Can be Location ID or Container ID or Serial Number (Plate ID)">
+                <text-line size="20"/></default-field></field>
+            <field name="needQuantity"><default-field tooltip="Reserved Quantity - Pick Location Available Quantity">
+                <display text="${ec.l10n.format(needQuantity, '#,##0.##')} (Res ${ec.l10n.format(reservedQuantity, '#,##0.##')} - Pick ATP ${ec.l10n.format(pickAtpTotal, '#,##0.##')})"/></default-field></field>
+            <field name="quantity" from="needQuantity"><default-field title="Quantity">
+                <text-line size="20"/></default-field></field>
+            <field name="submitButton"><default-field title="Move Asset(s)"><submit/></default-field></field>
+        </form-single>
+    </widgets>
+</screen>

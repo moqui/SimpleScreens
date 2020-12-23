@@ -15,7 +15,8 @@ define({
     methods: {
         updateCounts: function() {
             var lastNavDiff = Date.now() - this.$root.lastNavTime;
-            if (this.updateInterval && lastNavDiff > (60*60*1000)) {
+            // NOTE DEJ 20201104 use 10 hour timeout instead of 1 hour, windows/tabs left open should stay logged in for a generous length working day
+            if (this.updateInterval && lastNavDiff > (10*60*60*1000)) {
                 console.log('No nav in ' + lastNavDiff + 'ms clearing updateCounts interval');
                 clearInterval(this.updateInterval); this.updateInterval = null;
                 return;
@@ -33,7 +34,7 @@ define({
                 error: function(jqXHR, textStatus, errorThrown) {
                     vm.updateErrors++;
                     console.log('updateCounts ' + textStatus + ' (' + jqXHR.status + '), message ' + errorThrown + ', ' + vm.updateErrors + '/5 errors so far, interval id ' + vm.updateInterval);
-                    if (vm.updateErrors > 4 && vm.updateInterval) { console.log('updateCounts clearing interval');
+                    if (vm.updateErrors > 4 && vm.updateInterval) { console.log('updateCounts clearing interval, too many errors');
                         clearInterval(vm.updateInterval); vm.updateInterval = null; }
                 }
             });
@@ -45,7 +46,7 @@ define({
     },
     mounted: function() {
         this.updateCounts();
-        this.updateInterval = setInterval(this.updateCounts, 2*60*1000); /* update every 2 minutes */
+        this.updateInterval = setInterval(this.updateCounts, 5*60*1000); /* update every 5 minutes, not generally looked at frequently */
         $('.my-account-nav [data-toggle="tooltip"]').tooltip({ placement:'bottom', trigger:'hover' });
         this.$root.notificationClient.registerListener("ALL", this.notificationListener);
     }

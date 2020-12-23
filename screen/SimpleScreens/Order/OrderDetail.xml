@@ -73,6 +73,9 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="sendEmailMessage"><service-call name="org.moqui.impl.EmailServices.send#EmailMessage"/>
         <default-response url="."/></transition>
 
+    <transition name="recalcOrderPartItemAmounts"><service-call name="mantle.order.OrderServices.recalc#OrderPartItemAmounts"/>
+        <default-response url="."/></transition>
+
     <transition name="invoiceOrderPart"><service-call name="mantle.account.InvoiceServices.create#EntireOrderPartInvoice"/>
         <default-response url="."/></transition>
     <transition name="shipOrderPart"><service-call name="mantle.shipment.ShipmentServices.create#OrderPartShipment"/>
@@ -228,9 +231,31 @@ along with this software (see the LICENSE.md file). If not, see
                 <link url="rejectOrder" text="Reject Quote Request" link-type="hidden-form" confirmation="Reject quote request and reject order?"
                         condition="orderHeader.statusId == 'OrderRequested'"/>
 
-                <link url="cancelOrder" text="Close Order" link-type="hidden-form" btn-type="warning"
-                        confirmation="OrderDetailConfirmCloseOrder"
-                        condition="orderHeader.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"/>
+                <container-dialog id="CloseOrderDialog" button-text="Close Order" type="warning"
+                        condition="orderHeader.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']">
+                    <!-- list of OrderPart with Facility, OrderItems with Item #, Quantity, Quantity Shipped, Quantity to Cancel -->
+                    <section-iterate name="CloseOrderPartList" list="orderPartInfoList" entry="orderPartInfo"><actions>
+                        <set field="partProductItems" from="orderPartInfo.partNoParentOrderItemList?.findAll({ it.itemTypeEnumId in productItemTypes })"/>
+                    </actions><widgets>
+                        <label text="Order Part ${orderPartInfo.orderPart.orderPartSeqId} Facility ${ec.resource.expand('FacilityNameTemplate', null, orderPartInfo.facility)}" type="h4"/>
+                        <form-list name="CloseOrderPartItems" list="partProductItems" skip-form="true">
+                            <row-actions>
+                                <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
+                                <set field="itemQuantityShipped" from="(quantity?:0.0) - itemQuantityNotShipped"/>
+                            </row-actions>
+                            <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                            <field name="productId"><default-field title="Product">
+                                <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                            <field name="quantity"><default-field><display/></default-field></field>
+                            <field name="itemQuantityShipped"><default-field title="Shipped"><display/></default-field></field>
+                            <field name="itemQuantityNotShipped"><default-field title="To Cancel">
+                                <display style="${itemQuantityNotShipped ? 'text-danger' : ''}"/></default-field></field>
+                        </form-list>
+                    </widgets></section-iterate>
+                    <label text="OrderDetailConfirmCloseOrder" type="p"/>
+                    <link url="cancelOrder" text="Close Order" link-type="hidden-form" btn-type="warning"
+                            confirmation="OrderDetailConfirmCloseOrder"/>
+                </container-dialog>
 
                 <container-dialog id="AddPartDialog" button-text="Add Part"
                         condition="orderHeader.statusId in ['OrderOpen', 'OrderProposed', 'OrderBeingChanged', 'OrderPlaced']">
@@ -248,12 +273,12 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
-                <link url="cloneOrder" text="Clone" confirmation="Create new order based on this one?" parameter-map="[baseOrderId:orderId]"/>
                 <link url="approveOrder" text="Uncomplete Order" link-type="hidden-form" confirmation="Change back to Approved status to allow shipping, etc?"
                         condition="ec.user.hasPermission('ORDER_APPROVE') &amp;&amp; orderHeader.statusId == 'OrderCompleted'"/>
 
                 <link url="PrintOrder.pdf" text="Order PDF"/>
 
+                <link url="cloneOrder" text="Clone" confirmation="Create new order based on this one?" parameter-map="[baseOrderId:orderId]"/>
                 <container-dialog id="RecurDialog" button-text="Recurring" type="${orderHeader.recurCronExpression ? (orderHeader.statusId == 'OrderApproved' ? 'success' : 'warning') : 'primary'}">
                     <label text="Order is not in Approved status" type="p" style="text-warning" condition="orderHeader.statusId != 'OrderApproved'"/>
                     <label text="Recurring orders in the Approved status will be automatically cloned according to the schedule and the clone will be automatically Placed. If there are no Approve Warnings the cloned order will be automatically Approved. If Auto Invoice is set to Y then if Approved will also create an Invoice for the Order." type="p"/>
@@ -278,6 +303,32 @@ along with this software (see the LICENSE.md file). If not, see
 
                         <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     </form-single>
+                </container-dialog>
+
+                <container-dialog id="AuditLogDialog" button-text="Audit Log" width="960">
+                    <form-list name="AuditLogList" list="auditLogList" skip-form="true">
+                        <entity-find entity-name="moqui.entity.EntityAuditLog" list="auditLogList">
+                            <econdition field-name="changedEntityName" operator="in"
+                                    from="['mantle.order.OrderHeader', 'mantle.order.OrderPart', 'mantle.order.OrderItem']"/>
+                            <!-- with statusId on OrderPart include these as well for orders: <econdition field-name="changedFieldName" operator="not-equals" value="statusId"/> -->
+                            <econdition field-name="pkPrimaryValue" from="orderId"/>
+                            <select-field field-name="changedEntityName"/>
+                            <order-by field-name="-changedDate,pkSecondaryValue"/>
+                        </entity-find>
+
+                        <field name="changedDate"><default-field title="Date"><display/></default-field></field>
+                        <field name="changedByUserId"><default-field title="User">
+                            <display-entity text="UsernameTemplate" entity-name="mantle.party.PersonWithUserAccount" key-field-name="userId"/></default-field></field>
+                        <field name="pkSecondaryValue"><default-field title="Part/Item"><display/></default-field></field>
+                        <field name="changedEntityName"><default-field title="Entity">
+                            <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedEntityName.substring(changedEntityName.lastIndexOf('.')+1))}"/></default-field></field>
+                        <field name="changedFieldName"><default-field title="Field">
+                            <display text="${org.moqui.util.StringUtilities.camelCaseToPretty(changedFieldName)}"/></default-field></field>
+                        <field name="oldValueText"><default-field title="From">
+                            <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, oldValueText)}"/></default-field></field>
+                        <field name="newValueText"><default-field title="To">
+                            <display text="${ec.entity.formatFieldString(changedEntityName, changedFieldName, newValueText)}"/></default-field></field>
+                    </form-list>
                 </container-dialog>
 
                 <section-iterate name="InvoiceLinks" list="invoiceIdSet" entry="invoiceId"><widgets>
@@ -765,9 +816,33 @@ along with this software (see the LICENSE.md file). If not, see
                     <link url="createReturnFromOrder" text="Create Return" condition="!orderPartInfo.openReturnList &amp;&amp; !orderHeader.recurCronExpression"
                             confirmation="Really create return for this order part?"
                             parameter-map="[orderId:orderId, orderPartSeqId:orderPart.orderPartSeqId]"/>
-                    <link url="cancelOrderPart" text="Close Part" link-type="hidden-form" btn-type="warning"
-                            confirmation="OrderDetailConfirmClosePart"
-                            condition="orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"/>
+
+                    <container-dialog id="ClosePartDialog" button-text="Close Part" type="warning"
+                            condition="orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']">
+                        <!-- show Facility, OrderItems with Item #, Quantity, Quantity Shipped, Quantity to Cancel -->
+                        <section name="ClosePartInfo"><actions>
+                            <set field="partProductItems" from="orderPartInfo.partNoParentOrderItemList?.findAll({ it.itemTypeEnumId in productItemTypes })"/>
+                        </actions><widgets>
+                            <label text="Order Part ${orderPartInfo.orderPart.orderPartSeqId} Facility ${ec.resource.expand('FacilityNameTemplate', null, orderPartInfo.facility)}" type="h4"/>
+                            <form-list name="CloseOrderPartItems" list="partProductItems" skip-form="true">
+                                <row-actions>
+                                    <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
+                                    <set field="itemQuantityShipped" from="(quantity?:0.0) - itemQuantityNotShipped"/>
+                                </row-actions>
+                                <field name="orderItemSeqId"><default-field title="Item"><display/></default-field></field>
+                                <field name="productId"><default-field title="Product">
+                                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                                <field name="quantity"><default-field><display/></default-field></field>
+                                <field name="itemQuantityShipped"><default-field title="Shipped"><display/></default-field></field>
+                                <field name="itemQuantityNotShipped"><default-field title="To Cancel">
+                                    <display style="${itemQuantityNotShipped ? 'text-danger' : ''}"/></default-field></field>
+                            </form-list>
+                        </widgets></section>
+
+                        <label text="OrderDetailConfirmClosePart" type="p"/>
+                        <link url="cancelOrderPart" text="Close Part" link-type="hidden-form" btn-type="warning"
+                                confirmation="OrderDetailConfirmClosePart"/>
+                    </container-dialog>
 
                     <label text="Warning: both vendor and customer are internal organizations" style="text-danger" type="p"
                            condition="orderPartInfo.isVendorInternalOrg &amp;&amp; orderPartInfo.isCustomerInternalOrg"/>
@@ -897,13 +972,13 @@ along with this software (see the LICENSE.md file). If not, see
                                                 </econditions>
                                             </entity-find></entity-options>
                                     </drop-down></default-field></field>
-                                    <field name="finAccountId"><default-field title="Customer Account">
+                                    <field name="finAccountId"><default-field title="OR Customer Account">
                                         <drop-down allow-empty="true"><entity-options key="${finAccountId}" text="FinancialAccountNameTemplate">
                                             <entity-find entity-name="mantle.account.financial.FinancialAccount">
                                                 <econdition field-name="ownerPartyId" from="orderPartInfo.orderPart.customerPartyId"/></entity-find>
                                         </entity-options></drop-down>
                                     </default-field></field>
-                                    <field name="paymentInstrumentEnumId"><default-field title="Instrument"><drop-down allow-empty="true">
+                                    <field name="paymentInstrumentEnumId"><default-field title="OR Instrument"><drop-down allow-empty="true">
                                         <entity-options key="${enumId}" text="${description}"><entity-find entity-name="moqui.basic.Enumeration">
                                             <econdition field-name="enumTypeId" value="PaymentInstrument"/>
                                             <order-by field-name="description"/>
@@ -918,6 +993,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <order-by field-name="description"/>
                                         </entity-find></entity-options>
                                     </drop-down></default-field></field>
+                                    <field name="dueDate"><default-field><date-time/></default-field></field>
                                     <field name="amount"><default-field><text-line size="10" default-value="${ec.l10n.format(orderPartInfo.partTotalUnpaid ?: 0, '#0.00')}"/></default-field></field>
                                     <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                                 </form-single>
@@ -1121,7 +1197,11 @@ along with this software (see the LICENSE.md file). If not, see
                         <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                     </form-single>
                 </container-dialog>
+
                 <link url="../QuickItems" text="Quick Add Items"/>
+
+                <link url="recalcOrderPartItemAmounts" text="Re-Calc Prices"
+                        confirmation="Re-calculate price for each Item and reset to calculated price?"/>
 
                 <link url="updateOrderPart" text="Ship Calc" btn-type="danger" icon="fa fa-remove"
                         condition="orderPart.disableShippingCalc == 'Y'"
@@ -1207,6 +1287,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <set field="isProductItemType" from="orderItem.itemTypeEnumId in productItemTypes"/>
                     <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
+                    <set field="itemQuantityShipped" from="(orderItem.quantity?:0.0) - itemQuantityNotShipped"/>
                     <set field="itemTotalNotBilled" from="totalNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemQuantityNotBilled" from="quantityNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemCanDelete" from="(!isShippable || itemQuantityNotShipped == quantity) &amp;&amp; itemQuantityNotBilled == quantity &amp;&amp; returnableOut.returnedQuantity == 0"/>
@@ -1419,7 +1500,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="closeButton"><default-field title="">
                     <link url="cancelOrderItem" text="Close" btn-type="warning" link-type="hidden-form"
-                            confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity will be cancelled."
+                            confirmation="Really close item? Quantity will be reduced to quantity shipped and remaining quantity (${ec.l10n.format(itemQuantityNotShipped, null)}) will be cancelled."
                             condition="isProductItemType &amp;&amp; itemQuantityNotShipped &amp;&amp; orderPartInfo.orderPart.statusId in ['OrderOpen', 'OrderPlaced', 'OrderProcessing', 'OrderApproved', 'OrderHold']"
                             parameter-map="[orderItem:null]"/>
                 </default-field></field>

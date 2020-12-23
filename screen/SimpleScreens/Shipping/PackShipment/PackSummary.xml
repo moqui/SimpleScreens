@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Pack Shipment" default-menu-index="1">
+
+    <parameter name="shipmentId" required="true"/>
+
+    <transition name="shipmentDetail"><default-response url="//${appRoot}/Shipment/ShipmentDetail"/></transition>
+
+    <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="editPayment"><default-response url="//${appRoot}/Accounting/Payment/EditPayment"/></transition>
+    <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
+    <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="picklistDetail"><default-response url="//${appRoot}/Shipping/Picklist/PicklistDetail"/></transition>
+
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="editParty"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="editSupplier"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editCustomer"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+
+    <transition name="shipShipment"><service-call name="mantle.shipment.ShipmentServices.ship#Shipment"/>
+        <default-response url="."/></transition>
+    <transition name="cancelShipment"><service-call name="mantle.shipment.ShipmentServices.cancel#Shipment"/>
+        <default-response url="."/></transition>
+
+    <transition name="updateItem"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentItem"/>
+        <default-response url="."/></transition>
+    <transition name="packShipmentProduct"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProduct"/>
+        <default-response url="."/></transition>
+    <transition name="packShipmentProductScan"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProductScan"/>
+        <default-response url="."/></transition>
+
+    <transition name="updatePackageAndRouteSeg"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentPackageAndRouteSeg"/>
+        <default-response url="."/></transition>
+
+    <transition name="requestShipmentLabels"><service-call name="mantle.shipment.CarrierServices.request#ShipmentLabels"/>
+        <default-response url="."/></transition>
+    <transition name="printShipmentLabels"><service-call name="mantle.shipment.ShipmentServices.print#ShipmentLabels"/>
+        <default-response url="."/></transition>
+    <transition name="removeShipmentLabelInfo"><service-call name="mantle.shipment.CarrierServices.remove#ShipmentLabelInfo"/>
+        <default-response url="."/></transition>
+    <transition name="removeShipmentReturnLabelInfo"><service-call name="mantle.shipment.CarrierServices.remove#ShipmentReturnLabelInfo"/>
+        <default-response url="."/></transition>
+
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getPackageWeight" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
+    <transition-include name="getShipmentLabel" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
+
+    <transition name="ShipmentPack.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/ShipmentPack" url-type="plain">
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentPack-${shipmentId}.pdf"/></default-response>
+    </transition>
+    <transition name="ShipmentByPackage.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/ShipmentByPackage" url-type="plain">
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentByPackage-${shipmentId}.pdf"/></default-response>
+    </transition>
+    <transition name="ShipmentInsert.pdf">
+        <default-response url="${ec.web.getWebappRootUrl(false, null)}/fop/apps/${appRoot}/Shipping/ShipmentInsert" url-type="plain">
+            <parameter name="shipmentId"/><parameter name="filename" value="ShipmentInsert-${shipmentId}.pdf"/></default-response>
+    </transition>
+
+    <actions>
+        <service-call name="mantle.shipment.ShipmentInfoServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
+        <if condition="!isOutgoing &amp;&amp; !isTransfer"><return error="true" message="Shipment ${shipmentId} is not an outgoing or transfer shipment"/></if>
+        <set field="statusPrePacked" from="shipment.statusId in ['ShipInput', 'ShipScheduled', 'ShipPicked']"/>
+
+        <entity-find entity-name="mantle.facility.FacilityBoxTypeDetail" list="boxTypeList">
+            <econdition field-name="facilityId" from="firstRouteSegment.originFacilityId"/>
+            <order-by field-name="description"/>
+        </entity-find>
+        <if condition="!boxTypeList">
+            <entity-find entity-name="mantle.shipment.ShipmentBoxType" list="boxTypeList">
+                <order-by field-name="description"/></entity-find>
+        </if>
+
+        <set field="shippingPostalAddressList" from="[]"/>
+        <if condition="isOutgoing &amp;&amp; toPartyId">
+            <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="toPartyShippingInfo"
+                    in-map="[partyId:toPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
+            <set field="shippingPostalAddressList" from="toPartyShippingInfo.postalAddressList ?: []"/>
+
+            <if condition="lastRouteSegment.destPostalContactMechId">
+                <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curDestPaInfo"
+                        in-map="[partyId:toPartyId, postalContactMechId:lastRouteSegment.destPostalContactMechId]"/>
+                <if condition="!(lastRouteSegment.destPostalContactMechId in shippingPostalAddressList*.postalContactMechId)">
+                    <script>shippingPostalAddressList.add(0, curDestPaInfo)</script></if>
+            </if>
+        </if>
+
+        <!-- maybe improve; session maintained active (or first package with no box/weight?) -->
+        <set field="activePackage" from="shipmentPackageList?.find({ it.weight == null || it.shipmentBoxTypeId == null })"/>
+        <set field="activePackageSeqId" from="activePackage?.shipmentPackageSeqId"/>
+        <if condition="activePackage != null">
+            <set field="activePackageRouteSeg" from="packageRouteSegList.find({ it.shipmentPackageSeqId == activePackage.shipmentPackageSeqId &amp;&amp; it.shipmentRouteSegmentSeqId == firstRouteSegment.shipmentRouteSegmentSeqId })"/>
+            <script>activePackageAndRouteSeg = new HashMap(activePackage); activePackageAndRouteSeg.putAll(activePackageRouteSeg)</script>
+        </if>
+
+        <!-- check for unauthorized CC and other payments -->
+        <entity-find entity-name="mantle.shipment.ShipmentOrderPayment" list="shipmentPaymentList" distinct="true">
+            <econdition field-name="shipmentId"/>
+            <econdition field-name="statusId" operator="not-in" value="PmntCancelled,PmntVoid"/>
+            <select-field field-name="paymentId,paymentInstrumentEnumId,statusId"/>
+        </entity-find>
+
+        <!-- check packages to see if we have box type and weight for non-empty packages -->
+        <set field="packagesComplete" from="shipmentPackageList" type="Boolean"/>
+        <iterate list="shipmentPackageList" entry="shipmentPackage">
+            <set field="shipmentPackageContentList" from="allShipmentPackageContentList.findAll({ it.shipmentPackageSeqId == shipmentPackage.shipmentPackageSeqId })"/>
+            <if condition="shipmentPackageContentList &amp;&amp; (!shipmentPackage.shipmentBoxTypeId || !shipmentPackage.weight)">
+                <set field="packagesComplete" from="false"/><break/></if>
+        </iterate>
+
+        <!-- only local print (after Pack Completed dialog) if ('qzPackShipment' + shipmentId) session attribute is true, then set to false to avoid printing again -->
+        <set field="localPrintAllLabels" from="false"/>
+        <if condition="ec.web.sessionAttributes.get('qzPackShipment' + shipmentId)">
+            <set field="localPrintAllLabels" from="true"/>
+            <script>ec.web.sessionAttributes.put('qzPackShipment' + shipmentId, false)</script>
+        </if>
+
+        <set field="getShipmentLabelPath" from="sri.buildUrl('getShipmentLabel').path"/>
+
+        <set field="defaultNetworkPrinterId" from="ec.user.getPreference('Shipment.networkPrinterId.default')"/>
+        <!-- get network printers list now so if empty don't display network print options -->
+        <entity-find entity-name="moqui.basic.print.NetworkPrinter" list="networkPrinterList">
+            <order-by field-name="description,printerName"/></entity-find>
+    </actions>
+    <widgets>
+        <!--
+            Usage/Flow
+            1. scan item to pack (product or asset barcode; for product also lookup by other IDs like SKU, UPC, etc)
+            2. set package info (box type, weight), clear active package so next item scan (if there is one) creates a new package
+            3. repeat #1 and #2 as needed
+            4. Pack Completed
+               - set to packed (create invoice, capture CC)
+               - if CC captured get labels for specified carrier/method
+               - if got labels and a network printer is selected send to printer
+        -->
+
+        <container-row><row-col md="6">
+            <container-box><box-header>
+                <container style="text-strong">
+                    <label text="Pack Shipment "/>
+                    <link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/>
+                    <label text=" (${statusItem.description})" condition="statusItem"/>
+                </container>
+            </box-header><box-toolbar>
+                <container-dialog id="CancelDialog" button-text="Cancel" type="danger"
+                        condition="!(shipment.statusId in ['ShipDelivered', 'ShipRejected', 'ShipCancelled'])">
+                    <label text="Invoices associated with this shipment will be CANCELLED: ${invoiceIdSet.join(', ')}"
+                            condition="isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-danger"/>
+                    <label text="Invoices (found ${invoiceIdSet.size()} associated with this shipment) will not be changed, must be cancelled manually"
+                            condition="!isOutgoing &amp;&amp; invoiceIdSet" type="p" style="text-warning"/>
+                    <label text="Items have been packed/issued, these will be un-packed and returned to inventory" condition="anyItemPacked" type="p" style="text-danger"/>
+                    <label text="Items have been received, all receipt quantities will be set to zero" condition="anyReceived" type="p" style="text-danger"/>
+                    <label text="Labels will not be refunded automatically, refund manually if needed" condition="hasAnyLabels" type="p" style="text-warning"/>
+                    <label text="Payments associated with this shipment through order or invoice will not be changed" type="p" style="text-warning"/>
+                    <label text="Emails have been sent, these cannot be unsent" type="p" style="text-danger" condition="emailMessageCount"/>
+
+                    <label text="Are you sure you want to cancel this shipment?"/>
+                    <link url="cancelShipment" text="Cancel Shipment"/>
+                </container-dialog>
+
+                <!-- <link url="ShipmentByPackage.pdf" text="Package PDF" style="${shipment.statusId in ['ShipScheduled', 'ShipPicked'] ? 'btn-info' : ''}"/> -->
+                <link url="ShipmentInsert.pdf" text="Insert" style="${shipment.statusId in ['ShipShipped', 'ShipPacked'] ? 'btn-info' : ''}" icon="fa fa-download"/>
+                <!-- TODO qvt -->
+                <render-mode><text type="vuet"><![CDATA[<button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="moqui.printUrlMain('/fop/apps/${appRoot}/Shipment/ShipmentInsert?shipmentId=${shipmentId}')"><i class="fa fa-print"></i> Insert</button>]]></text></render-mode>
+
+                <!-- Pack Completed dialog - disabled unless at least one item packed and non-empty packages have box type and weight -->
+                <container-dialog id="PackCompletedErrorDialog" button-text="Pack Completed" type="warning"
+                        condition="statusPrePacked &amp;&amp; (!anyItemPacked || !packagesComplete)">
+                    <label text="No items packed" condition="!anyItemPacked" style="text-danger" type="p"/>
+                    <label text="Not all quantity of all items packed" condition="anyItemPacked &amp;&amp; !allItemsPacked" style="text-warning" type="p"/>
+                    <section-iterate name="PackComplShipmentPackageList" list="shipmentPackageList" entry="shipmentPackage"><widgets>
+                        <label text="Package ${shipmentPackage.shipmentPackageSeqId} missing box type" condition="!shipmentPackage.shipmentBoxTypeId" style="text-danger" type="p"/>
+                        <label text="Package ${shipmentPackage.shipmentPackageSeqId} missing weight" condition="!shipmentPackage.weight" style="text-danger" type="p"/>
+                    </widgets></section-iterate>
+                </container-dialog>
+
+                <dynamic-dialog id="PackCompletedDialog" button-text="Pack Completed" transition="PackCompleted" type="success"
+                        condition="statusPrePacked &amp;&amp; anyItemPacked &amp;&amp; packagesComplete"/>
+                <dynamic-dialog id="PackCompletedDialog" button-text="Get Labels" transition="PackCompleted" type="success"
+                        condition="!statusPrePacked &amp;&amp; anyItemPacked &amp;&amp; packagesComplete &amp;&amp; !hasAllLabels"/>
+                <!-- use Get Labels button above, basically Pack Completed dialog again:
+                <link url="requestShipmentLabels" text="Get Labels"
+                        condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; destContactMechValid &amp;&amp; shipment.statusId in ['ShipPacked', 'ShipShipped']"/>
+                <container-dialog id="RequestLabelsDialog" button-text="Get Labels" type="warning"
+                        condition="shippingGatewayConfigId &amp;&amp; !hasAllLabels &amp;&amp; !destContactMechValid &amp;&amp; shipment.statusId in ['ShipPacked', 'ShipShipped']">
+                    <label text="Warning: destination address is incomplete or invalid according to address validation." style="text-warning"/>
+                    <link url="requestShipmentLabels" text="Get Labels Anyway"/>
+                </container-dialog>
+                -->
+
+                <container-dialog id="PrintLabelsDialog" button-text="Net Print" condition="hasAnyLabels &amp;&amp; networkPrinterList">
+                    <form-single name="PrintAllShipmentLabels" transition="printShipmentLabels">
+                        <field name="shipmentId"><default-field><hidden/></default-field></field>
+                        <field name="networkPrinterId" from="defaultNetworkPrinterId"><default-field title="Printer"><drop-down>
+                            <list-options list="networkPrinterList" key="${networkPrinterId}" text="${description ?: printerName} (${serverHost})"/>
+                        </drop-down></default-field></field>
+                        <field name="makeDefaultPrinter"><default-field title="Make Default"><check><option key="true" text=" "/></check></default-field></field>
+                        <field name="returnLabels"><default-field title=""><radio no-current-selected-key="false">
+                            <option key="false" text="Outgoing Labels"/><option key="true" text="Return Labels"/></radio></default-field></field>
+                        <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+                <!-- TODO qvt -->
+                <section name="QzPrintLabelsSection" condition="hasAnyLabels"><widgets><render-mode><text type="vuet"><![CDATA[
+                    <m-script>
+                        qzPrintAllLabels = function() {
+                            if (!moqui.webrootVue.qzVue || !moqui.printUrlLabel) { return };
+                            moqui.printUrlLabel([
+                            <#list packageRouteSegList! as packageRouteSeg>
+                                <#if packageRouteSeg.labelUrl?has_content>'${getShipmentLabelPath}?shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                                <#if packageRouteSeg.returnLabelUrl?has_content>'${getShipmentLabelPath}?retLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                            </#list>
+                            ]);
+                            moqui.printUrlMain([
+                            <#list packageRouteSegList! as packageRouteSeg>
+                                <#if packageRouteSeg.internationalInvoiceUrl?has_content>'${getShipmentLabelPath}?intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                                <#if packageRouteSeg.returnIntlInvoiceUrl?has_content>'${getShipmentLabelPath}?retLabel=true&intlInvoiceLabel=true&shipmentId=${packageRouteSeg.shipmentId}&shipmentPackageSeqId=${packageRouteSeg.shipmentPackageSeqId}&shipmentRouteSegmentSeqId=${packageRouteSeg.shipmentRouteSegmentSeqId}',</#if>
+                            </#list>
+                            ]);
+                        }
+                        <#if localPrintAllLabels! == true>qzPrintAllLabels();</#if>
+                    </m-script>
+                    <button v-if="$root.qzVue" class="btn btn-default btn-sm" onclick="qzPrintAllLabels();"><i class="fa fa-print"></i> All Labels</button>
+                ]]></text></render-mode></widgets></section>
+
+                <section name="ShipShipmentSection" condition="shipment.statusId == 'ShipPacked'"><widgets>
+                    <container-dialog id="SetShippedDialog" button-text="Set Shipped" type="${!hasAllTrackingCodes ? 'danger' : (!hasAllLabels ? 'warning' : 'success')}">
+                        <label text="Set as Shipped? If a Shipment Shipped email is configured it will be sent to the Customer." condition="isOutgoing" style="text-success" type="p"/>
+                        <container><label text="Not all packages have Labels" type="strong" style="text-warning" condition="!hasAllLabels"/></container>
+                        <container><label text="Not all packages have Tracking Codes" type="strong" style="text-danger" condition="!hasAllTrackingCodes"/></container>
+                        <form-single name="SetShippedForm" transition="shipShipment" focus-field="submitButton">
+                            <field name="shipmentId"><default-field><display/></default-field></field>
+                            <field name="actualStartDate" from="ec.user.nowTimestamp">
+                                <default-field title="Actual Start"><date-time/></default-field></field>
+                            <field name="submitButton"><default-field title="Set Shipped"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </widgets></section>
+            </box-toolbar><box-body>
+                <!-- needed? no, request labels dialog allows carrier/method set: small manual set carrier/method form -->
+
+                <!--
+                    scan input (product or asset ID, other product IDs like SKU/UPC/etc), auto-focused
+                    quantity input default 1 (with up/down buttons?)
+                    package drop-down with active package selected
+                -->
+                <section name="PackScanSection" condition="statusPrePacked"><widgets>
+                    <form-single name="PackScanForm" transition="packShipmentProductScan" focus-field="scanInput">
+                        <field name="shipmentId"><default-field><hidden/></default-field></field>
+                        <field name="quantity" from="1"><default-field><text-line size="4"/></default-field></field>
+                        <field name="scanInput"><default-field title="Product"><text-line size="25"/></default-field></field>
+                        <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title="Package"><drop-down>
+                            <option key="" text="New"/>
+                            <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                        </drop-down></default-field></field>
+                        <field name="packButton"><default-field title="Pack Item"><submit/></default-field></field>
+                        <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="scanInput"/>
+                            <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
+                    </form-single>
+                </widgets></section>
+
+                <section name="PackedSummarySection"><actions>
+                    <set field="quantityTotal" from="shipmentItemSourceList*.quantity.sum()"/>
+                    <set field="quantityNotHandledTotal" from="shipmentItemSourceList*.quantityNotHandled.sum({ it ?: 0.0 })"/>
+                    <set field="quantityHandledTotal" from="quantityTotal - quantityNotHandledTotal"/>
+                </actions><widgets>
+                    <container style="text-center">
+                        <label text="Packed ${ec.l10n.format(quantityHandledTotal, '#,##0.##')} of ${ec.l10n.format(quantityTotal, '#,##0.##')}"
+                                type="h3" style="${quantityHandledTotal ? (quantityHandledTotal == quantityTotal ? 'text-success' : 'text-warning') : 'text-danger'}"/>
+                    </container>
+                </widgets></section>
+            </box-body></container-box>
+
+
+
+            <!-- close package form, set current package box type and weight -->
+            <!-- clears active package (if box type and weight specified) so next item scan goes in new package -->
+            <!-- NOTE: don't auto package for this screen, should be store level setting or something; maybe even kill package contents records if there are any? solution for now is Reset button on Package -->
+            <section name="ActivePackageSection" condition="activePackageAndRouteSeg"><actions>
+                <set field="shipmentPackageContentList" from="allShipmentPackageContentList.findAll({ activePackageSeqId.equals(it.shipmentPackageSeqId) })"/>
+            </actions><widgets>
+                <container-box><box-header title="Active Package ${activePackageAndRouteSeg.shipmentPackageSeqId}"/><box-body>
+                    <form-single name="ClosePackageForm" map="activePackageAndRouteSeg" transition="updatePackageAndRouteSeg">
+                        <field name="shipmentId"><default-field><hidden/></default-field></field>
+                        <field name="shipmentRouteSegmentSeqId"><default-field><hidden/></default-field></field>
+
+                        <field name="shipmentPackageSeqId"><default-field><hidden/></default-field></field>
+                        <field name="shipmentBoxTypeId"><default-field title="Box Type"><drop-down allow-empty="true">
+                            <list-options list="boxTypeList" key="${shipmentBoxTypeId}" text="${pseudoId}: ${description}"/>
+                        </drop-down></default-field></field>
+                        <field name="weight"><default-field><text-line size="4" default-transition="getPackageWeight"
+                                parameter-map="[shipmentId:shipmentId, shipmentPackageSeqId:shipmentPackageSeqId]">
+                            <depends-on field="shipmentBoxTypeId"/><depends-on field="weightUomId"/>
+                        </text-line></default-field></field>
+                        <field name="weightUomId" from="weightUomId ?: 'WT_lb'"><default-field title="">
+                            <display-entity entity-name="moqui.basic.Uom" text="${abbreviation ?: description}"/></default-field></field>
+
+                        <field name="submitButton"><default-field title="Close Pkg ${shipmentPackageSeqId}"><submit/></default-field></field>
+                        <field-layout><field-row-big><field-ref name="shipmentPackageSeqId"/><field-ref name="shipmentBoxTypeId"/>
+                            <field-ref name="weight"/><field-ref name="weightUomId"/><field-ref name="submitButton"/></field-row-big></field-layout>
+                    </form-single>
+                </box-body><box-body-nopad>
+                    <form-list name="ShipmentPackageContentList" list="shipmentPackageContentList" skip-form="true">
+                        <field name="productId"><default-field title="Product">
+                            <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/>
+                        </default-field></field>
+                        <field name="quantity"><default-field><display/></default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+            </widgets></section>
+
+        </row-col><row-col md="6">
+
+            <!-- warning if payment not authorized -->
+            <section-iterate name="ShipmentPaymentListSection" list="shipmentPaymentList" entry="shipmentPayment"><actions>
+                <entity-find-one entity-name="moqui.basic.StatusItem" value-field="pmntStatus">
+                    <field-map field-name="statusId" from="shipmentPayment.statusId"/></entity-find-one>
+                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="pmntInstrumentEnum">
+                    <field-map field-name="enumId" from="shipmentPayment.paymentInstrumentEnumId"/></entity-find-one>
+            </actions><widgets>
+                <label text="Payment ${shipmentPayment.paymentId} - ${pmntInstrumentEnum?.description ?: 'Unknown Type'} - ${pmntStatus?.description}" type="p"
+                        style="text-strong ${shipmentPayment.statusId in ['PmntAuthorized', 'PmntDelivered', 'PmntConfirmed'] ? 'text-success' : (shipmentPayment.paymentInstrumentEnumId == 'PiCreditCard' ? 'text-danger' : 'text-warning')}"/>
+            </widgets></section-iterate>
+
+            <!-- shipment info like address, etc -->
+            <container-row><row-col md="6">
+                <container-row><row-col xs="3" style="text-right"><label text="Ship By" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + ' ' + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
+                <container-row><row-col xs="3" style="text-right"><label text="Order" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${orderCarrierShipmentMethod?.description ? orderCarrierShipmentMethod.description : (orderCarrierDetail ? orderCarrierDetail.pseudoId : 'N/A') + ' ' + (orderShipmentMethodEnum ? orderShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
+                <section name="ShippedShippingInfo" condition="curDestPaInfo"><actions><set field="contactInfo" from="curDestPaInfo"/></actions><widgets>
+                    <container-row><row-col xs="3" style="text-right"><label text="Dest" type="strong"/></row-col><row-col xs="9">
+                        <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                        <container><label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/></container>
+                    </row-col></container-row>
+                </widgets></section>
+            </row-col><row-col md="6">
+                <container-row><row-col xs="3" style="text-right"><label text="Status" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${statusItem.description}" type="strong"/></row-col></container-row>
+                <container-row><row-col xs="3" style="text-right"><label text="To" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/></row-col></container-row>
+                <container-row><row-col xs="3" style="text-right"><label text="Facility" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}"/></row-col></container-row>
+                <container-row><row-col xs="3" style="text-right"><label text="Type" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${shipmentTypeEnum?.description}"/></row-col></container-row>
+                <!--
+                <container-row><row-col xs="3" style="text-right"><label text="Ready" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}"/></row-col></container-row>
+                <container-row><row-col xs="3" style="text-right"><label text="Arrival" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}"/></row-col></container-row>
+                -->
+            </row-col></container-row>
+            <!-- <label text="${curDestPaInfo.postalContactMech.validateMessage}" type="div" condition="curDestPaInfo?.postalContactMech?.validateMessage"/> -->
+            <section name="ShippingInstructionsSection" condition="shipment.handlingInstructions"><widgets>
+                <container-row><row-col xs="3" style="text-right"><label text="Instructions" type="strong"/></row-col>
+                    <row-col xs="9"><label text="${shipment.handlingInstructions}"/></row-col></container-row>
+            </widgets></section>
+
+        </row-col></container-row>
+    </widgets>
+</screen>

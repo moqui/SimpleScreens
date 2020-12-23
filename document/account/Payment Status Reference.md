@@ -50,7 +50,3 @@ The payment was voided before funds were transferred.
 #### Declined
 
 The payment was declined (such as a credit card decline) or failed to clear.
-
-#### Refunded
-
-The payment has been refunded by the To party to the From party.

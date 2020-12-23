@@ -54,6 +54,11 @@ along with this software (see the LICENSE.md file). If not, see
     <actions>
         <service-call name="mantle.shipment.ShipmentInfoServices.get#ShipmentDisplayInfo" in-map="[shipmentId:shipmentId]" out-map="context"/>
 
+        <!-- get first 'open' package for default -->
+        <set field="activePackage" from="shipmentPackageList?.find({ it.weight == null || it.shipmentBoxTypeId == null })"/>
+        <set field="activePackageSeqId" from="activePackage?.shipmentPackageSeqId"/>
+        <log message="activePackageSeqId ${activePackageSeqId}"/>
+
         <!-- get all products for filter form -->
         <set field="allProductIds" from="shipmentItemDetailList*.productId"/>
         <entity-find entity-name="mantle.product.Product" list="allProductList">
@@ -188,7 +193,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                                 <field name="productId"><default-field title="Product">
                                     <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
-                                <field name="shipmentPackageSeqId"><default-field title="Package##Shipment"><drop-down>
+                                <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title="Package##Shipment"><drop-down>
                                     <option key="" text="New Package"/>
                                     <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
                                 </drop-down></default-field></field>
@@ -234,7 +239,7 @@ along with this software (see the LICENSE.md file). If not, see
                             </widgets></section>
                         </row-col>
                         <row-col lg="4">
-                            <section name="ShipItemPackageSection"><widgets>
+                            <section name="ShipItemPackageSection" condition="quantityNotInPackage"><widgets>
                                 <form-single name="AddItemToPackageForm" transition="addItemToPackage" map="sid" pass-through-parameters="true">
                                     <field name="shipmentId"><default-field><hidden/></default-field></field>
                                     <field name="productId"><default-field><hidden/></default-field></field>
@@ -244,13 +249,13 @@ along with this software (see the LICENSE.md file). If not, see
                                     <field name="onlyRemaining"><default-field><hidden/></default-field></field>
                                     <field name="pageIndex"><default-field><hidden/></default-field></field>
 
-                                    <field name="shipmentPackageSeqId"><default-field title=""><drop-down>
+                                    <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title=""><drop-down>
                                         <option key="" text="New"/>
                                         <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
                                     </drop-down></default-field></field>
                                     <field name="quantity" from="quantityNotInPackage"><default-field title="">
                                         <text-line size="6"/></default-field></field>
-                                    <field name="submitButton"><default-field title="Add To Package"><submit/></default-field></field>
+                                    <field name="submitButton"><default-field title="Add to Package"><submit/></default-field></field>
                                     <field-layout><field-row-big><field-ref name="shipmentPackageSeqId"/>
                                         <field-ref name="quantity"/><field-ref name="submitButton"/></field-row-big></field-layout>
                                 </form-single>
@@ -309,7 +314,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <conditional-field condition="resPackForm" title="Pack Date"><date-time/></conditional-field>
                                 <default-field title="Pack Date"><display text=" "/></default-field>
                             </field>
-                            <field name="shipmentPackageSeqId" from="shipmentPackageList ? shipmentPackageList.get(shipmentPackageList.size()-1).shipmentPackageSeqId : null">
+                            <field name="shipmentPackageSeqId" from="activePackageSeqId">
                                 <conditional-field condition="resPackForm" title="Package##Shipment"><drop-down>
                                     <option key="" text="New"/>
                                     <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>

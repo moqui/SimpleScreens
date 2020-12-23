@@ -20,6 +20,8 @@ along with this software (see the LICENSE.md file). If not, see
     <parameter name="locationSeqId"/>
     <parameter name="ownerPartyId"/>
     <parameter name="lotId"/>
+    <parameter name="assetPoolId"/>
+    <parameter name="statusId"/>
 
     <transition name="recordChange"><service-call name="mantle.product.AssetServices.record#PhysicalInventoryChange"/>
         <default-response type="screen-last"/></transition>
@@ -28,7 +30,7 @@ along with this software (see the LICENSE.md file). If not, see
 
     <actions>
         <entity-find-one entity-name="mantle.facility.Facility" value-field="facility"/>
-        <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
+        <if condition="locationSeqId"><entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/></if>
 
         <if condition="!ownerPartyId"><set field="ownerPartyId" from="facility?.ownerPartyId"/></if>
 
@@ -45,6 +47,10 @@ along with this software (see the LICENSE.md file). If not, see
         <iterate list="assetLotList" entry="assetLot"><script>qohByLotId.put(assetLot.lotId, assetLot.quantityOnHandTotal)</script></iterate>
     </actions>
     <widgets>
+        <label text="For physical inventory assets are grouped by Product, Facility, Location, Lot, Owner, Pool, and Status." type="p"/>
+        <label text="Product and Facility are required. If no Location, Lot, Owner, Pool, or Status is selected only assets with no value will be adjusted." type="p"/>
+        <label text="If Quantity Difference is negative asset records will be adjusted oldest first, if positive then newest first." type="p"/>
+
         <form-single name="RecordChange" transition="recordChange"
                 extends="component://SimpleScreens/screen/SimpleScreens/Asset/Asset/FindSummary/PhysicalQuantity.xml#RecordQuantity">
             <field name="quantity"><default-field><ignored/></default-field></field>

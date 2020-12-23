@@ -27,7 +27,7 @@ along with this software (see the LICENSE.md file). If not, see
         <error-response url="."/>
     </transition>
     <transition name="recordChange"><service-call name="mantle.product.AssetServices.record#PhysicalInventoryChange"/>
-        <default-response url=".."/></transition>
+        <default-response url=".." parameter-map="[productId:productId, facilityId:facilityId, locationSeqId:locationSeqId]"/></transition>
 
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
@@ -128,7 +128,7 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <container-dialog id="PhysicalManualDialog" button-text="Physical Change">
+        <container-dialog id="PhysicalManualDialog" button-text="Physical Diff" title="Physical Inventory Difference">
             <form-single name="PhysicalManualChange" transition="recordChange">
                 <field name="productId"><default-field title="Product"><drop-down>
                     <dynamic-options transition="getProductList" server-search="true"/></drop-down></default-field></field>
@@ -138,6 +138,10 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="getLocationList" server-search="true" min-length="0" depends-optional="true">
                         <depends-on field="facilityId"/></dynamic-options>
                 </drop-down></default-field></field>
+                <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
+                    <dynamic-options transition="getLotList" server-search="true" min-length="2"/>
+                </drop-down></default-field></field>
+
                 <field name="ownerPartyId">
                     <default-field title="Owner Party"><drop-down allow-empty="true">
                         <dynamic-options transition="searchPartyList" server-search="true" min-length="2"/></drop-down></default-field>
@@ -146,9 +150,13 @@ along with this software (see the LICENSE.md file). If not, see
                     <dynamic-options transition="getAssetPoolList" server-search="true" min-length="0" depends-optional="true">
                         <depends-on field="ownerPartyId"/></dynamic-options></drop-down>
                 </default-field></field>
-                <field name="lotId"><default-field title="Lot"><drop-down allow-empty="true">
-                    <dynamic-options transition="getLotList" server-search="true" min-length="2"/>
-                </drop-down></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="Asset"/><set field="noCurrentSelectedKey" value="AstAvailable"/></widget-template-include>
+                </default-field></field>
+
+                <!-- FUTURE: consider making this user selectable along with strictLocation and strictLot for 'None' vs 'All' behavior on null -->
+                <field name="strictAll" from="'true'"><default-field><hidden/></default-field></field>
 
                 <field name="quantityChange"><default-field title="Quantity Difference"><text-line size="6"/></default-field></field>
                 <field name="comments"><default-field><text-area cols="60" rows="5"/></default-field></field>
@@ -267,10 +275,12 @@ along with this software (see the LICENSE.md file). If not, see
             </field>
 
             <field name="physicalQuantity"><default-field title="PhI Qty">
-                <dynamic-dialog id="PhysicalQuantityDialog" button-text="PhI Qty" transition="PhysicalQuantity" width="800" condition="productId"/>
+                <dynamic-dialog id="PhysicalQuantityDialog" button-text="PhI Qty" title="Physical Inventory Quantity"
+                        transition="PhysicalQuantity" width="800" condition="productId &amp;&amp; facilityId"/>
             </default-field></field>
             <field name="physicalChange"><default-field title="PhI Diff">
-                <dynamic-dialog id="PhysicalChange" button-text="PhI Diff" transition="PhysicalChange" width="800" condition="productId"/>
+                <dynamic-dialog id="PhysicalChange" button-text="PhI Diff" title="Physical Inventory Difference"
+                        transition="PhysicalChange" width="800" condition="productId &amp;&amp; facilityId"/>
             </default-field></field>
             <field name="moveLink"><default-field title="Move">
                 <link url="../SelectAsset" text="Move" condition="quantityOnHandTotal"
