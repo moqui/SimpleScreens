@@ -14,13 +14,13 @@ along with this software (see the LICENSE.md file). If not, see
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
-        default-menu-title="Wiki Pages" default-menu-index="4">
+        default-menu-title="Wiki Pages" default-menu-index="6">
 
-    <parameter name="requestId" required="true"/>
+    <parameter name="workEffortId" required="true"/>
 
-    <transition name="addWpr"><service-call name="create#mantle.request.WikiPageRequest" in-map="context"/>
+    <transition name="addWpwe"><service-call name="create#mantle.work.effort.WikiPageWorkEffort" in-map="context"/>
         <default-response url="."/></transition>
-    <transition name="deleteWpr"><service-call name="delete#mantle.request.WikiPageRequest" in-map="context"/>
+    <transition name="deleteWpwe"><service-call name="delete#mantle.work.effort.WikiPageWorkEffort" in-map="context"/>
         <default-response url="."/></transition>
 
     <transition name="getSpacePages">
@@ -32,16 +32,16 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
-        <entity-find entity-name="mantle.request.WikiPageAndRequest" list="wparList">
-            <econdition field-name="requestId"/></entity-find>
+        <entity-find entity-name="mantle.work.effort.WikiPageAndWorkEffort" list="wpaweList">
+            <econdition field-name="workEffortId"/></entity-find>
 
         <service-call name="org.moqui.impl.WikiServices.get#UserWikiSpaces" in-map="[userId:ec.user.userId]" out-map="context"/>
     </actions>
     <widgets>
-        <container-dialog id="AddWprDialog" button-text="Add Wiki Page">
-            <form-single name="AddWprForm" transition="addWpr">
+        <container-dialog id="AddWpweDialog" button-text="Add Wiki Page">
+            <form-single name="AddWpweForm" transition="addWpwe">
                 <field name="userId" from="ec.user.userId"><default-field><hidden/></default-field></field>
-                <field name="requestId"><default-field><hidden/></default-field></field>
+                <field name="workEffortId"><default-field><hidden/></default-field></field>
 
                 <field name="wikiSpaceId"><default-field title="Space"><drop-down>
                     <list-options list="wikiSpaceAndUserList" key="${wikiSpaceId}" text="${wikiSpaceId}: ${description}"/>
@@ -59,8 +59,8 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
 
-        <form-list name="DeleteWprForm" list="wparList" transition="deleteWpr">
-            <field name="requestId"><default-field><hidden/></default-field></field>
+        <form-list name="DeleteWpweForm" list="wpaweList" transition="deleteWpwe">
+            <field name="workEffortId"><default-field><hidden/></default-field></field>
             <field name="wikiPageId"><default-field><hidden/></default-field></field>
 
             <field name="wikiSpaceId"><default-field title="Space"><display text=""/>
