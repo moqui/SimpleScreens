@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Project Summary" default-menu-index="0">
+
+    <parameter name="workEffortId" from="rootWorkEffortId ?: workEffortId" required="true"/>
+    <parameter name="rootWorkEffortId" from="rootWorkEffortId ?: workEffortId"/>
+
+    <transition name="editClient"><default-response url="//${appRoot}/Customer/EditCustomer"/></transition>
+    <transition name="editVendor"><default-response url="//${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editUser"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+    <transition name="projectSummary"><default-response url="../ProjectSummary"/></transition>
+    <transition name="milestoneSummary"><default-response url="../MilestoneSummary"/></transition>
+
+    <transition name="taskSummary"><default-response url="//${taskRoot?:appRoot}/Task/TaskSummary"/></transition>
+
+    <pre-actions>
+        <if condition="rootWorkEffortId"><set field="workEffortId" from="rootWorkEffortId"/></if>
+        <set field="rootWorkEffortId" from="workEffortId"/>
+    </pre-actions>
+    <actions>
+        <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
+        <set field="projectList" from="[workEffort]"/>
+
+        <entity-find entity-name="mantle.work.effort.WorkEffortParty" list="clientWepList">
+            <date-filter/><econdition field-name="workEffortId"/>
+            <econdition field-name="roleTypeId" operator="in" value="Customer,CustomerBillTo"/>
+        </entity-find>
+        <set field="clientWep" from="clientWepList?.getAt(0)"/>
+        <entity-find entity-name="mantle.work.effort.WorkEffortParty" list="vendorWepList">
+            <date-filter/><econdition field-name="workEffortId"/>
+            <econdition field-name="roleTypeId" operator="in" value="Vendor,VendorBillFrom"/>
+        </entity-find>
+        <set field="vendorWep" from="vendorWepList?.getAt(0)"/>
+
+        <entity-find entity-name="WorkEffort" list="milestoneList">
+            <econdition field-name="rootWorkEffortId"/>
+            <econdition field-name="workEffortTypeEnumId" value="WetMilestone"/>
+            <order-by field-name="estimatedStartDate"/>
+        </entity-find>
+
+        <entity-find entity-name="mantle.work.effort.WikiPageAndWorkEffort" list="wpaweList">
+            <econdition field-name="workEffortId"/></entity-find>
+        <entity-find entity-name="mantle.work.effort.WorkEffortPartyAndPerson" list="wepapList">
+            <econdition field-name="workEffortId" from="rootWorkEffortId"/></entity-find>
+    </actions>
+    <widgets>
+        <section-iterate name="ActiveProjectSection" list="projectList" entry="project"><actions>
+            <service-call name="mantle.work.ProjectServices.get#ProjectStats" in-map="[workEffort:project]" out-map="pstats"/>
+            <set field="estimatedCompletePercentString" from="ec.l10n.format(pstats.estimatedCompletePercent, '0')"/>
+            <set field="estimatedRemainingPercentString" from="ec.l10n.format(pstats.estimatedRemainingPercent, '0')"/>
+            <set field="clientBudgetUsedPercentString" from="ec.l10n.format(pstats.clientBudgetUsedPercent, '0')"/>
+            <set field="timeBudgetCompletePercentString" from="ec.l10n.format(pstats.timeBudgetCompletePercent, '0')"/>
+            <set field="timeBudgetRemainingPercentString" from="ec.l10n.format(pstats.timeBudgetRemainingPercent, '0')"/>
+        </actions><widgets>
+            <container-box><box-header>
+                <link url="projectSummary" text="${project.workEffortId}"
+                        link-type="anchor-button" parameter-map="[workEffortId:project.workEffortId]"/>
+                <label text="${project.workEffortName}" type="h5"/>
+            </box-header><box-toolbar>
+                <label text="${pstats.projectDanger ? 'Danger' : (pstats.projectWarning ? 'Warning' : 'On Track')}"
+                        style="label ${pstats.projectDanger ? 'label-danger' : (pstats.projectWarning ? 'label-warning' : 'label-success')}"/>
+            </box-toolbar><box-body>
+                <container-row><row-col lg="7"><container style="shaded-area">
+                    <container-row><row-col sm="2">
+                        <label text="Hrs Est" type="strong"/>
+                    </row-col><row-col sm="7">
+                        <render-mode><text type="html,vuet" template="true"><![CDATA[
+                            <div class="progress middle">
+                                <div class="progress-bar <#if pstats.actualPlusRemainingOverEstimated>progress-bar-danger<#else>progress-bar-success</#if>" style="width: ${estimatedCompletePercentString}%;" aria-valuenow="${estimatedCompletePercentString}" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div class="progress-bar progress-bar-info" style="width: ${estimatedRemainingPercentString}%;" aria-valuenow="${estimatedRemainingPercentString}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            ]]></text><text type="qvt" template="true"><![CDATA[
+                                <q-linear-progress size="xl" class="q-mt-xs" :value="${pstats.estimatedCompletePercent/100}" :buffer="${pstats.estimatedRemainingPercent/100}"
+                                    color="<#if pstats.actualPlusRemainingOverEstimated>negative<#else>positive</#if>" track-color="info"/>
+                            ]]></text></render-mode>
+                    </row-col><row-col sm="3">
+                        <label text="${ec.l10n.format(pstats.estimatedCompletePercent, '00.00')}%"/>
+                        <render-mode><text type="html,vuet,qvt" template="true"><![CDATA[<i class="fa <#if pstats.actualPlusRemainingOverEstimated>fa-exclamation-circle text-danger<#else>fa-check-circle text-success</#if>"></i>]]></text></render-mode>
+                    </row-col></container-row>
+                    <section name="TimeBudgetGraphs" condition="project.totalTimeAllowed"><widgets>
+                        <container-row><row-col sm="2">
+                            <label text="Hrs Budget" type="strong"/>
+                        </row-col><row-col sm="7">
+                            <render-mode><text type="html,vuet" template="true"><![CDATA[
+                                <div class="progress middle">
+                                    <div class="progress-bar <#if pstats.actualPlusRemainingOverTimeBudget>progress-bar-danger<#else>progress-bar-success</#if>" style="width: ${timeBudgetCompletePercentString}%;" aria-valuenow="${timeBudgetCompletePercentString}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <div class="progress-bar progress-bar-info" style="width: ${timeBudgetRemainingPercentString}%;" aria-valuenow="${timeBudgetRemainingPercentString}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                ]]></text><text type="qvt" template="true"><![CDATA[
+                                    <q-linear-progress size="xl" class="q-mt-xs" :value="${pstats.timeBudgetCompletePercent/100}" :buffer="${pstats.timeBudgetRemainingPercent/100}"
+                                        color="<#if pstats.actualPlusRemainingOverTimeBudget>negative<#else>positive</#if>" track-color="info"/>
+                                ]]></text></render-mode>
+                        </row-col><row-col sm="3">
+                            <label text="${ec.l10n.format(pstats.timeBudgetCompletePercent, '00.00')}%"/>
+                            <render-mode><text type="html,vuet,qvt" template="true"><![CDATA[<i class="fa <#if pstats.actualPlusRemainingOverEstimated>fa-exclamation-circle text-danger<#else>fa-check-circle text-success</#if>"></i>]]></text></render-mode>
+                        </row-col></container-row>
+                    </widgets></section>
+                    <section name="CostBudgetGraphs" condition="project.totalClientCostAllowed"><widgets>
+                        <container-row><row-col sm="2"><label text="Cost Budget" type="strong"/>
+                        </row-col><row-col sm="7">
+                            <render-mode><text type="html,vuet" template="true"><![CDATA[
+                                <div class="progress middle"><div class="progress-bar <#if pstats.clientActualOverBudget>progress-bar-danger<#else>progress-bar-success</#if>" style="width: ${clientBudgetUsedPercentString}%;" aria-valuenow="${clientBudgetUsedPercentString}" aria-valuemin="0" aria-valuemax="100"></div></div>
+                                ]]></text><text type="qvt" template="true"><![CDATA[
+                                    <q-linear-progress size="xl" class="q-mt-xs" :value="${pstats.clientBudgetUsedPercent/100}"
+                                        color="<#if pstats.clientActualOverBudget>negative<#else>positive</#if>"/>
+                                ]]></text></render-mode>
+                        </row-col><row-col sm="3">
+                            <label text="${ec.l10n.format(pstats.clientBudgetUsedPercent, '00.00')}%"/>
+                            <render-mode><text type="html,vuet,qvt" template="true"><![CDATA[<i class="fa <#if pstats.clientActualOverBudget>fa-exclamation-circle text-danger<#else>fa-check-circle text-success</#if>"></i>]]></text></render-mode>
+                        </row-col></container-row>
+                        <container-row><row-col sm="2">
+                            <label text="P-CB Gap" type="strong"/>
+                        </row-col><row-col sm="7">
+                            <render-mode><text type="html,vuet" template="true"><![CDATA[
+                                <div class="progress xs" style="height:6px;"><div class="progress-bar <#if pstats.estimatedCompleteOverBudget>progress-bar-warning<#else>progress-bar-success</#if>" style="width: ${estimatedCompletePercentString}%;" aria-valuenow="${estimatedCompletePercentString}" aria-valuemin="0" aria-valuemax="100"></div></div>
+                                <div class="progress xs" style="height:6px;"><div class="progress-bar <#if pstats.estimatedCompleteOverBudget>progress-bar-warning<#else>progress-bar-success</#if>" style="width: ${clientBudgetUsedPercentString}%;" aria-valuenow="${clientBudgetUsedPercentString}" aria-valuemin="0" aria-valuemax="100"></div></div>
+                                ]]></text><text type="qvt" template="true"><![CDATA[
+                                    <q-linear-progress size="sm" class="q-mt-xs" :value="${pstats.estimatedCompletePercent/100}"
+                                        color="<#if pstats.estimatedCompleteOverBudget>negative<#else>positive</#if>"/>
+                                    <q-linear-progress size="sm" class="q-mt-xs" :value="${pstats.clientBudgetUsedPercent/100}"
+                                        color="<#if pstats.estimatedCompleteOverBudget>negative<#else>positive</#if>"/>
+                                ]]></text></render-mode>
+                        </row-col><row-col sm="3">
+                            <label text="${ec.l10n.format(pstats.estimatedCompleteBudgetPercentGap, '00.00')}%"/>
+                            <render-mode><text type="html,vuet,qvt" template="true"><![CDATA[<i class="fa <#if pstats.estimatedCompleteOverBudget>fa-exclamation-circle text-warning<#else>fa-check-circle text-success</#if>"></i>]]></text></render-mode>
+                        </row-col></container-row>
+                    </widgets></section>
+                    <container-row>
+                        <row-col sm="4"><label text="Estimate ${ec.l10n.format(project.estimatedWorkTime, '#.#')} hrs" type="strong"/></row-col>
+                        <row-col sm="4"><label text="Worked ${ec.l10n.format(project.actualWorkTime, '#.#')} hrs" type="strong" style="${pstats.actualPlusRemainingOverEstimated ? 'text-danger' : 'text-success'}"/></row-col>
+                        <row-col sm="4"><label text="Est Rem ${ec.l10n.format(project.remainingWorkTime, '#.#')} hrs" type="strong" style="text-info"/></row-col>
+                    </container-row>
+                    <section name="TimeBudgetStats" condition="project.totalTimeAllowed"><widgets>
+                        <container-row>
+                            <row-col sm="4"><label text="Budget ${ec.l10n.format(project.totalTimeAllowed, '#.#')} hrs" type="strong"/></row-col>
+                            <row-col sm="4"><label text="Act Bgt Rem ${ec.l10n.format(project.totalTimeAllowed - (project.actualWorkTime?:0), '#.#')} hrs" type="strong" style="text-info"/></row-col>
+                            <row-col sm="4"><label text="Est Bgt Rem ${ec.l10n.format(project.totalTimeAllowed - pstats.actualPlusRemainingTime, '#.#')} hrs" type="strong" style="${pstats.actualPlusRemainingOverTimeBudget ? 'text-danger' : 'text-success'}"/></row-col>
+                        </container-row>
+                    </widgets></section>
+                    <container-row>
+                        <row-col sm="4"><label text="Avg Rate ${ec.l10n.formatCurrency(pstats.clientAverageHourCost, project.costUomId, 2)}" type="strong"/></row-col>
+                        <row-col sm="4"><label text="Actual Cost ${ec.l10n.formatCurrency(project.actualClientCost, project.costUomId, 2)}" type="strong" style="${pstats.clientActualOverBudget ? 'text-danger' : 'text-success'}"/></row-col>
+                        <row-col sm="4"><label text="Est Cost ${ec.l10n.formatCurrency(pstats.clientEstimatedCost, project.costUomId, 2)}" type="strong"/></row-col>
+                    </container-row>
+                    <section name="CostBudgetStats" condition="project.totalClientCostAllowed"><widgets>
+                        <container-row>
+                            <row-col sm="4"><label text="Budget ${ec.l10n.formatCurrency(project.totalClientCostAllowed, project.costUomId, 2)}" type="strong"/></row-col>
+                            <row-col sm="4"><label text="Rem ${ec.l10n.formatCurrency(pstats.clientBudgetRemaining, project.costUomId, 2)}" type="strong"/></row-col>
+                            <row-col sm="4"><label text="Est ${ec.l10n.formatCurrency(pstats.clientBudgetEstimateDiff?.abs(), project.costUomId, 2)} ${pstats.clientBudgetEstimateDiff &lt; 0 ? 'over' : 'under'}" type="strong" style="${pstats.clientBudgetEstimateDiff &lt; 0 ? 'text-warning' : 'text-success'}"/></row-col>
+                        </container-row>
+                    </widgets></section>
+                    <container-row>
+                        <row-col xs="6" style="text-center"><label text="Provider Cost ${ec.l10n.formatCurrency(project.actualCost, project.costUomId, 2)}" type="strong"/></row-col>
+                        <row-col xs="6" style="text-center"><label text="Profit ${ec.l10n.formatCurrency(pstats.actualProfit, project.costUomId, 2)}" type="strong"/></row-col>
+                    </container-row>
+                </container></row-col><row-col lg="5"><container style="shaded-area">
+                    <container-row><row-col sm="3">
+                        <container id="status-chart"/>
+                        <render-mode><text type="html,vuet,qvt" template="true"><![CDATA[
+                                <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-sparklines/2.1.2/jquery.sparkline.min.js" type="text/javascript"></script>
+                                <script>
+                                    $("#status-chart_${project_index}").sparkline([${pstats.taskCountByStatusMap.WeApproved!'0'}, ${pstats.taskCountByStatusMap.WeOnHold!'0'}, ${pstats.taskCountByStatusMap.WeInProgress!'0'}, ${pstats.taskCountByStatusMap.WeClosed!'0' + pstats.taskCountByStatusMap.WeComplete!'0'}], {
+                                        type: 'pie', width: '80', height: '80', sliceColors: ['#8a6d3b', '#a94442', '#3c763d', '#31708f'], offset: 180,
+                                    });
+                                </script>
+                            ]]></text></render-mode>
+                    </row-col><row-col sm="9">
+                        <container-row>
+                            <row-col xs="12"><label text="${pstats.taskCount} Tasks" type="strong"/></row-col>
+                        </container-row>
+                        <container-row>
+                            <row-col sm="5"><link text="Approved - ${pstats.taskCountByStatusMap.WeApproved?:0}"
+                                    style="text-warning" url="findTask" link-type="anchor"
+                                    parameter-map="[rootWorkEffortId:project.workEffortId, statusId:'WeApproved']"/></row-col>
+                            <row-col sm="7"><link text="On Hold - ${pstats.taskCountByStatusMap.WeOnHold?:0}"
+                                    style="text-danger" url="findTask" link-type="anchor"
+                                    parameter-map="[rootWorkEffortId:project.workEffortId, statusId:'WeOnHold']"/></row-col>
+                        </container-row>
+                        <container-row>
+                            <row-col sm="5"><link text="In Progress - ${pstats.taskCountByStatusMap.WeInProgress?:0}"
+                                    style="text-success" url="findTask" link-type="anchor"
+                                    parameter-map="[rootWorkEffortId:project.workEffortId, statusId:'WeInProgress']"/></row-col>
+                            <row-col sm="7"><link text="Complete/Closed - ${((pstats.taskCountByStatusMap.WeComplete?:0) as BigDecimal) + ((pstats.taskCountByStatusMap.WeClosed?:0) as BigDecimal)}"
+                                    style="text-info" url="findTask" link-type="anchor"
+                                    parameter-map="[rootWorkEffortId:project.workEffortId, statusId:'WeComplete,WeClosed', statusId_op:'in']"/></row-col>
+                        </container-row>
+                        <container-row>
+                            <row-col sm="5"><link text="In Planning - ${pstats.taskCountByStatusMap.WeInPlanning?:0}"
+                                    url="findTask" link-type="anchor" parameter-map="[rootWorkEffortId:project.workEffortId, statusId:'WeInPlanning']"/></row-col>
+                            <row-col sm="7"><link text="Cancelled - ${pstats.taskCountByStatusMap.WeCancelled?:0}"
+                                    url="findTask" link-type="anchor" parameter-map="[rootWorkEffortId:project.workEffortId, statusId:'WeCancelled']"/></row-col>
+                        </container-row>
+                    </row-col></container-row>
+                </container></row-col></container-row>
+            </box-body></container-box>
+        </widgets></section-iterate>
+
+        <container-row><row-col md="6">
+            <tree name="TaskTree">
+                <tree-node name="TaskNode">
+                    <actions>
+                        <!-- <entity-find-related-one value-field="nodeList_entry" relationship-name="WorkEffortPurpose#moqui.basic.Enumeration" to-value-field="childPurpose" cache="true"/> -->
+                    </actions>
+                    <link url="taskSummary" text="${nodeList_entry.workEffortId}: ${nodeList_entry.workEffortName} - ${nodeList_entry.statusDescription?:''}${nodeList_entry.priority ? ' - P ' + nodeList_entry.priority : ''}"
+                            id="${treeNodeId == '#' ? '' : treeNodeId + '/'}${nodeList_entry.workEffortId}"><!-- ${childPurpose?.description} - -->
+                        <parameter name="workEffortId" from="nodeList_entry.workEffortId"/></link>
+                    <tree-sub-node node-name="TaskNode" list="childTasks">
+                        <actions>
+                            <set field="taskId" from="treeNodeId.split('/').last()"/>
+                            <entity-find entity-name="mantle.work.effort.WorkEffortAndStatus" list="childTasks">
+                                <econdition field-name="workEffortTypeEnumId" value="WetTask"/>
+                                <econdition field-name="parentWorkEffortId" from="taskId"/>
+                                <order-by field-name="statusSequenceNum,priority,workEffortName"/>
+                            </entity-find>
+                        </actions>
+                    </tree-sub-node>
+                </tree-node>
+                <tree-sub-node node-name="TaskNode" list="topLevelTasks">
+                    <actions>
+                        <entity-find entity-name="mantle.work.effort.WorkEffortAndStatus" list="topLevelTasks">
+                            <econdition field-name="workEffortTypeEnumId" value="WetTask"/>
+                            <econdition field-name="rootWorkEffortId"/>
+                            <econdition field-name="parentWorkEffortId" from="null"/>
+                            <order-by field-name="statusSequenceNum,priority,workEffortName"/>
+                        </entity-find>
+                    </actions>
+                </tree-sub-node>
+            </tree>
+        </row-col><row-col md="6">
+            <form-single name="ViewProject" map="workEffort">
+                <!--
+                <field name="workEffortId"><default-field title="Project ID"><display/></default-field></field>
+                <field name="workEffortName"><default-field title="Project Name"><display/></default-field></field>
+                -->
+                <field name="clientPartyId" from="clientWep?.partyId"><default-field title="Client">
+                    <display-entity entity-name="mantle.party.PartyDetail" key-field-name="partyId"
+                            text="${organizationName?:''} ${firstName?:''} ${lastName?:''}"/>
+                    <link url="editClient" text="Edit Client" link-type="anchor"><parameter name="partyId" from="clientWep?.partyId"/></link>
+                </default-field></field>
+                <field name="vendorPartyId" from="vendorWep?.partyId"><default-field title="Vendor">
+                    <display-entity entity-name="mantle.party.PartyDetail" key-field-name="partyId"
+                            text="${organizationName?:''} ${firstName?:''} ${lastName?:''}"/>
+                    <link url="editVendor" text="Edit Vendor" link-type="anchor"><parameter name="partyId" from="vendorWep?.partyId"/></link>
+                </default-field></field>
+                <field name="priority"><default-field><display/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <display-entity entity-name="moqui.basic.StatusItem"/>
+                </default-field></field>
+                <field name="statusFlowId"><default-field title="Status Flow">
+                    <display-entity entity-name="moqui.basic.StatusFlow"/>
+                </default-field></field>
+                <field name="estimatedCompletionDate">
+                    <default-field title="Due Date"><display format="yyyy-MM-dd"/></default-field>
+                </field>
+                <field name="estimatedWorkTime"><default-field title="Estimated Hours">
+                    <display format="0.00"/></default-field></field>
+                <field name="actualWorkTime"><default-field title="Actual Hours">
+                    <display format="0.00"/></default-field></field>
+                <field name="description"><default-field title="Description"><display/></default-field></field>
+
+                <field-layout>
+                    <fields-not-referenced/>
+                    <!-- <field-row><field-ref name="workEffortName"/><field-ref name="workEffortId"/></field-row> -->
+                    <field-row><field-ref name="clientPartyId"/><field-ref name="vendorPartyId"/></field-row>
+                    <field-row><field-ref name="priority"/><field-ref name="estimatedCompletionDate"/></field-row>
+                    <field-row><field-ref name="statusId"/><field-ref name="statusFlowId"/></field-row>
+                    <field-row><field-ref name="estimatedWorkTime"/><field-ref name="actualWorkTime"/></field-row>
+                    <field-ref name="description"/>
+                </field-layout>
+            </form-single>
+
+            <form-list name="MilestoneList" list="milestoneList" skip-form="true">
+                <field name="rootWorkEffortId"><default-field><hidden/></default-field></field>
+                <field name="workEffortId"><default-field title="Milestone">
+                    <link url="milestoneSummary" text="${workEffortId}" link-type="anchor">
+                        <parameter name="milestoneWorkEffortId" from="workEffortId"/></link>
+                </default-field></field>
+                <field name="workEffortName"><default-field title="Name"><display/></default-field></field>
+                <field name="estimatedStartDate">
+                    <default-field title="Start Date"><display format="yyyy-MM-dd"/></default-field>
+                </field>
+                <field name="estimatedCompletionDate">
+                    <default-field title="End Date"><display format="yyyy-MM-dd"/></default-field>
+                </field>
+                <field name="statusId"><default-field title="Status">
+                    <display-entity entity-name="moqui.basic.StatusItem"/>
+                </default-field></field>
+            </form-list>
+
+            <form-list name="ViewWpweForm" list="wpaweList" skip-form="true">
+                <field name="workEffortId"><default-field><hidden/></default-field></field>
+                <field name="rootWorkEffortId" from="projectWorkEffortId"><default-field><hidden/></default-field></field>
+                <field name="wikiPageId"><default-field><hidden/></default-field></field>
+
+                <field name="wikiSpaceId"><default-field title="Wiki Space"><display text=""/>
+                    <link text="${wikiSpaceId}" url="//${appRoot}/Wiki/wiki/${wikiSpaceId}"/>
+                </default-field></field>
+                <field name="pagePath"><default-field title="Page"><display text=""/>
+                    <link text="${pagePath}" url="//${appRoot}/Wiki/wiki/${wikiSpaceId}/${pagePath?:''}"/>
+                </default-field></field>
+            </form-list>
+
+            <form-list name="ViewUserAssignForm" list="wepapList" skip-form="true">
+                <field name="rootWorkEffortId"><default-field><hidden/></default-field></field>
+                <field name="workEffortId"><default-field><hidden/></default-field></field>
+                <field name="partyId"><default-field><hidden/></default-field></field>
+                <field name="username"><header-field show-order-by="case-insensitive"/>
+                    <default-field><link url="editUser" text="${username?:'--'}" link-type="anchor"/></default-field>
+                </field>
+                <field name="firstName"><header-field title="First##Name" show-order-by="case-insensitive"/><default-field><display also-hidden="false"/></default-field></field>
+                <field name="lastName"><header-field title="Last##Name" show-order-by="case-insensitive"/><default-field><display also-hidden="false"/></default-field></field>
+                <field name="roleTypeId"><header-field title="Role" show-order-by="true"/>
+                    <default-field><display-entity entity-name="mantle.party.RoleType"/></default-field>
+                </field>
+                <field name="fromDate"><header-field show-order-by="true"/><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="thruDate"><header-field show-order-by="true"/><default-field><display format="yyyy-MM-dd"/></default-field></field>
+                <field name="expectationEnumId"><header-field title="Expectation" show-order-by="true"/><default-field>
+                    <display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId"/>
+                </default-field></field>
+                <field name="emplPositionClassId"><header-field title="Position Class" show-order-by="true"/>
+                    <default-field><display-entity entity-name="EmplPositionClass" text="${title}"/></default-field>
+                </field>
+                <field name="statusId"><header-field title="Status" show-order-by="true"/><default-field>
+                    <display-entity entity-name="moqui.basic.StatusItem"/>
+                </default-field></field>
+
+                <form-list-column><field-ref name="username"/><field-ref name="roleTypeId"/></form-list-column>
+                <form-list-column><field-ref name="firstName"/><field-ref name="lastName"/></form-list-column>
+                <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
+                <form-list-column><field-ref name="expectationEnumId"/><field-ref name="emplPositionClassId"/></form-list-column>
+                <form-list-column><field-ref name="statusId"/></form-list-column>
+            </form-list>
+        </row-col></container-row>
+    </widgets>
+</screen>

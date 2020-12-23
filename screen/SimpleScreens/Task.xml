@@ -13,18 +13,18 @@ along with this software (see the LICENSE.md file). If not, see
 <http://creativecommons.org/publicdomain/zero/1.0/>.
 -->
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
-        default-menu-title="Suppliers" default-menu-index="11" menu-image="/ssstatic/images/Supplier.png">
+        default-menu-title="Tasks" default-menu-index="4" menu-image="/ssstatic/images/task-homework.png">
 
-    <subscreens default-item="FindSupplier">
-        <subscreens-item name="FinancialInfo" location="component://SimpleScreens/screen/SimpleScreens/Party/FinancialInfo.xml" menu-index="11"/>
-    </subscreens>
+    <subscreens default-item="FindTask"/>
 
-    <pre-actions><set field="roleTypeId" value="Supplier"/></pre-actions>
     <actions>
-        <entity-find-one entity-name="mantle.party.PartyDetail" value-field="partyDetail"/>
+        <if condition="workEffortId">
+            <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="task"/>
+            <if condition="task == null"><return error="true" message="Task not found for ID ${workEffortId}"/></if>
+        </if>
     </actions>
     <widgets>
-        <label text="PartyNameTemplate" text-map="partyDetail" type="strong" condition="partyDetail"/>
-        <subscreens-panel id="supplier-panel" type="tab"/>
+        <label text="Task ${task.workEffortId} - ${task.workEffortName}" type="strong" condition="task != null"/>
+        <subscreens-panel id="task-panel" type="tab"/>
     </widgets>
 </screen>
