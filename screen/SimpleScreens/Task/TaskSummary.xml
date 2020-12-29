@@ -113,6 +113,9 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition-include name="getTaskList" location="component://SimpleScreens/template/work/WorkTransitions.xml"/>
 
+    <transition name="clockInTimeEntry"><service-call name="mantle.work.TimeServices.create#TimeEntryClockIn"/>
+        <default-response url="."/></transition>
+
     <transition name="addComment"><service-call name="mantle.work.TaskServices.add#TaskComment"/>
         <default-response url="."/></transition>
     <transition name="deleteComment"><service-call name="mantle.work.TaskServices.delete#TaskComment"/>
@@ -150,6 +153,12 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="workEffortId"/>
             <order-by field-name="fromDate"/><order-by field-name="lastUpdatedStamp"/>
         </entity-find>
+        <entity-find entity-name="mantle.work.time.TimeEntry" list="openTimeEntryList">
+            <econdition field-name="partyId" from="partyId ?: ec.user.userAccount?.partyId"/>
+            <econdition field-name="thruDate" operator="is-null"/>
+            <order-by field-name="-fromDate"/>
+        </entity-find>
+        <set field="openTimeEntry" from="openTimeEntryList ? openTimeEntryList[0] : null"/>
 
         <!-- Comments -->
         <entity-find entity-name="mantle.work.effort.WorkEffortCommEventDetail" list="commEventDetailList">
@@ -194,7 +203,22 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container-row><row-col md="3">
-            <container-box><box-header title="ID: ${workEffortId}"/><box-body>
+            <container-box><box-header title="Task ${workEffortId}"/><box-toolbar>
+                <section name="ClockInSection" condition="openTimeEntry == null"><widgets>
+                    <container-dialog id="ClockInDialog" button-text="Clock In" type="success" condition="openTimeEntry == null">
+                        <form-single name="ClockInForm" transition="clockInTimeEntry">
+                            <field name="workEffortId"><default-field><hidden/></default-field></field>
+                            <field name="partyId" from="ec.user.userAccount.partyId"><default-field><hidden/></default-field></field>
+                            <field name="comments"><default-field><text-area cols="100" rows="3"/></default-field></field>
+                            <!-- NOTE: no fromDate default on server side so if left blank is more accurate time of form submit (was: from="ec.user.nowTimestamp") -->
+                            <field name="fromDate"><default-field title="From" tooltip="Optional, defaults to now"><date-time minute-stepping="1"/></default-field></field>
+                            <field name="submitButton"><default-field title="Clock In"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </widgets><fail-widgets>
+                    <link url="../EditTimeEntries" text="Clock Out" btn-type="success"/>
+                </fail-widgets></section>
+            </box-toolbar><box-body>
                 <container><label text="Project: " type="strong"/></container>
                 <link text="${project.workEffortId} - ${project.workEffortName}" url="projectSummary" link-type="anchor" condition="project != null">
                     <parameter name="workEffortId" from="project.workEffortId"/><parameter name="rootWorkEffortId" from="project.workEffortId"/></link>
@@ -267,11 +291,14 @@ along with this software (see the LICENSE.md file). If not, see
                             <field-map field-name="partyId" from="timeEntry.partyId"/></entity-find-one>
                     </actions>
                     <widgets>
-                        <label text="&#8226; ${ec.l10n.format(timeEntry.hours, '0.00')}h at ${ec.l10n.format(timeEntry.fromDate, '')} by ${paua.firstName} ${paua.lastName} ${paua.username ? '(' + paua.username + ')' :''}" type="div"/>
+                        <label text="&#8226; ${ec.l10n.format(timeEntry.hours, '0.00')}${timeEntry.hours != null ? 'h' : 'OPEN'} at ${ec.l10n.format(timeEntry.fromDate, '')} by ${paua.firstName} ${paua.lastName} ${paua.username ? '(' + paua.username + ')' :''}"
+                                type="div" style="${timeEntry.hours != null ? '' : 'text-strong'}"/>
                     </widgets>
                 </section-iterate>
             </box-body></container-box>
+
         </row-col><row-col md="6">
+
             <container>
                 <editable id="TaskName" text="${task.workEffortName?:''}" transition="updateTaskField"
                         parameter-name="workEffortName" type="h4"/>
