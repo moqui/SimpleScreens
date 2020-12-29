@@ -19,9 +19,9 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
 
-    <transition name="recordTimeEntry"><service-call name="mantle.work.TimeServices.store#TimeEntry" in-map="context"/>
+    <transition name="recordTimeEntry"><service-call name="mantle.work.TimeServices.store#TimeEntry"/>
         <default-response url="."/></transition>
-    <transition name="clockInTimeEntry"><service-call name="mantle.work.TimeServices.create#TimeEntryClockIn" in-map="context"/>
+    <transition name="clockInTimeEntry"><service-call name="mantle.work.TimeServices.create#TimeEntryClockIn"/>
         <default-response url="."/></transition>
 
     <transition name="resetAndGetTimeEntryRates"><service-call name="mantle.work.TimeServices.resetAndGet#TimeEntryRates"/>
@@ -38,9 +38,6 @@ along with this software (see the LICENSE.md file). If not, see
             <search-form-inputs default-order-by="-fromDate"/>
             <econdition field-name="partyId"/>
         </entity-find>
-        <filter-map-list list="timeEntryList" to-list="openTimeEntryList">
-            <field-map field-name="thruDate" from="null"/></filter-map-list>
-        <set field="openTimeEntry" from="openTimeEntryList ? openTimeEntryList[0] : null"/>
 
         <service-call name="mantle.humanres.PositionServices.get#PartyEmployersAndPositionClasses"
                 in-map="[partyId:partyId]" out-map="context"/>
@@ -48,38 +45,49 @@ along with this software (see the LICENSE.md file). If not, see
         <set field="hasRatePermission" from="ec.user.hasPermission('TIME_ENTRY_RATE')"/>
     </actions>
     <widgets>
-        <section name="ClockInOutSection" condition="openTimeEntry"><widgets>
-            <dynamic-dialog id="ClockOutDialogDyn" button-text="Clock Out" transition="EditTimeEntry"
-                    parameter-map="[partyId:partyId, timeEntryId:openTimeEntry.timeEntryId]" type="success"/>
-        </widgets><fail-widgets>
-            <!-- don't bother for now: <dynamic-dialog id="ClockInDialogDyn" button-text="Clock In" icon="fa fa-clock-o" transition="EditTimeEntry"
-                    parameter-map="[partyId:partyId, timeEntryId:null, clockInMode:'true']" type="success"/> -->
-            <container-dialog id="ClockInDialog" button-text="Clock In" type="success">
-                <form-single name="ClockInForm" transition="clockInTimeEntry">
-                    <field name="partyId"><default-field><hidden/></default-field></field>
-                    <field name="clientPartyId"><default-field title="Employer"><drop-down allow-empty="true">
-                        <list-options list="employerPartyList" key="${partyId}" text="PartyNameTemplate"/></drop-down></default-field></field>
-                    <field name="workEffortId"><default-field title="Task">
-                        <drop-down allow-empty="true"><dynamic-options transition="getTaskList" min-length="0" server-search="true"
-                                parameter-map="[assignedPartyId:partyId]"/></drop-down>
-                    </default-field></field>
-                    <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
-                        <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></default-field></field>
-                    <field name="workTypeEnumId"><default-field title="Work Type"><drop-down>
-                        <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></default-field></field>
-                    <field name="emplPositionClassId"><default-field title="Position Class"><drop-down allow-empty="true">
-                        <list-options list="emplPositionClassList" key="${emplPositionClassId}" text="${title}"/></drop-down></default-field></field>
-                    <field name="rateTypeEnumId"><default-field title="Rate Type">
-                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumGroupDropDown">
-                            <set field="enumGroupEnumId" value="EngRateCommonEntry"/><set field="noCurrentSelectedKey" value="RatpStandard"/></widget-template-include>
-                    </default-field></field>
-                    <field name="comments"><default-field><text-area cols="100" rows="3"/></default-field></field>
-                    <!-- NOTE: no fromDate default on server side so if left blank is more accurate time of form submit (was: from="ec.user.nowTimestamp") -->
-                    <field name="fromDate"><default-field title="From"><date-time minute-stepping="1"/></default-field></field>
-                    <field name="submitButton"><default-field title="Clock In"><submit/></default-field></field>
-                </form-single>
-            </container-dialog>
-        </fail-widgets></section>
+        <section name="ClockInOutSection"><actions>
+            <if condition="openTimeEntry == null">
+                <entity-find entity-name="mantle.work.time.TimeEntry" list="openTimeEntryList">
+                    <econdition field-name="partyId" from="partyId ?: ec.user.userAccount?.partyId"/>
+                    <econdition field-name="thruDate" operator="is-null"/>
+                    <order-by field-name="-fromDate"/>
+                </entity-find>
+                <set field="openTimeEntry" from="openTimeEntryList ? openTimeEntryList[0] : null"/>
+            </if>
+        </actions><widgets>
+            <section name="ClockInOutInnerSection" condition="openTimeEntry != null"><widgets>
+                <dynamic-dialog id="ClockOutDialogDyn" button-text="Clock Out" transition="EditTimeEntry"
+                        parameter-map="[partyId:partyId, timeEntryId:openTimeEntry.timeEntryId]" type="success"/>
+            </widgets><fail-widgets>
+                <!-- don't bother for now: <dynamic-dialog id="ClockInDialogDyn" button-text="Clock In" icon="fa fa-clock-o" transition="EditTimeEntry"
+                        parameter-map="[partyId:partyId, timeEntryId:null, clockInMode:'true']" type="success"/> -->
+                <container-dialog id="ClockInDialog" button-text="Clock In" type="success">
+                    <form-single name="ClockInForm" transition="clockInTimeEntry">
+                        <field name="partyId"><default-field><hidden/></default-field></field>
+                        <field name="clientPartyId"><default-field title="Employer"><drop-down allow-empty="true">
+                            <list-options list="employerPartyList" key="${partyId}" text="PartyNameTemplate"/></drop-down></default-field></field>
+                        <field name="workEffortId"><default-field title="Task">
+                            <drop-down allow-empty="true"><dynamic-options transition="getTaskList" min-length="0" server-search="true"
+                                    parameter-map="[assignedPartyId:partyId]"/></drop-down>
+                        </default-field></field>
+                        <field name="facilityId"><default-field title="Facility"><drop-down allow-empty="true">
+                            <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></default-field></field>
+                        <field name="workTypeEnumId"><default-field title="Work Type"><drop-down>
+                            <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></default-field></field>
+                        <field name="emplPositionClassId"><default-field title="Position Class"><drop-down allow-empty="true">
+                            <list-options list="emplPositionClassList" key="${emplPositionClassId}" text="${title}"/></drop-down></default-field></field>
+                        <field name="rateTypeEnumId"><default-field title="Rate Type">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumGroupDropDown">
+                                <set field="enumGroupEnumId" value="EngRateCommonEntry"/><set field="noCurrentSelectedKey" value="RatpStandard"/></widget-template-include>
+                        </default-field></field>
+                        <field name="comments"><default-field><text-area cols="100" rows="3"/></default-field></field>
+                        <!-- NOTE: no fromDate default on server side so if left blank is more accurate time of form submit (was: from="ec.user.nowTimestamp") -->
+                        <field name="fromDate"><default-field title="From"><date-time minute-stepping="1"/></default-field></field>
+                        <field name="submitButton"><default-field title="Clock In"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </fail-widgets></section>
+        </widgets></section>
 
         <dynamic-dialog id="AddTimeDialogDyn" button-text="Record Time" transition="EditTimeEntry"
                 parameter-map="[partyId:partyId, timeEntryId:'']"/>
