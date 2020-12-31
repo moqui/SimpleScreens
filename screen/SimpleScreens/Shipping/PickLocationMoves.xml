@@ -35,6 +35,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <select-field field-name="quantity,reservationCount"/>
             </entity-find>
             <row-actions>
+                <entity-find-one entity-name="mantle.product.ProductIdentification" value-field="upcaProdIdent">
+                    <field-map field-name="productId"/>
+                    <field-map field-name="productIdTypeEnumId" value="PidtUpca"/>
+                </entity-find-one>
+
                 <!-- is there a configured Pick location for the product in the facility? -->
                 <entity-find entity-name="mantle.facility.ProductFacilityLocationDetail" list="pickLocList" distinct="true">
                     <econdition field-name="productId"/><econdition field-name="facilityId"/>
@@ -63,18 +68,21 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="needQuantity" from="quantity &gt; pickAtpTotal ? (quantity - pickAtpTotal) : 0.0"/>
             </row-actions>
 
+            <field name="productId"><header-field title="Product">
+                <drop-down allow-multiple="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
+            </header-field><default-field>
+                <link url="editProduct" entity-name="mantle.product.Product" text="ProductNameTemplate" link-type="anchor"/>
+            </default-field></field>
+            <field name="upca"><default-field title="UPC-A">
+                <display text="${upcaProdIdent?.idValue?:''}"/>
+            </default-field></field>
+
             <field name="facilityId">
                 <header-field title="Facility" show-order-by="true"><drop-down allow-empty="true">
                     <dynamic-options transition="getFacilityList" server-search="true" min-length="0" parameter-map="[facilityTypeEnumId:'FcTpWarehouse']"/>
                 </drop-down></header-field>
                 <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
             </field>
-            <field name="productId"><header-field title="Product">
-                <drop-down allow-multiple="true"><dynamic-options transition="getProductList" server-search="true" min-length="0"/></drop-down>
-            </header-field><default-field>
-                <link url="editProduct" entity-name="mantle.product.Product" text="ProductNameTemplate" link-type="anchor"/>
-            </default-field></field>
-
             <field name="locationSeqId"><default-field title="Location">
                 <display text="${description?:''} ${areaId?:' '}:${aisleId?:' '}:${sectionId?:' '}:${levelId?:' '}:${positionId?:' '}"/></default-field></field>
             <field name="locationTypeEnumId"><header-field title="Loc Type" show-order-by="true"/>
@@ -120,7 +128,8 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="submitButton"><header-field title="Find"><submit/></header-field></field>
 
             <columns>
-                <column><field-ref name="facilityId"/><field-ref name="productId"/></column>
+                <column><field-ref name="productId"/><field-ref name="facilityId"/></column>
+                <column><field-ref name="upca"/></column>
                 <column><field-ref name="locationSeqId"/><field-ref name="locationTypeEnumId"/></column>
                 <column><field-ref name="quantityOnHandTotal"/></column>
                 <column><field-ref name="quantity"/><field-ref name="reservationCount"/></column>
