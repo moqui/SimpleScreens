@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" default-menu-title="Find Physical Inventory">
+
+    <transition name="editPhysicalInventory"><default-response url="../EditPhysicalInventory"/></transition>
+    <transition name="editAsset"><default-response url="../../Asset/AssetDetail"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+
+    <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+    <transition-include name="getLocationList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
+
+    <transition name="createPhysicalInventory"><service-call name="create#mantle.product.asset.PhysicalInventory"/>
+        <default-response url="../EditPhysicalInventory"/></transition>
+
+    <transition name="updatePhysicalInventoryDate"><service-call name="mantle.product.AssetServices.update#PhysicalInventoryDate"/>
+        <default-response url="."/></transition>
+
+    <widgets>
+        <form-list name="PhysicalInventoryList" list="physicalInventoryList" skip-form="true" header-dialog="true">
+            <entity-find entity-name="mantle.product.asset.PhysicalInventory" list="physicalInventoryList">
+                <search-form-inputs default-order-by="physicalInventoryId"/></entity-find>
+            <row-actions>
+                <entity-find entity-name="mantle.product.asset.AssetAndDetailSummary" list="assetList" limit="11">
+                    <econdition field-name="physicalInventoryId"/>
+                    <select-field field-name="assetId,productId,pseudoId,productName,availableToPromiseDiff,quantityOnHandDiff,effectiveDate"/>
+                    <order-by field-name="pseudoId"/>
+                </entity-find>
+            </row-actions>
+
+            <field name="physicalInventoryId"><header-field title="Phys. Inv. ID" show-order-by="true"><text-find/></header-field>
+                <default-field><link url="editPhysicalInventory" text="${physicalInventoryId}" link-type="anchor"/></default-field></field>
+            <field name="physicalInventoryDate"><header-field title="Date" show-order-by="true"><date-period/></header-field>
+                <default-field><display/></default-field></field>
+
+            <field name="statusId">
+                <header-field title="Status" show-order-by="true">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                        <set field="statusTypeId" value="PhysicalInventory"/><set field="allowMultiple" value="true"/></widget-template-include>
+                </header-field>
+                <default-field><display-entity entity-name="moqui.basic.StatusItem"/></default-field>
+            </field>
+
+            <field name="facilityId">
+                <header-field title="Facility" show-order-by="case-insensitive"><drop-down allow-empty="true">
+                    <dynamic-options transition="getFacilityList" server-search="true" min-length="0"/></drop-down></header-field>
+                <default-field><link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field>
+            </field>
+
+            <field name="assetList"><default-field title="Assets">
+                <section-iterate name="AssetListSection" list="assetList" entry="assetProduct"><widgets><container>
+                    <link url="editAsset" text="${assetProduct.assetId}" link-type="anchor" parameter-map="[assetId:assetProduct.assetId]"/>
+                    <label text=" - "/>
+                    <link url="editProduct" text="ProductNameTemplate" text-map="assetProduct"
+                            link-type="anchor" parameter-map="[productId:assetProduct.productId]"/>
+                    <label text="ATP ${ec.l10n.format(assetProduct.availableToPromiseDiff, null)} QOH ${ec.l10n.format(assetProduct.quantityOnHandDiff, null)} at ${ec.l10n.format(assetProduct.effectiveDate, null)}"/>
+                </container></widgets></section-iterate>
+            </default-field></field>
+
+            <field name="comments"><header-field show-order-by="case-insensitive"><text-find/></header-field>
+                <default-field><display/></default-field></field>
+            
+            <field name="updateDate"><default-field title="">
+                <container-dialog id="UpdateDateDialog" button-text="Update Date">
+                    <form-single name="UpdateDateForm" transition="updatePhysicalInventoryDate">
+                        <field name="physicalInventoryId"><default-field><display/></default-field></field>
+                        <field name="effectiveDate" from="physicalInventoryDate"><default-field><date-time/></default-field></field>
+                        <field name="submitButton"><default-field><submit text="Update"/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </default-field></field>
+
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
+        </form-list>
+    </widgets>
+</screen>
