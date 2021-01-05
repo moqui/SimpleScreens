@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        allow-extra-path="true" default-menu-include="false">
+
+    <parameter name="wikiSpaceId"/>
+    <parameter name="pagePath"/>
+    <parameter name="wikiPageId"/>
+    <parameter name="versionName"/>
+
+    <actions>
+        <set field="extraPathNameList" from="sri.screenUrlInfo.extraPathNameList"/>
+        <!-- <log level="warn" message="wiki pre-actions extraPathNameList ${extraPathNameList}"/> -->
+        <service-call name="org.moqui.impl.WikiServices.get#WikiPageInfo" in-map="context" out-map="context"/>
+
+        <set field="basePath" from="sri.getCurrentScreenUrl().getScreenOnlyPath()"/>
+        <set field="baseLinkPath" from="basePath + '/' + wikiSpaceId"/>
+        <set field="baseLinkUrl" from="sri.getCurrentScreenUrl().getScreenPathUrl() + '/' + wikiSpaceId"/>
+        <!-- this is only used for the WikiPageTree.ftl file, not needed otherwise: -->
+        <!-- <service-call name="org.moqui.impl.WikiServices.get#WikiSpacePages" in-map="context" out-map="context"/> -->
+    </actions>
+
+    <widgets>
+        <!-- TODO: display in iframe using CSS from WikiSpace.screenThemeId -->
+        <container id="wiki-page-area">
+            <section name="WikiPageInclude">
+                <condition><expression>!wikiSpace?.decoratorScreenLocation</expression></condition>
+                <actions><script>sri.baseLinkUrl(baseLinkUrl)</script></actions>
+                <widgets><render-mode><text type="html,vuet,qvt" template="true"
+                        location="${pageLocation?:''}${versionName &amp;&amp; currentVersionName != versionName ? '#' + versionName.take(12) : ''}"/></render-mode></widgets>
+                <fail-widgets><include-screen location="${wikiSpace.decoratorScreenLocation}"/></fail-widgets>
+            </section>
+            <section name="ResetBaseLink"><actions><script>sri.baseLinkUrl(null)</script></actions><widgets/></section>
+        </container>
+        <!-- CONSIDER: figure out a way to make configured space root screen (wikiSpace.decoratorScreenLocation) a subscreen
+               instead of including it explicitly as above
+        <subscreens-active id="wiki-container"/>
+        -->
+    </widgets>
+</screen>
