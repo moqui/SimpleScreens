@@ -38,13 +38,16 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="vendorRoleTypeId" value="OrgInternal"/>
                 <econdition field-name="itemTypeEnumId" operator="in" from="productItemTypes"/>
                 <econditions combine="or">
-                    <econdition field-name="issuedQuantity" operator="is-null"/>
-                    <econdition field-name="quantity" operator="not-equals" to-field-name="issuedQuantity"/>
-                    <econdition field-name="billedQuantity" operator="is-null"/>
-                    <econdition field-name="quantity" operator="not-equals" to-field-name="billedQuantity"/>
+                    <econdition field-name="issuedQuantity" operator="is-null" ignore="filterBy == 'billed'"/>
+                    <econdition field-name="quantity" operator="not-equals" to-field-name="issuedQuantity" ignore="filterBy == 'billed'"/>
+                    <econdition field-name="billedQuantity" operator="is-null" ignore="filterBy == 'issued'"/>
+                    <econdition field-name="quantity" operator="not-equals" to-field-name="billedQuantity" ignore="filterBy == 'issued'"/>
                 </econditions>
                 <select-field field-name="productId,unitAmount"/>
             </entity-find>
+
+            <field name="filterBy"><header-field><radio no-current-selected-key="both"><option key="both" text="Both"/>
+                <option key="issued" text="Not Issued"/><option key="billed" text="Not Invoiced"/></radio></header-field></field>
 
             <field name="placedDate"><header-field show-order-by="true"><date-period/></header-field>
                 <default-field><display format="yyyy-MM-dd"/></default-field></field>
