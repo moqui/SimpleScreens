@@ -20,10 +20,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="editSurvey"><default-response url="../EditSurvey"/></transition>
 
     <actions>
-        <set field="purposeEnumId" value="DbfpSurvey"/>
-        <entity-find entity-name="moqui.screen.form.DbForm" list="surveyList">
-            <search-form-inputs default-order-by="description"/>
-            <econdition field-name="purposeEnumId" from="purposeEnumId"/></entity-find>
+        <set field="purposeEnumId" from="purposeEnumId ?: 'DbfpSurvey'"/>
     </actions>
     <widgets>
         <container-box>
@@ -41,6 +38,9 @@ along with this software (see the LICENSE.md file). If not, see
             <box-body-nopad>
                 <form-list name="SurveyList" list="surveyList" skip-form="true" header-dialog="true" select-columns="true"
                            saved-finds="true" show-csv-button="true">
+                    <entity-find entity-name="moqui.screen.form.DbForm" list="surveyList">
+                        <search-form-inputs default-order-by="description"/></entity-find>
+
                     <field name="formId">
                         <header-field title="Survey ID" show-order-by="case-insensitive"><text-find size="10" hide-options="true"/></header-field>
                         <default-field><link url="editSurvey" text="${formId}" link-type="anchor"/></default-field>
@@ -48,6 +48,16 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="description">
                         <header-field title="Description" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
                         <default-field><link url="editSurvey" text="${description}" link-type="anchor"/></default-field>
+                    </field>
+                    <field name="purposeEnumId">
+                        <header-field title="Purpose">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                <set field="enumTypeId" value="DbFormPurpose"/><set field="allowEmpty" value="true"/>
+                                <set field="showNot" value="true"/></widget-template-include>
+                        </header-field>
+                        <default-field>
+                            <display-entity entity-name="moqui.basic.Enumeration"/>
+                        </default-field>
                     </field>
                     <field name="comments">
                         <header-field title="Comments" show-order-by="case-insensitive"><text-find size="25" hide-options="true"/></header-field>
