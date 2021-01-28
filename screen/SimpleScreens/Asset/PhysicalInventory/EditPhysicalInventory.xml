@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-include="false" default-menu-title="Edit Physical Inventory">
+
+    <parameter name="physicalInventoryId" required="true"/>
+
+    <transition name="editAsset"><default-response url="../../Asset/AssetDetail"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Catalog/Product/EditProduct"/></transition>
+    <transition name="editFacility"><default-response url="//${appRoot}/Facility/EditFacility"/></transition>
+
+    <transition name="updatePhysicalInventoryDate"><service-call name="mantle.product.AssetServices.update#PhysicalInventoryDate"/>
+        <default-response url="."/></transition>
+
+    <actions>
+        <entity-find-one entity-name="mantle.product.asset.PhysicalInventory" value-field="physicalInventory"/>
+    </actions>
+    <widgets>
+        <container-row><row-col md="6">
+            <form-single name="UpdateMasterEntityValue" transition="updatePhysicalInventoryDate" map="physicalInventory">
+                <field name="physicalInventoryId"><default-field><display/></default-field></field>
+                <field name="statusId"><default-field title="Status">
+                    <display-entity entity-name="moqui.basic.StatusItem"/></default-field></field>
+                <field name="facilityId"><default-field title="Facility">
+                    <link url="editFacility" entity-name="mantle.facility.Facility" text="FacilityNameTemplate" link-type="anchor"/></default-field></field>
+                <field name="physicalInventoryDate"><default-field title="Date">
+                    <date-time type="date-time"/></default-field></field>
+                <field name="comments"><default-field><text-area cols="100" rows="4"/></default-field></field>
+                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+            </form-single>
+        </row-col><row-col md="6">
+            <container-box><box-header title="Asset Adjustments"/><box-body-nopad>
+                <form-list name="AssetDetailList" list="assetList" skip-form="true">
+                    <entity-find entity-name="mantle.product.asset.AssetAndDetailSummary" list="assetList">
+                        <econdition field-name="physicalInventoryId"/>
+                        <select-field field-name="productId,pseudoId,productName"/>
+                        <order-by field-name="pseudoId"/>
+                    </entity-find>
+
+                    <field name="assetId"><default-field title="Asset">
+                        <link url="editAsset" text="${assetId}" link-type="anchor"/></default-field></field>
+                    <field name="productId"><default-field title="Product">
+                        <link url="editProduct" text="ProductNameTemplate" link-type="anchor"/></default-field></field>
+                    <field name="effectiveDate"><default-field><display/></default-field></field>
+                    <field name="availableToPromiseDiff"><default-field title="ATP Diff"><display/></default-field></field>
+                    <field name="quantityOnHandDiff"><default-field title="QOH Diff"><display/></default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
+        </row-col></container-row>
+    </widgets>
+</screen>
