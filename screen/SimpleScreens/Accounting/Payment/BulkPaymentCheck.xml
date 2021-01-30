@@ -39,13 +39,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <script><![CDATA[
                     paymentIds = new StringBuilder()
                     for (int i = 0; ; i++) {
-                        if ((context.get("_useRowSubmit") == "true" || context.get("_useRowSubmit_" + i) == "true")
-                                && context.get("_rowSubmit_" + i) != "true") continue
                         String curKey = "paymentId_" + i
                         if (context.containsKey(curKey)) {
+                            if ((context.get("_useRowSubmit") == "true" || context.get("_useRowSubmit_" + i) == "true")
+                                    && context.get("_rowSubmit_" + i) != "true") continue
                             if (paymentIds.length() > 0) paymentIds.append(",")
                             paymentIds.append(context.get(curKey))
-                        } else { break }
+                        } else {
+                            break
+                        }
                     }
                 ]]></script>
             </else></if>
@@ -93,11 +95,11 @@ along with this software (see the LICENSE.md file). If not, see
             <container-row><row-col md="2"><label text="Last Check Number" type="strong"/></row-col><row-col md="10">
                 <label text="${lastCheckNumber} (update with link above)"/></row-col></container-row>
         </widgets><fail-widgets>
-            <label text="To assign check numbers select a bank account in From Payment Method."/>
+            <label text="To assign check numbers select a bank account in From Payment Method (in Find Options)."/>
         </fail-widgets></section>
 
-        <form-list name="PaymentList" list="paymentList" multi="true" transition="handleSubmit"
-                header-dialog="true" saved-finds="true" select-columns="true">
+        <form-list name="PaymentList" list="paymentList" multi="true" transition="handleSubmit" header-dialog="true"
+                saved-finds="true" select-columns="true" show-csv-button="true" show-xlsx-button="true" show-page-size="true">
             <row-actions>
                 <if condition="lastCheckNumber">
                     <set field="phMap.lastCheckNumber" from="phMap.lastCheckNumber + 1"/>
@@ -105,7 +107,26 @@ along with this software (see the LICENSE.md file). If not, see
                 </if>
             </row-actions>
 
-            <field name="_useRowSubmit"><default-field><hidden default-value="true"/></default-field></field>
+            <row-selection id-field="paymentId">
+                <action disable-condition="bankAccount == null" disable-message="Select a From Payment Method to assign check numbers">
+                    <form-single name="PaymentListAssignRef" transition="handleSubmit">
+                        <field name="paymentMethodId"><default-field><hidden/></default-field></field>
+                        <field name="setRefNums"><default-field>
+                            <submit text="Assign Check Numbers" type="success"/></default-field></field>
+                    </form-single>
+                </action>
+                <action><form-single name="PaymentListActions" transition="handleSubmit">
+                    <field name="checksPdf"><default-field><submit text="Checks PDF" type="info"/></default-field></field>
+                    <field name="detailsPdf"><default-field><submit text="Details PDF" type="info"/></default-field></field>
+                    <field name="setAuthorized"><default-field title="Set Authorized"><submit/></default-field></field>
+                    <field name="setDelivered"><default-field title="Set Delivered"><submit/></default-field></field>
+                    <field-layout><field-row-big><field-ref name="checksPdf"/><field-ref name="detailsPdf"/>
+                        <field-ref name="setAuthorized"/><field-ref name="setDelivered"/></field-row-big></field-layout>
+                </form-single></action>
+            </row-selection>
+
+            <hidden-parameters><parameter name="_useRowSubmit" value="true"/></hidden-parameters>
+
             <field name="paymentId"><default-field><hidden/></default-field></field>
             <field name="paymentMethodIdSave" from="paymentMethodId"><default-field><hidden/></default-field></field>
 
@@ -176,14 +197,16 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="amount" align="right"><header-field show-order-by="true"/><default-field title="Amount">
                 <display currency-unit-field="amountUomId" also-hidden="false"/></default-field></field>
 
-            <field name="setRefNums"><conditional-field condition="bankAccount != null" title="Assign Ref (Check) Numbers"><submit/></conditional-field>
-                <default-field title=""><ignored/></default-field></field>
-            <field name="checksPdf"><default-field title="Checks PDF"><submit/></default-field></field>
-            <field name="detailsPdf"><default-field title="Details PDF"><submit/></default-field></field>
+            <field name="setRefNums">
+                <conditional-field condition="bankAccount != null" title=""><submit text="Assign Check Numbers" type="success"/></conditional-field>
+                <default-field title=""><ignored/></default-field>
+            </field>
+            <field name="checksPdf"><default-field title=""><submit text="Checks PDF" type="info"/></default-field></field>
+            <field name="detailsPdf"><default-field title=""><submit text="Details PDF" type="info"/></default-field></field>
             <field name="setAuthorized"><default-field title="Set Authorized"><submit/></default-field></field>
             <field name="setDelivered"><default-field title="Set Delivered"><submit/></default-field></field>
-            <field name="findButton"><header-field title="Find"><submit/></header-field>
-                <default-field><display text=" "/></default-field></field>
+
+            <field name="findButton"><header-field title="Find"><submit/></header-field></field>
         </form-list>
     </widgets>
 </screen>
