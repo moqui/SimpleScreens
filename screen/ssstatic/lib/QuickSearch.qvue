@@ -1,0 +1,32 @@
+<!-- This software is in the public domain under CC0 1.0 Universal plus a Grant of Patent License. -->
+<template>
+    <q-input v-if="searchPath" dark dense name="queryString" v-model="queryString" :size="inputSize" @focus="inputSize=20" @blur="inputSize=8" @keydown.enter.prevent="goSearch()">
+        <template v-slot:append><q-btn dark dense flat type="submit" name="submitButton" icon="search" @click="goSearch()"></q-btn></template>
+        <q-tooltip>Search or Lookup by ID</q-tooltip>
+    </q-input>
+</template>
+<script>
+module.exports = {
+    data: function() { return { queryString:'', inputSize:8 } },
+    methods: {
+        goSearch: function() {
+            var url = this.searchPath + "?queryString=" + encodeURIComponent(this.queryString);
+            this.$root.setUrl(url);
+        }
+    },
+    computed: {
+        searchPath: function() {
+            // return "/apps/marble/QuickSearch";
+            var navMenuList = this.$root.navMenuList;
+            if (!navMenuList || navMenuList.length < 2) return null;
+            var curAppSubscreens = navMenuList[1].subscreens;
+            if (!curAppSubscreens) return null;
+            for (var i = 0; i < curAppSubscreens.length; i++) {
+                var curSs = curAppSubscreens[i];
+                if (curSs && curSs.name === 'QuickSearch') return curSs.path;
+            }
+            return null;
+        }
+    }
+};
+</script>

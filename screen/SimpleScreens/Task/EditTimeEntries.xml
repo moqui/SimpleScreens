@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a 
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Time" default-menu-index="1">
+
+    <parameter name="workEffortId" required="true"/>
+
+    <transition name="editUser"><default-response url="//${appRoot}/Party/EditParty"/></transition>
+
+    <transition name="addTaskTime"><service-call name="mantle.work.TaskServices.add#TaskTime"/>
+        <default-response url="."/></transition>
+    <transition name="deleteTimeEntry"><service-call name="mantle.work.TimeServices.delete#TimeEntry"/>
+        <default-response url="."/></transition>
+
+    <transition name="clockInTimeEntry"><service-call name="mantle.work.TimeServices.create#TimeEntryClockIn"/>
+        <default-response url="."/></transition>
+
+    <subscreens>
+        <subscreens-item name="EditTimeEntry" location="component://SimpleScreens/screen/SimpleScreens/Party/PartyTimeEntries/EditTimeEntry.xml"/>
+    </subscreens>
+
+    <actions>
+        <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="workEffort"/>
+        <entity-find entity-name="mantle.work.time.TimeEntry" list="timeEntryList">
+            <econdition field-name="workEffortId"/>
+            <order-by field-name="fromDate"/><order-by field-name="lastUpdatedStamp"/>
+        </entity-find>
+
+        <entity-find entity-name="mantle.work.time.TimeEntry" list="openTimeEntryList">
+            <econdition field-name="partyId" from="partyId ?: ec.user.userAccount?.partyId"/>
+            <econdition field-name="thruDate" operator="is-null"/>
+            <order-by field-name="-fromDate"/>
+        </entity-find>
+        <set field="openTimeEntry" from="openTimeEntryList ? openTimeEntryList[0] : null"/>
+
+        <service-call name="mantle.humanres.PositionServices.get#PartyEmployersAndPositionClasses"
+                in-map="[partyId:partyId ?: ec.user.userAccount?.partyId]" out-map="context"/>
+    </actions>
+    <widgets>
+        <container-dialog id="ClockInDialog" button-text="Clock In" type="success" condition="openTimeEntry == null">
+            <form-single name="ClockInForm" transition="clockInTimeEntry">
+                <field name="workEffortId"><default-field><hidden/></default-field></field>
+                <field name="partyId" from="ec.user.userAccount.partyId"><default-field><hidden/></default-field></field>
+                <field name="rateTypeEnumId"><default-field title="Rate Type">
+                    <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumGroupDropDown">
+                        <set field="enumGroupEnumId" value="EngRateCommonEntry"/><set field="noCurrentSelectedKey" value="RatpStandard"/></widget-template-include>
+                </default-field></field>
+                <field name="comments"><default-field><text-area cols="100" rows="3"/></default-field></field>
+                <!-- NOTE: no fromDate default on server side so if left blank is more accurate time of form submit (was: from="ec.user.nowTimestamp") -->
+                <field name="fromDate"><default-field title="From" tooltip="Optional, defaults to now"><date-time minute-stepping="1"/></default-field></field>
+                <field name="submitButton"><default-field title="Clock In"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+
+        <form-single name="AddTaskTime" transition="addTaskTime" map="openTimeEntry">
+            <field name="timeEntryId"><default-field><hidden/></default-field></field>
+            <field name="workEffortId">
+                <conditional-field title="Task" condition="openTimeEntry != null &amp;&amp; openTimeEntry.workEffortId != workEffort.workEffortId"
+                        container-style="text-strong text-warning">
+                    <radio><option key="${workEffort.workEffortId}" text="Current Task: ${workEffort.workEffortId}"/>
+                        <option key="${openTimeEntry.workEffortId}" text="Open Time Entry Task: ${openTimeEntry.workEffortId}"/></radio>
+                </conditional-field>
+                <default-field><hidden/></default-field>
+            </field>
+            <field name="partyId"><default-field title="Worker">
+                <drop-down no-current-selected-key="${ec.user.userAccount.partyId}" current="selected">
+                    <entity-options key="${partyId}" text="${firstName} ${lastName} (${partyId})">
+                        <entity-find entity-name="WorkEffortPartyAndPerson">
+                            <date-filter/>
+                            <econdition field-name="workEffortId"/>
+                        </entity-find>
+                    </entity-options>
+                </drop-down>
+            </default-field></field>
+            <field name="rateTypeEnumId"><default-field title="Rate Type">
+                <drop-down no-current-selected-key="RatpStandard"><entity-options key="${enumId}" text="${description}">
+                    <entity-find entity-name="moqui.basic.Enumeration"><econdition field-name="enumTypeId" value="RateType"/></entity-find>
+                </entity-options></drop-down>
+            </default-field></field>
+            <field name="workTypeEnumId"><default-field title="Work Type"><drop-down allow-empty="true">
+                <list-options list="workTypeEnumerationList" key="${enumId}" text="${description}"/></drop-down></default-field></field>
+            <field name="emplPositionClassId"><default-field title="Position Class"><drop-down allow-empty="true">
+                <list-options list="emplPositionClassList" key="${emplPositionClassId}" text="${title}"/></drop-down></default-field></field>
+            <field name="comments"><default-field><text-area cols="60" rows="3"/></default-field></field>
+            <field name="remainingWorkTime"><default-field title="Remaining Hours">
+                <text-line size="5"/></default-field></field>
+            <field name="curRemainingWorkTime" from="workEffort.remainingWorkTime"><default-field title="Current Rem Hours">
+                <display/></default-field></field>
+
+            <field name="pieceCount"><default-field><text-line size="6"/></default-field></field>
+            <field name="breakHours"><default-field><text-line size="5" default-value="0"/></default-field></field>
+            <field name="instructions">
+                <conditional-field title="" condition="fromDate != null &amp;&amp; thruDate == null">
+                    <display text="To clock out now leave Hours and Thru empty; specify Hours or Thru if your clock out time is in the past"/></conditional-field>
+                <default-field title="">
+                    <display text="Enter values for 2 of the 3 below, or just Hours or From and Thru will be set to now"/></default-field>
+            </field>
+            <field name="hours"><default-field><text-line size="5"/></default-field></field>
+            <field name="fromDate"><default-field title="From"><date-time minute-stepping="1"/></default-field></field>
+            <field name="thruDate"><default-field title="Thru"><date-time minute-stepping="1"/></default-field></field>
+
+            <field name="submitButton"><default-field title="Add Time"><submit text="${timeEntryId ? 'Clock Out' : 'Add Time'}"/></default-field></field>
+
+            <field-layout>
+                <field-ref name="workEffortId"/>
+                <field-row><field-ref name="partyId"/><field-ref name="rateTypeEnumId"/></field-row>
+                <field-row><field-ref name="workTypeEnumId"/><field-ref name="emplPositionClassId"/></field-row>
+                <field-ref name="comments"/>
+                <field-row><field-ref name="curRemainingWorkTime"/><field-ref name="breakHours"/></field-row>
+                <field-row><field-ref name="remainingWorkTime"/><field-ref name="pieceCount"/></field-row>
+                <field-ref name="instructions"/>
+                <field-ref name="hours"/>
+                <field-row><field-ref name="fromDate"/><field-ref name="thruDate"/></field-row>
+                <field-ref name="submitButton"/>
+            </field-layout>
+        </form-single>
+
+        <form-list name="TimeEntryList" list="timeEntryList" skip-form="true">
+            <row-actions>
+                <!-- don't show rates to general users: <entity-find-one entity-name="mantle.humanres.rate.RateAmount" value-field="rateAmount" cache="true"/> -->
+            </row-actions>
+            <!-- <field name="timeEntryId"><default-field title="ID"><display also-hidden="false"/></default-field></field> -->
+            <field name="partyId"><default-field title="User">
+                <link url="editUser" entity-name="mantle.party.PartyDetail" text="PartyNameTemplate" link-type="anchor"/>
+            </default-field></field>
+            <field name="comments"><default-field><display also-hidden="false"/></default-field></field>
+            <field name="hours"><default-field><display format="0.00" also-hidden="false"/></default-field></field>
+            <field name="breakHours"><default-field title="Break"><display format="0.00" also-hidden="false"/></default-field></field>
+            <field name="timeRange"><default-field><display text="${ec.l10n.format(fromDate, '')} - ${ec.l10n.format(thruDate, '')}" also-hidden="false"/></default-field></field>
+            <field name="rateTypeEnumId"><default-field title="Rate Type"><display-entity entity-name="moqui.basic.Enumeration" key-field-name="enumId"/></default-field></field>
+            <!-- don't show rates to general users:
+            <field name="amount">
+                <conditional-field condition="rateAmount">
+                    <display text="${hours*rateAmount.rateAmount}" currency-unit-field="rateAmount.rateCurrencyUomId"/>
+                </conditional-field>
+                <default-field><display text=""/></default-field>
+            </field>
+            <field name="invoice"><default-field><display text="${invoiceId?:''}:${invoiceItemSeqId?:''}" also-hidden="false"/></default-field></field>
+            -->
+            <field name="editButton" align="right"><default-field title="">
+                <dynamic-dialog id="EditTimeEntryDialog" button-text="Edit" icon="fa fa-pencil" transition="EditTimeEntry"
+                    parameter-map="[partyId:partyId, timeEntryId:timeEntryId]"/>
+            </default-field>
+            </field>
+            <field name="deleteButton"><default-field title="">
+                <link url="deleteTimeEntry" icon="fa fa-trash" confirmation="Are you sure?"/></default-field></field>
+        </form-list>
+    </widgets>
+</screen>

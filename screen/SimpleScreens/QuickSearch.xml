@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
+        default-menu-title="Quick Search" default-menu-index="2" menu-image="fa fa-search" menu-image-type="icon">
+
+    <!-- NOTE: QuickSearch.xml ~= QuickLookup.xml + Search.xml -->
+
+    <transition name="assetDetail"><default-response url="//apps/${appRoot}/Asset/AssetDetail"/></transition>
+    <transition name="editFacility"><default-response url="//apps/${appRoot}/Facility/EditFacility"/></transition>
+    <transition name="orderDetail"><default-response url="//apps/${appRoot}/Order/OrderDetail"/></transition>
+    <transition name="editReturn"><default-response url="//apps/${appRoot}/Return/EditReturn"/></transition>
+    <transition name="shipmentDetail"><default-response url="//apps/${appRoot}/Shipment/ShipmentDetail"/></transition>
+
+    <transition name="picklistDetail"><default-response url="//apps/${appRoot}/Shipping/Picklist/PicklistDetail"/></transition>
+    <transition name="editRun"><default-response url="//apps/${appRoot}/Manufacturing/Run/EditRun"/></transition>
+    <transition name="projectSummary"><default-response url="//apps/${appRoot}/Project/ProjectSummary"/></transition>
+    <transition name="taskSummary"><default-response url="//apps/${appRoot}/Task/TaskSummary"/></transition>
+
+    <transition name="editParty"><default-response url="//apps/${appRoot}/Party/EditParty"/></transition>
+    <transition name="editSupplier"><default-response url="//apps/${appRoot}/Supplier/EditSupplier"/></transition>
+    <transition name="editCustomer"><default-response url="//apps/${appRoot}/Customer/EditCustomer"/></transition>
+    <transition name="editProduct"><default-response url="//apps/${appRoot}/Catalog/Product/EditProduct"/></transition>
+
+    <transition name="editPayment"><default-response url="//apps/${appRoot}/Accounting/Payment/EditPayment"/></transition>
+    <transition name="editInvoice"><default-response url="//apps/${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
+    <transition name="editTransaction"><default-response url="//apps/${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
+
+    <actions>
+        <set field="indexName" from="searchIndexName"/>
+        <set field="originalQueryString" from="queryString"/>
+        <if condition="queryString">
+            <!-- call lookup with async future call -->
+            <set field="lookupFuture" from="ec.service.async().name('mantle.GeneralServices.lookup#ById').parameter('lookupId', originalQueryString).callFuture()"/>
+            <!-- do search sync -->
+            <service-call name="mantle.GeneralServices.search#MantleFiltered" in-map="context" out-map="context"/>
+            <!-- get lookup async results, wait at most 10 seconds -->
+            <set field="lookupResults" from="lookupFuture.get(10, java.util.concurrent.TimeUnit.SECONDS)"/>
+            <script>if (lookupResults) context.putAll(lookupResults)</script>
+        </if>
+    </actions>
+    <widgets>
+        <container>
+            <label text="Search + Lookup by ID" type="strong"/>
+            <label text=" for Asset, Facility, Invoice, Order, Return, Party, Badge, Payment, Product, Shipment, Work Effort (Project, Task, Picklist, Production Run), GL Transaction"/>
+        </container>
+
+        <form-single name="SearchOptions" transition="." extends="component://SimpleScreens/screen/SimpleScreens/Search.xml#SearchOptions"/>
+
+        <section-include name="AssetSection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="FacilitySection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="InvoiceSection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="OrderSection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="ReturnSection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="PartySection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="PaymentSection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="ProductSection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="ShipmentSection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="WorkEffortSection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+        <section-include name="AcctgTransSection" location="component://SimpleScreens/screen/SimpleScreens/QuickLookup.xml"/>
+
+        <!-- show messages, mainly for 'Invalid search...' message -->
+        <section-iterate name="messageInfos" list="ec.message.messageInfos" entry="messageInfo"><widgets>
+            <container><label text="${messageInfo.message}" type="strong" style="text-${messageInfo.typeString}"/></container>
+        </widgets></section-iterate>
+
+        <container-box><box-header title="Search Results"/><box-body-nopad>
+            <form-list name="SearchResults" list="documentList" extends="component://SimpleScreens/screen/SimpleScreens/Search.xml#SearchResults"/>
+            <label text="Full search string: ${queryString?:''}" type="p"/>
+            <link url="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax"
+                    url-type="plain" link-type="anchor" target-window="_blank" text="Search String Reference"/>
+        </box-body-nopad></container-box>
+    </widgets>
+</screen>
