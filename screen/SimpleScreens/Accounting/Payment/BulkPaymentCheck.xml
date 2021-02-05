@@ -108,14 +108,19 @@ along with this software (see the LICENSE.md file). If not, see
             </row-actions>
 
             <row-selection id-field="paymentId">
-                <action disable-condition="bankAccount == null" disable-message="Select a From Payment Method to assign check numbers">
-                    <form-single name="PaymentListAssignRef" transition="handleSubmit">
+                <action>
+                    <form-single name="PaymentListAssignRef" transition="handleSubmit" pass-through-parameters="true">
                         <field name="paymentMethodId"><default-field><hidden/></default-field></field>
-                        <field name="setRefNums"><default-field>
-                            <submit text="Assign Check Numbers" type="success"/></default-field></field>
+                        <field name="setRefNums">
+                            <conditional-field condition="bankAccount == null">
+                                <link url="invalid" text="Assign Check Numbers" link-type="anchor-button"
+                                        tooltip="Select a From Payment Method to assign check numbers"/>
+                            </conditional-field>
+                            <default-field><submit text="Assign Check Numbers" type="success"/></default-field>
+                        </field>
                     </form-single>
                 </action>
-                <action><form-single name="PaymentListActions" transition="handleSubmit">
+                <action><form-single name="PaymentListActions" transition="handleSubmit" pass-through-parameters="true">
                     <field name="checksPdf"><default-field><submit text="Checks PDF" type="info"/></default-field></field>
                     <field name="detailsPdf"><default-field><submit text="Details PDF" type="info"/></default-field></field>
                     <field name="setAuthorized"><default-field title="Set Authorized"><submit/></default-field></field>
