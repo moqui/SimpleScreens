@@ -33,8 +33,11 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="createShippingGateway"><service-call name="create#mantle.product.store.ProductStoreShippingGateway"/>
         <default-response url="."/></transition>
+    <transition name="updateShippingGateway"><service-call name="update#mantle.product.store.ProductStoreShippingGateway"/>
+        <default-response url="."/></transition>
     <transition name="deleteShippingGateway"><service-call name="delete#mantle.product.store.ProductStoreShippingGateway"/>
         <default-response url="."/></transition>
+
     <transition name="createPaymentGateway"><service-call name="create#mantle.product.store.ProductStorePaymentGateway"/>
         <default-response url="."/></transition>
     <transition name="deletePaymentGateway"><service-call name="delete#mantle.product.store.ProductStorePaymentGateway"/>
@@ -52,7 +55,7 @@ along with this software (see the LICENSE.md file). If not, see
         <order-map-list list="localeStringList"><order-by field-name="name"/></order-map-list>
     </actions>
     <widgets>
-        <container-row><row-col lg="7">
+        <container-row><row-col lg="5">
             <form-single name="EditStoreForm" map="store" transition="updateStore">
                 <field name="productStoreId"><default-field title="Product Store ID">
                     <display text="${productStoreId}"/>
@@ -154,9 +157,9 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
             </form-single>
-        </row-col>
 
-        <row-col lg="5">
+        </row-col><row-col lg="7">
+
             <section name="ShippingOptionsSection">
                 <widgets>
                     <container-box><box-header title="Shipping Options"/><box-toolbar>
@@ -207,11 +210,6 @@ along with this software (see the LICENSE.md file). If not, see
             </section>
 
             <section name="ShippingGatewaysSection">
-                <actions>
-                    <entity-find entity-name="mantle.product.store.ProductStoreShippingGateway" list="shippingGatewayList">
-                        <econdition field-name="productStoreId" value="${productStoreId}" />
-                    </entity-find>
-                </actions>
                 <widgets>
                     <container-box>
                         <box-header title="Shipping Gateways"/>
@@ -232,26 +230,86 @@ along with this software (see the LICENSE.md file). If not, see
                                         </entity-find>
                                     </entity-options></drop-down>
                                 </default-field></field>
+
+                                <field name="billingType"><default-field><drop-down allow-empty="true">
+                                    <option key="SENDER" text="Sender"/><option key="RECIPIENT" text="Recipient"/>
+                                    <option key="THIRD_PARTY" text="Third Party"/>
+                                </drop-down></default-field></field>
+                                <field name="billingAccount"><default-field><text-line size="40"/></default-field></field>
+                                <field name="billingCountry"><default-field><drop-down allow-empty="true">
+                                    <entity-options key="${geoCodeAlpha2}" text="${geoCodeAlpha2} - ${geoName}">
+                                        <entity-find entity-name="moqui.basic.Geo">
+                                            <order-by field-name="geoCodeAlpha2"/>
+                                        </entity-find>
+                                    </entity-options>
+                                </drop-down></default-field></field>
+                                <field name="billingZip"><default-field><text-line size="10"/></default-field></field>
+
+                                <field name="insurancePackageThreshold"><default-field title="Insurance Threshold"
+                                        tooltip="Buy insurance on packages where total cost of contents is above this amount">
+                                    <text-line size="10"/>
+                                </default-field></field>
+                                <field name="insurancePercent"><default-field title="Insurance Percent"
+                                        tooltip="Record estimated cost of insurance using this percentage of the insured amount">
+                                    <text-line size="6"/>
+                                </default-field></field>
                                 <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
                             </form-single>
                         </container-dialog></box-toolbar>
                         <box-body>
-                            <form-list name="ShippingGatewaysForm" list="shippingGatewayList" >
-                                <field name="carrierPartyId">
-                                    <header-field title="Carrier" />
-                                    <default-field>
-                                        <link url="editParty" text="PartyNameTemplate" entity-name="mantle.party.PartyDetail" parameter-map="[partyId:carrierPartyId]" link-type="anchor"/>
-                                    </default-field>
-                                </field>
-                                <field name="shippingGatewayConfigId">
-                                    <header-field title="Shipment Gateway" />
-                                    <default-field><link url="editShippingGateway" entity-name="mantle.shipment.carrier.ShippingGatewayConfig" text="${description}" link-type="anchor"/></default-field>
-                                </field>
+                            <form-list name="ShippingGatewaysForm" list="shippingGatewayList" transition="updateShippingGateway">
+                                <entity-find entity-name="mantle.product.store.ProductStoreShippingGateway" list="shippingGatewayList">
+                                    <econdition field-name="productStoreId"/>
+                                    <select-field field-name="productStoreId,carrierPartyId,shippingGatewayConfigId"/>
+                                </entity-find>
+                                <hidden-parameters><parameter name="productStoreId"/></hidden-parameters>
+
+                                <field name="carrierPartyId"><default-field title="Carrier">
+                                    <display text=" "/>
+                                    <link url="editParty" text="PartyNameTemplate" entity-name="mantle.party.PartyDetail" parameter-map="[partyId:carrierPartyId]" link-type="anchor"/>
+                                </default-field></field>
+                                <field name="shippingGatewayConfigId"><default-field title="Shipment Gateway">
+                                    <display text=" "/>
+                                    <link url="editShippingGateway" entity-name="mantle.shipment.carrier.ShippingGatewayConfig" text="${description}" link-type="anchor"/>
+                                </default-field></field>
+
+                                <field name="billingType"><default-field><drop-down allow-empty="true">
+                                    <option key="SENDER" text="Sender"/><option key="RECIPIENT" text="Recipient"/>
+                                    <option key="THIRD_PARTY" text="Third Party"/>
+                                </drop-down></default-field></field>
+                                <field name="billingAccount"><default-field><text-line size="25"/></default-field></field>
+                                <field name="billingCountry"><default-field><drop-down allow-empty="true">
+                                    <entity-options key="${geoCodeAlpha2}" text="${geoCodeAlpha2} - ${geoName}">
+                                        <entity-find entity-name="moqui.basic.Geo">
+                                            <econdition field-name="geoTypeEnumId" value="GEOT_COUNTRY"/>
+                                            <order-by field-name="geoCodeAlpha2"/>
+                                        </entity-find>
+                                    </entity-options>
+                                </drop-down></default-field></field>
+                                <field name="billingZip"><default-field><text-line size="10"/></default-field></field>
+
+                                <field name="insurancePackageThreshold"><default-field title="Ins. Threshold"
+                                        tooltip="Buy insurance on packages where total cost of contents is above this amount">
+                                    <text-line size="10"/>
+                                </default-field></field>
+                                <field name="insurancePercent"><default-field title="Ins. Percent"
+                                        tooltip="Record estimated cost of insurance using this percentage of the insured amount">
+                                    <text-line size="6"/>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title=""><submit text="Update"/></default-field></field>
                                 <field name="deleteButton" align="right"><default-field title="">
                                     <link url="deleteShippingGateway" icon="fa fa-trash"
-                                          parameter-map="[productStoreId:productStoreId, carrierPartyId:carrierPartyId, shippingGatewayConfigId:shippingGatewayConfigId]"
+                                          parameter-map="[productStoreId:productStoreId, carrierPartyId:carrierPartyId]"
                                           confirmation="Are you sure you want to remove this Shipping Gateway?"/>
                                 </default-field></field>
+                                
+                                <columns>
+                                    <column><field-ref name="carrierPartyId"/><field-ref name="shippingGatewayConfigId"/></column>
+                                    <column><field-ref name="billingCountry"/><field-ref name="billingAccount"/></column>
+                                    <column><field-ref name="billingZip"/><field-ref name="billingType"/></column>
+                                    <column><field-ref name="insurancePackageThreshold"/><field-ref name="insurancePercent"/></column>
+                                    <column><field-ref name="submitButton"/><field-ref name="deleteButton"/></column>
+                                </columns>
                             </form-list>
                         </box-body>
                     </container-box>
