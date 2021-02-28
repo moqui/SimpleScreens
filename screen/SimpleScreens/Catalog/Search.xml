@@ -137,16 +137,35 @@ along with this software (see the LICENSE.md file). If not, see
         <link url="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax"
                 url-type="plain" link-type="anchor" target-window="_blank" text="Search String Reference"/>
 
-        <form-list name="ProductsForm" list="documentList" list-entry="document" skip-form="true" header-dialog="true" select-columns="true">
+        <form-list name="ProductsForm" list="documentList" list-entry="document" skip-form="true" header-dialog="true"
+                select-columns="true" show-page-size="true">
             <row-actions>
                 <set field="productId" from="document?._id"/>
                 <script>if (document) context.putAll(document)</script>
             </row-actions>
 
-            <row-selection id-field="productId">
+            <row-selection id-field="productId" parameter="productIdList" list-mode="true">
+                <action>
+                    <dialog button-text="Add to Category" title="Add Selected Products to Category"/>
+                    <form-single name="AddCategoryFormSelection" transition="addProductCategory" pass-through-parameters="true">
+                        <field name="productCategoryId"><default-field title="Category">
+                            <drop-down><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Add Selected"><submit/></default-field></field>
+                    </form-single>
+                </action>
+                <action>
+                    <dialog button-text="Remove from Category" title="Remove Selected Products from Category"/>
+                    <form-single name="RemoveCategoryFormSelection" transition="removeProductCategory" pass-through-parameters="true">
+                        <field name="productCategoryId"><default-field title="Category">
+                            <drop-down><dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Remove Selected"><submit/></default-field></field>
+                    </form-single>
+                </action>
                 <action>
                     <dialog button-text="Add Feature" title="Add Feature to Selected Products"/>
-                    <form-single name="AddFeatureFormSelection" transition="addProductFeature">
+                    <form-single name="AddFeatureFormSelection" transition="addProductFeature" pass-through-parameters="true">
                         <field name="productFeatureId"><default-field title="Feature">
                             <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
                         </default-field></field>
@@ -162,14 +181,11 @@ along with this software (see the LICENSE.md file). If not, see
                 </action>
                 <action>
                     <dialog button-text="Remove Feature" title="Remove Feature from Selected Products"/>
-                    <form-single name="RemoveFeatureFormSelection" transition="removeProductFeature">
-                        <field name="queryString"><default-field><hidden/></default-field></field>
-                        <field name="productInfo"><default-field><display text="${productIds?.size() ?: '0'} Products"/></default-field></field>
+                    <form-single name="RemoveFeatureFormSelection" transition="removeProductFeature" pass-through-parameters="true">
                         <field name="productFeatureId"><default-field title="Feature">
                             <drop-down allow-empty="true"><dynamic-options transition="getFeatureList" server-search="true" min-length="0"/></drop-down>
                         </default-field></field>
-                        <field name="submitButton"><default-field title="Remove from All"><submit/></default-field></field>
-                        <field name="productIdList" from="productIds.join(',')"><default-field><hidden/></default-field></field>
+                        <field name="submitButton"><default-field title="Remove from Selected"><submit/></default-field></field>
                     </form-single>
                 </action>
             </row-selection>
