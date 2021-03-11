@@ -26,8 +26,29 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="changePassword"><service-call name="org.moqui.impl.UserServices.update#Password"/>
         <default-response url="."/><error-response url="."/></transition>
 
+    <transition name="createUserAuthcFactorTotp"><service-call name="mantle.party.PartyServices.create#UserAuthcFactorTotp"/>
+        <default-response url="."/></transition>
+    <transition name="verifyUserAuthcFactorTotp"><service-call name="mantle.party.PartyServices.verify#UserAuthcFactorTotp"/>
+        <default-response url="."/></transition>
+    <transition name="createUserAuthcFactorSingleUse">
+        <service-call name="mantle.party.PartyServices.create#UserAuthcFactorSingleUse"/>
+        <actions><script>ec.web.sessionAttributes.put("singleUseCodes", singleUseCodes)</script></actions>
+        <default-response url="."/></transition>
+    <transition name="createUserAuthcFactorEmail"><service-call name="mantle.party.PartyServices.create#UserAuthcFactorEmail"/>
+        <default-response url="."/></transition>
+    <transition name="factorSubmit"><service-call name="mantle.party.PartyServices.delete#UserAuthcFactor" in-map="context"/>
+        <default-response url="."/></transition>
+
     <actions>
         <entity-find-one entity-name="mantle.party.PersonAndUserAccount" value-field="personAndUserAccount"/>
+
+        <set field="singleUseCodes" from="ec.web.sessionAttributes.remove('singleUseCodes')"/>
+        <service-call name="mantle.party.PartyServices.get#UserAuthcFactorActiveList" in-map="[userId:userId]" out-map="activeList"/>
+        <set field="authList" type="List" from="[]"/>
+        <iterate list="activeList.activeList" entry="active">
+            <if condition="!active.fromFactorId"><script>authList.add(active)</script></if>
+        </iterate>
+
         <if condition="personAndUserAccount == null"><set field="personAndUserAccount" from="ec.user.userAccount"/></if>
 
         <if condition="partyId &amp;&amp; !personAndUserAccount?.emailAddress">
@@ -69,6 +90,88 @@ along with this software (see the LICENSE.md file). If not, see
 
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                 </form-single>
+                <section name="SingleUseCodesDisplay" condition="singleUseCodes">
+                    <actions>
+                        <set field="singleUseCodes1" from="[]"/><set field="singleUseCodes2" from="[]"/><set field="singleUseCodes3" from="[]"/>
+                        <script>
+                            int i;
+                            for(code in singleUseCodes){
+                            if( i%3 == 0 ) { singleUseCodes1.add(singleUseCodes[i]);}
+                            else if(i%3==1){ singleUseCodes2.add(singleUseCodes[i]);}
+                            else if(i%3==2){ singleUseCodes3.add(singleUseCodes[i]);}
+                            i++; }</script>
+                    </actions>
+                    <widgets>
+                        <container-box>
+                            <box-header><label text="Single Use Codes" style="text-danger" type="h5"/></box-header>
+                            <box-body>
+                                <label text="Write down these codes. They will only appear once." style="text-danger"/>
+                                <container-row>
+                                    <row-col lg="4">
+                                        <container type="ul">
+                                            <section-iterate name="SingleUseCodes1" list="singleUseCodes1" entry="code1">
+                                                <widgets><container type="li"><label text="${code1}" style="text-danger"/></container></widgets></section-iterate>
+                                        </container></row-col>
+                                    <row-col lg="4">
+                                        <container type="ul">
+                                            <section-iterate name="SingleUseCodes2" list="singleUseCodes2" entry="code2">
+                                                <widgets><container type="li"><label text="${code2}" style="text-danger"/></container></widgets>
+                                            </section-iterate></container></row-col>
+                                    <row-col lg="4">
+                                        <container type="ul">
+                                            <section-iterate name="SingleUseCodes3" list="singleUseCodes3" entry="code3">
+                                                <widgets><container type="li"><label text="${code3}" style="text-danger"/></container></widgets>
+                                            </section-iterate></container></row-col>
+                                </container-row>
+                            </box-body></container-box>
+                    </widgets>
+                </section>
+                <container-box><box-header title="Authentication Methods"/>
+                    <box-toolbar>
+                        <container-dialog id="CreateTotpDialog" button-text="Add Authenticator App">
+                            <form-single name="CreateUserAuthcFactorTotp" transition="createUserAuthcFactorTotp">
+                                <field name="userId" from="userId"><default-field><hidden/></default-field></field>
+                                <field name="thruDate" from="ec.user.nowTimestamp + 365"><default-field><date-time/></default-field></field>
+                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                            </form-single></container-dialog>
+                        <container-dialog id="AddSingleUseDialog" button-text="Add Single Use Codes">
+                            <form-single name="CreateUserAuthcFactorSingleUse" transition="createUserAuthcFactorSingleUse">
+                                <field name="userId" from="userId"><default-field><hidden/></default-field></field>
+                                <field name="fromDate" from="ec.user.nowTimestamp + 365"><default-field><date-time/></default-field></field>
+                                <field name="numberOfCodes"><default-field title="Number of Codes"><text-line size="30" input-type="Integer" default-value="6"/></default-field></field>
+                                <field name="submitButton"><default-field title="Add" ><submit/></default-field></field>
+                            </form-single></container-dialog>
+                        <container-dialog id="AddEmailFactor" button-text="Add Email Factor">
+                            <form-single name="CreateUserAuthcFactorEmail" transition="createUserAuthcFactorEmail">
+                                <field name="userId" from="userId"><default-field><hidden/></default-field></field>
+                                <field name="thruDate" from="ec.user.nowTimestamp + 365"><default-field><date-time/></default-field></field>
+                                <field name="factorOption" from="ec.user.userAccount.emailAddress"><default-field title="Email"><text-line size="30"/></default-field></field>
+                                <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog>
+
+                    </box-toolbar><box-body-nopad>
+                        <form-list name="UserAuthcFactorList" list="authList" transition="factorSubmit">
+                            <field name="factorId"><default-field><hidden/></default-field></field>
+                            <field name="userId" from="userId"><default-field><hidden/></default-field></field>
+                            <field name="fromFactorId"><header-field/><default-field><hidden/></default-field></field>
+                            <field name="factorTypeEnumId"><header-field title="Factor Type"/><default-field><display-entity entity-name="moqui.basic.Enumeration" text="${description}"/></default-field></field>
+                            <field name="fromDate"><default-field><display/></default-field></field>
+                            <field name="thruDate"><default-field><display/></default-field></field>
+                            <field name="action">
+                                <conditional-field condition="needsValidation == 'Y' &amp;&amp; factorTypeEnumId == 'UafTotp'">
+                                    <dynamic-dialog id="VerifyTotpDialog" button-text="Verify" transition="VerifyTotp" parameter-map="[userId:userId, factorId:factorId, verify:true]"/></conditional-field>
+                                <conditional-field condition="needsValidation == 'Y' &amp;&amp; factorTypeEnumId == 'UafEmail'">
+                                    <dynamic-dialog id="VerifyEmailDialog" button-text="Verify" transition="VerifyEmail" parameter-map="[userId:userId, factorId:factorId, userEmail:factorOption]"/></conditional-field>
+                                <conditional-field condition="needsValidation == 'N' &amp;&amp; factorTypeEnumId == 'UafEmail'">
+                                    <label text="${factorOption}"/></conditional-field>
+                            </field>
+                            <field name="needsValidation"><default-field><hidden/></default-field></field>
+                            <field name="delete"><default-field title=" "><submit text=" " icon="fa fa-trash"/></default-field></field>
+                        </form-list>
+                    </box-body-nopad>
+                </container-box>
+
             </panel-center>
         </container-panel>
     </widgets>
