@@ -23,6 +23,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="orderDetail"><default-response url="//${appRoot}/Order/OrderDetail"/></transition>
     <transition name="editInvoice"><default-response url="//${appRoot}/Accounting/Invoice/EditInvoice"/></transition>
     <transition name="editTransaction"><default-response url="//${appRoot}/Accounting/Transaction/EditTransaction"/></transition>
+    <transition name="editProduct"><default-response url="//${appRoot}/Product/EditProduct"/></transition>
     <transition name="assetDetail"><default-response url="//${appRoot}/Asset/AssetDetail"/></transition>
 
     <transition name="packShipment"><service-call name="mantle.shipment.ShipmentServices.pack#Shipment"/>
@@ -296,8 +297,18 @@ along with this software (see the LICENSE.md file). If not, see
                                         <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
                                             <field-map field-name="assetId" from="existingRes.assetId"/></entity-find-one>
                                     </actions><widgets>
+                                        <section name="ComponentProductSection" condition="assetLot.productId != sid.productId"><actions>
+                                            <entity-find-one entity-name="mantle.product.Product" value-field="componentProduct" cache="true">
+                                                <field-map field-name="productId" from="assetLot.productId"/></entity-find-one>
+                                        </actions><widgets>
+                                            <container><label text="Component: " type="strong"/>
+                                                <link url="editProduct" text="ProductNameTemplate" text-map="componentProduct"
+                                                        link-type="anchor" parameter-map="[productId:componentProduct.productId]"/>
+                                            </container>
+                                        </widgets></section>
                                         <container>
-                                            <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}" type="span"/>
+                                            <label text="Res: ${ec.l10n.format(existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(existingRes.quantityNotIssued, null)}"
+                                                    type="span" style="${existingRes.quantityNotAvailable ? 'text-danger' : ''}"/>
                                             <link url="assetDetail" text="Asset ${existingRes.assetId}" parameter-map="[assetId:existingRes.assetId]" link-type="anchor"/>
                                         </container>
                                         <label text="LotNameTemplate" text-map="assetLot" condition="assetLot?.lotId"/>

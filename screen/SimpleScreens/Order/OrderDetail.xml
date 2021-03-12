@@ -1242,7 +1242,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <iterate list="existingResList" entry="existingRes">
                             <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
                                 <field-map field-name="assetId" from="existingRes.assetId"/>
-                                <select-field field-name="lotId,pseudoId,lotNumber,manufacturedDate,expirationDate"/>
+                                <select-field field-name="productId,lotId,pseudoId,lotNumber,manufacturedDate,expirationDate"/>
                             </entity-find-one>
                             <script><![CDATA[
                             if (assetLot?.lotId) lotIdSet.add(assetLot.lotId)
@@ -1280,7 +1280,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </iterate>
 
                     <set field="isProductItemType" from="orderItem.itemTypeEnumId in productItemTypes"/>
-                    <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
+                    <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse', 'PtPickAssembly'] : false"/>
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemQuantityShipped" from="(orderItem.quantity?:0.0) - itemQuantityNotShipped"/>
                     <set field="itemTotalNotBilled" from="totalNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
@@ -1443,6 +1443,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="assetReservations">
                     <conditional-field condition="isShippable &amp;&amp; orderPartInfo.isVendorInternalOrg">
                         <section-iterate name="ReservationInfoSection" list="resInfoList" entry="resInfo"><widgets><container>
+                            <section name="ComponentProductSection" condition="resInfo.assetLot.productId != orderItem.productId"><actions>
+                                <entity-find-one entity-name="mantle.product.Product" value-field="componentProduct" cache="true">
+                                    <field-map field-name="productId" from="resInfo.assetLot.productId"/></entity-find-one>
+                            </actions><widgets>
+                                <container><label text="Component: " type="strong"/>
+                                    <link url="editProduct" text="ProductNameTemplate" text-map="componentProduct"
+                                            link-type="anchor" parameter-map="[productId:componentProduct.productId]"/>
+                                </container>
+                            </widgets></section>
                             <link url="assetDetail" text="Asset ${resInfo.existingRes.assetId}" parameter-map="[assetId:resInfo.existingRes.assetId]" link-type="anchor"/>
                             <label text=" - Res: ${ec.l10n.format(resInfo.existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(resInfo.existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(resInfo.existingRes.quantityNotIssued, null)}"
                                     type="span" style="${resInfo.existingRes.quantityNotAvailable ? 'text-danger' : ''}"/>
