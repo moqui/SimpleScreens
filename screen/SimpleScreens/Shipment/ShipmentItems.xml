@@ -329,7 +329,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <row-actions>
                                 <entity-find entity-name="mantle.product.issuance.AssetReservation" list="existingResList">
                                     <econdition field-name="orderId"/><econdition field-name="orderItemSeqId"/></entity-find>
-                                <set field="resPackForm" from="allowPack &amp;&amp; quantityNotHandled &gt; 0.0 &amp;&amp; existingResList"/>
+                                <set field="resPackForm" from="allowPack &amp;&amp; quantityNotHandled &gt; 0.0 &amp;&amp; existingResList &amp;&amp; product.productTypeEnumId != 'PtPickAssembly'"/>
                             </row-actions>
                             <field name="shipmentId"><default-field><hidden/></default-field></field>
                             <field name="shipmentItemSourceId"><default-field><hidden/></default-field></field>
@@ -400,6 +400,42 @@ along with this software (see the LICENSE.md file). If not, see
                                 <default-field title=""><display text=" "/></default-field>
                             </field>
                         </form-list>
+
+                        <section-iterate name="PaReservedComponentPack" list="sisList" entry="sis"
+                                condition="allowPack &amp;&amp; sis.quantityNotHandled &amp;&amp; product.productTypeEnumId == 'PtPickAssembly'"><actions>
+                            <entity-find entity-name="mantle.product.issuance.AssetReservationSummary" list="existingResSumList">
+                                <econdition field-name="orderId" from="sis.orderId"/>
+                                <econdition field-name="orderItemSeqId" from="sis.orderItemSeqId"/>
+                                <select-field field-name="productId,quantity,quantityNotIssued"/>
+                            </entity-find>
+                        </actions><widgets>
+                            <form-list name="PaComponentPackForm" list="existingResSumList" transition="packAssemblyComponent">
+                                <hidden-parameters>
+                                    <parameter name="shipmentId"/>
+                                    <parameter name="assemblyProductId" from="product.productId"/>
+                                    <!-- FILTER PASS THROUGH -->
+                                    <parameter name="filterProductId"/><parameter name="onlyRemaining"/><parameter name="pageIndex"/>
+                                </hidden-parameters>
+
+                                <field name="productId"><default-field title="Component">
+                                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+
+                                <field name="packDate" from="shipment.estimatedShipDate ?: ec.user.nowTimestamp">
+                                    <default-field title="Pack Date"><date-time/></default-field></field>
+                                <field name="shipmentPackageSeqId" from="activePackageSeqId">
+                                    <default-field title="Package##Shipment"><drop-down>
+                                        <option key="" text="New"/>
+                                        <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
+                                    </drop-down></default-field>
+                                </field>
+                                <field name="quantity" from="quantityNotIssued"><default-field title="Pack Quantity">
+                                    <text-line size="6"/></default-field></field>
+                                <field name="packButton">
+                                    <default-field title="Issue &amp; Pack Component"><submit/></default-field>
+                                </field>
+                            </form-list>
+                        </widgets></section-iterate>
+
                         <form-list name="ItemAssetIssuanceList" list="assetIssuanceList" skip-form="true">
                             <row-actions>
                                 <entity-find-one entity-name="mantle.facility.FacilityLocation" value-field="facLoc"/>
