@@ -86,6 +86,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="packItemSource"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentItemSource"/>
         <default-response url="."/></transition>
+    <transition name="packAssemblyComponent"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentAssemblyComponent"/>
+        <default-response url="."/></transition>
     <transition name="unpackItemIssuance"><service-call name="mantle.shipment.ShipmentServices.unpack#ShipmentItemIssuance"/>
         <default-response url="."/></transition>
     <transition name="addItemToPackage"><service-call name="mantle.shipment.ShipmentServices.add#ItemToPackage"/>
@@ -820,6 +822,40 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field></field>
                     </form-list>
                 </box-body></container-box>
+            </widgets></section>
+
+            <section name="AssemblyInfoSection" condition="shipment.assemblyWorkEffortId"><actions>
+                <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="assemblyWorkEffort">
+                    <field-map field-name="workEffortId" from="shipment.assemblyWorkEffortId"/></entity-find-one>
+                <service-call name="mantle.work.ManufacturingServices.get#ConsumedAssetRemaining"
+                        in-map="[workEffortId:shipment.assemblyWorkEffortId]" out-map="context"/>
+            </actions><widgets>
+                <container-box type="${assemblyWorkEffort.statusId == 'WeComplete' ? 'success' : 'danger'}"><box-header title="Assembly Task ${shipment.assemblyWorkEffortId}"/><box-body-nopad>
+                    <form-list name="AssemblyProduceProducts" list="produceWepList" skip-form="true">
+                        <row-actions>
+                            <set field="assemblyReceived" from="assemblyReceivedByProduct.get(productId) ?: 0.0"/>
+                        </row-actions>
+                        <field name="productId"><default-field title="Assembly Product">
+                            <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                        <field name="estimatedQuantity"><default-field title="Total"><display/></default-field></field>
+                        <field name="assemblyReceived"><default-field title="Completed">
+                            <display style="text-strong ${assemblyReceived &gt;= estimatedQuantity ? 'text-success' : 'text-danger'}"/></default-field></field>
+                    </form-list>
+                    <form-list name="AssemblyConsumeProducts" list="consumeWepList" skip-form="true">
+                        <row-actions>
+                            <set field="componentIssued" from="componentIssuedQtyByProduct.get(productId) ?: 0.0"/>
+                            <set field="componentUsed" from="componentUsedQtyByProduct.get(productId) ?: 0.0"/>
+                        </row-actions>
+                        <field name="productId"><default-field title="Component Product">
+                            <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                        <field name="estimatedQuantity"><default-field title="Total"><display/></default-field></field>
+                        <field name="componentIssued"><default-field title="Packed">
+                            <display style="text-strong ${componentIssued &gt;= estimatedQuantity ? 'text-success' : 'text-danger'}"/></default-field></field>
+                        <field name="componentUsed"><default-field title="Used">
+                            <display style="text-strong ${componentUsed &gt;= estimatedQuantity ? 'text-success' : 'text-danger'}"/></default-field></field>
+                    </form-list>
+                </box-body-nopad></container-box>
+
             </widgets></section>
         </row-col></container-row>
 
