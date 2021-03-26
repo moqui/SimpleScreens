@@ -103,6 +103,23 @@ along with this software (see the LICENSE.md file). If not, see
                                 type="p" style="text-danger" condition="quantityPackRemaining"/>
                     </widgets></section-iterate>
                     <label text="An Invoice will be generated for this Shipment when it is Packed and the Invoice Date will be set to the Packed Date." type="p"/>
+
+                    <section name="AssemblyPackWarnings" condition="assemblyAssetInfo?.componentIssuedAvailable"><actions>
+                        <!-- turn the Map into a List of Map for a form-list -->
+                        <set field="componentsUnusedList" from="assemblyAssetInfo.componentIssuedAvailable.entrySet().collect({ [productId:it.key, quantity:it.value] })"/>
+                    </actions><widgets>
+                        <container-box type="danger"><box-header title="Remove Unused Assembly Components Before Continuing"/><box-body>
+                            <label text="These items will be removed from the Assembly Task automatically, so must be removed from packages before continuing."
+                                    type="strong" style="text-danger"/>
+                        </box-body><box-body-nopad>
+                            <form-list name="AssemblyPackUnusedComponents" list="componentsUnusedList" skip-form="true">
+                                <field name="productId"><default-field title="Component Product">
+                                    <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                                <field name="quantity"><default-field><display style="text-strong text-danger"/></default-field></field>
+                            </form-list>
+                        </box-body-nopad></container-box>
+                    </widgets></section>
+
                     <form-single name="SetPackedForm" transition="packShipment" focus-field="submitButton">
                         <field name="shipmentId"><default-field><display/></default-field></field>
                         <field name="packedDate" from="ec.user.nowTimestamp">

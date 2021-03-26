@@ -152,13 +152,7 @@ along with this software (see the LICENSE.md file). If not, see
         -->
 
         <container-row><row-col md="6">
-            <container-box><box-header>
-                <container style="text-strong">
-                    <label text="Pack Shipment "/>
-                    <link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/>
-                    <label text=" (${statusItem.description})" condition="statusItem"/>
-                </container>
-            </box-header><box-toolbar>
+            <container-box><box-header title="Pack Shipment ${shipmentId}"/><box-toolbar>
                 <container-dialog id="CancelDialog" button-text="Cancel" type="danger"
                         condition="!(shipment.statusId in ['ShipDelivered', 'ShipRejected', 'ShipCancelled'])">
                     <label text="Invoices associated with this shipment will be CANCELLED: ${invoiceIdSet.join(', ')}"
@@ -193,7 +187,7 @@ along with this software (see the LICENSE.md file). If not, see
 
                 <dynamic-dialog id="PackCompletedDialog" button-text="Pack Completed" transition="PackCompleted" type="success"
                         condition="statusPrePacked &amp;&amp; anyItemPacked &amp;&amp; packagesComplete"/>
-                <dynamic-dialog id="PackCompletedDialog" button-text="Get Labels" transition="PackCompleted" type="success"
+                <dynamic-dialog id="GetLabelsDialog" button-text="Get Labels" transition="PackCompleted" type="success"
                         condition="!statusPrePacked &amp;&amp; anyItemPacked &amp;&amp; packagesComplete &amp;&amp; !hasAllLabels"/>
                 <!-- use Get Labels button above, basically Pack Completed dialog again:
                 <link url="requestShipmentLabels" text="Get Labels"
@@ -327,51 +321,58 @@ along with this software (see the LICENSE.md file). If not, see
             </widgets></section>
 
         </row-col><row-col md="6">
+            <container-box><box-header>
+                <container style="text-strong">
+                    <label text="Pack Shipment "/>
+                    <link url="shipmentDetail" text="${shipmentId}" link-type="anchor"/>
+                    <label text=" (${statusItem.description})" condition="statusItem"/>
+                </container>
+            </box-header><box-body>
+                <!-- warning if payment not authorized -->
+                <section-iterate name="ShipmentPaymentListSection" list="shipmentPaymentList" entry="shipmentPayment"><actions>
+                    <entity-find-one entity-name="moqui.basic.StatusItem" value-field="pmntStatus">
+                        <field-map field-name="statusId" from="shipmentPayment.statusId"/></entity-find-one>
+                    <entity-find-one entity-name="moqui.basic.Enumeration" value-field="pmntInstrumentEnum">
+                        <field-map field-name="enumId" from="shipmentPayment.paymentInstrumentEnumId"/></entity-find-one>
+                </actions><widgets>
+                    <label text="Payment ${shipmentPayment.paymentId} - ${pmntInstrumentEnum?.description ?: 'Unknown Type'} - ${pmntStatus?.description}" type="p"
+                            style="text-strong ${shipmentPayment.statusId in ['PmntAuthorized', 'PmntDelivered', 'PmntConfirmed'] ? 'text-success' : (shipmentPayment.paymentInstrumentEnumId == 'PiCreditCard' ? 'text-danger' : 'text-warning')}"/>
+                </widgets></section-iterate>
 
-            <!-- warning if payment not authorized -->
-            <section-iterate name="ShipmentPaymentListSection" list="shipmentPaymentList" entry="shipmentPayment"><actions>
-                <entity-find-one entity-name="moqui.basic.StatusItem" value-field="pmntStatus">
-                    <field-map field-name="statusId" from="shipmentPayment.statusId"/></entity-find-one>
-                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="pmntInstrumentEnum">
-                    <field-map field-name="enumId" from="shipmentPayment.paymentInstrumentEnumId"/></entity-find-one>
-            </actions><widgets>
-                <label text="Payment ${shipmentPayment.paymentId} - ${pmntInstrumentEnum?.description ?: 'Unknown Type'} - ${pmntStatus?.description}" type="p"
-                        style="text-strong ${shipmentPayment.statusId in ['PmntAuthorized', 'PmntDelivered', 'PmntConfirmed'] ? 'text-success' : (shipmentPayment.paymentInstrumentEnumId == 'PiCreditCard' ? 'text-danger' : 'text-warning')}"/>
-            </widgets></section-iterate>
-
-            <!-- shipment info like address, etc -->
-            <container-row><row-col md="6">
-                <container-row><row-col xs="3" style="text-right"><label text="Ship By" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + ' ' + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
-                <container-row><row-col xs="3" style="text-right"><label text="Order" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${orderCarrierShipmentMethod?.description ? orderCarrierShipmentMethod.description : (orderCarrierDetail ? orderCarrierDetail.pseudoId : 'N/A') + ' ' + (orderShipmentMethodEnum ? orderShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
-                <section name="ShippedShippingInfo" condition="curDestPaInfo"><actions><set field="contactInfo" from="curDestPaInfo"/></actions><widgets>
-                    <container-row><row-col xs="3" style="text-right"><label text="Dest" type="strong"/></row-col><row-col xs="9">
-                        <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
-                        <container><label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/></container>
-                    </row-col></container-row>
+                <!-- shipment info like address, etc -->
+                <container-row><row-col md="6">
+                    <container-row><row-col xs="3" style="text-right"><label text="Ship By" type="strong"/></row-col>
+                        <row-col xs="9"><label text="${curCarrierShipmentMethod?.description ? curCarrierShipmentMethod.description : (curCarrierDetail ? curCarrierDetail.pseudoId : 'N/A') + ' ' + (curShipmentMethodEnum ? curShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
+                    <container-row><row-col xs="3" style="text-right"><label text="Order" type="strong"/></row-col>
+                        <row-col xs="9"><label text="${orderCarrierShipmentMethod?.description ? orderCarrierShipmentMethod.description : (orderCarrierDetail ? orderCarrierDetail.pseudoId : 'N/A') + ' ' + (orderShipmentMethodEnum ? orderShipmentMethodEnum.description : 'None')}"/></row-col></container-row>
+                    <section name="ShippedShippingInfo" condition="curDestPaInfo"><actions><set field="contactInfo" from="curDestPaInfo"/></actions><widgets>
+                        <container-row><row-col xs="3" style="text-right"><label text="Dest" type="strong"/></row-col><row-col xs="9">
+                            <render-mode><text type="html,vuet,qvt" location="component://SimpleScreens/template/party/ContactInfo.html.gstring"/></render-mode>
+                            <container><label text="Trust: ${contactInfo.postalTrustLevelEnum?.description ?: 'New'}" type="strong"/></container>
+                        </row-col></container-row>
+                    </widgets></section>
+                </row-col><row-col md="6">
+                    <container-row><row-col xs="3" style="text-right"><label text="Status" type="strong"/></row-col>
+                        <row-col xs="9"><label text="${statusItem.description}" type="strong"/></row-col></container-row>
+                    <container-row><row-col xs="3" style="text-right"><label text="To" type="strong"/></row-col>
+                        <row-col xs="9"><label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/></row-col></container-row>
+                    <container-row><row-col xs="3" style="text-right"><label text="Facility" type="strong"/></row-col>
+                        <row-col xs="9"><label text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}"/></row-col></container-row>
+                    <container-row><row-col xs="3" style="text-right"><label text="Type" type="strong"/></row-col>
+                        <row-col xs="9"><label text="${shipmentTypeEnum?.description}"/></row-col></container-row>
+                    <!--
+                    <container-row><row-col xs="3" style="text-right"><label text="Ready" type="strong"/></row-col>
+                        <row-col xs="9"><label text="${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}"/></row-col></container-row>
+                    <container-row><row-col xs="3" style="text-right"><label text="Arrival" type="strong"/></row-col>
+                        <row-col xs="9"><label text="${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}"/></row-col></container-row>
+                    -->
+                </row-col></container-row>
+                <!-- <label text="${curDestPaInfo.postalContactMech.validateMessage}" type="div" condition="curDestPaInfo?.postalContactMech?.validateMessage"/> -->
+                <section name="ShippingInstructionsSection" condition="shipment.handlingInstructions"><widgets>
+                    <container-row><row-col xs="3" style="text-right"><label text="Instructions" type="strong"/></row-col>
+                        <row-col xs="9"><label text="${shipment.handlingInstructions}"/></row-col></container-row>
                 </widgets></section>
-            </row-col><row-col md="6">
-                <container-row><row-col xs="3" style="text-right"><label text="Status" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${statusItem.description}" type="strong"/></row-col></container-row>
-                <container-row><row-col xs="3" style="text-right"><label text="To" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${toPartyDetail ? ec.resource.expand('PartyNameTemplate', '', toPartyDetail) : 'Not Set'}"/></row-col></container-row>
-                <container-row><row-col xs="3" style="text-right"><label text="Facility" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${ec.resource.expand('FacilityNameTemplate', '', originFacility)}"/></row-col></container-row>
-                <container-row><row-col xs="3" style="text-right"><label text="Type" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${shipmentTypeEnum?.description}"/></row-col></container-row>
-                <!--
-                <container-row><row-col xs="3" style="text-right"><label text="Ready" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${ec.l10n.format(shipment.estimatedReadyDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}"/></row-col></container-row>
-                <container-row><row-col xs="3" style="text-right"><label text="Arrival" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${ec.l10n.format(shipment.estimatedArrivalDate, 'yyyy-MM-dd HH:mm') ?: 'Not Set'}"/></row-col></container-row>
-                -->
-            </row-col></container-row>
-            <!-- <label text="${curDestPaInfo.postalContactMech.validateMessage}" type="div" condition="curDestPaInfo?.postalContactMech?.validateMessage"/> -->
-            <section name="ShippingInstructionsSection" condition="shipment.handlingInstructions"><widgets>
-                <container-row><row-col xs="3" style="text-right"><label text="Instructions" type="strong"/></row-col>
-                    <row-col xs="9"><label text="${shipment.handlingInstructions}"/></row-col></container-row>
-            </widgets></section>
+            </box-body></container-box>
 
             <section-include name="AssemblyInfoSection" location="component://SimpleScreens/screen/SimpleScreens/Shipment/ShipmentDetail.xml"/>
         </row-col></container-row>
