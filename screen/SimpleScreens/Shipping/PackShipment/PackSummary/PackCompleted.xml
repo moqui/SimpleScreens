@@ -25,6 +25,8 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
 
     <actions>
+        <entity-find-one entity-name="mantle.shipment.Shipment" value-field="shipment"/>
+
         <entity-find entity-name="mantle.shipment.ShipmentRouteSegment" list="shipmentRouteSegmentList">
             <econdition field-name="shipmentId"/>
             <order-by field-name="shipmentRouteSegmentSeqId"/>
@@ -99,6 +101,14 @@ along with this software (see the LICENSE.md file). If not, see
                 </entity-find-one>
             </if>
         </if>
+
+        <!-- get Assembly WorkEffort Info -->
+        <if condition="shipment.assemblyWorkEffortId">
+            <entity-find-one entity-name="mantle.work.effort.WorkEffort" value-field="assemblyWorkEffort">
+                <field-map field-name="workEffortId" from="shipment.assemblyWorkEffortId"/></entity-find-one>
+            <service-call name="mantle.work.ManufacturingServices.get#ConsumedAssetRemaining"
+                    in-map="[workEffortId:shipment.assemblyWorkEffortId]" out-map="assemblyAssetInfo"/>
+        </if>
     </actions>
     <widgets>
         <!--
@@ -114,6 +124,22 @@ along with this software (see the LICENSE.md file). If not, see
         <section-iterate name="headerValidationErrors" list="ec.message.validationErrors" entry="validationError"><widgets>
             <label text="${validationError.message} (for field ${validationError.fieldPretty})" type="p"/>
         </widgets></section-iterate>
+
+        <section name="AssemblyPackWarnings" condition="assemblyAssetInfo?.componentIssuedAvailable"><actions>
+            <!-- turn the Map into a List of Map for a form-list -->
+            <set field="componentsUnusedList" from="assemblyAssetInfo.componentIssuedAvailable.entrySet().collect({ [productId:it.key, quantity:it.value] })"/>
+        </actions><widgets>
+            <container-box type="danger"><box-header title="Remove Unused Assembly Components Before Continuing"/><box-body>
+                <label text="These items will be removed from the Assembly Task automatically, so must be removed from packages before continuing."
+                        type="strong" style="text-danger"/>
+            </box-body><box-body-nopad>
+                <form-list name="AssemblyPackUnusedComponents" list="componentsUnusedList" skip-form="true">
+                    <field name="productId"><default-field title="Component Product">
+                        <display-entity entity-name="mantle.product.Product" text="ProductNameTemplate"/></default-field></field>
+                    <field name="quantity"><default-field><display style="text-strong text-danger"/></default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
+        </widgets></section>
 
         <container type="dl" style="dl-horizontal">
             <label text="Store" type="dt" condition="productStore != null"/>
@@ -146,7 +172,7 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="localQzPrint"><default-field title="Local Print"><check all-checked="true">
                 <option key="true" text="(only if QZ Print setup)"/></check></default-field></field>
 
-            <field name="submitButtom"><default-field title="Complete Pack"><submit/></default-field></field>
+            <field name="submitButton"><default-field title="Complete Pack"><submit/></default-field></field>
         </form-single>
     </widgets>
 </screen>

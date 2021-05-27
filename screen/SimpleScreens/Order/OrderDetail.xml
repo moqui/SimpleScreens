@@ -757,6 +757,14 @@ along with this software (see the LICENSE.md file). If not, see
                                     <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                                         <set field="enumTypeId" value="AssetReservationAuto"/><set field="allowEmpty" value="true"/></widget-template-include>
                                 </default-field></field>
+                                <field name="settlementTermId"><default-field title="Payment Terms">
+                                    <drop-down allow-empty="true"><entity-options key="${settlementTermId}" text="${description}">
+                                        <entity-find entity-name="mantle.account.invoice.SettlementTermAndEnumMember">
+                                            <econdition field-name="enumGroupEnumId" value="EngPaymentTermType"/>
+                                            <order-by field-name="description"/>
+                                        </entity-find>
+                                    </entity-options></drop-down>
+                                </default-field></field>
                                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                             </form-single>
                         </container-dialog>
@@ -888,9 +896,9 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="${orderPartInfo.shipmentMethodEnum?.description ?: ''}" type="dd"/>
                         <label text="Carrier" type="dt" condition="orderPartInfo.carrierPartyDetail"/>
                         <label text="${ec.resource.expand('PartyNameTemplate', null, orderPartInfo.carrierPartyDetail)}" type="dd" condition="orderPartInfo.carrierPartyDetail"/>
-
                         <label text="Priority" type="dt" style="${orderPartInfo.orderPart.priority == 1 ? 'text-strong text-danger' : (orderPartInfo.orderPart.priority == 2 || orderPartInfo.orderPart.priority == 3 ? 'text-strong text-warning' : '')}"/>
                         <label text="${orderPartInfo.orderPart.priority ?: 5}" type="dd" style="${orderPartInfo.orderPart.priority == 1 ? 'text-strong text-danger' : (orderPartInfo.orderPart.priority == 2 || orderPartInfo.orderPart.priority == 3 ? 'text-strong text-warning' : '')}"/>
+
                         <label text="Ship After" type="dt" condition="orderPartInfo.orderPart.shipAfterDate"/>
                         <label text="${ec.l10n.format(orderPartInfo.orderPart.shipAfterDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
                                 condition="orderPartInfo.orderPart.shipAfterDate"/>
@@ -903,6 +911,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="Pick Up Date" type="dt" condition="orderPartInfo.orderPart.estimatedPickUpDate"/>
                         <label text="${ec.l10n.format(orderPartInfo.orderPart.estimatedPickUpDate, 'yyyy-MM-dd HH:mm') ?: '\u00a0'}" type="dd"
                                 condition="orderPartInfo.orderPart.estimatedPickUpDate"/>
+
                         <label text="Their Order ID" type="dt"/>
                         <label text="${orderPartInfo.orderPart.otherPartyOrderId ?: '\u00a0'}" type="dd"/>
                         <label text="Their Order Date" type="dt" condition="orderPartInfo.orderPart.otherPartyOrderDate"/>
@@ -929,6 +938,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <label text="Y" type="dd" condition="orderPartInfo.orderPart.disableShippingCalc == 'Y'"/>
                         <label text="Auto Reservation" type="dt" condition="orderPartInfo.orderPart.reservationAutoEnumId"/>
                         <label text="${orderPartInfo.orderPart.reservationAutoEnum?.description}" type="dd" condition="orderPartInfo.orderPart.reservationAutoEnumId"/>
+
+                        <label text="Payment Terms" type="dt" condition="orderPartInfo.partSettlementTerm?.description"/>
+                        <label text="${orderPartInfo.partSettlementTerm.description}" type="dd" condition="orderPartInfo.partSettlementTerm?.description"/>
+
                         <label text="Facility " type="dt"/>
                         <container type="dd">
                             <link url="editFacility" text="FacilityNameTemplate" text-map="orderPartInfo.facility"
@@ -990,6 +1003,17 @@ along with this software (see the LICENSE.md file). If not, see
                                     </drop-down></default-field></field>
                                     <field name="dueDate"><default-field><date-time/></default-field></field>
                                     <field name="amount"><default-field><text-line size="10" default-value="${ec.l10n.format(orderPartInfo.partTotalUnpaid ?: 0, '#0.00')}"/></default-field></field>
+                                    <field name="settlementTermId" from="orderPartInfo.partSettlementTerm?.orderPmtServiceRegisterId ? orderPartInfo.partSettlementTerm.settlementTermId : null">
+                                        <default-field title="Auto Payments Term"><drop-down allow-empty="true">
+                                            <entity-options key="${settlementTermId}" text="${description}">
+                                                <entity-find entity-name="mantle.account.invoice.SettlementTermAndEnumMember">
+                                                    <econdition field-name="enumGroupEnumId" value="EngPaymentTermType"/>
+                                                    <econdition field-name="orderPmtServiceRegisterId" operator="is-not-null"/>
+                                                    <order-by field-name="description"/>
+                                                </entity-find>
+                                            </entity-options>
+                                        </drop-down></default-field>
+                                    </field>
                                     <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
                                 </form-single>
                             </container-dialog>
@@ -1010,7 +1034,9 @@ along with this software (see the LICENSE.md file). If not, see
                             </actions><widgets>
                                 <container>
                                     <label text="${partPaymentInfo.paymentMethodTypeEnum?.description?:(partPaymentInfo.paymentInstrumentEnum?.description?:'')} (${partPaymentInfo.paymentTypeEnum?.description}) ${ec.l10n.formatCurrency(partPaymentInfo.partPayment.amount, partPaymentInfo.partPayment.amountUomId)}" type="strong"/>
-                                    <label text="Status: ${partPaymentInfo.statusItem?.description}" type="strong"/>
+                                    <label text=" - Status: ${partPaymentInfo.statusItem?.description}" type="strong"/>
+                                    <label text=" - Due: ${ec.l10n.format(partPaymentInfo.partPayment.dueDate, 'yyyy-MM-dd')}" type="strong"
+                                            condition="partPaymentInfo.partPayment.dueDate"/>
                                     <container-dialog id="UpdatePaymentDialog" button-text="Update"
                                             condition="orderPartInfo.partEditable &amp;&amp; partPaymentInfo.partPayment.statusId in ['PmntProposed', 'PmntPromised']">
                                         <form-single name="UpdatePaymentForm" transition="updatePayment"
@@ -1018,6 +1044,7 @@ along with this software (see the LICENSE.md file). If not, see
                                             <field name="orderId"><default-field><hidden/></default-field></field>
                                             <field name="paymentId"><default-field><hidden/></default-field></field>
                                             <field name="amount" from=""><default-field><text-line size="10" format="0.00"/></default-field></field>
+                                            <field name="settlementTermId"><default-field><ignored/></default-field></field>
                                             <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                                         </form-single>
                                     </container-dialog>
@@ -1242,7 +1269,7 @@ along with this software (see the LICENSE.md file). If not, see
                         <iterate list="existingResList" entry="existingRes">
                             <entity-find-one entity-name="mantle.product.asset.AssetLotAndMfgParty" value-field="assetLot">
                                 <field-map field-name="assetId" from="existingRes.assetId"/>
-                                <select-field field-name="lotId,pseudoId,lotNumber,manufacturedDate,expirationDate"/>
+                                <select-field field-name="productId,lotId,pseudoId,lotNumber,manufacturedDate,expirationDate"/>
                             </entity-find-one>
                             <script><![CDATA[
                             if (assetLot?.lotId) lotIdSet.add(assetLot.lotId)
@@ -1280,7 +1307,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </iterate>
 
                     <set field="isProductItemType" from="orderItem.itemTypeEnumId in productItemTypes"/>
-                    <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse'] : false"/>
+                    <set field="isShippable" from="isProductItemType &amp;&amp; product != null ? product.productTypeEnumId in ['PtAsset', 'PtDigitalAsset', 'PtAssetUse', 'PtPickAssembly'] : false"/>
                     <set field="itemQuantityNotShipped" from="quantityNotShippedByItem.get(orderItemSeqId) ?: 0.0"/>
                     <set field="itemQuantityShipped" from="(orderItem.quantity?:0.0) - itemQuantityNotShipped"/>
                     <set field="itemTotalNotBilled" from="totalNotBilledByItem.get(orderItemSeqId) ?: 0.0"/>
@@ -1443,6 +1470,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="assetReservations">
                     <conditional-field condition="isShippable &amp;&amp; orderPartInfo.isVendorInternalOrg">
                         <section-iterate name="ReservationInfoSection" list="resInfoList" entry="resInfo"><widgets><container>
+                            <section name="ComponentProductSection" condition="resInfo.assetLot.productId != orderItem.productId"><actions>
+                                <entity-find-one entity-name="mantle.product.Product" value-field="componentProduct" cache="true">
+                                    <field-map field-name="productId" from="resInfo.assetLot.productId"/></entity-find-one>
+                            </actions><widgets>
+                                <container><label text="Component: " type="strong"/>
+                                    <link url="editProduct" text="ProductNameTemplate" text-map="componentProduct"
+                                            link-type="anchor" parameter-map="[productId:componentProduct.productId]"/>
+                                </container>
+                            </widgets></section>
                             <link url="assetDetail" text="Asset ${resInfo.existingRes.assetId}" parameter-map="[assetId:resInfo.existingRes.assetId]" link-type="anchor"/>
                             <label text=" - Res: ${ec.l10n.format(resInfo.existingRes.quantity, null)}, Not Avail: ${ec.l10n.format(resInfo.existingRes.quantityNotAvailable, null)}, Not Issued: ${ec.l10n.format(resInfo.existingRes.quantityNotIssued, null)}"
                                     type="span" style="${resInfo.existingRes.quantityNotAvailable ? 'text-danger' : ''}"/>

@@ -76,13 +76,13 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition-object field="inventoryCategoryCond"/>
 
                 <having-econditions>
-                    <econdition field-name="quantityTotal" to-field-name="resQuantity" ignore="excludeNotPickLoc == 'false'"/>
+                    <econdition field-name="itemBomQuantityTotal" to-field-name="resQuantity" ignore="excludeNotPickLoc == 'false'"/>
                     <!-- useless when filtering by pick locations: <econdition field-name="quantityNotAvailable" operator="greater" from="0.0" ignore="onlyInventoryUnavailable != 'true'"/> -->
                     <econdition field-name="issuedQuantity" operator="greater" from="0.0" ignore="onlyPartlyShipped != 'true'"/>
                 </having-econditions>
-                <select-field field-name="orderPartSeqId,shipmentMethodEnumId,quantityTotal"/>
+                <select-field field-name="orderId,orderPartSeqId,shipmentMethodEnumId,quantityTotal"/>
                 <!-- NOTE: always need to select resQuantity,issuedQuantity if having conditions are used (EntityFindBuilder doesn't yet add these to sub-select automatically) -->
-                <select-field field-name="resQuantity${onlyPartlyShipped != 'true' ? '' : ',issuedQuantity'}"/>
+                <select-field field-name="resQuantity${onlyPartlyShipped != 'true' ? '' : ',issuedQuantity'}${excludeNotPickLoc == 'false' ? '' : ',itemBomQuantityTotal'}"/>
             </entity-find>
             <row-actions>
                 <!-- Shipment method description -->
@@ -104,12 +104,31 @@ along with this software (see the LICENSE.md file). If not, see
                     <select-field field-name="partyId,pseudoId,firstName,lastName,organizationName,description"/>
                 </entity-find>
                 <!-- Total Quantity: query separate if findQuantity_from || findQuantity_thru, will be wrong if there are items filtered by this constraint -->
-                <if condition="findQuantity_from || findQuantity_thru">
-                    <entity-find entity-name="mantle.order.OrderItemSummary" list="totalQtyList" use-clone="true">
+                <if condition="findQuantity_from || findQuantity_thru || itemBomQuantityTotal == null">
+                    <entity-find entity-name="mantle.order.OrderItem" list="productOrderItemList" use-clone="true">
                         <econdition field-name="orderId"/><econdition field-name="orderPartSeqId"/>
-                        <select-field field-name="quantity"/>
+                        <econdition field-name="itemTypeEnumId" operator="in" from="itemTypeEnumIdList"/>
+                        <select-field field-name="productId,quantity"/>
                     </entity-find>
-                    <if condition="totalQtyList"><set field="quantityTotal" from="totalQtyList[0].quantity"/></if>
+                    <set field="quantityTotal" from="0.0"/>
+                    <set field="itemBomQuantityTotal" from="0.0"/>
+                    <iterate list="productOrderItemList" entry="productOrderItem">
+                        <set field="quantityTotal" from="quantityTotal + productOrderItem.quantity"/>
+
+                        <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="true">
+                            <field-map field-name="productId" from="productOrderItem.productId"/></entity-find-one>
+                        <if condition="product?.productTypeEnumId == 'PtPickAssembly'"><then>
+                            <entity-find entity-name="mantle.product.ProductAssoc" list="assocList" cache="true">
+                                <date-filter/>
+                                <econdition field-name="productId" from="productOrderItem.productId"/>
+                                <econdition field-name="productAssocTypeEnumId" value="PatMfgBom"/>
+                            </entity-find>
+                            <set field="bomQtyTotal" from="assocList*.quantity.sum()"/>
+                            <set field="itemBomQuantityTotal" from="(bomQtyTotal ?: 0.0) * quantityTotal"/>
+                        </then><else>
+                            <set field="itemBomQuantityTotal" from="quantityTotal"/>
+                        </else></if>
+                    </iterate>
                 </if>
                 <!-- Pick vs other location reservations - single value, could be optimized with sub-select -->
                 <!-- now in sub-select in main query so can be filtered by:
@@ -121,7 +140,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="resPickLocQuantity" from="resPickLocList.first()?.quantity ?: 0.0"/>
                 -->
                 <set field="resPickLocQuantity" from="resQuantity ?: 0.0"/>
-                <set field="_rowSubmit" from="(resPickLocQuantity == quantityTotal) ? 'true' : 'false'"/>
+                <set field="_rowSubmit" from="(resPickLocQuantity == itemBomQuantityTotal) ? 'true' : 'false'"/>
             </row-actions>
 
             <hidden-parameters><parameter name="workEffortId"/></hidden-parameters>
@@ -276,8 +295,11 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="quantityTotal" align="right">
                 <header-field show-order-by="true" title="Quantity Total"><range-find/></header-field>
                 <default-field><display/></default-field></field>
+            <field name="itemBomQuantityTotal" align="right">
+                <header-field show-order-by="true" title="Quantity w/BOM Total"><range-find/></header-field>
+                <default-field><display/></default-field></field>
             <field name="resPickLocQuantity" align="right">
-                <default-field title="Pick Loc Qty"><display style="text-strong ${(resPickLocQuantity == quantityTotal) ? 'text-success' : 'text-danger'}"/></default-field></field>
+                <default-field title="Pick Loc Qty"><display style="text-strong ${(resPickLocQuantity == itemBomQuantityTotal) ? 'text-success' : 'text-danger'}"/></default-field></field>
             <field name="findQuantity"><header-field title="Item Quantity"><range-find/></header-field></field>
             <!-- useless when filtering by pick locations:
             <field name="quantityNotAvailable" align="right">
