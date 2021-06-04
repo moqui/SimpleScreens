@@ -204,9 +204,12 @@ along with this software (see the LICENSE.md file). If not, see
             </if>
         </if>
         <if condition="isIncoming &amp;&amp; fromPartyId">
-            <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="fromPartyShippingInfo"
+            <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="fromPartyShippingDestInfo"
                     in-map="[partyId:fromPartyId, postalContactMechPurposeId:'PostalShippingDest']"/>
-            <set field="shippingPostalAddressList" from="fromPartyShippingInfo.postalAddressList ?: []"/>
+            <service-call name="mantle.party.ContactServices.get#PartyContactInfoList" out-map="fromPartyShippingOriginInfo"
+                          in-map="[partyId:fromPartyId, postalContactMechPurposeId:'PostalShippingOrigin']"/>
+
+            <set field="shippingPostalAddressList" from="(fromPartyShippingDestInfo.postalAddressList ?: []) + (fromPartyShippingOriginInfo.postalAddressList ?: [])"/>
 
             <if condition="firstRouteSegment.originPostalContactMechId">
                 <service-call name="mantle.party.ContactServices.get#PartyContactInfo" out-map="curOriginPaInfo"
