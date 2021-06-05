@@ -82,6 +82,12 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updateItem"><service-call name="mantle.shipment.ShipmentServices.update#ShipmentItem"/>
         <default-response url="."/></transition>
+
+    <transition name="pickMoveProductToContainer"><service-call name="mantle.shipment.ShipmentServices.pickMove#ProductToContainer"/>
+        <default-response url="."/></transition>
+    <transition name="pickMoveShipmentProduct"><service-call name="mantle.shipment.ShipmentServices.pickMove#ShipmentProduct"/>
+        <default-response url="."/></transition>
+
     <transition name="packShipmentProductScan"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProductScan"/>
         <default-response url="."/></transition>
     <transition name="packItem"><service-call name="mantle.shipment.ShipmentServices.pack#ShipmentProduct"/>
@@ -128,6 +134,7 @@ along with this software (see the LICENSE.md file). If not, see
     <transition-include name="searchPartyList" location="component://SimpleScreens/template/party/PartyForms.xml"/>
     <transition-include name="getProductList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
     <transition-include name="getAssetList" location="component://SimpleScreens/template/product/ProductTransitions.xml"/>
+    <transition-include name="getContainerList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
 
     <transition-include name="getPackageWeight" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
     <transition-include name="getShippingOptions" location="component://SimpleScreens/template/shipment/ShipmentTransitions.xml"/>
@@ -546,6 +553,15 @@ along with this software (see the LICENSE.md file). If not, see
                     </conditional-field>
                 </field>
 
+                <field name="pickContainerId">
+                    <conditional-field title="Pick Container" condition="(isOutgoing || isTransfer) &amp;&amp; allowUpdate">
+                        <drop-down allow-empty="true"><dynamic-options transition="getContainerList" server-search="true" min-length="2"/></drop-down>
+                    </conditional-field>
+                    <conditional-field condition="(isOutgoing || isTransfer) &amp;&amp; pickContainerId" title="Pick Container">
+                        <display-entity entity-name="mantle.product.asset.Container" text="ContainerNameTemplate"/>
+                    </conditional-field>
+                </field>
+
                 <field name="priority"><default-field><radio no-current-selected-key="5">
                     <option key="1"/><option key="2"/><option key="3"/><option key="4"/><option key="5"/>
                     <option key="6"/><option key="7"/><option key="8"/><option key="9"/>
@@ -657,7 +673,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <form-single name="PackScanForm" transition="packShipmentProductScan" focus-field="scanInput">
                     <field name="shipmentId"><default-field><hidden/></default-field></field>
                     <field name="quantity" from="1"><default-field><text-line size="4"/></default-field></field>
-                    <field name="scanInput"><default-field title="Product"><text-line size="25"/></default-field></field>
+                    <field name="scanInput"><default-field title="Product"><text-line size="20"/></default-field></field>
                     <field name="shipmentPackageSeqId" from="activePackageSeqId"><default-field title="Package"><drop-down>
                         <option key="" text="New"/>
                         <list-options list="shipmentPackageList" key="${shipmentPackageSeqId}" text="${shipmentPackageSeqId}"/>
@@ -665,6 +681,20 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="packButton"><default-field title="Pack Item"><submit/></default-field></field>
                     <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="scanInput"/>
                         <field-ref name="shipmentPackageSeqId"/><field-ref name="packButton"/></field-row-big></field-layout>
+                </form-single>
+            </widgets></section>
+            <section name="PickScanSection" condition="isOutgoing &amp;&amp; shipment.statusId in ['ShipInput', 'ShipScheduled']"><actions>
+                <entity-find-one entity-name="mantle.product.asset.Container" value-field="pickContainer">
+                    <field-map field-name="containerId" from="shipment.pickContainerId"/></entity-find-one>
+            </actions><widgets>
+                <form-single name="PickScanForm" transition="pickMoveShipmentProduct">
+                    <field name="shipmentId"><default-field><hidden/></default-field></field>
+                    <field name="quantity" from="1"><default-field><text-line size="4"/></default-field></field>
+                    <field name="scanProduct"><default-field title="Product"><text-line size="20"/></default-field></field>
+                    <field name="scanLocation"><default-field title="From Location"><text-line size="20"/></default-field></field>
+                    <field name="pickButton"><default-field title=""><submit text="Pick${pickContainer ? ' and Move to Container ' + (pickContainer.serialNumber ?: pickContainer.containerId) : ''}"/></default-field></field>
+                    <field-layout><field-row-big><field-ref name="quantity"/><field-ref name="scanProduct"/>
+                        <field-ref name="scanLocation"/><field-ref name="pickButton"/></field-row-big></field-layout>
                 </form-single>
             </widgets></section>
 
