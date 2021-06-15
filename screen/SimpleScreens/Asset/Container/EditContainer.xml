@@ -15,7 +15,8 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-2.1.xsd"
         default-menu-title="Container">
 
-    <parameter name="containerId" required="true"/>
+    <parameter name="containerId" required="true" from="containerId ?: toContainerId"/>
+    <parameter name="toContainerId"/>
 
     <transition name="updateContainer"><service-call name="update#mantle.product.asset.Container"/>
         <default-response url="."/></transition>
@@ -25,6 +26,11 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="removeAssetFromContainer">
         <service-call name="update#mantle.product.asset.Asset" in-map="[assetId:assetId, containerId:null]"/>
+        <default-response url="."/>
+    </transition>
+
+    <transition name="pickMoveProductToContainer">
+        <service-call name="mantle.shipment.ShipmentServices.pickMove#ProductToContainer" in-map="context + [containerId:null]"/>
         <default-response url="."/>
     </transition>
 
@@ -41,6 +47,27 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container-row><row-col lg="5">
+            <section name="PickScanSection"><actions>
+                <entity-find entity-name="mantle.shipment.Shipment" list="shipmentList">
+                    <econdition field-name="pickContainerId" from="containerId"/>
+                    <econdition field-name="statusId" operator="in" value="ShipInput,ShipScheduled"/>
+                    <order-by field-name="shipmentId"/>
+                </entity-find>
+            </actions><widgets>
+                <container-dialog id="PickScanDialog" button-text="Pick &amp; Move to Container" condition="shipmentList">
+                    <form-single name="PickScanForm" transition="pickMoveProductToContainer">
+                        <field name="toContainerId" from="containerId"><default-field><hidden/></default-field></field>
+                        <field name="quantity" from="1"><default-field><text-line size="4"/></default-field></field>
+                        <field name="scanProduct"><default-field title=" Scan Product"><text-line size="40"/></default-field></field>
+                        <field name="scanLocation"><default-field title="Scan From Location"><text-line size="40"/></default-field></field>
+                        <field name="shipmentId"><default-field title="Shipment">
+                            <drop-down allow-empty="true"><list-options list="shipmentList" key="${shipmentId}" text="${shipmentId}"/></drop-down>
+                        </default-field></field>
+                        <field name="pickButton"><default-field title=""><submit text="Pick${pickContainer ? ' and Move to Container ' + (pickContainer.serialNumber ?: pickContainer.containerId) : ''}"/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </widgets></section>
+
             <form-single name="UpdateContainerForm" transition="updateContainer" map="container">
                 <field name="containerId"><default-field><display/></default-field></field>
                 <field name="createdDate"><default-field><display/></default-field></field>
@@ -64,38 +91,34 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
             </form-single>
         </row-col><row-col lg="7">
-            <container-box>
-                <box-header title="Assets"/>
-                <box-toolbar>
-                    <container-dialog id="AddAssetDialog" button-text="Add Asset">
-                        <form-single name="AddAssetForm" transition="addAssetToContainer">
-                            <field name="containerId"><default-field><hidden/></default-field></field>
-                            <field name="assetId"><default-field title="Asset">
-                                <drop-down allow-empty="true"><dynamic-options transition="getAssetList" server-search="true"
-                                        min-length="0" parameter-map="[excludeZeroQoh:'true']"/></drop-down>
-                            </default-field></field>
-                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
-                        </form-single>
-                    </container-dialog>
-                </box-toolbar>
-                <box-body>
-                    <form-list name="AssetListForm" list="assetList" skip-form="true">
-                        <entity-find entity-name="mantle.product.asset.AssetAndProduct" list="assetList">
-                            <econdition field-name="containerId"/>
-                            <select-field field-name="assetId,productId,pseudoId,productName"/>
-                            <order-by field-name="assetId"/>
-                        </entity-find>
-
-                        <field name="asset"><default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
-                        <field name="availableToPromiseTotal"><default-field title="ATP"><display/></default-field></field>
-                        <field name="quantityOnHandTotal"><default-field title="QOH"><display/></default-field></field>
-                        <field name="product"><default-field><link url="editProduct" text="ProductNameTemplate" link-type="anchor"/></default-field></field>
-                        <field name="removeLink" align="right"><default-field title="">
-                            <link url="removeAssetFromContainer" icon="fa fa-trash" parameter-map="[assetId:assetId, containerId:containerId]"/>
+            <container-box><box-header title="Assets"/><box-toolbar>
+                <container-dialog id="AddAssetDialog" button-text="Add Asset">
+                    <form-single name="AddAssetForm" transition="addAssetToContainer">
+                        <field name="containerId"><default-field><hidden/></default-field></field>
+                        <field name="assetId"><default-field title="Asset">
+                            <drop-down allow-empty="true"><dynamic-options transition="getAssetList" server-search="true"
+                                    min-length="0" parameter-map="[excludeZeroQoh:'true']"/></drop-down>
                         </default-field></field>
-                    </form-list>
-                </box-body>
-            </container-box>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <form-list name="AssetListForm" list="assetList" skip-form="true">
+                    <entity-find entity-name="mantle.product.asset.AssetAndProduct" list="assetList">
+                        <econdition field-name="containerId"/>
+                        <select-field field-name="assetId,productId,pseudoId,productName"/>
+                        <order-by field-name="assetId"/>
+                    </entity-find>
+
+                    <field name="asset"><default-field><link url="assetDetail" text="${assetId}" link-type="anchor"/></default-field></field>
+                    <field name="availableToPromiseTotal"><default-field title="ATP"><display/></default-field></field>
+                    <field name="quantityOnHandTotal"><default-field title="QOH"><display/></default-field></field>
+                    <field name="product"><default-field><link url="editProduct" text="ProductNameTemplate" link-type="anchor"/></default-field></field>
+                    <field name="removeLink" align="right"><default-field title="">
+                        <link url="removeAssetFromContainer" icon="fa fa-trash" parameter-map="[assetId:assetId, containerId:containerId]"/>
+                    </default-field></field>
+                </form-list>
+            </box-body></container-box>
         </row-col></container-row>
     </widgets>
 </screen>
