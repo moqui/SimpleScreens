@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal plus a 
+This software is in the public domain under CC0 1.0 Universal plus a
 Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
@@ -31,23 +31,25 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="verifyUserAuthcFactorTotp"><service-call name="mantle.party.PartyServices.verify#UserAuthcFactorTotp"/>
         <default-response url="."/></transition>
     <transition name="createUserAuthcFactorSingleUse">
-        <service-call name="mantle.party.PartyServices.create#UserAuthcFactorSingleUse"/>
+        <service-call name="mantle.party.PartyServices.create#SingleUseAuthcCodes"/>
         <actions><script>ec.web.sessionAttributes.put("singleUseCodes", singleUseCodes)</script></actions>
         <default-response url="."/></transition>
-    <transition name="createUserAuthcFactorEmail"><service-call name="mantle.party.PartyServices.create#UserAuthcFactorEmail"/>
+    <transition name="createUserAuthcFactorEmail"><service-call name="mantle.party.PartyServices.create#EmailUserAuthcFactor"/>
         <default-response url="."/></transition>
-    <transition name="factorSubmit"><service-call name="mantle.party.PartyServices.delete#UserAuthcFactor" in-map="context"/>
+    <transition name="factorSubmit"><service-call name="mantle.party.PartyServices.invalidate#UserAuthcFactorEntry" in-map="context"/>
         <default-response url="."/></transition>
 
     <actions>
         <entity-find-one entity-name="mantle.party.PersonAndUserAccount" value-field="personAndUserAccount"/>
 
         <set field="singleUseCodes" from="ec.web.sessionAttributes.remove('singleUseCodes')"/>
-        <service-call name="mantle.party.PartyServices.get#UserAuthcFactorActiveList" in-map="[userId:userId]" out-map="activeList"/>
-        <set field="authList" type="List" from="[]"/>
-        <iterate list="activeList.activeList" entry="active">
-            <if condition="!active.fromFactorId"><script>authList.add(active)</script></if>
-        </iterate>
+
+        <entity-find entity-name="moqui.security.UserAuthcFactor" list="userAuthcFactorList">
+            <date-filter/>
+            <econdition field-name="userId"/>
+<!--            <econdition field-name="fromFactorId" operator="null"/>-->
+        </entity-find>
+
 
         <if condition="personAndUserAccount == null"><set field="personAndUserAccount" from="ec.user.userAccount"/></if>
 
@@ -151,10 +153,10 @@ along with this software (see the LICENSE.md file). If not, see
                         </container-dialog>
 
                     </box-toolbar><box-body-nopad>
-                        <form-list name="UserAuthcFactorList" list="authList" transition="factorSubmit">
-                            <field name="factorId"><default-field><hidden/></default-field></field>
+                        <form-list name="UserAuthcFactorList" list="userAuthcFactorList" transition="factorSubmit">
+                            <field name="factorId"><default-field><display/></default-field></field>
                             <field name="userId" from="userId"><default-field><hidden/></default-field></field>
-                            <field name="fromFactorId"><header-field/><default-field><hidden/></default-field></field>
+                            <field name="fromFactorId"><header-field/><default-field><display/></default-field></field>
                             <field name="factorTypeEnumId"><header-field title="Factor Type"/><default-field><display-entity entity-name="moqui.basic.Enumeration" text="${description}"/></default-field></field>
                             <field name="fromDate"><default-field><display/></default-field></field>
                             <field name="thruDate"><default-field><display/></default-field></field>
@@ -166,7 +168,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <conditional-field condition="needsValidation == 'N' &amp;&amp; factorTypeEnumId == 'UafEmail'">
                                     <label text="${factorOption}"/></conditional-field>
                             </field>
-                            <field name="needsValidation"><default-field><hidden/></default-field></field>
+                            <field name="needsValidation"><default-field><display/></default-field></field>
                             <field name="delete"><default-field title=" "><submit text=" " icon="fa fa-trash"/></default-field></field>
                         </form-list>
                     </box-body-nopad>
