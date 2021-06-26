@@ -26,18 +26,23 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="changePassword"><service-call name="org.moqui.impl.UserServices.update#Password"/>
         <default-response url="."/><error-response url="."/></transition>
 
-    <transition name="createUserAuthcFactorTotp"><service-call name="mantle.party.PartyServices.create#UserAuthcFactorTotp"/>
+    <transition name="createUserAuthcFactorTotp"><service-call name="org.moqui.impl.UserServices.create#UserAuthcFactorTotp"/>
         <default-response url="."/></transition>
-    <transition name="verifyUserAuthcFactorTotp"><service-call name="mantle.party.PartyServices.verify#UserAuthcFactorTotp"/>
+    <transition name="verifyUserAuthcFactorTotp"><service-call name="org.moqui.impl.UserServices.verify#UserAuthcFactorTotp"/>
         <default-response url="."/></transition>
     <transition name="createUserAuthcFactorSingleUse">
-        <service-call name="mantle.party.PartyServices.create#SingleUseAuthcCodes"/>
+        <service-call name="org.moqui.impl.UserServices.create#SingleUseAuthcCodes"/>
         <actions><script>ec.web.sessionAttributes.put("singleUseCodes", singleUseCodes)</script></actions>
         <default-response url="."/></transition>
-    <transition name="createUserAuthcFactorEmail"><service-call name="mantle.party.PartyServices.create#EmailUserAuthcFactor"/>
+    <transition name="createUserAuthcFactorEmail"><service-call name="org.moqui.impl.UserServices.create#EmailUserAuthcFactor"/>
         <default-response url="."/></transition>
-    <transition name="factorSubmit"><service-call name="mantle.party.PartyServices.invalidate#UserAuthcFactorEntry" in-map="context"/>
+    <transition name="factorSubmit"><service-call name="org.moqui.impl.UserServices.invalidate#UserAuthcFactorEntry" in-map="context"/>
         <default-response url="."/></transition>
+
+    <subscreens>
+        <subscreens-item name="VerifyEmail" location="component://tools/screen/System/Security/UserAccount/UserAccountDetail/VerifyEmail.xml"/>
+        <subscreens-item name="VerifyTotp" location="component://tools/screen/System/Security/UserAccount/UserAccountDetail/VerifyTotp.xml"/>
+    </subscreens>
 
     <actions>
         <entity-find-one entity-name="mantle.party.PersonAndUserAccount" value-field="personAndUserAccount"/>
