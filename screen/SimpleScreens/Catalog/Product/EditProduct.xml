@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal plus a 
+This software is in the public domain under CC0 1.0 Universal plus a
 Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
@@ -47,6 +47,13 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="deleteProductDimension"><service-call name="delete#mantle.product.ProductDimension"/>
         <default-response url="."/></transition>
+    <transition name="createProductUomDimension"><service-call name="create#mantle.product.ProductUomDimension"/>
+        <default-response url="."/></transition>
+    <transition name="updateProductUomDimension"><service-call name="update#mantle.product.ProductUomDimension"/>
+        <default-response url="."/></transition>
+    <transition name="deleteProductUomDimension"><service-call name="delete#mantle.product.ProductUomDimension"/>
+        <default-response url="."/></transition>
+
 
     <transition name="createProductLocation"><service-call name="create#mantle.facility.ProductFacilityLocation"/>
         <default-response url="."/></transition>
@@ -328,6 +335,47 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     <field name="deleteButton"><default-field title=""><link url="deleteProductDimension" confirmation="Remove dimension?"
                             icon="fa fa-trash" parameter-map="[productId:productId, dimensionTypeId:dimensionTypeId]"/></default-field></field>
+                </form-list>
+            </box-body-nopad></container-box>
+
+            <container-box><box-header title="UOM Dimensions"/><box-toolbar>
+                <container-dialog id="AddUomDimensionDialog" button-text="Add UOM Dimension">
+                    <form-single name="AddUomDimensionForm" transition="createProductUomDimension">
+                        <field name="productId"><default-field><hidden/></default-field></field>
+                        <field name="uomDimensionTypeId"><default-field title="Type">
+                            <drop-down><entity-options key="${uomDimensionTypeId}" text="${description}">
+                                <entity-find entity-name="moqui.basic.UomDimensionType">
+                                    <order-by field-name="description"/></entity-find>
+                            </entity-options></drop-down>
+                        </default-field></field>
+                        <field name="value"><default-field><text-line size="8"/></default-field></field>
+                        <field name="uomId"><default-field title="Unit">
+                            <drop-down allow-empty="true"><entity-options key="${uomId}" text="${typeDescription}: ${description}">
+                                <entity-find entity-name="moqui.basic.UomAndType">
+                                    <order-by field-name="typeDescription,description"/></entity-find>
+                            </entity-options></drop-down>
+                        </default-field></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body-nopad>
+                <form-list name="UomDimensionsForm" list="uomDimensionList" transition="updateProductUomDimension">
+                    <entity-find entity-name="mantle.product.ProductUomDimensionAndType" list="uomDimensionList">
+                        <econdition field-name="productId"/><order-by field-name="description"/></entity-find>
+
+                    <field name="productId"><default-field><hidden/></default-field></field>
+                    <field name="productUomDimensionId"><default-field><hidden/></default-field></field>
+                    <field name="description"><default-field title="Type"><display/></default-field></field>
+                    <field name="value"><default-field><text-line size="8"/></default-field></field>
+                    <field name="uomId"><default-field title="Unit">
+                        <drop-down allow-empty="true"><entity-options key="${uomId}" text="${typeDescription}: ${description}">
+                            <entity-find entity-name="moqui.basic.UomAndType">
+                                <order-by field-name="typeDescription,description"/></entity-find>
+                        </entity-options></drop-down>
+                    </default-field></field>
+                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                    <field name="deleteButton"><default-field title=""><link url="deleteProductUomDimension" confirmation="Remove dimension?"
+                            icon="fa fa-trash" parameter-map="[productId:productId, productUomDimensionId:productUomDimensionId]"/></default-field></field>
                 </form-list>
             </box-body-nopad></container-box>
 
