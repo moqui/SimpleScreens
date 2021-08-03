@@ -25,6 +25,8 @@ along with this software (see the LICENSE.md file). If not, see
             <else-if condition="'receivable'.equalsIgnoreCase(invoiceType)"><set field="fromRoleTypeId" value="OrgInternal"/></else-if></if>
 
         <set field="periodDays" from="(periodDays ?: '30') as int"/>
+        <!-- NOTE: this report is different from InvoiceAgingDetail and ArAgingSummary in that it is status based, and includes the InvoiceReceived status for Payable;
+            this report is meant for operational use and not for accounting reconciliation, etc -->
         <set field="statusId" from="statusId ?: (invoiceType == 'Payable' ? 'InvoiceReceived,InvoiceApproved' : 'InvoiceFinalized,InvoiceSent,InvoiceAcked')"/>
         <set field="statusId_op" value="in"/>
         <set field="dbConfName" from="ec.entity.getDatabaseConfName('mantle.account.invoice.Invoice')"/>
