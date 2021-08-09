@@ -24,9 +24,32 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="deleteStoreSetting"><service-call name="delete#mantle.product.store.ProductStoreSetting"/>
         <default-response url="."/></transition>
+    <transition-include name="getEnumRelatedByTypeList" location="component://webroot/template/screen/BasicTransitions.xml"/>
 
     <widgets>
-        <container-dialog id="NewStoreSettingDialog" button-text="New Store Setting">
+        <container-dialog id="SelectStoreSettingDialog" button-text="Select Store Setting">
+            <form-single name="SelectStoreSettingForm" transition="createStoreSetting">
+                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                <field name="settingTypeEnumId"><default-field title="Setting Type">
+                    <drop-down><entity-options key="${enumId}" text="EnumerationNameTemplate">
+                        <entity-find entity-name="moqui.basic.Enumeration">
+                            <econdition field-name="enumTypeId" value="ProductStoreSettingType"/>
+                            <econdition field-name="relatedEnumTypeId" operator="is-not-null"/>
+                            <order-by field-name="sequenceNum,description"/>
+                        </entity-find>
+                    </entity-options></drop-down>
+                </default-field></field>
+                <field name="fromDate" from="ec.user.nowTimestamp"><default-field>
+                    <date-time type="date-time"/></default-field></field>
+                <field name="settingValue"><default-field title="Value">
+                    <drop-down><dynamic-options transition="getEnumRelatedByTypeList" value-field="enumId" label-field="description">
+                        <depends-on field="settingTypeEnumId" parameter="enumId"/>
+                    </dynamic-options></drop-down>
+                </default-field></field>
+                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
+        <container-dialog id="NewStoreSettingDialog" button-text="Enter Store Setting">
             <form-single name="NewStoreSettingForm" transition="createStoreSetting">
                 <field name="productStoreId"><default-field><hidden/></default-field></field>
                 <field name="settingTypeEnumId"><default-field title="Setting Type">
@@ -49,6 +72,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <search-form-inputs default-order-by="settingTypeEnumId"/>
                 <econdition field-name="productStoreId"/>
             </entity-find>
+            <row-actions>
+                <entity-find-one entity-name="moqui.basic.Enumeration" value-field="settingTypeEnum">
+                    <field-map field-name="enumId" from="settingTypeEnumId"/></entity-find-one>
+            </row-actions>
 
             <field name="productStoreId"><default-field><hidden/></default-field></field>
 
@@ -61,10 +88,14 @@ along with this software (see the LICENSE.md file). If not, see
                         </entity-find></entity-options>
                     </drop-down>
                 </header-field>
-                <default-field><display-entity entity-name="moqui.basic.Enumeration"/></default-field>
+                <default-field><display text="${description}" text-map="settingTypeEnum"/></default-field>
             </field>
             <field name="settingValue">
                 <header-field title="Value" show-order-by="case-insensitive"><text-find size="40" hide-options="true"/></header-field>
+                <conditional-field condition="settingTypeEnum.relatedEnumTypeId">
+                    <drop-down><dynamic-options transition="getEnumRelatedByTypeList" value-field="enumId" label-field="description"
+                            parameter-map="[enumId:settingTypeEnumId]"/></drop-down>
+                </conditional-field>
                 <default-field><text-line size="60"/></default-field>
             </field>
             <field name="fromDate">
