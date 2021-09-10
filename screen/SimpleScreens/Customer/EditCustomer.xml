@@ -114,6 +114,10 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.party.PartyDetail" value-field="party"/>
         <if condition="party == null"><return error="true" message="Customer not found with ID ${partyId}"/></if>
 
+        <entity-find-one entity-name="mantle.party.PartyRole" value-field="customerRole">
+            <field-map field-name="partyId"/><field-map field-name="roleTypeId" value="Customer"/></entity-find-one>
+        <if condition="customerRole == null"><return error="true" message="Party ${partyId} is not a Customer"/></if>
+
         <!-- FUTURE: support multiple UserAccount records for partyId, for now just get non-disabled first and order by userId for consistency -->
         <entity-find entity-name="moqui.security.UserAccount" list="userAccountList">
             <econdition field-name="partyId"/>
