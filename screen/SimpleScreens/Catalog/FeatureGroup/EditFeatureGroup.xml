@@ -30,14 +30,11 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="createProductFeatureGroupAppl">
         <actions>
-            <if condition="productFeatureId instanceof Collection"><then>
-                <iterate list="productFeatureId" entry="curId">
-                    <service-call name="create#mantle.product.feature.ProductFeatureGroupAppl"
-                            in-map="[productFeatureId:curId, productFeatureGroupId:productFeatureGroupId, fromDate:fromDate]"/>
-                </iterate>
-            </then><else>
-                <service-call name="create#mantle.product.feature.ProductFeatureGroupAppl" in-map="context"/>
-            </else></if>
+            <set field="productFeatureIds" from="productFeatureId?.split(',')"/>
+            <iterate list="productFeatureIds" entry="curId">
+                <service-call name="create#mantle.product.feature.ProductFeatureGroupAppl"
+                        in-map="[productFeatureId:curId, productFeatureGroupId:productFeatureGroupId, fromDate:fromDate]"/>
+            </iterate>
         </actions>
         <default-response url="."/>
     </transition>
