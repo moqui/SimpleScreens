@@ -17,14 +17,15 @@ along with this software (see the LICENSE.md file). If not, see
 
     <parameter name="formId" required="true"/>
 
-    <transition name="addDbFormField"><actions>
-        <set field="fieldName" from="org.moqui.util.StringUtilities.prettyToCamelCase(title, false)"/>
-        <service-call name="create#moqui.screen.form.DbFormField" in-map="context"/>
-    </actions><default-response url="."/></transition>
-
-    <transition name="updateDbFormField"><service-call name="org.moqui.impl.ScreenServices.update#DbFormField"/>
-        <default-response url="."/></transition>
-
+    <transition name="addDbFormField">
+        <service-call name="create#moqui.screen.form.DbFormField"
+                in-map="context + [condition:null, fieldName:org.moqui.util.StringUtilities.prettyToCamelCase(title, false)]"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="updateDbFormField">
+        <service-call name="org.moqui.impl.ScreenServices.update#DbFormField" in-map="context + [condition:null]"/>
+        <default-response url="."/>
+    </transition>
     <transition name="deleteDbFormField"><service-call name="org.moqui.impl.ScreenServices.delete#DbFormField"/>
         <default-response url="."/></transition>
 
@@ -64,7 +65,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </entity-options></drop-down>
                 </default-field></field>
                 <field name="layoutSequenceNum"><default-field title="Layout Sequence">
-                    <text-line size="10"></text-line></default-field></field>
+                    <text-line size="10"/></default-field></field>
                 <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
             </form-single>
         </container-dialog>
@@ -76,12 +77,14 @@ along with this software (see the LICENSE.md file). If not, see
         </container-dialog>
 
         <container-row>
-            <row-col lg="6">
+            <row-col lg="7">
                 <section name="DbFormFields" condition="dbFormFieldList"><widgets>
                     <form-list name="DbFormFieldList" list="dbFormFieldList" transition="updateDbFormField">
                         <field name="formId"><default-field><hidden/></default-field></field>
-                        <field name="fieldName"><default-field><hidden/></default-field></field>
-                        <field name="title"><default-field><text-line size="20"/></default-field></field>
+                        <field name="fieldName"><default-field><display/></default-field></field>
+                        <field name="title"><default-field><text-line size="25"/></default-field></field>
+                        <!-- on second thought better not to put this here, is an attack vector given this is a non-sandboxed groovy expression, see protections in create/update transitions:
+                            <field name="condition"><default-field><text-line size="25"/></default-field></field> -->
                         <field name="fieldTypeEnumId"><default-field title="Type">
                             <drop-down><entity-options key="${enumId}" text="${description ?: enumId}">
                                 <entity-find entity-name="moqui.basic.Enumeration">
@@ -97,10 +100,10 @@ along with this software (see the LICENSE.md file). If not, see
                     </form-list>
                 </widgets></section>
             </row-col>
-            <row-col lg="6">
+            <row-col lg="5">
                <section-iterate name="EnumDbFormFieldOptions" list="enumFieldOptionsList" entry="field"><widgets>
                    <section name="fieldOption"><widgets>
-                       <container-box><box-header title="${field.title}"/><box-toolbar>
+                       <container-box><box-header title="Options for ${field.title}"/><box-toolbar>
                            <container-dialog id="NewFieldOptionDialog" button-text="Add Option">
                                <form-single name="NewFieldOptionForm" transition="addFieldOption">
                                    <field name="formId"  ><default-field title="">
@@ -108,8 +111,8 @@ along with this software (see the LICENSE.md file). If not, see
                                    <field name="fieldName" from="field.fieldName"><default-field title="">
                                        <hidden/></default-field></field>
                                    <field name="title" from="field.title"><default-field><display/></default-field></field>
-                                   <field name="keyValue"><default-field><text-line size="20" /></default-field></field>
-                                   <field name="text"><default-field title="Description"><text-line size="50" /></default-field></field>
+                                   <field name="keyValue"><default-field><text-line size="15" /></default-field></field>
+                                   <field name="text"><default-field title="Description"><text-line size="25" /></default-field></field>
                                    <field name="sequenceNum"><default-field><text-line size="5" /></default-field></field>
                                    <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
                                </form-single>
