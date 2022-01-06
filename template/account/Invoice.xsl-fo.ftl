@@ -27,11 +27,11 @@ along with this software (see the LICENSE.md file). If not, see
     <#assign lot = asset.lot!>
     <fo:table-row font-size="8pt" border-bottom="thin solid black">
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center"><#if (itemIndex > 0)>${itemIndex}<#else> </#if></fo:block></fo:table-cell>
-        <fo:table-cell padding="${cellPadding}"><fo:block>${(product.pseudoId)!(invoiceItem.productId)!""}</fo:block></fo:table-cell>
-        <fo:table-cell padding="${cellPadding}"><fo:block>${(lot.lotNumber)!(asset.lotId)!""}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block><@encodeText (product.pseudoId)!(invoiceItem.productId)!""/></fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block><@encodeText (lot.lotNumber)!(asset.lotId)!""/></fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}">
             <fo:block><@encodeText (invoiceItem.description)!(itemTypeEnum.description)!""/></fo:block>
-            <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
+            <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: <@encodeText invoiceItem.otherPartyProductId/></fo:block></#if>
         </fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceItem.amount!0, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
@@ -52,14 +52,14 @@ along with this software (see the LICENSE.md file). If not, see
     </#if>
     <fo:table-row font-size="8pt" border-bottom="thin solid black">
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center"><#if (itemIndex > 0)>${itemIndex}<#else> </#if></fo:block></fo:table-cell>
-        <fo:table-cell padding="${cellPadding}"><fo:block>${(itemTypeEnum.description)!""}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block><@encodeText (itemTypeEnum.description)!""/></fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block>${ec.l10n.format(invoiceItem.itemDate, dateFormat)}</fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}">
             <fo:block><@encodeText invoiceItem.description!""/></fo:block>
             <#if (timeEntry.workEffortId)?has_content><fo:block>Task: ${timeEntry.workEffortId} - <@encodeText workEffort.workEffortName!""/></fo:block></#if>
-            <#if rateTypeEnum?has_content><fo:block>Rate: ${rateTypeEnum.description}</fo:block></#if>
+            <#if rateTypeEnum?has_content><fo:block>Rate: <@encodeText rateTypeEnum.description/></fo:block></#if>
             <#if timeEntry?has_content><fo:block>${ec.l10n.format(timeEntry.fromDate, "dd MMM yyyy hh:mm")} to ${ec.l10n.format(timeEntry.thruDate, "dd MMM yyyy hh:mm")}, Break ${timeEntry.breakHours!"0"}h</fo:block></#if>
-            <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
+            <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: <@encodeText invoiceItem.otherPartyProductId/></fo:block></#if>
         </fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceItem.amount!0, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
@@ -201,7 +201,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </fo:block-container>
                     <fo:block-container margin-left="0.5in"><fo:block font-size="8pt">
                         <#if toContactInfo.telecomNumber?has_content>T: <#if toContactInfo.telecomNumber.countryCode?has_content>${toContactInfo.telecomNumber.countryCode}-</#if><#if toContactInfo.telecomNumber.areaCode?has_content>${toContactInfo.telecomNumber.areaCode}-</#if>${toContactInfo.telecomNumber.contactNumber!""}</#if>
-                        <#if toContactInfo.emailAddress?has_content>E: ${toContactInfo.emailAddress}</#if>
+                        <#if toContactInfo.emailAddress?has_content>E: <@encodeText toContactInfo.emailAddress/></#if>
                     </fo:block></fo:block-container>
                 </fo:table-cell>
                 <fo:table-cell padding="3pt" width="3in">
@@ -321,7 +321,7 @@ along with this software (see the LICENSE.md file). If not, see
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem_index}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}">
                                     <fo:block><@encodeText (invoiceItem.description)!(itemTypeEnum.description)!""/></fo:block>
-                                    <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: ${invoiceItem.otherPartyProductId}</fo:block></#if>
+                                    <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: <@encodeText invoiceItem.otherPartyProductId/></fo:block></#if>
                                 </fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${ec.l10n.format(invoiceItem.itemDate!, dateFormat)}</fo:block></fo:table-cell>
                                 <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
