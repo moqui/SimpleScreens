@@ -23,6 +23,8 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="updateStore"><service-call name="update#mantle.product.store.ProductStore"/>
         <default-response url="."/></transition>
+    <transition name="cloneProductStore"><service-call name="mantle.product.StoreServices.clone#ProductStore"/>
+        <default-response url="."/></transition>
 
     <transition name="createShippingOption"><service-call name="mantle.product.StoreServices.create#StoreShippingOption"/>
         <default-response url="."/></transition>
@@ -56,11 +58,32 @@ along with this software (see the LICENSE.md file). If not, see
     </actions>
     <widgets>
         <container-row><row-col lg="5">
+            <container-dialog id="CloneProductStoreDialog" button-text="Clone Store">
+                <form-single name="CloneProductStoreForm" transition="cloneProductStore">
+                    <field name="baseProductStoreId" from="productStoreId"><default-field><hidden/></default-field></field>
+                    <field name="productStoreId"><default-field title="New ID"><text-line size="10"/></default-field></field>
+                    <field name="storeName"><default-field title="New Name"><text-line size="50"/></default-field></field>
+
+                    <field name="copyCategories"><default-field><radio no-current-selected-key="true">
+                        <option key="true" text="Yes"/><option key="false" text="No"/></radio></default-field></field>
+                    <field name="copyEmails"><default-field><radio no-current-selected-key="true">
+                        <option key="true" text="Yes"/><option key="false" text="No"/></radio></default-field></field>
+                    <field name="copyFacilities"><default-field><radio no-current-selected-key="true">
+                        <option key="true" text="Yes"/><option key="false" text="No"/></radio></default-field></field>
+                    <field name="copyParties"><default-field><radio no-current-selected-key="true">
+                        <option key="true" text="Yes"/><option key="false" text="No"/></radio></default-field></field>
+                    <field name="copyProducts"><default-field><radio no-current-selected-key="true">
+                        <option key="true" text="Yes"/><option key="false" text="No"/></radio></default-field></field>
+                    <field name="copySettings"><default-field><radio no-current-selected-key="true">
+                        <option key="true" text="Yes"/><option key="false" text="No"/></radio></default-field></field>
+
+                    <field name="submitButton"><default-field title="Clone"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+
             <form-single name="EditStoreForm" map="store" transition="updateStore">
-                <field name="productStoreId"><default-field title="Product Store ID">
-                    <display text="${productStoreId}"/>
-                </default-field></field>
-                <field name="storeName"><default-field title="Name"><text-line size="30"/></default-field></field>
+                <field name="productStoreId"><default-field title="Product Store ID"><display/></default-field></field>
+                <field name="storeName"><default-field title="Name"><text-line size="50"/></default-field></field>
                 <field name="organizationPartyId"><default-field title="Organization">
                     <drop-down allow-empty="true">
                         <entity-options key="${partyId}" text="PartyNameTemplate"><entity-find entity-name="mantle.party.PartyDetailAndRole">
