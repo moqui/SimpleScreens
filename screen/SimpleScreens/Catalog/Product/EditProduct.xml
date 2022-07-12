@@ -33,14 +33,15 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="productIdTypeEnumId"/>
         <service-call name="delete#mantle.product.ProductIdentification"/><default-response url="."/></transition>
 
-    <transition name="createProductOtherIdentification">
-        <service-call name="create#mantle.product.ProductOtherIdentification"/><default-response url="."/></transition>
-    <transition name="updateProductOtherIdentification">
-        <service-call name="update#mantle.product.ProductOtherIdentification"/><default-response url="."/></transition>
+    <transition name="createProductOtherIdentification"><parameter name="idValue" required="true"/>
+        <service-call name="create#mantle.product.ProductOtherIdentification"/>
+        <default-response url="."/></transition>
+    <transition name="updateProductOtherIdentification"><service-call name="update#mantle.product.ProductOtherIdentification"/>
+        <default-response url="."/></transition>
     <transition name="deleteProductOtherIdentification">
         <parameter name="productIdTypeEnumId"/>
         <service-call name="delete#mantle.product.ProductOtherIdentification"/><default-response url="."/></transition>
-    <transition name="generateProductOtherIdentification">
+    <transition name="generateUrlSlugOtherIdent">
         <service-call name="mantle.product.StoreServices.generate#UrlSlugFromProductName"/>
         <default-response url="."/></transition>
 
@@ -263,11 +264,11 @@ along with this software (see the LICENSE.md file). If not, see
             </box-body></container-box>
 
             <container-box><box-header title="Other Identification"/><box-toolbar>
-                <form-single name="GenerateOtherIdentification" transition="generateProductOtherIdentification">
+                <form-single name="GenerateOtherIdentification" transition="generateUrlSlugOtherIdent">
                     <field name="productId"><default-field><hidden/></default-field></field>
                     <field name="productName" from="product?.productName"><default-field><hidden/></default-field></field>
                     <field name="submitButton"><conditional-field title="Generate Url Slug" tooltip="Generate Url Slug from the Product's Name"
-                        condition="productOtherIdentificationList?.findAll{it.productIdTypeEnumId == 'PidtSlug' }?.size() == 0">
+                        condition="productOtherIdentificationList?.findAll{it.productIdTypeEnumId == 'PidtUrlSlug' }?.size() == 0">
                         <submit/></conditional-field></field></form-single>
                 <container-dialog id="AddOtherIdentificationDialog" button-text="Add Other Identification">
                     <form-single name="AddOtherIdentificationForm" transition="createProductOtherIdentification">
