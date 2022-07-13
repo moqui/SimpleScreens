@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal plus a 
+This software is in the public domain under CC0 1.0 Universal plus a
 Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
@@ -43,6 +43,13 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="createPaymentGateway"><service-call name="create#mantle.product.store.ProductStorePaymentGateway"/>
         <default-response url="."/></transition>
     <transition name="deletePaymentGateway"><service-call name="delete#mantle.product.store.ProductStorePaymentGateway"/>
+        <default-response url="."/></transition>
+
+    <transition name="createStoreDataDocument"><service-call name="create#mantle.product.store.ProductStoreDataDocument"/>
+        <default-response url="."/></transition>
+    <transition name="updateStoreDataDocument"><service-call name="update#mantle.product.store.ProductStoreDataDocument"/>
+        <default-response url="."/></transition>
+    <transition name="deleteStoreDataDocument"><service-call name="delete#mantle.product.store.ProductStoreDataDocument"/>
         <default-response url="."/></transition>
 
     <transition-include name="getFacilityList" location="component://SimpleScreens/template/facility/FacilityTransitions.xml"/>
@@ -322,7 +329,7 @@ along with this software (see the LICENSE.md file). If not, see
                                           parameter-map="[productStoreId:productStoreId, carrierPartyId:carrierPartyId]"
                                           confirmation="Are you sure you want to remove this Shipping Gateway?"/>
                                 </default-field></field>
-                                
+
                                 <columns>
                                     <column><field-ref name="carrierPartyId"/><field-ref name="shippingGatewayConfigId"/></column>
                                     <column><field-ref name="billingCountry"/><field-ref name="billingAccount"/></column>
@@ -339,7 +346,7 @@ along with this software (see the LICENSE.md file). If not, see
             <section name="PaymentGatewaysSection">
                 <actions>
                     <entity-find entity-name="mantle.product.store.ProductStorePaymentGateway" list="storePaymentGateway">
-                        <econdition field-name="productStoreId" value="${productStoreId}" />
+                        <econdition field-name="productStoreId"/>
                     </entity-find>
                 </actions>
                 <widgets>
@@ -385,6 +392,51 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-box>
                 </widgets>
             </section>
+
+            <section name="StoreDataDocumentSection">
+                <actions>
+                    <entity-find entity-name="mantle.product.store.ProductStoreDataDocument" limit="200" cache="true" list="storeDataDocumentList">
+                        <econdition field-name="productStoreId"/></entity-find>
+                    <entity-find entity-name="moqui.entity.document.DataDocument" limit="200" cache="true" list="dataDocumentList">
+                        <order-by field-name="documentName"/></entity-find>
+                    <entity-find entity-name="moqui.basic.Enumeration" limit="200" cache="true" list="storeDataDocumentTypeList">
+                        <econdition field-name="enumTypeId" value="ProductStoreDataDocumentType"/>
+                        <order-by field-name="enumId"/></entity-find>
+                </actions>
+                <widgets>
+                    <container-box>
+                        <box-header title="Store Data Documents"/>
+                        <box-toolbar><container-dialog id="NewStoreDataDocumentDialog" button-text="Add Store Data Document">
+                            <form-single name="NewStoreDataDocumentForm" transition="createStoreDataDocument">
+                                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                                <field name="typeEnumId"><default-field title="Store Data Document Type">
+                                    <drop-down><list-options list="storeDataDocumentTypeList.findAll{!storeDataDocumentList.typeEnumId.contains(it.enumId)}" key="${enumId}" text="${enumId}: ${description ?: ''}"/></drop-down>
+                                </default-field></field>
+                                <field name="dataDocumentId"><default-field title="Data Document">
+                                    <drop-down><list-options list="dataDocumentList" key="${dataDocumentId}" text="${dataDocumentId} - ${documentName}"/></drop-down>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                            </form-single>
+                        </container-dialog></box-toolbar>
+                        <box-body>
+                            <form-list name="StoreDataDocumentForm" list="storeDataDocumentList" transition="updateStoreDataDocument">
+                                <field name="productStoreId"><default-field><hidden/></default-field></field>
+                                <field name="typeEnumId"><default-field title="Store Data Document Type"><display-entity
+                                        entity-name="moqui.basic.Enumeration"/></default-field></field>
+                                <field name="dataDocumentId"><default-field title="Data Document">
+                                    <drop-down><list-options list="dataDocumentList" key="${dataDocumentId}" text="${dataDocumentId} - ${documentName}"/></drop-down>
+                                </default-field></field>
+                                <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                                <field name="deleteButton" align="right"><default-field title="">
+                                    <link url="deleteStoreDataDocument" icon="fa fa-trash"
+                                          confirmation="Are you sure you want to remove this Store Data Document?"/>
+                                </default-field></field>
+                            </form-list>
+                        </box-body>
+                    </container-box>
+                </widgets>
+            </section>
+
         </row-col></container-row>
     </widgets>
 </screen>

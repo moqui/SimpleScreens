@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-This software is in the public domain under CC0 1.0 Universal plus a 
+This software is in the public domain under CC0 1.0 Universal plus a
 Grant of Patent License.
 
 To the extent possible under law, the author(s) have dedicated all
@@ -26,6 +26,16 @@ along with this software (see the LICENSE.md file). If not, see
     <transition name="updateProductCategoryFeatGrpAppl"><service-call name="update#mantle.product.feature.ProductCategoryFeatGrpAppl"/>
         <default-response url="."/></transition>
 
+    <transition name="createProductCategoryIdent"><service-call name="create#mantle.product.category.ProductCategoryIdent"/>
+        <default-response url="."/></transition>
+    <transition name="updateProductCategoryIdent"><service-call name="update#mantle.product.category.ProductCategoryIdent"/>
+        <default-response url="."/></transition>
+    <transition name="deleteProductCategoryIdent"><service-call name="delete#mantle.product.category.ProductCategoryIdent"/>
+        <default-response url="."/></transition>
+    <transition name="generateUrlSlugCategoryIdent">
+        <service-call name="mantle.product.StoreServices.generate#UrlSlugFromCategoryName"/>
+        <default-response url="."/></transition>
+
     <transition name="createProductCategoryRollup"><service-call name="create#mantle.product.category.ProductCategoryRollup"
             in-map="context + [productCategoryId:childProductCategoryId]"/><default-response url="."/></transition>
     <transition name="updateProductCategoryRollup"><service-call name="update#mantle.product.category.ProductCategoryRollup"
@@ -39,6 +49,15 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.product.category.ProductCategory" value-field="category" cache="false"/>
         <if condition="category == null"><return error="true" message="Category not found with ID ${productCategoryId}"/></if>
         <set field="curProductCategoryId" from="productCategoryId"/>
+
+        <entity-find entity-name="moqui.basic.Enumeration" limit="200" cache="true" list="productCategoryIdentTypeList">
+            <econdition field-name="enumTypeId" value="ProductCategoryIdentType"/><order-by field-name="description"/></entity-find>
+        <entity-find entity-name="mantle.product.store.ProductStore" limit="200" cache="true" list="productStoreList">
+            <order-by field-name="storeName"/></entity-find>
+        <entity-find entity-name="mantle.marketing.segment.MarketSegment" limit="200" cache="true" list="marketSegmentList">
+            <order-by field-name="description"/></entity-find>
+        <entity-find entity-name="mantle.product.category.ProductCategoryIdent" list="pciList">
+            <econdition field-name="productCategoryId"/></entity-find>
     </actions>
     <widgets>
         <container-row><row-col md="7">
@@ -107,6 +126,50 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field></field>
                     </form-list>
                 </box-body-nopad></container-box>
+                <container-box><box-header title="Category Identification"/><box-toolbar>
+                    <form-single name="GenerateCategoryIdent" transition="generateUrlSlugCategoryIdent">
+                        <field name="productCategoryId"><default-field><hidden/></default-field></field>
+                        <field name="categoryName" from="category?.categoryName"><default-field><hidden/></default-field></field>
+                        <field name="submitButton"><conditional-field title="Generate Url Slug" tooltip="Generate Url Slug from the Category's Name"
+                                                                      condition="pciList?.findAll{it.identTypeEnumId == 'PcitUrlSlug' }?.size() == 0">
+                            <submit/></conditional-field></field></form-single>
+                    <container-dialog id="AddCategoryIdentDialog" button-text="New Category Identification">
+                        <form-single name="AddCategoryIdentForm" transition="createProductCategoryIdent">
+                            <field name="productCategoryId"><default-field><hidden/></default-field></field>
+                            <field name="productCategoryIdentId"><default-field tooltip="Id of Product Category to Product Category Ident Relationship">
+                                <text/></default-field></field>
+                            <field name="identTypeEnumId"><default-field title="Identity Type">
+                                <drop-down><list-options list="productCategoryIdentTypeList" key="${enumId}" text="${description}"/></drop-down>
+                            </default-field></field>
+                            <field name="productStoreId"><default-field title="Product Store">
+                                <drop-down allow-empty="true"><list-options list="productStoreList" key="${productStoreId}" text="${storeName}"/></drop-down>
+                            </default-field></field>
+                            <field name="marketSegmentId"><default-field>
+                                <drop-down allow-empty="true"><list-options list="marketSegmentList" key="${marketSegmentId}" text="${description}"/></drop-down>
+                            </default-field></field>
+                            <field name="idValue"><default-field><text-line size="20"/></default-field></field>
+                            <field name="submitButton"><default-field title="Apply"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                </box-toolbar><box-body>
+                    <form-list name="CategoryIdentForm" list="pciList" transition="updateProductCategoryIdent">
+                        <field name="productCategoryIdentId"><default-field><hidden/></default-field></field>
+                        <field name="productCategoryId"><default-field><hidden/></default-field></field>
+                        <field name="identTypeEnumId"><default-field title="Identity Type"><drop-down size="4">
+                            <list-options list="productCategoryIdentTypeList" key="${enumId}" text="${description}"/>
+                        </drop-down></default-field></field>
+                        <field name="productStoreId"><default-field title="Product Store"><drop-down size="4" allow-empty="true">
+                            <list-options list="productStoreList" key="${productStoreId}" text="${storeName}"/>
+                        </drop-down></default-field></field>
+                        <field name="marketSegmentId"><default-field title="Market Segment"><drop-down size="4" allow-empty="true">
+                            <list-options list="marketSegmentList" key="${marketSegmentId}" text="${description}"/>
+                        </drop-down></default-field></field>
+                        <field name="idValue"><default-field><text-line size="20"/></default-field></field>
+                        <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                        <field name="delete"><default-field title=""><link url="deleteProductCategoryIdent" text=""
+                            icon="fa fa-trash" confirmation="Delete Product Category Identity Record?"/></default-field></field>
+                    </form-list>
+                </box-body></container-box>
             </widgets></section>
         </row-col><row-col md="5">
             <container-box><box-header title="Parent Categories"/><box-body-nopad>
