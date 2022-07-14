@@ -33,6 +33,18 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="productIdTypeEnumId"/>
         <service-call name="delete#mantle.product.ProductIdentification"/><default-response url="."/></transition>
 
+    <transition name="createProductOtherIdentification"><parameter name="idValue" required="true"/>
+        <service-call name="create#mantle.product.ProductOtherIdentification"/>
+        <default-response url="."/></transition>
+    <transition name="updateProductOtherIdentification"><service-call name="update#mantle.product.ProductOtherIdentification"/>
+        <default-response url="."/></transition>
+    <transition name="deleteProductOtherIdentification">
+        <parameter name="productIdTypeEnumId"/>
+        <service-call name="delete#mantle.product.ProductOtherIdentification"/><default-response url="."/></transition>
+    <transition name="generateUrlSlugOtherIdent">
+        <service-call name="mantle.product.StoreServices.generate#UrlSlugFromProductName"/>
+        <default-response url="."/></transition>
+
     <transition name="createProductFeature"><service-call name="mantle.product.ProductServices.create#ProductFeature"/>
         <default-response url="."/></transition>
     <transition name="applyProductFeatures"><service-call name="mantle.product.ProductServices.apply#ProductFeatures"/>
@@ -84,9 +96,21 @@ along with this software (see the LICENSE.md file). If not, see
         <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="false"/>
         <if condition="product == null"><return error="true" message="Product not found with ID ${productId}"/></if>
 
+        <entity-find entity-name="moqui.basic.Enumeration" limit="200" cache="true" list="productIdentificationTypeList">
+            <econdition field-name="enumTypeId" value="ProductIdentificationType"/>
+            <econdition field-name="enumId" operator="not-in" from="productIdTypeEnumIds" ignore-if-empty="true"/>
+            <order-by field-name="description"/></entity-find>
         <entity-find entity-name="mantle.product.ProductIdentification" list="productIdentificationList">
             <econdition field-name="productId"/></entity-find>
         <set field="productIdTypeEnumIds" from="productIdentificationList*.productIdTypeEnumId"/>
+
+        <entity-find entity-name="mantle.product.store.ProductStore" limit="200" cache="true" list="productStoreList">
+            <order-by field-name="storeName"/></entity-find>
+        <entity-find entity-name="mantle.marketing.segment.MarketSegment" limit="200" cache="true" list="marketSegmentList">
+            <order-by field-name="description"/></entity-find>
+        <entity-find entity-name="mantle.product.ProductOtherIdentification" list="productOtherIdentificationList">
+            <econdition field-name="productId"/></entity-find>
+        <set field="productIdOtherTypeEnumIds" from="productOtherIdentificationList*.productIdTypeEnumId"/>
 
         <set field="isEquipment" from="product.assetTypeEnumId in ['AstTpEquipment', 'AstTpRental']"/>
         <set field="isInventory" from="product.assetTypeEnumId == 'AstTpInventory'"/>
@@ -221,13 +245,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <form-single name="AddIdentificationForm" transition="createProductIdentification">
                         <field name="productId"><default-field><hidden/></default-field></field>
                         <field name="productIdTypeEnumId"><default-field title="ID Type">
-                            <drop-down><entity-options key="${enumId}" text="${description}">
-                                <entity-find entity-name="moqui.basic.Enumeration">
-                                    <econdition field-name="enumTypeId" value="ProductIdentificationType"/>
-                                    <econdition field-name="enumId" operator="not-in" from="productIdTypeEnumIds" ignore-if-empty="true"/>
-                                    <order-by field-name="description"/>
-                                </entity-find>
-                            </entity-options></drop-down>
+                            <drop-down><list-options list="productIdentificationTypeList.findAll{!productIdTypeEnumIds.contains(it.enumId)}" key="${enumId}" text="${description}"/></drop-down>
                         </default-field></field>
                         <field name="idValue"><default-field><text-line size="20"/></default-field></field>
                         <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
@@ -242,6 +260,47 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
                     <field name="removeButton"><default-field title=""><link url="deleteProductIdentification"
                             icon="fa fa-trash" confirmation="Delete this ID?"/></default-field></field>
+                </form-list>
+            </box-body></container-box>
+
+            <container-box><box-header title="Other Identification"/><box-toolbar>
+                <form-single name="GenerateOtherIdentification" transition="generateUrlSlugOtherIdent">
+                    <field name="productId"><default-field><hidden/></default-field></field>
+                    <field name="productName" from="product?.productName"><default-field><hidden/></default-field></field>
+                    <field name="submitButton"><conditional-field title="Generate Url Slug" tooltip="Generate Url Slug from the Product's Name"
+                        condition="productOtherIdentificationList?.findAll{it.productIdTypeEnumId == 'PidtUrlSlug' }?.size() == 0">
+                        <submit/></conditional-field></field></form-single>
+                <container-dialog id="AddOtherIdentificationDialog" button-text="Add Other Identification">
+                    <form-single name="AddOtherIdentificationForm" transition="createProductOtherIdentification">
+                        <field name="productId"><default-field><hidden/></default-field></field>
+                        <field name="productIdTypeEnumId"><default-field title="ID Type">
+                            <drop-down><list-options list="productIdentificationTypeList" key="${enumId}" text="${description}"/></drop-down>
+                        </default-field></field>
+                        <field name="productStoreId"><default-field>
+                            <drop-down allow-empty="true"><list-options list="productStoreList" key="${productStoreId}" text="${storeName}"/></drop-down>
+                        </default-field></field>
+                        <field name="marketSegmentId"><default-field>
+                            <drop-down allow-empty="true"><list-options list="marketSegmentList" key="${marketSegmentId}" text="${description}"/></drop-down>
+                        </default-field></field>
+                        <field name="idValue"><default-field><text-line size="20"/></default-field></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+            </box-toolbar><box-body>
+                <form-list name="OtherIdentificationsForm" list="productOtherIdentificationList" transition="updateProductOtherIdentification">
+                    <field name="productId"><default-field><hidden/></default-field></field>
+                    <field name="productIdTypeEnumId"><default-field title="ID Type">
+                        <drop-down><list-options list="productIdentificationTypeList" key="${enumId}" text="${description}"/></drop-down></default-field>
+                    </field>
+                    <field name="productStoreId"><default-field>
+                        <drop-down allow-empty="true"><list-options list="productStoreList" key="${productStoreId}" text="${storeName}"/></drop-down>
+                    </default-field></field>
+                    <field name="marketSegmentId"><default-field>
+                        <drop-down allow-empty="true"><list-options list="marketSegmentList" key="${marketSegmentId}" text="${description}"/></drop-down>
+                    </default-field></field>
+                    <field name="idValue"><default-field><text-line size="20"/></default-field></field>
+                    <field name="submitButton"><default-field title="Update"><submit/></default-field></field>
+                    <field name="removeButton"><default-field title=""><link url="deleteProductOtherIdentification" icon="fa fa-trash" confirmation="Delete this ID?"/></default-field></field>
                 </form-list>
             </box-body></container-box>
 
