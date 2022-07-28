@@ -241,19 +241,21 @@ along with this software (see the LICENSE.md file). If not, see
                     <econdition field-name="classEnumId" ignore-if-empty="true"/>
                     <econdition field-name="quantityOnHandTotal" operator="not-equals" from="0.0" ignore="!excludeZeroQohBool"/>
                     <econditions combine="or">
+                        <!-- TODO for large Asset tables consider removing leading percent wildcard, term will need to match leading characters but much faster -->
                         <econdition field-name="assetId" operator="like" value="%${term}%"/>
                         <econdition field-name="assetName" operator="like" value="%${term}%" ignore-case="true"/>
                         <econdition field-name="lotId" operator="like" value="%${term}%"/>
                         <econdition field-name="lotNumber" operator="like" value="%${term}%" ignore-case="true"/>
+                        <econdition field-name="serialNumber" operator="like" value="%${term}%" ignore-case="true"/>
                         <econdition field-name="pseudoId" operator="like" value="%${term}%" ignore-case="true" ignore="productId"/>
                         <econdition field-name="productName" operator="like" value="%${term}%" ignore-case="true" ignore="productId"/>
                     </econditions>
-                    <select-field field-name="assetId,assetName,availableToPromiseTotal,quantityOnHandTotal,lotId,lotNumber,pseudoId,productName"/>
+                    <select-field field-name="assetId,assetName,availableToPromiseTotal,quantityOnHandTotal,lotId,lotNumber,serialNumber,pseudoId,productName"/>
                     <order-by field-name="${assetOrderBy ?: '-receivedDate'}"/>
                 </entity-find>
                 <script>
                     def outList = []
-                    for (asset in assetList) outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)} ATP ${ec.l10n.format(asset.availableToPromiseTotal, '#,##0.###')} QOH ${ec.l10n.format(asset.quantityOnHandTotal, '#,##0.###')}${asset.lotId || asset.lotNumber ? ' Lot ' + (asset.lotNumber ?: asset.lotId) : ''}".toString()])
+                    for (asset in assetList) outList.add([value:asset.assetId, label:"${ec.resource.expand('AssetNameTemplate','',asset)} - ${ec.resource.expand('ProductNameTemplate','',asset)} ATP ${ec.l10n.format(asset.availableToPromiseTotal, '#,##0.###')} QOH ${ec.l10n.format(asset.quantityOnHandTotal, '#,##0.###')}${asset.lotId || asset.lotNumber ? ' Lot ' + (asset.lotNumber ?: asset.lotId) : ''}${asset.serialNumber ? ' SN ' + asset.serialNumber : ''}".toString()])
                     ec.web.sendJsonResponse(outList)
                 </script>
             </else></if>
