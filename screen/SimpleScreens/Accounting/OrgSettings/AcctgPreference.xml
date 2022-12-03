@@ -43,12 +43,38 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="partyId"><default-field><hidden/></default-field></field>
                     <field name="organizationPartyId"><default-field><hidden/></default-field></field>
 
-                    <!-- TODO (once actually used): fiscalYearStartMonth, fiscalYearStartDay, invoiceSequenceEnumId, orderSequenceEnumId -->
+                    <!-- TODO (once actually supported/used): fiscalYearStartMonth, fiscalYearStartDay -->
 
                     <field name="baseCurrencyUomId"><default-field title="Base Currency">
-                        <display-entity entity-name="moqui.basic.Uom" text="${description} [${uomId}]"/></default-field></field>
+                        <display-entity entity-name="moqui.basic.Uom" text="${uomId} - ${description}"/></default-field></field>
+                    <field name="localCurrencyUomId"><default-field title="Local Currency">
+                        <display-entity entity-name="moqui.basic.Uom" text="${uomId} - ${description} - Local Currency Amounts are calculated for each GL Transaction IF a current exchange rate is set in a UomConversion record between Base Currency and Local Currency"/></default-field></field>
                     <field name="cogsMethodEnumId"><default-field title="COGS Method">
                         <display-entity entity-name="moqui.basic.Enumeration"/></default-field></field>
+                    <field name="settlementTermId"><default-field title="Default Receivables Term"
+                            tooltip="Settlement Term can be set on each invoice, a per-customer term may be set in an Agreement">
+                        <drop-down allow-empty="true"><entity-options key="${settlementTermId}" text="${description}">
+                            <entity-find entity-name="mantle.account.invoice.SettlementTerm">
+                                <order-by field-name="description"/></entity-find>
+                        </entity-options></drop-down>
+                    </default-field></field>
+
+                    <field name="hourlyTimePeriodTypeId"><default-field title="Pay Period - Hourly">
+                        <drop-down><entity-options key="${timePeriodTypeId}" text="${description}">
+                            <entity-find entity-name="mantle.party.time.TimePeriodType">
+                                <econdition field-name="periodPurposeEnumId" value="Payroll"/>
+                                <order-by field-name="description"/>
+                            </entity-find>
+                        </entity-options></drop-down>
+                    </default-field></field>
+                    <field name="salaryTimePeriodTypeId"><default-field title="Pay Period - Salary">
+                        <drop-down><entity-options key="${timePeriodTypeId}" text="${description}">
+                            <entity-find entity-name="mantle.party.time.TimePeriodType">
+                                <econdition field-name="periodPurposeEnumId" value="Payroll"/>
+                                <order-by field-name="description"/>
+                            </entity-find>
+                        </entity-options></drop-down>
+                    </default-field></field>
 
                     <field name="errorGlJournalId"><default-field title="Error Journal">
                         <drop-down><entity-options key="${glJournalId}" text="${glJournalName}">
@@ -57,12 +83,28 @@ along with this software (see the LICENSE.md file). If not, see
                             </entity-find>
                         </entity-options></drop-down>
                     </default-field></field>
+                    <field name="realTimeGlSummary"><default-field title="Per-Transaction GL Summary"
+                            tooltip="Defaults to N. If set to Y then Organization and Org/TimePeriod summaries are updated with each AcctgTrans post instead of with a timed job.">
+                        <radio no-current-selected-key="N"><option key="Y"/><option key="N"/></radio></default-field></field>
+
+                    <field name="taxClassificationEnumId"><default-field title="Tax Classification">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="TaxClassification"/><set field="allowEmpty" value="true"/></widget-template-include>
+                    </default-field></field>
                     <field name="taxFormEnumId"><default-field title="Tax Form">
                         <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
                             <set field="enumTypeId" value="TaxForm"/><set field="allowEmpty" value="true"/></widget-template-include>
                     </default-field></field>
+                    <field name="employerClassEnumId"><default-field title="Employer Classification">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="EmployerClassification"/><set field="allowEmpty" value="true"/></widget-template-include>
+                    </default-field></field>
+                    <field name="payrollTaxFormEnumId"><default-field title="Payroll Tax Form">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                            <set field="enumTypeId" value="PayrollTaxForm"/><set field="allowEmpty" value="true"/></widget-template-include>
+                    </default-field></field>
 
-                    <!-- not yet supported:
+                    <!-- TODO, add once supported/used: invoiceSequenceEnumId, useInvoiceIdForReturns, orderSequenceEnumId
                     <field name="invoiceIdPrefix"><default-field><text-line size="4"/></default-field></field>
                     <field name="orderIdPrefix"><default-field><text-line size="4"/></default-field></field>
                     -->
@@ -95,7 +137,14 @@ along with this software (see the LICENSE.md file). If not, see
                     <form-single name="CloneAcctgSettingsForm" transition="initPartyAccountingConfiguration">
                         <field name="partyId"><default-field><hidden/></default-field></field>
                         <field name="baseCurrencyUomId"><default-field title="Base Currency">
-                            <drop-down no-current-selected-key="USD"><entity-options key="${uomId}" text="${description} [${uomId}]">
+                            <drop-down no-current-selected-key="USD"><entity-options key="${uomId}" text="${uomId} - ${description}">
+                                <entity-find entity-name="moqui.basic.Uom">
+                                    <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
+                                    <order-by field-name="description"/></entity-find></entity-options></drop-down>
+                        </default-field></field>
+                        <field name="localCurrencyUomId"><default-field title="Local Currency"
+                                tooltip="Local currency for financial reporting, only needed IF DIFFERENT from Base Currency; if used separate local currency amounts are calculated for each GL transaction">
+                            <drop-down allow-empty="true"><entity-options key="${uomId}" text="${uomId} - ${description}">
                                 <entity-find entity-name="moqui.basic.Uom">
                                     <econdition field-name="uomTypeEnumId" value="UT_CURRENCY_MEASURE"/>
                                     <order-by field-name="description"/></entity-find></entity-options></drop-down>
