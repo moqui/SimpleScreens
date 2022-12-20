@@ -32,6 +32,10 @@ along with this software (see the LICENSE.md file). If not, see
         <service-call name="mantle.party.TimeServices.create#TimePeriod" in-map="[previousPeriodId:previousPeriodId, thruDate:thruDate]"/>
         <default-response url="."/>
     </transition>
+    <transition name="createPreviousTimePeriod">
+        <service-call name="mantle.party.TimeServices.create#TimePeriod" in-map="[nextPeriodId:nextPeriodId, fromDate:fromDate]"/>
+        <default-response url="."/>
+    </transition>
 
     <actions>
         <entity-find-one entity-name="mantle.party.time.TimePeriod" value-field="timePeriod"/>
@@ -86,6 +90,22 @@ along with this software (see the LICENSE.md file). If not, see
             </form-single>
         </container-dialog>
         <!-- <link url="createNextTimePeriod" text="Create Next Period" condition="nextPeriod == null" parameter-map="[previousPeriodId:timePeriodId]"/> -->
+
+        <!-- Previous period link or create -->
+        <link url="editTimePeriod" text="Previous: ${previousPeriod.periodName}"
+                parameter-map="[timePeriodId:previousPeriod.timePeriodId]" condition="previousPeriod != null"/>
+        <container-dialog id="CreatePreviousDialog" button-text="Create Previous Period" condition="previousPeriod == null">
+            <form-single name="CreatePreviousPeriod" transition="createPreviousTimePeriod">
+                <field name="nextPeriodId" from="timePeriodId"><default-field><hidden/></default-field></field>
+                <field name="timePeriodTypeId"><default-field title="Type">
+                    <display text="${description}" text-map="timePeriodType"/></default-field></field>
+                <field name="fromDate"><default-field tooltip="Optional, leave empty to calculate with thru date and period type">
+                    <date-time type="date"/></default-field></field>
+                <field name="thruDate" from="timePeriod.fromDate - 1"><default-field>
+                    <display/></default-field></field>
+                <field name="createBtn"><default-field title="Create"><submit/></default-field></field>
+            </form-single>
+        </container-dialog>
 
         <link url="deleteTimePeriod" text="Delete Period" btn-type="danger" confirmation="Delete period ${timePeriod.periodName}?"
                 parameter-map="[timePeriodId:timePeriodId, parentPeriodId:timePeriod.parentPeriodId, previousPeriodId:timePeriod.previousPeriodId]"

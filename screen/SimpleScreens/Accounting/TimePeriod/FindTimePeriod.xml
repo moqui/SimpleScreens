@@ -15,6 +15,10 @@ along with this software (see the LICENSE.md file). If not, see
 <screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
         default-menu-include="false">
 
+    <!-- pass through parameters, a selection of find options to preserve after transitions -->
+    <parameter name="partyId"/>
+    <parameter name="timePeriodTypeId"/>
+
     <transition name="editTimePeriod"><default-response url="../EditTimePeriod"/></transition>
     <transition name="viewPeriodGlAccounts"><default-response url="../ViewPeriodGlAccounts"/></transition>
 
@@ -22,7 +26,11 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="../EditTimePeriod"/></transition>
     <transition name="createNextTimePeriod">
         <service-call name="mantle.party.TimeServices.create#TimePeriod" in-map="[previousPeriodId:previousPeriodId]"/>
-        <default-response url="../EditTimePeriod"/>
+        <default-response url="."/>
+    </transition>
+    <transition name="createPreviousTimePeriod">
+        <service-call name="mantle.party.TimeServices.create#TimePeriod" in-map="[nextPeriodId:nextPeriodId]"/>
+        <default-response url="."/>
     </transition>
 
     <transition-include name="getTimePeriodList" location="component://SimpleScreens/template/party/PartyTransitions.xml"/>
@@ -119,14 +127,20 @@ along with this software (see the LICENSE.md file). If not, see
                         <!-- now supporting all period types so no: parameter-map="[timePeriodTypeId:'FiscalYear,FiscalQuarter,FiscalMonth']" -->
                     </drop-down>
                 </header-field>
-                <default-field><link url="editTimePeriod" text="${periodName} (${ec.l10n.localize('Closed##TimePeriod')}: ${isClosed})" entity-name="mantle.party.time.TimePeriod"
-                        parameter-map="[timePeriodId:previousPeriodId]" condition="previousPeriodId" link-type="anchor"/></default-field>
+                <default-field>
+                    <link url="editTimePeriod" text="${periodName} (${ec.l10n.localize('Closed##TimePeriod')}: ${isClosed})" entity-name="mantle.party.time.TimePeriod"
+                            parameter-map="[timePeriodId:previousPeriodId]" condition="previousPeriodId" link-type="anchor"/>
+                    <link url="createPreviousTimePeriod" text="Create Previous" condition="!previousPeriodId"
+                            parameter-map="[nextPeriodId:timePeriodId]" pass-through-parameters="true"
+                            confirmation="Really create previous period?"/>
+                </default-field>
             </field>
             <field name="nextPeriod"><default-field title="Next">
                 <link url="editTimePeriod" text="${nextTimePeriod.periodName}" text-map="nextTimePeriod"
                         parameter-map="[timePeriodId:nextTimePeriod.timePeriodId]" condition="nextTimePeriod != null" link-type="anchor"/>
                 <link url="createNextTimePeriod" text="Create Next" condition="nextTimePeriod == null"
-                        parameter-map="[previousPeriodId:timePeriodId]"/>
+                        parameter-map="[previousPeriodId:timePeriodId]" pass-through-parameters="true"
+                        confirmation="Really create next period?"/>
             </default-field></field>
             <field name="accounts"><default-field>
                 <link url="viewPeriodGlAccounts" text="Accounts" condition="timePeriodTypeId?.startsWith('Fiscal')"/></default-field></field>
@@ -136,7 +150,8 @@ along with this software (see the LICENSE.md file). If not, see
             <form-list-column><field-ref name="timePeriodTypeId"/><field-ref name="periodNum"/></form-list-column>
             <form-list-column><field-ref name="fromDate"/><field-ref name="thruDate"/></form-list-column>
             <form-list-column><field-ref name="isClosed"/></form-list-column>
-            <form-list-column><field-ref name="parentPeriodId"/><field-ref name="previousPeriodId"/></form-list-column>
+            <form-list-column><field-ref name="parentPeriodId"/></form-list-column>
+            <form-list-column><field-ref name="previousPeriodId"/></form-list-column>
             <form-list-column><field-ref name="nextPeriod"/></form-list-column>
             <form-list-column><field-ref name="accounts"/></form-list-column>
         </form-list>
