@@ -386,7 +386,13 @@ along with this software (see the LICENSE.md file). If not, see
             </fo:table>
         </#if>
 
-        <#if invoice.invoiceMessage?has_content><fo:block margin-top="0.2in"><@encodeText invoice.invoiceMessage/></fo:block></#if>
+        <#if fromPartyMessage?has_content><fo:block margin-top="0.2in" font-size="10pt" font-weight="bold" linefeed-treatment="preserve">
+            ${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(fromPartyMessage, true))}</fo:block></#if>
+        <#if toPartyMessage?has_content><fo:block margin-top="0.2in" font-size="10pt" font-weight="bold" linefeed-treatment="preserve">
+            ${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(toPartyMessage, true))}</fo:block></#if>
+        <#if invoice.invoiceMessage?has_content><fo:block margin-top="0.2in" font-size="10pt" font-weight="bold" linefeed-treatment="preserve">
+            ${(Static["org.moqui.util.StringUtilities"].encodeForXmlAttribute(invoice.invoiceMessage, true))}</fo:block></#if>
+
         </fo:flow>
     </fo:page-sequence>
 </fo:root>
