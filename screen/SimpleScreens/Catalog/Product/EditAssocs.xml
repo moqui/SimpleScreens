@@ -25,6 +25,13 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="createProductAssoc"><service-call name="create#mantle.product.ProductAssoc"/>
         <default-response url="."/></transition>
+    <!-- create a new product and associate it with this one -->
+    <transition name="createAssocProduct"><actions>
+        <service-call name="create#mantle.product.Product" in-map="context" out-map="newProduct"/>
+        <set field="productId" from="currProductId" />
+        <set field="toProductId" from="newProduct.productId" />
+        <service-call name="create#mantle.product.ProductAssoc" in-map="context"/>
+    </actions><default-response url="."/></transition>
     <transition name="updateProductAssoc"><service-call name="update#mantle.product.ProductAssoc"/>
         <default-response url="."/></transition>
     <transition name="createVariants"><service-call name="mantle.product.ProductServices.create#VariantProducts"/>
@@ -46,6 +53,7 @@ along with this software (see the LICENSE.md file). If not, see
         </entity-find>
         <entity-find entity-name="ProductAssocAndFrom" list="paafList" limit="20">
             <date-filter/><econdition field-name="toProductId" from="productId"/></entity-find>
+        <entity-find-one entity-name="mantle.product.Product" value-field="product" cache="false"/>
     </actions>
     <widgets>
         <container-row><row-col lg="7">
@@ -58,6 +66,42 @@ along with this software (see the LICENSE.md file). If not, see
                         </default-field></field>
                         <field name="productAssocTypeEnumId"><default-field title="Assoc. Type">
                             <drop-down no-current-selected-key="PatMfgBom">
+                                <entity-options key="${enumId}" text="${description}">
+                                    <entity-find entity-name="moqui.basic.Enumeration">
+                                        <econdition field-name="enumTypeId" value="ProductAssocType"/>
+                                        <order-by field-name="description"/></entity-find></entity-options>
+                            </drop-down>
+                        </default-field></field>
+                        <field name="quantity"><default-field><text-line size="10"/></default-field></field>
+                        <field name="fromDate" from="ec.user.nowTimestamp"><default-field><hidden/></default-field></field>
+                        <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                    </form-single>
+                </container-dialog>
+                <container-dialog id="CreateAssocProductDialog" button-text="Create Assoc Product">
+                    <form-single name="CreateAssocProductForm" transition="createAssocProduct">
+                        <field name="currProductId" from="productId"><default-field><hidden/></default-field></field>
+                        <!-- new product fields -->
+                        <field name="productName"><default-field><text-line/></default-field></field>
+                        <field name="productTypeEnumId"><default-field title="Product Type">
+                            <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                <set field="enumTypeId" value="ProductType"/><set field="noCurrentSelectedKey" value="PtAsset"/>
+                            </widget-template-include>
+                        </default-field></field>
+                        <field name="ownerPartyId"><default-field title="Owned By Org">
+                            <drop-down no-current-selected-key="${product.ownerPartyId}">
+                                <option key="_NA_" text="N/A"/>
+                                <entity-options key="${partyId}" text="PartyNameTemplate">
+                                    <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                        <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                        <econdition field-name="disabled" value="N" or-null="true"/>
+                                        <order-by field-name="organizationName"/>
+                                    </entity-find>
+                                </entity-options>
+                            </drop-down>
+                        </default-field></field>
+                        <!-- assoc type fields -->
+                        <field name="productAssocTypeEnumId"><default-field title="Assoc. Type">
+                            <drop-down no-current-selected-key="PatVariant">
                                 <entity-options key="${enumId}" text="${description}">
                                     <entity-find entity-name="moqui.basic.Enumeration">
                                         <econdition field-name="enumTypeId" value="ProductAssocType"/>
