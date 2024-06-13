@@ -25,6 +25,7 @@ along with this software (see the LICENSE.md file). If not, see
     <#assign product = invoiceItem.product!>
     <#assign asset = invoiceItem.asset!>
     <#assign lot = asset.lot!>
+    <#assign quantityUom = ec.entity.find("moqui.basic.Uom").condition("uomId", invoiceItem.quantityUomId).useCache(true).one().description>
     <fo:table-row font-size="8pt" border-bottom="thin solid black">
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center"><#if (itemIndex > 0)>${itemIndex}<#else> </#if></fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block><@encodeText (product.pseudoId)!(invoiceItem.productId)!""/></fo:block></fo:table-cell>
@@ -34,6 +35,7 @@ along with this software (see the LICENSE.md file). If not, see
             <#if invoiceItem.otherPartyProductId?has_content><fo:block>Your Product: <@encodeText invoiceItem.otherPartyProductId/></fo:block></#if>
         </fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${invoiceItem.quantity!"1"}</fo:block></fo:table-cell>
+        <fo:table-cell padding="${cellPadding}"><fo:block text-align="center">${quantityUom}</fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(invoiceItem.amount!0, invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
         <fo:table-cell padding="${cellPadding}"><fo:block text-align="right">${ec.l10n.formatCurrency(((invoiceItem.quantity!1) * (invoiceItem.amount!0)), invoice.currencyUomId, 3)}</fo:block></fo:table-cell>
     </fo:table-row>
@@ -232,9 +234,10 @@ along with this software (see the LICENSE.md file). If not, see
                         <fo:table-cell width="0.4in" padding="${cellPadding}"><fo:block text-align="center">Item</fo:block></fo:table-cell>
                         <fo:table-cell width="1in" padding="${cellPadding}"><fo:block>Product</fo:block></fo:table-cell>
                         <fo:table-cell width="1in" padding="${cellPadding}"><fo:block>Lot</fo:block></fo:table-cell>
-                        <fo:table-cell width="2.5in" padding="${cellPadding}"><fo:block>Description</fo:block></fo:table-cell>
+                        <fo:table-cell width="2.0in" padding="${cellPadding}"><fo:block>Description</fo:block></fo:table-cell>
                         <fo:table-cell width="0.6in" padding="${cellPadding}"><fo:block text-align="center">Qty</fo:block></fo:table-cell>
-                        <fo:table-cell width="0.9in" padding="${cellPadding}"><fo:block text-align="right">Amount</fo:block></fo:table-cell>
+                        <fo:table-cell width="0.6in" padding="${cellPadding}"><fo:block text-align="center">Uom</fo:block></fo:table-cell>
+                        <fo:table-cell width="0.5in" padding="${cellPadding}"><fo:block text-align="right">Amount</fo:block></fo:table-cell>
                         <fo:table-cell width="1in" padding="${cellPadding}"><fo:block text-align="right">Total</fo:block></fo:table-cell>
                     </fo:table-header>
                     <fo:table-body>
@@ -242,6 +245,7 @@ along with this software (see the LICENSE.md file). If not, see
                             <#if !(invoiceItem.parentItemSeqId?has_content)><@productItemRow invoiceItem invoiceItemList invoiceItem_index+1/></#if>
                         </#list>
                         <fo:table-row font-size="9pt" border-top="solid black">
+                            <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>
                             <fo:table-cell padding="${cellPadding}"><fo:block> </fo:block></fo:table-cell>

@@ -25,22 +25,47 @@ along with this software (see the LICENSE.md file). If not, see
     <fo:layout-master-set>
         <fo:simple-page-master master-name="letter-portrait" page-width="8.5in" page-height="11in"
                                margin-top="0.5in" margin-bottom="0.5in" margin-left="0.5in" margin-right="0.5in">
-            <fo:region-body margin-top="1.2in" margin-bottom="0.6in"/>
-            <fo:region-before extent="1.2in"/>
+            <fo:region-body margin-top="2.2in" margin-bottom="0.6in"/>
+            <fo:region-before extent="2.2in"/>
             <fo:region-after extent="0.5in"/>
         </fo:simple-page-master>
     </fo:layout-master-set>
 
     <fo:page-sequence master-reference="letter-portrait" id="mainSequence">
         <fo:static-content flow-name="xsl-region-before">
-            <fo:block font-size="14pt" text-align="center" margin-bottom="0.1in"><#if firstPartInfo.isCustomerInternalOrg>Purchase<#else>Sales</#if> Order #${orderId}</fo:block>
+            <#if logoImageLocation?has_content>
+                <fo:block-container absolute-position="absolute" top="0in" left="0.1in" width="2in">
+                    <fo:block text-align="left" space-after="0.2in">
+                        <fo:external-graphic src="${logoImageLocation}" content-height="0.5in" content-width="scale-to-fit" width="2in" scaling="uniform"/>
+                    </fo:block>
+                </fo:block-container>
+            </#if>
+            <fo:block font-size="14pt" text-align="center" margin-bottom="0.2in">
+                <#if firstPartInfo.isCustomerInternalOrg>Purchase<#else>Sales</#if>
+                <#if orderHeader.statusId == 'OrderProposed'> Quote,</#if> Order #${orderId}</fo:block>
             <fo:table table-layout="fixed" margin-bottom="0.1in" width="7.5in">
                 <fo:table-body><fo:table-row>
                     <fo:table-cell padding="3pt" width="3.75in">
                         <fo:block font-weight="bold">Vendor</fo:block>
                         <fo:block><@encodeText (firstPartInfo.vendorDetail.organizationName)!""/><@encodeText (firstPartInfo.vendorDetail.firstName)!""/> <@encodeText (firstPartInfo.vendorDetail.lastName)!""/></fo:block>
+                        <fo:block text-align="left">
+                            <#if firstPartInfo.vendorContactInfo?has_content>
+                                <fo:block><@encodeText (firstPartInfo.vendorContactInfo.postalAddress.address1)!""/><#if firstPartInfo.vendorContactInfo.postalAddress.unitNumber?has_content> #<@encodeText firstPartInfo.vendorContactInfo.postalAddress.unitNumber/></#if></fo:block>
+                                <#if firstPartInfo.vendorContactInfo.postalAddress.address2?has_content><fo:block><@encodeText firstPartInfo.vendorContactInfo.postalAddress.address2/></fo:block></#if>
+                                <fo:block><@encodeText (firstPartInfo.vendorContactInfo.postalAddress.city!"")/>, ${(firstPartInfo.vendorContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${firstPartInfo.vendorContactInfo.postalAddress.postalCode!""}<#if firstPartInfo.vendorContactInfo.postalAddress.postalCodeExt?has_content>-${firstPartInfo.vendorContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                                <#if firstPartInfo.vendorContactInfo.postalAddress.countryGeoId?has_content><fo:block>${firstPartInfo.vendorContactInfo.postalAddress.countryGeoId}</fo:block></#if>
+                            </#if>
+                        </fo:block>
                         <fo:block font-weight="bold">Customer</fo:block>
                         <fo:block><@encodeText (firstPartInfo.customerDetail.organizationName)!""/><@encodeText (firstPartInfo.customerDetail.firstName)!""/> <@encodeText (firstPartInfo.customerDetail.lastName)!""/></fo:block>
+                        <fo:block text-align="left">
+                            <#if firstPartInfo.customerContactInfo?has_content>
+                                <fo:block><@encodeText (firstPartInfo.customerContactInfo.postalAddress.address1)!""/><#if firstPartInfo.customerContactInfo.postalAddress.unitNumber?has_content> #<@encodeText firstPartInfo.customerContactInfo.postalAddress.unitNumber/></#if></fo:block>
+                                <#if firstPartInfo.customerContactInfo.postalAddress.address2?has_content><fo:block><@encodeText firstPartInfo.customerContactInfo.postalAddress.address2/></fo:block></#if>
+                                <fo:block><@encodeText (firstPartInfo.customerContactInfo.postalAddress.city!"")/>, ${(firstPartInfo.customerContactInfo.postalAddressStateGeo.geoCodeAlpha2)!""} ${firstPartInfo.customerContactInfo.postalAddress.postalCode!""}<#if firstPartInfo.customerContactInfo.postalAddress.postalCodeExt?has_content>-${firstPartInfo.customerContactInfo.postalAddress.postalCodeExt}</#if></fo:block>
+                                <#if firstPartInfo.customerContactInfo.postalAddress.countryGeoId?has_content><fo:block>${firstPartInfo.customerContactInfo.postalAddress.countryGeoId}</fo:block></#if>
+                            </#if>
+                        </fo:block>
                     </fo:table-cell>
                     <fo:table-cell padding="3pt" width="2in">
                         <fo:block font-weight="bold">Date</fo:block>
