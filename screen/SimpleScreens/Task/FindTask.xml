@@ -81,7 +81,7 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="workEffortTypeEnumId" value="WetTask"/>
                 <econdition field-name="rootWorkEffortId" operator="in" from="myProjectIds" or-null="true"/><!-- only tasks in allowed projects -->
                 <select-field field-name="rootWorkEffortId,milestoneWorkEffortId,parentWorkEffortId,workEffortId"/>
-                <select-field field-name="workEffortName,priority,purposeEnumId,statusId,resolutionEnumId"/>
+                <select-field field-name="workEffortName,priority,purposeEnumId,statusId,resolutionEnumId,ownerPartyId"/>
                 <select-field field-name="estimatedCompletionDate,estimatedWorkTime,remainingWorkTime,actualWorkTime,lastUpdatedStamp"/>
             </entity-find>
         </then><else>
@@ -112,6 +112,10 @@ along with this software (see the LICENSE.md file). If not, see
                 <set field="queryString" value="${queryString} AND resolutionEnumId:${resolutionEnumId}"/>
                 <set field="searchInputs.resolutionEnumId" value=""/>
             </if>
+            <if condition="ownerPartyId">
+                <set field="queryString" value="${queryString} AND ownerPartyId:${ownerPartyId}"/>
+                <set field="searchInputs.ownerPartyId" value=""/>
+            </if>
 
             <service-call name="org.moqui.search.SearchServices.search#DataDocuments" out-map="context"
                     in-map="context + [indexName:'mantle', documentType:'MantleTask']"/>
@@ -123,10 +127,15 @@ along with this software (see the LICENSE.md file). If not, see
                 <econdition field-name="rootWorkEffortId" operator="in" from="myProjectIds" or-null="true"/><!-- only tasks in allowed projects -->
                 <econdition field-name="workEffortTypeEnumId" value="WetTask"/>
                 <select-field field-name="rootWorkEffortId,milestoneWorkEffortId,parentWorkEffortId,workEffortId"/>
-                <select-field field-name="workEffortName,priority,purposeEnumId,statusId,resolutionEnumId"/>
+                <select-field field-name="workEffortName,priority,purposeEnumId,statusId,resolutionEnumId,ownerPartyId"/>
                 <select-field field-name="estimatedCompletionDate,estimatedWorkTime,remainingWorkTime,actualWorkTime,lastUpdatedStamp"/>
             </entity-find>
         </else></if>
+
+        <entity-find entity-name="mantle.party.PartyDetail" list="ownerPartyList">
+            <econdition field-name="partyId" operator="in" from="taskList*.ownerPartyId"/>
+            <select-field field-name="partyId,firstName,lastName,organizationName"/>
+        </entity-find>
     </actions>
     <widgets>
         <!-- for future use with saved task filters: <container><label text="${groovy.json.JsonOutput.toJson(ec.web.requestParameters)}"/></container> -->
@@ -207,6 +216,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <select-field field-name="firstName,lastName,organizationName"/>
                     <order-by field-name="firstName,lastName,organizationName"/>
                 </entity-find>
+                <set field="ownerParty" from="ownerPartyList.find{ it.partyId == ownerPartyId }"/>
             </row-actions>
 
             <row-selection id-field="workEffortId">
@@ -410,9 +420,33 @@ along with this software (see the LICENSE.md file). If not, see
             <field name="actualWorkTime" show-total="true" align="right">
                 <header-field title="Actual"><range-find/></header-field>
                 <default-field><display format="0.00"/></default-field></field>
-
+            <field name="ownerPartyId">
+                <header-field><drop-down allow-empty="true" allow-multiple="true">
+                    <list-options list="ownerPartyList" key="${partyId}" text="${firstName?:''} ${lastName?:''} ${organizationName?:''} (${partyId})"/>
+                </drop-down></header-field>
+                <conditional-field condition="ownerParty != null">
+                    <label text="${ownerParty.firstName?:''} ${ownerParty.lastName?:''} ${ownerParty.organizationName?:''}" tooltip="${ownerPartyId}" type="div"/></conditional-field>
+            </field>
 
             <field name="searchButton"><header-field title="Find Tasks"><submit/></header-field></field>
+
+            <columns>
+                <column><field-ref name="priority"/></column>
+                <column><field-ref name="workEffortId"/></column>
+                <column><field-ref name="workEffortName"/></column>
+                <column><field-ref name="rootWorkEffortId"/></column>
+                <column><field-ref name="parentWorkEffortId"/></column>
+                <column><field-ref name="milestoneWorkEffortId"/></column>
+                <column><field-ref name="purposeEnumId"/></column>
+                <column><field-ref name="statusId"/></column>
+                <column><field-ref name="resolutionEnumId"/></column>
+                <column><field-ref name="assigned"/></column>
+                <column><field-ref name="estimatedCompletionDate"/></column>
+                <column><field-ref name="lastUpdatedStamp"/></column>
+                <column><field-ref name="estimatedWorkTime"/></column>
+                <column><field-ref name="remainingWorkTime"/></column>
+                <column><field-ref name="actualWorkTime"/></column>
+            </columns>
         </form-list>
 
         <label text="Full search used: ${queryString}" condition="queryString"/>
