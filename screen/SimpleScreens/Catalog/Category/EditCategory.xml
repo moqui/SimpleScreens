@@ -38,6 +38,12 @@ along with this software (see the LICENSE.md file). If not, see
 
     <transition name="createProductCategoryRollup"><service-call name="create#mantle.product.category.ProductCategoryRollup"
             in-map="context + [productCategoryId:childProductCategoryId]"/><default-response url="."/></transition>
+    <transition name="createProductCategoryAndRollup"><actions>
+        <service-call name="create#mantle.product.category.ProductCategory" in-map="context" out-map="context"/>
+        <service-call name="create#mantle.product.category.ProductCategoryRollup" in-map="context" />
+        <!-- avoid transitioning to the newly created child category -->
+        <set field="productCategoryId" from="parentProductCategoryId" />
+        </actions><default-response url="."/></transition>
     <transition name="updateProductCategoryRollup"><service-call name="update#mantle.product.category.ProductCategoryRollup"
             in-map="context + [productCategoryId:childProductCategoryId]"/><default-response url="."/></transition>
     <transition name="deleteProductCategoryRollup"><service-call name="delete#mantle.product.category.ProductCategoryRollup"
@@ -95,6 +101,33 @@ along with this software (see the LICENSE.md file). If not, see
                             <field name="parentProductCategoryId"><default-field><hidden/></default-field></field>
                             <field name="childProductCategoryId"><default-field title="Child"><drop-down>
                                 <dynamic-options transition="getCategoryList" server-search="true" min-length="0"/></drop-down></default-field></field>
+                            <field name="fromDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
+                            <field name="thruDate"><default-field><date-time/></default-field></field>
+                            <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
+                        </form-single>
+                    </container-dialog>
+                    <container-dialog id="CreateChildDialog" button-text="Create Child Category">
+                        <form-single name="CreateChild" transition="createProductCategoryAndRollup">
+                            <field name="parentProductCategoryId" from="curProductCategoryId"><default-field><hidden/></default-field></field>
+                            <field name="categoryName"><default-field title="Name"><text-line/></default-field></field>
+                            <field name="productCategoryTypeEnumId"><default-field title="Category Type">
+                                <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown">
+                                    <set field="enumTypeId" value="ProductCategoryType"/>
+                                    <set field="noCurrentSelectedKey" from="category.productCategoryTypeEnumId"/>
+                                </widget-template-include>
+                            </default-field></field>
+                            <field name="ownerPartyId" from="category.ownerPartyId"><default-field title="Owner Party">
+                                <drop-down>
+                                    <option key="_NA_" text="N/A"/>
+                                    <entity-options key="${partyId}" text="PartyNameTemplate">
+                                        <entity-find entity-name="mantle.party.PartyDetailAndRole">
+                                            <econdition field-name="partyId" from="activeOrgId" ignore="!activeOrgId"/>
+                                            <econdition field-name="roleTypeId" value="OrgInternal"/>
+                                            <econdition field-name="disabled" value="N" or-null="true"/>
+                                            <order-by field-name="organizationName"/></entity-find>
+                                    </entity-options>
+                                </drop-down>
+                            </default-field></field>
                             <field name="fromDate" from="ec.user.nowTimestamp"><default-field><date-time/></default-field></field>
                             <field name="thruDate"><default-field><date-time/></default-field></field>
                             <field name="submitButton"><default-field title="Add"><submit/></default-field></field>
