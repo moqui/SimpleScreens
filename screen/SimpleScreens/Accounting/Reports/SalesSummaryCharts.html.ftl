@@ -48,7 +48,7 @@ options:{ scales:{ yAxes:[{ ticks:{beginAtZero:true} }] }, maintainAspectRatio:f
     var InvoiceMarginChart = new Chart(document.getElementById("InvoiceMarginChart"), ${invoiceMarginConfig});
     var DiscountCostChart = new Chart(document.getElementById("DiscountCostChart"), ${discountCostConfig});
 </script>
-<#elseif sri.getRenderMode() == "qvt">
+<#elseif sri.getRenderMode() == "qvt" || 'qvt2'>
 <div class="row"><div class="${statsChartColStyle}">
     <m-chart height="300px" :config="${countSummaryConfig}"></m-chart>
 </div><div class="${statsChartColStyle}">

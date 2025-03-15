@@ -60,7 +60,7 @@ along with this software (see the LICENSE.md file). If not, see
                     <#assign currentAmt = (glAccountInfo.postedNoClosingByTimePeriod[timePeriodId]!0)*negMult>
                     <#if findEntryUrl??>
                         <#assign findEntryInstance = findEntryUrl.getInstance(sri, true).addParameter("glAccountId", glAccountInfo.glAccountId).addParameter("isPosted", "Y").addParameter("timePeriodId", timePeriodId)>
-                        <#if sri.getRenderMode()! == "vuet,qvt">
+                        <#if sri.getRenderMode()! == "vuet,qvt,qvt2">
                             <td class="text-right text-mono"><m-link href="${findEntryInstance.getPathWithParams()}">${ec.l10n.format(currentAmt, currencyFormat)}</m-link><#if (currentAmt >= 0)>&nbsp;</#if></td>
                         <#else>
                             <td class="text-right text-mono"><a href="${findEntryInstance.getUrlWithParams()}">${ec.l10n.format(currentAmt, currencyFormat)}</a><#if (currentAmt >= 0)>&nbsp;</#if></td>
@@ -108,8 +108,8 @@ along with this software (see the LICENSE.md file). If not, see
     </#if>
 </#macro>
 
-<div<#if sri.getRenderMode() == 'qvt'> class="q-table__container q-table__card q-table--horizontal-separator q-table--dense q-table--flat"</#if>>
-<table class="<#if sri.getRenderMode() == 'qvt'>q-table<#else>table table-striped table-hover table-condensed</#if>">
+<div<#if sri.getRenderMode() == 'qvt' || 'qvt2'> class="q-table__container q-table__card q-table--horizontal-separator q-table--dense q-table--flat"</#if>>
+<table class="<#if sri.getRenderMode() == 'qvt' || 'qvt2'>q-table<#else>table table-striped table-hover table-condensed</#if>">
     <thead>
         <tr>
             <th class="text-left">${organizationName!""} - ${ec.l10n.localize("Income Statement")} <small>(${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')})</small></th>

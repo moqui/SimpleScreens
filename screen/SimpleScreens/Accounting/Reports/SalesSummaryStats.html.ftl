@@ -29,7 +29,7 @@ along with this software (see the LICENSE.md file). If not, see
                 </div>
             </div></div>
         </div>
-    <#elseif sri.getRenderMode() == "qvt">
+    <#elseif sri.getRenderMode() == "qvt" || 'qvt2'>
         <m-container-dialog title="${title}">
             <template v-slot:button>
                 <q-card flat bordered class="q-ma-sm"><q-card-section>
@@ -85,7 +85,7 @@ along with this software (see the LICENSE.md file). If not, see
         <#if sri.getRenderMode() == "vuet" || sri.getRenderMode() == "html">
             <div class="chart-container" style="position:relative; height:<#if chartBig>500px<#else>90px</#if>; width:100%;"><canvas id="${chartId}"></canvas></div>
             <script>var ${chartId} = new Chart(document.getElementById("${chartId}"), ${chartConfig});</script>
-        <#elseif sri.getRenderMode() == "qvt">
+        <#elseif sri.getRenderMode() == "qvt" || 'qvt2'>
             <m-chart height="<#if chartBig>500px<#else>90px</#if>" :config="${chartConfig}"></m-chart>
         </#if>
     </#if>

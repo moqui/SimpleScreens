@@ -119,8 +119,8 @@ along with this software (see the LICENSE.md file). If not, see
     </#if>
 </#macro>
 
-<div<#if sri.getRenderMode() == 'qvt'> class="q-table__container q-table__card q-table--horizontal-separator q-table--dense q-table--flat"</#if>>
-<table class="<#if sri.getRenderMode() == 'qvt'>q-table<#else>table table-striped table-hover table-condensed</#if>">
+<div<#if sri.getRenderMode() == 'qvt' || 'qvt2'> class="q-table__container q-table__card q-table--horizontal-separator q-table--dense q-table--flat"</#if>>
+<table class="<#if sri.getRenderMode() == 'qvt' || 'qvt2'>q-table<#else>table table-striped table-hover table-condensed</#if>">
     <thead>
         <tr>
             <th>${organizationName!""} - ${ec.l10n.localize("Balance Sheet")} <small>(${ec.l10n.format(ec.user.nowTimestamp, 'dd MMM yyyy HH:mm')})</small></th>
