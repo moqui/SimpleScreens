@@ -1,9 +1,8 @@
 # Simple Screens
 
 [![license](http://img.shields.io/badge/license-CC0%201.0%20Universal-blue.svg)](https://github.com/moqui/SimpleScreens/blob/master/LICENSE.md)
-[![build](https://travis-ci.org/moqui/SimpleScreens.svg)](https://travis-ci.org/moqui/SimpleScreens)
 [![release](http://img.shields.io/github/release/moqui/SimpleScreens.svg)](https://github.com/moqui/SimpleScreens/releases)
-[![commits since release](http://img.shields.io/github/commits-since/moqui/SimpleScreens/v2.2.1.svg)](https://github.com/moqui/SimpleScreens/commits/master)
+[![commits since release](http://img.shields.io/github/commits-since/moqui/SimpleScreens/v2.2.2.svg)](https://github.com/moqui/SimpleScreens/commits/master)
 
 [![Discourse Forum](https://img.shields.io/badge/moqui%20forum-discourse-blue.svg)](https://forum.moqui.org)
 [![Google Group](https://img.shields.io/badge/google%20group-moqui-blue.svg)](https://groups.google.com/d/forum/moqui)
