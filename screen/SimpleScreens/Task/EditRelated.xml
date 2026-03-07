@@ -28,6 +28,17 @@ along with this software (see the LICENSE.md file). If not, see
     </transition>
     <transition name="taskSummary"><default-response url="../TaskSummary"/></transition>
 
+    <transition name="createTask">
+        <actions>
+            <service-call name="mantle.work.TaskServices.create#Task" in-map="context + [workEffortId:null]" out-map="context"/>
+            <service-call name="create#mantle.work.effort.WorkEffortAssoc" in-map="context + [workEffortId:fromWorkEffortId, toWorkEffortId:workEffortId]"/>
+        </actions>
+        <default-response url="../TaskSummary"/></transition>
+    <transition name="getProjectParties">
+        <service-call name="mantle.work.ProjectServices.get#ProjectParties" web-send-json-response="resultList"/>
+        <default-response type="none"/>
+    </transition>
+
     <transition name="getProjectTasks">
         <actions>
             <service-call name="mantle.work.ProjectServices.get#ProjectTasks" in-map="context" out-map="context"/>
@@ -47,6 +58,16 @@ along with this software (see the LICENSE.md file). If not, see
             <econdition field-name="toWorkEffortId" from="workEffortId"/>
             <econdition field-name="workEffortTypeEnumId" value="WetTask"/>
         </entity-find>
+
+        <entity-find entity-name="WorkEffortAndParty" list="weapList">
+            <econditions combine="or">
+                <econdition field-name="visibilityEnumId" operator="in" value="WevGeneral,WevAllUsers"/>
+                <econditions><date-filter/><econdition field-name="partyId" from="ec.user.userAccount.partyId"/></econditions>
+            </econditions>
+            <econdition field-name="workEffortTypeEnumId" value="WetProject"/>
+            <order-by field-name="workEffortId"/>
+        </entity-find>
+        <log level="warn" message="weapList ${weapList}"/>
     </actions>
     <widgets>
         <container>
@@ -126,6 +147,94 @@ along with this software (see the LICENSE.md file). If not, see
                     <field name="submitButton"><default-field title="Add Related"><submit/></default-field></field>
                 </form-single>
             </container-dialog>
+            <container-dialog id="NewTaskContainer" button-text="New Related To Task">
+                <form-single name="NewTaskForm" transition="createTask">
+                    <field name="workEffortId"><default-field><hidden/></default-field></field>
+                    <field name="fromWorkEffortId" from="workEffortId"><default-field><hidden/></default-field></field>
+
+                    <field name="workEffortAssocTypeEnumId"><default-field title="Type"><drop-down>
+                        <entity-options key="${enumId}" text="${description}">
+                            <entity-find entity-name="moqui.basic.Enumeration">
+                                <econditions combine="or">
+                                    <econdition field-name="enumId" value="WeatRelatesTo"/>
+                                    <econdition field-name="parentEnumId" value="WeatRelatesTo"/>
+                                </econditions>
+                                <order-by field-name="description"/>
+                            </entity-find>
+                        </entity-options>
+                    </drop-down></default-field></field>
+                    <field name="rootWorkEffortId"><default-field title="Project"><drop-down>
+                        <list-options list="weapList" key="${workEffortId}" text="${workEffortId}: ${workEffortName}"/>
+<!--                            <entity-find entity-name="WorkEffortAndParty">-->
+<!--                                <econditions combine="or">-->
+<!--                                    <econdition field-name="visibilityEnumId" operator="in" value="WevGeneral,WevAllUsers"/>-->
+<!--                                    <econditions><date-filter/><econdition field-name="partyId" from="ec.user.userAccount.partyId"/></econditions>-->
+<!--                                </econditions>-->
+<!--                                <econdition field-name="workEffortTypeEnumId" value="WetProject"/>-->
+<!--                                <order-by field-name="workEffortId"/>-->
+<!--                            </entity-find>-->
+<!--                        </list-options>-->
+                    </drop-down></default-field></field>
+
+                    <field name="rootWorkEffortId"><default-field title="Project"><drop-down allow-empty="true">
+                        <list-options list="myProjectList" key="${workEffortId}" text="WorkEffortNameTemplate"/>
+                    </drop-down></default-field></field>
+                    <field name="milestoneWorkEffortId"><default-field title="Milestone">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="getProjectMilestones" value-field="workEffortId" label-field="milestoneLabel">
+                                <depends-on field="rootWorkEffortId"/></dynamic-options>
+                        </drop-down>
+                    </default-field></field>
+                    <field name="parentWorkEffortId"><default-field title="Parent Task">
+                        <drop-down allow-empty="true">
+                            <dynamic-options transition="getTaskList" min-length="2" server-search="true" depends-optional="true">
+                                <depends-on field="rootWorkEffortId"/></dynamic-options>
+                        </drop-down>
+                        <!--
+                        <drop-down>
+                            <dynamic-options transition="getProjectTasks" value-field="workEffortId" label-field="taskLabel">
+                                <depends-on field="rootWorkEffortId"/></dynamic-options>
+                        </drop-down>
+                        -->
+                    </default-field></field>
+                    <field name="assignToPartyId"><default-field title="Assign To">
+                        <drop-down no-current-selected-key="${ec.user.userAccount.partyId}" allow-empty="true">
+                            <dynamic-options transition="getProjectParties" value-field="partyId" label-field="name"
+                                             depends-optional="true" server-search="true" min-length="0" parameter-map="[addOptional:'false']">
+                                <depends-on field="rootWorkEffortId"/></dynamic-options>
+                        </drop-down>
+                    </default-field></field>
+                    <field name="workEffortName"><default-field title="Task Name"><text-line/></default-field></field>
+                    <field name="priority"><default-field>
+                        <drop-down no-current-selected-key="5">
+                            <option key="1"/><option key="2"/><option key="3"/><option key="4"/><option key="5"/>
+                            <option key="6"/><option key="7"/><option key="8"/><option key="9"/></drop-down>
+                    </default-field></field>
+                    <field name="purposeEnumId"><default-field title="Purpose">
+                        <drop-down no-current-selected-key="WepTask">
+                            <entity-options key="${enumId}" text="${description}">
+                                <entity-find entity-name="moqui.basic.Enumeration">
+                                    <econdition field-name="enumTypeId" value="WorkEffortPurpose"/>
+                                    <econdition field-name="parentEnumId" value="WetTask"/>
+                                    <order-by field-name="description"/>
+                                </entity-find>
+                            </entity-options>
+                        </drop-down>
+                    </default-field></field>
+                    <field name="statusId"><default-field title="Status">
+                        <widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#statusDropDown">
+                            <set field="statusTypeId" value="WorkEffort"/></widget-template-include>
+                    </default-field></field>
+                    <field name="estimatedCompletionDate">
+                        <default-field title="Due Date"><date-time type="date" format="yyyy-MM-dd"/></default-field>
+                    </field>
+                    <field name="estimatedWorkTime"><default-field title="Estimated Hours">
+                        <text-line size="5"/></default-field></field>
+                    <field name="description"><default-field title="Description"><text-area rows="10" cols="60"/></default-field></field>
+                    <field name="submitButton"><default-field title="Create"><submit/></default-field></field>
+                </form-single>
+            </container-dialog>
+
         </container>
 
         <label text="Related From ${workEffortId} - ${task.workEffortName}" type="h2"/>
