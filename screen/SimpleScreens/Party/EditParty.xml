@@ -53,8 +53,8 @@ along with this software (see the LICENSE.md file). If not, see
         <default-response url="."/></transition>
     <transition name="updatePartyIdentification"><service-call name="update#mantle.party.PartyIdentification"/>
         <default-response url="."/></transition>
-    <transition name="deletePartyIdentification"><parameter name="partyIdTypeEnumId"/>
-        <service-call name="delete#mantle.party.PartyIdentification"/><default-response url="."/></transition>
+    <transition name="deletePartyIdentification"><parameter name="partyIdentificationId"/>
+        <service-call name="update#mantle.party.PartyIdentification" in-map="[partyIdentificationId:partyIdentificationId, thruDate:ec.user.nowTimestamp]"/><default-response url="."/></transition>
 
     <transition name="createUserAccount"><service-call name="mantle.party.PartyServices.create#PartyUserAccount"/>
         <default-response url="."/></transition>
@@ -426,7 +426,7 @@ along with this software (see the LICENSE.md file). If not, see
 
             <section name="PartyIdentificationSection"><actions>
                     <entity-find entity-name="mantle.party.PartyIdentification" list="partyIdentificationList">
-                        <econdition field-name="partyId"/></entity-find>
+                        <econdition field-name="partyId"/><date-filter/></entity-find>
                     <set field="partyIdTypeEnumIds" from="partyIdentificationList.partyIdTypeEnumId"/>
             </actions><widgets>
                 <container-box><box-header title="Identification"/><box-toolbar>
@@ -451,6 +451,7 @@ along with this software (see the LICENSE.md file). If not, see
                     </container-dialog>
                 </box-toolbar><box-body-nopad>
                     <form-list name="IdentificationsForm" list="partyIdentificationList" transition="updatePartyIdentification">
+                        <field name="partyIdentificationId"><default-field><hidden/></default-field></field>
                         <field name="partyId"><default-field><hidden/></default-field></field>
                         <field name="partyIdTypeEnumId"><default-field title="ID Type">
                             <display-entity entity-name="moqui.basic.Enumeration"/>
