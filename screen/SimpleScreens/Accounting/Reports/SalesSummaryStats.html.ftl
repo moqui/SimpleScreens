@@ -15,14 +15,14 @@ along with this software (see the LICENSE.md file). If not, see
     <#assign modalTitle = title + " Detail">
     <#if sri.getRenderMode() == "vuet" || sri.getRenderMode() == "html">
         <div class="panel panel-default"><div class="panel-body" onclick="$('#${modalId}').modal('show');">
-                <h5 class="text-center" style="margin-top:0;">${title}</h5>
+                <h5 class="text-center" style="margin-top:0;">${ec.l10n.localize(title)}</h5>
                 <@statsPanelContent title mainFormat valThis valLast valPrior valAvg false chartList chartMaList labelList/>
         </div></div>
         <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog">
             <div class="modal-dialog modal-lg" role="document"><div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title">${title}</h4>
+                    <h4 class="modal-title">${ec.l10n.localize(title)}</h4>
                 </div>
                 <div class="modal-body">
                     <@statsPanelContent modalTitle mainFormat valThis valLast valPrior valAvg true chartList chartMaList labelList/>
@@ -30,10 +30,10 @@ along with this software (see the LICENSE.md file). If not, see
             </div></div>
         </div>
     <#elseif sri.getRenderMode() == "qvt">
-        <m-container-dialog title="${title}">
+        <m-container-dialog title="${ec.l10n.localize(title)}">
             <template v-slot:button>
                 <q-card flat bordered class="q-ma-sm"><q-card-section>
-                    <h5 class="text-center" style="margin-top:0;margin-bottom:8px;">${title}</h5>
+                    <h5 class="text-center" style="margin-top:0;margin-bottom:8px;">${ec.l10n.localize(title)}</h5>
                     <@statsPanelContent title mainFormat valThis valLast valPrior valAvg false chartList chartMaList labelList/>
                 </q-card-section></q-card>
             </template>
